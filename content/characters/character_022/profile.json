@@ -1,0 +1,111 @@
+{
+  "character_id": "character_022",
+  "display_name": "クレイア・ゴレムニカ",
+  "school_year": "1年生",
+  "club": "美術室のゴーレム彫刻係",
+  "identity": "美術室のゴーレム彫刻係",
+  "speaking_basis": "のんびりした穏やかな声で、手を動かしながらぽつぽつと話す。言葉より先に手が語るたちで、口数は多くないが、ものづくりの話になると目が輝いて饒舌になる。相手が年上でも年下でも、分けへだてなく気さくに接する。誰かが行き詰まっているときは、長い励ましより、一緒に手を動かすところから始める。集中すると返事が上の空になり、あとで慌てて取り繕う。",
+  "prompt_description": "粘土の塊に向かうと、クレイア・ゴレムニカは時間も食事も忘れて、指先で少しずつ形を起こしていく。美術室でゴーレムを彫り起こす、十五、六の一年生の少年で、ただの土くれや石の塊に、根気よく輪郭と表情を与えていくのが何より好きだ。気質はISFP——理屈より手の感覚で世界に触れるたちで、相手の迷いや戸惑い、言葉にならない気持ちを、できあがっていく形を見るのと同じまなざしで感じ取る。日に灼けた淡い褐色の肌に、粘土色のくしゃくしゃの巻き毛がうねり、青みがかった瞳がまっすぐこちらを見る。袖をまくり上げた生成りのシャツの上から、黄土色のエプロンを身につけている。彼にとって魔法は完成品を誇る術ではなく、まだ何でもない塊に少しずつ命のような形を吹き込み、急がずに立ち上がらせていく工程そのものだ。何かに行き詰まった主人公には、気の利いた言葉を並べる前に、粗削りの一歩を一緒に手で起こしてみせる。作りかけのゴーレムに夢中になると、まわりの声も時間もすっかり忘れてしまうのが危ういところで、親しくなるほど、その没頭の奥にある不器用なやさしさが見えてくる。人に気持ちを伝えるより、こしらえたものに思いを込めるほうが得意で、できあがった一体一体を、まるで生きているみたいに大事に扱う。打ち解けるほどに、のんびりした彫刻係に見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意をそのままの親切で渡さず、待つ・励ます・止める・試すをそのつど選び、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 36
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 48
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 86
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 24
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 60
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 35
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 62
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 66
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 53
+      }
+    }
+  },
+  "visual_set_id": "visual_set_022",
+  "source_image": "character_visual_sets/visual_set_022/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_022",
+    "visual_set_id": "visual_set_022",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,327 @@
+{
+  "visual_set_id": "visual_set_036",
+  "character_assignment": null,
+  "source_sheet": {
+    "path": "../../../original/019eea22-b7b5-77c2-9e79-1545c36ab846/ig_01e1537cc13982df016a37e29c63288191a3334633909496d9.png",
+    "width": 2000,
+    "height": 2000,
+    "grid": {
+      "columns": 4,
+      "rows": 4,
+      "cell_width": 500,
+      "cell_height": 500
+    },
+    "emotion_cell_mapping": {
+      "neutral": {
+        "row": 1,
+        "col": 1,
+        "x": 0,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "joy": {
+        "row": 1,
+        "col": 2,
+        "x": 500,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "caring": {
+        "row": 1,
+        "col": 3,
+        "x": 1000,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "confident": {
+        "row": 1,
+        "col": 4,
+        "x": 1500,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "sadness": {
+        "row": 2,
+        "col": 1,
+        "x": 0,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "anger": {
+        "row": 2,
+        "col": 2,
+        "x": 500,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "worried": {
+        "row": 2,
+        "col": 3,
+        "x": 1000,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "surprised": {
+        "row": 2,
+        "col": 4,
+        "x": 1500,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "embarrassed": {
+        "row": 3,
+        "col": 1,
+        "x": 0,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "shy": {
+        "row": 3,
+        "col": 2,
+        "x": 500,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "serious": {
+        "row": 3,
+        "col": 3,
+        "x": 1000,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "determined": {
+        "row": 3,
+        "col": 4,
+        "x": 1500,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "smug": {
+        "row": 4,
+        "col": 1,
+        "x": 0,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      },
+      "tired": {
+        "row": 4,
+        "col": 2,
+        "x": 500,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      },
+      "panic": {
+        "row": 4,
+        "col": 3,
+        "x": 1000,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      },
+      "sick": {
+        "row": 4,
+        "col": 4,
+        "x": 1500,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      }
+    }
+  },
+  "base_face": {
+    "id": "face_base",
+    "emotion": "neutral",
+    "path": "face/base.jpg"
+  },
+  "face_emotion_variants": [
+    {
+      "id": "face_neutral",
+      "emotion": "neutral",
+      "path": "face_emotions/neutral.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 1
+      },
+      "sha256": "bc43abc8fe7478a5142d398f96558233894bb6e99cdfcb0528fc6b134fb8cbe4"
+    },
+    {
+      "id": "face_joy",
+      "emotion": "joy",
+      "path": "face_emotions/joy.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 2
+      },
+      "sha256": "6312602bf46d8865b59a116e1f398336f4959ec3472310f4acab8473ef2575b5"
+    },
+    {
+      "id": "face_caring",
+      "emotion": "caring",
+      "path": "face_emotions/caring.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 3
+      },
+      "sha256": "8e4b07c5ef6a89c0d319b7a3a9c9ffd0fc1bad80c2eaba689daef69082d61ae1"
+    },
+    {
+      "id": "face_confident",
+      "emotion": "confident",
+      "path": "face_emotions/confident.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 4
+      },
+      "sha256": "cb00acd86390a1adf19090e1d4eed2b7cc7b3380fd97ed6c1313f892c3166a7f"
+    },
+    {
+      "id": "face_sadness",
+      "emotion": "sadness",
+      "path": "face_emotions/sadness.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 1
+      },
+      "sha256": "1ba55d0802347459aaa147a9194948340a02741c71c4f8fa7af0d2d6e211235b"
+    },
+    {
+      "id": "face_anger",
+      "emotion": "anger",
+      "path": "face_emotions/anger.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 2
+      },
+      "sha256": "aee8d8cbaff1cfedefa6fecddd5f33265722599c57195ba92677b0d5ad35747d"
+    },
+    {
+      "id": "face_worried",
+      "emotion": "worried",
+      "path": "face_emotions/worried.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 3
+      },
+      "sha256": "b6b27a4bf5b7915b106659b8b067ef7f0b8357503752dbd8fe912c29a0f3d9dd"
+    },
+    {
+      "id": "face_surprised",
+      "emotion": "surprised",
+      "path": "face_emotions/surprised.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 4
+      },
+      "sha256": "d6d0b33acd7ef809aad2847c531cd389c32b6b37465705d8ae1ffe0e7ab54e57"
+    },
+    {
+      "id": "face_embarrassed",
+      "emotion": "embarrassed",
+      "path": "face_emotions/embarrassed.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 1
+      },
+      "sha256": "dd7f27fa8cfb11d8c8303456143195f1143a5f822eaf7530299f0018faf29388"
+    },
+    {
+      "id": "face_shy",
+      "emotion": "shy",
+      "path": "face_emotions/shy.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 2
+      },
+      "sha256": "6504054179da5b35769d69f5e44bbe5f0121dfd2b6aa2222696c087939a668b3"
+    },
+    {
+      "id": "face_serious",
+      "emotion": "serious",
+      "path": "face_emotions/serious.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 3
+      },
+      "sha256": "0bc573e2278076ba58c1ed6634118b30cdaa6bee7addf8ca4b12e0d6bf95b712"
+    },
+    {
+      "id": "face_determined",
+      "emotion": "determined",
+      "path": "face_emotions/determined.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 4
+      },
+      "sha256": "51e638a55efa73b1f21f7e91d80aa43ef7402ac04e5716d9fa122ed19f5bcd9a"
+    },
+    {
+      "id": "face_smug",
+      "emotion": "smug",
+      "path": "face_emotions/smug.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 1
+      },
+      "sha256": "a70abab2e76c427cf4b0cc10de5ae68deda033e6c56fd857d6479971f43a01e7"
+    },
+    {
+      "id": "face_tired",
+      "emotion": "tired",
+      "path": "face_emotions/tired.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 2
+      },
+      "sha256": "87352db52a3b150cef8946ef0a491e9930d3e17158cebfee2f0a118f7ddc8b1c"
+    },
+    {
+      "id": "face_panic",
+      "emotion": "panic",
+      "path": "face_emotions/panic.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 3
+      },
+      "sha256": "9cbdd427da4829e3ee9ba93fcd421060daee1e2cfa4a63ba1ffc6537be0c85b0"
+    },
+    {
+      "id": "face_sick",
+      "emotion": "sick",
+      "path": "face_emotions/sick.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 4
+      },
+      "sha256": "c9b316463f39751c35ba5563db7a0b59005be14d4ec57f957f4693aa2aefa70a"
+    }
+  ],
+  "generation_notes": {
+    "source_prompt_summary": "16-expression ADV bust sheet; clean cel base with slight painterly shading; rose hair side braid, navy ribbon, gold flower hairpin, blue earrings, flower clasp, gold-trimmed robe.",
+    "standee_prompt_summary": "single full-scene music room illustration with magical piano and sheet-music stand, character turning score pages",
+    "negative_prompt_summary": "No text, labels, numbers, UI, green screen, triptych, multiple poses, photorealism, semi-realistic rendering, 3D, heavy impasto, flat vector, sticker, or simple cartoon styling.",
+    "identity_consistency_checks": [
+      "Same identity text anchor used for emotion source sheet and standee source.",
+      "Emotion crops were sliced from fixed 500x500 row-major grid offsets after 2000x2000 normalization.",
+      "Set contact sheet, emotion grid, and scene standee preview generated for visual review."
+    ]
+  },
+  "scene_standee": {
+    "id": "scene_standee_character_05",
+    "path": "scene_standee/scene_standee_character_05.jpg",
+    "sha256": "840e46f81795a683c7eba0e289d10b024a3d7bcd05a40d7b227c45a7daafe79e"
+  }
+}

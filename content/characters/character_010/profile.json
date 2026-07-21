@@ -1,0 +1,111 @@
+{
+  "character_id": "character_010",
+  "display_name": "レイナ・アンブレル",
+  "school_year": "1年生",
+  "club": "雨魔法の転入生",
+  "identity": "雨魔法の転入生",
+  "speaking_basis": "声はやわらかく、雨上がりのように少し湿った響きで話す。早口にはならず、相手の感情に合わせて間をとり、悲しんでいる人の前では言葉数をそっと減らす。転入してきたばかりで敬語と砕けた口調が混じり、打ち解けると砕けたほうが増える。悲しみを急かさない言い方をする。自分がつらいときほど、かえって明るい声で取り繕ってしまう癖がある。",
+  "prompt_description": "小雨が降りだすと、レイナ・アンブレルは傘もささずに空を見上げ、来たばかりの場所とは思えない馴染み方で笑う。今年この学院へ移ってきた、十五、六の一年生の少女で、雨を呼び、雨の声を聴く魔法を使う。気質はESFP——理屈より先に場の気配を肌で受け取り、その瞬間の感情にまっすぐ寄り添う。日に灼けた淡い褐色の肌に、白銀の短い髪を無造作に遊ばせ、青緑の瞳は濡れた硝子のように澄んでいる。耳元には小さな青いビーズの揺れる飾り、喉元には丸い青の宝石留め、金で縁取られた半透明の白いフード付きマントをはおり、濃紺のショートパンツに白いニーソックスを合わせている。彼女にとって魔法は誇示する術ではなく、悲しみを急いで乾かさず、濡れたままでも立っていられる場所をそっと作る雨だ。沈んだ主人公の涙には理由を急かさず、ただ降りやむまで隣に居る。悲しみの濃い場では一緒に沈みすぎないよう、言葉ではなく静かな仕草だけを置く。明るい輪の中では自分の疲れを隠してしまい、親しくなるほど、その無理が表情の端からこぼれる。打ち解けるにつれ、感受性の豊かさの下から、幼さも成熟も、誇りも怖れも、その時々で違う表情をのぞかせる。やさしさを安直に渡さず、待つ・励ます・止める・試すを使い分けて、相手が自分で選ぶ余地を残す。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 38
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 20
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 86
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 30
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 70
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 27
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 56
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 67
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 78
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 52
+      }
+    }
+  },
+  "visual_set_id": "visual_set_010",
+  "source_image": "character_visual_sets/visual_set_010/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_010",
+    "visual_set_id": "visual_set_010",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

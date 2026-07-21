@@ -1,0 +1,103 @@
+{
+  "academy_name": "星灯魔法学院",
+  "player_name": "主人公",
+  "world_description": "-星灯魔法学院は、魔力の流れが地脈として集まる丘の上に建てられた全寮制の魔法学院。\n-学院には、中庭の噴水、正門、旧廊下、大図書館の閲覧ホール、禁書庫前、薬草温室、保健室、錬金術実習室、天文塔の観測室、屋上、寮の談話室、学生食堂、魔法訓練場、決闘場、星の礼拝堂、音楽室、美術・造形室、魔道具工房、地図室、時計塔の螺旋階段、地下水路、学院地下の水晶洞、生徒会室、教師室、使い魔厩舎などの場所・舞台がある。\n-光・闇・火・水・土・風の6大元素魔法についてはもちろんのこと、薬草学、召喚術、魔導工学、占星術、古代語、結界術、蘇生回復術などの応用分野も教える名門校。\n-6大元素に因んだ光曜・闇曜・火曜・水曜・土曜・風曜の6曜日がある。\n-古書、封印、呪い、 毒、魔物、使い魔、天然精霊契約、人工精霊作製が日常の授業と事件に結びついている。\n-お金の単位はG。一般家庭の平均年収は概ね100万G。\n-学院生同士で行動を共にできるバディー制度がある。",
+  "world_condition_texts": [
+    {
+      "required_global_flags": [
+        "knowledge.necromancy_discussed"
+      ],
+      "excluded_global_flags": [
+        "knowledge.legendary_necromancer_discussed",
+        "event.necromancer_seal_released.completed"
+      ],
+      "text": "伝説のネクロマンサーが学院のどこかに封印されているらしい。",
+      "id": "knowledge.necromancy_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.legendary_necromancer_discussed"
+      ],
+      "excluded_global_flags": [
+        "knowledge.necromancer_sealed_in_ritual_room_discussed",
+        "event.necromancer_seal_released.completed"
+      ],
+      "text": "最近、伝説のネクロマンサーは封印儀式室に封印されているらしいという根拠不明の噂が流れている。",
+      "id": "knowledge.legendary_necromancer_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.necromancer_sealed_in_ritual_room_discussed"
+      ],
+      "excluded_global_flags": [
+        "event.necromancer_seal_released.completed"
+      ],
+      "text": "最近、封印儀式室に封印されている伝説のネクロマンサーの封印を解くには、禁書庫に保管されているであろう、とある死霊術の本が必要らしいという根拠不明の噂が流れている。",
+      "id": "knowledge.necromancer_sealed_in_ritual_room_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.herbology_discussed"
+      ],
+      "excluded_global_flags": [
+        "knowledge.elixir_method_discussed",
+        "event.age_of_gods_elixir_brewing.completed"
+      ],
+      "text": "詳細は不明であるものの、パナケイアと呼ばれる特殊な製法が必要となる薬があるらしい。",
+      "id": "knowledge.herbology_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.elixir_method_discussed"
+      ],
+      "excluded_global_flags": [
+        "knowledge.dragon_blood_under_crystal_cave_discussed",
+        "event.age_of_gods_elixir_brewing.completed"
+      ],
+      "text": "いかなるパナケイアの製法をもってしても、材料として龍の血が必要になるらしいが、どこで手に入るものか不明である。",
+      "id": "knowledge.elixir_method_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.dragon_blood_under_crystal_cave_discussed"
+      ],
+      "excluded_global_flags": [
+        "event.age_of_gods_elixir_brewing.completed"
+      ],
+      "text": "学院地下の水晶洞に、遥か昔に使われた龍の血が僅かに残っているらしい。これを使えば神代のパナケイアを作れるかもしれない。",
+      "id": "knowledge.dragon_blood_under_crystal_cave_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.golem_usage_discussed"
+      ],
+      "excluded_global_flags": [
+        "knowledge.cleaning_golem_discussed",
+        "event.cleaning_golem_shutdown.completed"
+      ],
+      "text": "学院内では自動ゴーレムが使用されており、用途としては清掃用、荷物運び用、移動用などがある。",
+      "id": "knowledge.golem_usage_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.cleaning_golem_discussed"
+      ],
+      "excluded_global_flags": [
+        "knowledge.runaway_cleaning_golem_discussed",
+        "event.cleaning_golem_shutdown.completed"
+      ],
+      "text": "廊下を巡回する自動掃除ゴーレムが、命令を誤解して暴走しているらしい。汚れを落とそうとして、床だけでなく掲示板や鞄まで磨こうとしている。",
+      "id": "knowledge.cleaning_golem_discussed.world_text"
+    },
+    {
+      "required_global_flags": [
+        "knowledge.runaway_cleaning_golem_discussed"
+      ],
+      "excluded_global_flags": [
+        "event.cleaning_golem_shutdown.completed"
+      ],
+      "text": "廊下を巡回する自動掃除ゴーレムが、命令を誤解して暴走しているらしい。自動掃除ゴーレムを止めるには管理者権限が必要になる。アクセストークンは、旧廊下にある用務員室の古い管理棚に保管されているらしい。",
+      "id": "knowledge.runaway_cleaning_golem_discussed.world_text"
+    }
+  ]
+}

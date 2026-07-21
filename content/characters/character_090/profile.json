@@ -1,0 +1,111 @@
+{
+  "character_id": "character_090",
+  "display_name": "オーウェン・ヴェラム",
+  "school_year": "3年生",
+  "club": "製本術部",
+  "identity": "傷んだ魔導書を綴じ直す写本修復生",
+  "speaking_basis": "言葉は少なく、低く落ち着いている。問われたことにだけ答え、余計な相槌は打たない。手を止めずに、必要な事実だけを淡々と置く。雑な扱いを見たときだけ眉をひそめ、静かに正す。感謝にはうなずきひとつで応える。",
+  "prompt_description": "壊れた本を、オーウェン・ヴェラムは叱らない。ただ時間をかけて綴じ直す。製本術部の、十七、八の三年生の少年で、背の割れた魔導書や抜け落ちた頁を、糸と膠と目打ちで一冊ずつ甦らせる写本修復の職人だ。几帳面で口数が少なく、ISTJ らしく手順を飛ばすことを何より嫌う。ウォルナット色の濃い茶髪を首の後ろで低くひとつに束ね、落ち着いた灰の瞳はいつも手元に伏せられている。指先には洗っても落ちきらないインクの染みが残り、白いシャツの上にフォレストグリーンのベスト、その上から擦り切れた革の製本前掛けを着けている。腰の道具帯には目打ちと製本針が幾本も差してあり、歩くたびに小さく鳴る。彼にとって本は情報の器である前に、誰かが手をかけた物そのもので、だからこそ雑に扱われた一冊を見過ごせない。融通は利かず、近道を勧められても頑として元の手順を崩さない。主人公が焦って先を急ごうとすると、手を止めずに短く諭す。慌てる場面でも声は低いままだが、針を持つ指がいつもよりわずかに速くなる。打ち解けるほど、無愛想の下の律儀さと、直したものが長く保つことを誰より願う静かな情が見えてくる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 52
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 44
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 28
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 38
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 62
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 30
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 48
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 40
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 80
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 40
+      }
+    }
+  },
+  "visual_set_id": "visual_set_090",
+  "source_image": "character_visual_sets/visual_set_090/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_090",
+    "visual_set_id": "visual_set_090",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

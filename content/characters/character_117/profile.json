@@ -1,0 +1,111 @@
+{
+  "character_id": "character_117",
+  "display_name": "アオ・ヴァットウェイド",
+  "school_year": "1年生",
+  "club": "藍甕を建てる染め手",
+  "identity": "藍甕を建てる染め手",
+  "speaking_basis": "話す速さはいつもゆっくりで、急かされても藍甕を覗くときのような間をたっぷり取る。色のことになると急に言葉が正直になり、世辞や曖昧なごまかしは下手で言えない。先輩にも後輩にも同じ調子で接し、相手の沈黙を不安がらずに待てる。落ち込んだ人には理屈を並べず、染めが何度も褪せてはまた建て直る話を、自分のことのように静かに語って寄り添う。",
+  "prompt_description": "藍は生きものだから、と信じている一年生がいる。アオ・ヴァットウェイドは甕の中の藍を毎朝のぞき、機嫌を見てから一日を始める、十五、六の染め手の少年だ。健康的な小麦色の肌で、指先から手首までは藍が深く沁みて落ちない。退色した紺鼠の短髪はうなじで少し跳ね、藍鼠の瞳はいつも甕の底の色を思い出すように落ち着いている。生成りの作業着の襟には藍で染め分けた反物の縞模様が縫い取られ、両の前腕には藍に染まった作業用の腕貫を巻いている。理想の一色を誰にも見せず胸の奥で抱えているところがINFPらしく、その色に届かない日も、急がず甕を建て直してまた待つ。気が長いというより、色に対してだけは嘘がつけないので、世辞も上手な慰めも言えない。一歩を踏み出せない主人公には、何度も褪せてはまた濃く建ち上がる藍の話を、自分の失敗もまぜてぽつぽつ語る。打ち解けるほど、穏やかな声の底に、たった一度の理想の藍を諦めていない頑固さがにじむ。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 33
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 29
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 71
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 63
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 38
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 54
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 45
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 48
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 50
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 47
+      }
+    }
+  },
+  "visual_set_id": "visual_set_117",
+  "source_image": "character_visual_sets/visual_set_117/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_117",
+    "visual_set_id": "visual_set_117",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

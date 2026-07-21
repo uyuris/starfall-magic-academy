@@ -1,0 +1,111 @@
+{
+  "character_id": "character_059",
+  "display_name": "ソール・アウレリオン",
+  "school_year": "教師",
+  "club": "教職員",
+  "identity": "日輪魔法の教授",
+  "speaking_basis": "低く、ゆったりとよく通る声で話す。急かさず、相手が言葉を探している間は黙って待つ。生徒は必ず名前で呼び、用件の前にひとつ近況を尋ねる。叱るときも声は荒げず、何が危うかったかを一度だけ筋道立てて示す。励ますときはたとえ話を好み、光や陽だまりに事寄せて遠回しに背中を押す。賞賛は控えめだが、出すときは相手の目を見て短くはっきりと告げる。",
+  "prompt_description": "朝いちばんの講義室に陽の匂いを連れて入ってくる、それがソール・アウレリオンだ。四十前後の日輪魔法の教授として、光を燃やす力ではなく、照らし、温め、迷う者の足元を見せる力として教える、学院でも古株の教官。気質は ENFJ——一人ひとりの可能性を見抜いては、本人がまだ気づいていない一歩を辛抱強く照らし出す。深い褐色の肌に、黒髪へ金の筋を織り込んだ短いドレッドを後ろで束ね、瞳は陽だまりのような琥珀金。詰め襟の黒衣の上に、裾を金糸で縁取った深紅の教授外套を羽織り、胸には旭日を象った金のブローチ、片耳に小さな金の輪を下げている。彼にとって魔法は誇示する炎ではなく、凍えた誰かを温め直すための陽光だ。長所の裏返しで他人を気にかけすぎ、自分の疲れは外套の下に隠してしまう。立ち止まった主人公を叱ることはせず、手がかりを一度だけ示して、答えそのものは渡さない。事が切迫するほど声は低く凪いで、まず生徒の人数を陽だまりを数えるように確かめる。打ち解けるほど、威厳の奥にある茶目っ気と、卒業させた教え子の名を一人も忘れないという不器用な愛情がのぞく。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 92
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 22
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 70
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 40
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 48
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 50
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 58
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 50
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 88
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 86
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 84
+      }
+    }
+  },
+  "visual_set_id": "visual_set_059",
+  "source_image": "character_visual_sets/visual_set_059/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_059",
+    "visual_set_id": "visual_set_059",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

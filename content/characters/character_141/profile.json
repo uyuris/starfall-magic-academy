@@ -1,0 +1,56 @@
+{
+  "character_id": "character_141",
+  "display_name": "ラウル・ローヴキンドル",
+  "school_year": "2年生",
+  "club": "厨房と薪割りの下働き",
+  "identity": "家業を継げと言う親に背いて家出同然に来学し、厨房や薪割りの下働きで学費を自ら稼ぐ二年生",
+  "speaking_basis": "言葉は短く、無駄がなく、時にぶっきらぼうに角が立つ。頼み事も礼も苦手で、感謝は口にする代わりに黙って手を動かすことで返す。突っ込んだ問いには生返事でかわし、家のことを聞かれると露骨に口が重くなる。負けん気が強く、できないと言うのが何より嫌いで、無理を抱え込んでは一人で処理しようとする。それでも困っている者を見て見ぬふりはできず、憎まれ口の裏で手だけは先に動いている。褒められると照れて話を切り上げてしまう不器用さがある。",
+  "prompt_description": "仕送りはない。家業を継げと迫る親に背いて、ラウル・ローヴキンドルは着の身着のまま学院の門をくぐった、十六、七の二年生の少年で、厨房の下働きと薪割りで自分の学費を稼いでいる。帰る家を自ら断った負い目を、汗をかくことでねじ伏せているようなところがある。気質はISTP——講釈より先に手が動き、竈の火加減も薪の割り筋も理屈でなく体で覚え、人に頼らず一人で片づけてしまう。野宿の名残で日に灼けた赤土色の濃い肌に、退色した青鼠の髪を切りそろえもせず無造作に伸ばし、鈍い山吹の瞳が油断なく周りをうかがう。襟は幾度も擦り切れ、耳には自分で削った木片のピアスがひとつ引っかかり、首からは家を出るとき唯一持ち出した母の鍵を細い革紐で提げている。飾りといえるものは何ひとつなく、実用一点張りの身なりに、意地だけが妙に鮮やかだ。世話を焼かれるのを嫌い、弱音は喉の奥で握りつぶす一方、同じように身寄りなく働く者へは、ぶっきらぼうな手を言葉より先に差し出す。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 24 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 44 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 63 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 42 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 68 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 33 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 74 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 61 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 40 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 49 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 41 }
+    }
+  },
+  "visual_set_id": "visual_set_141",
+  "source_image": "character_visual_sets/visual_set_141/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_141",
+    "visual_set_id": "visual_set_141",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

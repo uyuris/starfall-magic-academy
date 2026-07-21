@@ -1,0 +1,1453 @@
+{
+  "reward_bands": {
+    "small": {
+      "min": 63,
+      "max": 133
+    },
+    "medium": {
+      "min": 134,
+      "max": 233
+    },
+    "large": {
+      "min": 234,
+      "max": 365
+    }
+  },
+  "types": [
+    {
+      "id": "study_01",
+      "category": "study",
+      "name": "苦手科目の教え合い",
+      "reward_band": "medium",
+      "condition_text": "主人公が依頼主の苦手な内容を具体的に説明し、依頼主が理解を示した。"
+    },
+    {
+      "id": "study_02",
+      "category": "study",
+      "name": "研究の壁打ち",
+      "reward_band": "medium",
+      "condition_text": "依頼主が研究内容を語り、主人公の質問や指摘を受けて依頼主が新しい気づきか次の一手を口にした。"
+    },
+    {
+      "id": "study_03",
+      "category": "study",
+      "name": "危なっかしい実験の見届け役",
+      "reward_band": "large",
+      "condition_text": "依頼主が実験を最後まで実行し（成否は問わない）、その結果を主人公と確認し合った。"
+    },
+    {
+      "id": "study_04",
+      "category": "study",
+      "name": "試験前の模擬問答",
+      "reward_band": "medium",
+      "condition_text": "主人公の出題に依頼主が答えるやり取りが複数回成立し、依頼主が手応えを口にした。"
+    },
+    {
+      "id": "study_05",
+      "category": "study",
+      "name": "禁書区画の付き添い（という体）",
+      "reward_band": "large",
+      "condition_text": "依頼主が目的の用事を済ませたと明言し、主人公の同行に礼か安堵を示した。"
+    },
+    {
+      "id": "study_06",
+      "category": "study",
+      "name": "ノートを写させてもらう交渉",
+      "reward_band": "small",
+      "condition_text": "主人公がノートの貸し借りについて可否や条件をはっきり返答し、依頼主が結果を受け止めた。"
+    },
+    {
+      "id": "study_07",
+      "category": "study",
+      "name": "論文要約の理解チェック",
+      "reward_band": "medium",
+      "condition_text": "依頼主が要約を説明し、主人公が伝わった点・不明な点を具体的に返し、依頼主が直す点か合格かを確認した。"
+    },
+    {
+      "id": "study_08",
+      "category": "study",
+      "name": "研究テーマ二択の相談",
+      "reward_band": "small",
+      "condition_text": "依頼主が二つの候補を説明し、主人公の意見を踏まえてどちらにするか（または決め方）を口にした。"
+    },
+    {
+      "id": "study_09",
+      "category": "study",
+      "name": "実験失敗の原因究明を一緒に",
+      "reward_band": "medium",
+      "condition_text": "二人で失敗の経過を振り返り、依頼主が納得できる原因の仮説を少なくとも一つ採用した。"
+    },
+    {
+      "id": "study_10",
+      "category": "study",
+      "name": "教授への質問の予行",
+      "reward_band": "small",
+      "condition_text": "依頼主が質問文を実際に聞かせ、主人公が感想か改善点を返し、依頼主が本番で使う形を決めた。"
+    },
+    {
+      "id": "study_11",
+      "category": "study",
+      "name": "留年危機の勉強計画づくり",
+      "reward_band": "medium",
+      "condition_text": "何をいつやるかの具体的な勉強計画が会話の中で組み上がり、依頼主がやると約束した。"
+    },
+    {
+      "id": "study_12",
+      "category": "study",
+      "name": "詠唱暗唱の聞き役チェック",
+      "reward_band": "small",
+      "condition_text": "依頼主が詠唱を暗唱してみせ、主人公が出来を伝え、依頼主が結果を受け止めた。"
+    },
+    {
+      "id": "study_13",
+      "category": "study",
+      "name": "図書館の資料の当たり先相談",
+      "reward_band": "small",
+      "condition_text": "探している主題に対して当たるべき資料や場所の見当がつき、依頼主が次に何を見るか口にした。"
+    },
+    {
+      "id": "study_14",
+      "category": "study",
+      "name": "古代文字の読めない一節の相談",
+      "reward_band": "medium",
+      "condition_text": "問題の一節について読み筋や解釈の候補が出て、依頼主が試す解釈か次の調べ方を決めた。"
+    },
+    {
+      "id": "study_15",
+      "category": "study",
+      "name": "星図観測記録の読み合わせ",
+      "reward_band": "medium",
+      "condition_text": "二人で記録を読み合わせ、依頼主が気づき（ずれ・パターンなど）を少なくとも一つ確認した。"
+    },
+    {
+      "id": "study_16",
+      "category": "study",
+      "name": "魔法史の年号クイズ相手",
+      "reward_band": "small",
+      "condition_text": "年号クイズの出題と解答のやり取りが複数回成立し、依頼主が成果か手応えを口にした。"
+    },
+    {
+      "id": "study_17",
+      "category": "study",
+      "name": "発表の通し聞き役",
+      "reward_band": "medium",
+      "condition_text": "依頼主が発表を最後まで通し、主人公が感想か改善点を返し、依頼主が受け止めた。"
+    },
+    {
+      "id": "study_18",
+      "category": "study",
+      "name": "散らかった研究ノートの整理相談",
+      "reward_band": "medium",
+      "condition_text": "ノートをどう整理するかの方針が会話で決まり、依頼主が納得を示した。"
+    },
+    {
+      "id": "study_19",
+      "category": "study",
+      "name": "追試条件の交渉の作戦会議",
+      "reward_band": "medium",
+      "condition_text": "切り出し方や落としどころの作戦が固まり、依頼主がその作戦で行くと決めた。"
+    },
+    {
+      "id": "study_20",
+      "category": "study",
+      "name": "専攻外系統のざっくり講義のお願い",
+      "reward_band": "medium",
+      "condition_text": "主人公が頼まれた系統の要点を講義し、依頼主が理解か面白さを口にした。"
+    },
+    {
+      "id": "study_21",
+      "category": "study",
+      "name": "実験器具の使い方講習",
+      "reward_band": "medium",
+      "condition_text": "主人公が器具の使い方の要点を説明し、依頼主が手順を自分の言葉で確認した。"
+    },
+    {
+      "id": "study_22",
+      "category": "study",
+      "name": "二人でやる共同課題の分担決め",
+      "reward_band": "small",
+      "condition_text": "課題の分担が具体的に決まり、双方が自分の受け持ちを確認した。"
+    },
+    {
+      "id": "study_23",
+      "category": "study",
+      "name": "学説解釈論争の審判",
+      "reward_band": "medium",
+      "condition_text": "依頼主が両論とも自分で説明し、主人公が理由付きでどちらに分があるか裁定し、依頼主が受け止めた。"
+    },
+    {
+      "id": "study_24",
+      "category": "study",
+      "name": "自由課題の題材選び",
+      "reward_band": "small",
+      "condition_text": "候補を挙げ合い、依頼主が題材（または最終候補）を決めた。"
+    },
+    {
+      "id": "study_25",
+      "category": "study",
+      "name": "徹夜明けの答案見直しの付き合い",
+      "reward_band": "medium",
+      "condition_text": "見直しを一緒に進め、依頼主が直すべき点（または問題なし）の確認が済んだと述べた。"
+    },
+    {
+      "id": "study_26",
+      "category": "study",
+      "name": "自分に合う教本の相性相談",
+      "reward_band": "small",
+      "condition_text": "依頼主の学び方を踏まえた教本の選び方か候補が出て、依頼主が試す方針を決めた。"
+    },
+    {
+      "id": "study_27",
+      "category": "study",
+      "name": "質疑応答の想定問答づくり",
+      "reward_band": "medium",
+      "condition_text": "想定質問とその答えが複数組でき、依頼主が備えができたと述べた。"
+    },
+    {
+      "id": "study_28",
+      "category": "study",
+      "name": "友人の勉強会をどう助けるか相談",
+      "reward_band": "small",
+      "condition_text": "助け方の具体案が出て、依頼主がやってみる案を選んだ。"
+    },
+    {
+      "id": "study_29",
+      "category": "study",
+      "name": "新設ゼミの下見の同伴",
+      "reward_band": "medium",
+      "condition_text": "下見の確認が済み、依頼主が入るかどうかの心づもりを口にした。"
+    },
+    {
+      "id": "study_30",
+      "category": "study",
+      "name": "卒業研究の構想を聞いてほしい",
+      "reward_band": "small",
+      "condition_text": "依頼主が構想をひと通り語り終え、主人公の反応を受けて手応えか次の一歩を口にした。"
+    },
+    {
+      "id": "study_31",
+      "category": "study",
+      "name": "自作練習問題の試し解き",
+      "reward_band": "medium",
+      "condition_text": "主人公が問題を実際に解いてみせ（口頭で可）、依頼主が問題の出来について収穫を口にした。"
+    },
+    {
+      "id": "study_32",
+      "category": "study",
+      "name": "暗記法の比べっこ",
+      "reward_band": "small",
+      "condition_text": "互いの暗記法を紹介し合い、依頼主が試したい方法を見つけたと言った。"
+    },
+    {
+      "id": "study_33",
+      "category": "study",
+      "name": "実験記録の清書の付き合い",
+      "reward_band": "medium",
+      "condition_text": "清書作業が進み、依頼主が区切りがついたと述べた。"
+    },
+    {
+      "id": "study_34",
+      "category": "study",
+      "name": "自分の走り書きの解読手伝い",
+      "reward_band": "medium",
+      "condition_text": "読めなかった箇所の見当がつき、依頼主が内容を思い出したか復元できたと確認した。"
+    },
+    {
+      "id": "training_01",
+      "category": "training",
+      "name": "模擬戦の練習相手",
+      "reward_band": "large",
+      "condition_text": "模擬戦が実際に行われ、依頼主が収穫か反省を口にした。"
+    },
+    {
+      "id": "training_02",
+      "category": "training",
+      "name": "新呪文の初披露の観客",
+      "reward_band": "small",
+      "condition_text": "依頼主が新呪文を披露し（成否は問わない）、主人公の感想を受け止めた。"
+    },
+    {
+      "id": "training_03",
+      "category": "training",
+      "name": "朝駆け・山道歩きの伴走",
+      "reward_band": "large",
+      "condition_text": "伴走の行程をやり終えた（または区切りまで走った）ことが確認され、依頼主が労いか達成感を口にした。"
+    },
+    {
+      "id": "training_04",
+      "category": "training",
+      "name": "苦手克服特訓の監督",
+      "reward_band": "medium",
+      "condition_text": "特訓が実施され、依頼主が成果（できた・まだ課題）を確認した。"
+    },
+    {
+      "id": "training_05",
+      "category": "training",
+      "name": "詠唱速度の計測係",
+      "reward_band": "medium",
+      "condition_text": "計測が行われ、結果を依頼主と確認した。"
+    },
+    {
+      "id": "training_06",
+      "category": "training",
+      "name": "杖の振りの癖の見立て",
+      "reward_band": "medium",
+      "condition_text": "主人公が振りの癖について見立てを伝え、依頼主が直す点を受け止めた。"
+    },
+    {
+      "id": "training_07",
+      "category": "training",
+      "name": "的当て勝負で張り合いづくり",
+      "reward_band": "medium",
+      "condition_text": "的当て勝負が行われ、勝敗か出来について二人で振り返った。"
+    },
+    {
+      "id": "training_08",
+      "category": "training",
+      "name": "防御訓練の加減の相談",
+      "reward_band": "medium",
+      "condition_text": "加減（強さ・段階の付け方）の方針が決まり、依頼主が納得した。"
+    },
+    {
+      "id": "training_09",
+      "category": "training",
+      "name": "二人一組の連携技の練習",
+      "reward_band": "large",
+      "condition_text": "連携技の練習が実施され、依頼主が噛み合い（改善点か手応え）を確認した。"
+    },
+    {
+      "id": "training_10",
+      "category": "training",
+      "name": "魔力切れ限界の見極めの立会い",
+      "reward_band": "large",
+      "condition_text": "依頼主が限界近くまで出力を試し、止め時か結果を主人公と確認した。"
+    },
+    {
+      "id": "training_11",
+      "category": "training",
+      "name": "飛行訓練の高所克服の付き添い",
+      "reward_band": "large",
+      "condition_text": "高所（飛行）への挑戦が行われ、依頼主が進歩か次の段階を口にした。"
+    },
+    {
+      "id": "training_12",
+      "category": "training",
+      "name": "水中呼吸術の練習の監視役",
+      "reward_band": "large",
+      "condition_text": "練習の実施が確認され、依頼主が無事の終了と成果を主人公と確認した。"
+    },
+    {
+      "id": "training_13",
+      "category": "training",
+      "name": "反射神経トレーニングの相手",
+      "reward_band": "medium",
+      "condition_text": "トレーニングのやり取りが実施され、依頼主が出来を振り返った。"
+    },
+    {
+      "id": "training_14",
+      "category": "training",
+      "name": "剣と魔法の混合スタイルの意見聞き",
+      "reward_band": "small",
+      "condition_text": "依頼主がスタイルを説明（または披露）し、主人公の意見を受け止めた。"
+    },
+    {
+      "id": "training_15",
+      "category": "training",
+      "name": "決闘の正式作法の確認",
+      "reward_band": "small",
+      "condition_text": "作法の確認が進み、依頼主が本番で守る手順を自分の言葉で確認した。"
+    },
+    {
+      "id": "training_16",
+      "category": "training",
+      "name": "大会前の調整メニュー相談",
+      "reward_band": "medium",
+      "condition_text": "大会までの調整メニューが具体的に決まり、依頼主が採用した。"
+    },
+    {
+      "id": "training_17",
+      "category": "training",
+      "name": "本番で勝てない負け癖の相談",
+      "reward_band": "small",
+      "condition_text": "負け癖の原因か向き合い方について依頼主が気づきを得て、次への心構えを口にした。"
+    },
+    {
+      "id": "training_18",
+      "category": "training",
+      "name": "型稽古の号令係",
+      "reward_band": "medium",
+      "condition_text": "号令に合わせた型稽古が実施され、依頼主が稽古の区切りを宣言した。"
+    },
+    {
+      "id": "training_19",
+      "category": "training",
+      "name": "集中力訓練の見張り",
+      "reward_band": "medium",
+      "condition_text": "訓練が実施され、続けられた時間か出来を二人で確認した。"
+    },
+    {
+      "id": "training_20",
+      "category": "training",
+      "name": "新しい構えの試運転の観察者",
+      "reward_band": "medium",
+      "condition_text": "依頼主が新しい構えを試し、主人公の観察を受けて採用か調整の判断を口にした。"
+    },
+    {
+      "id": "training_21",
+      "category": "training",
+      "name": "筋肉痛と休養計画の相談",
+      "reward_band": "small",
+      "condition_text": "休養の取り方の計画が決まり、依頼主が従うと言った。"
+    },
+    {
+      "id": "training_22",
+      "category": "training",
+      "name": "人目を避けた早朝特訓の同伴",
+      "reward_band": "large",
+      "condition_text": "特訓の実施が確認され、依頼主が同伴への礼か成果を口にした。"
+    },
+    {
+      "id": "training_23",
+      "category": "training",
+      "name": "山林の走り込みコース選び",
+      "reward_band": "medium",
+      "condition_text": "コースの候補と選定理由が話され、依頼主が走るコースを決めた。"
+    },
+    {
+      "id": "training_24",
+      "category": "training",
+      "name": "安定しない魔力出力の観察",
+      "reward_band": "medium",
+      "condition_text": "依頼主が出力を試し、主人公の観察から傾向か対策を得た。"
+    },
+    {
+      "id": "training_25",
+      "category": "training",
+      "name": "連続詠唱チャレンジの記録係",
+      "reward_band": "medium",
+      "condition_text": "チャレンジが実施され、記録（回数・結果）を二人で確認した。"
+    },
+    {
+      "id": "training_26",
+      "category": "training",
+      "name": "利き手矯正の練習の付き合い",
+      "reward_band": "medium",
+      "condition_text": "矯正練習が実施され、依頼主が出来と続け方を確認した。"
+    },
+    {
+      "id": "training_27",
+      "category": "training",
+      "name": "本番で手が震える緊張対策相談",
+      "reward_band": "small",
+      "condition_text": "緊張対策の具体案が出て、依頼主が試す方法を決めた。"
+    },
+    {
+      "id": "training_28",
+      "category": "training",
+      "name": "憧れの技の再現研究の相談",
+      "reward_band": "medium",
+      "condition_text": "再現の糸口（仕組みの仮説か練習手順）が出て、依頼主が次にやることを決めた。"
+    },
+    {
+      "id": "training_29",
+      "category": "training",
+      "name": "訓練記録の成長確認の読み合わせ",
+      "reward_band": "small",
+      "condition_text": "記録を読み合わせ、依頼主が成長した点か停滞の原因を確認した。"
+    },
+    {
+      "id": "training_30",
+      "category": "training",
+      "name": "引退した先輩の技の聞き取り（話題としての語り）",
+      "reward_band": "small",
+      "condition_text": "依頼主が先輩の技について語り終え、主人公が聞き取った要点を確かめ、依頼主が満足を示した。"
+    },
+    {
+      "id": "craft_01",
+      "category": "craft",
+      "name": "採取ルートの相談",
+      "reward_band": "small",
+      "condition_text": "目的の素材に対する採取ルート（または行き先の方針）が決まり、依頼主が採用した。"
+    },
+    {
+      "id": "craft_02",
+      "category": "craft",
+      "name": "素材の目利き",
+      "reward_band": "medium",
+      "condition_text": "持ち込まれた素材について良し悪しか真贋の見立てが伝えられ、依頼主が判断を受け止めた。"
+    },
+    {
+      "id": "craft_03",
+      "category": "craft",
+      "name": "工房作品の品評",
+      "reward_band": "small",
+      "condition_text": "依頼主が作品を見せて説明し、主人公の講評を受け止めた。"
+    },
+    {
+      "id": "craft_04",
+      "category": "craft",
+      "name": "調合物の毒見役",
+      "reward_band": "large",
+      "condition_text": "主人公が調合物を実際に試して感想（味・効き・異常の有無）を伝え、依頼主が結果を確認した。"
+    },
+    {
+      "id": "craft_05",
+      "category": "craft",
+      "name": "素材図鑑との照合の付き合い",
+      "reward_band": "medium",
+      "condition_text": "照合が進み、依頼主が素材の同定（または図鑑に無いという結論）に達した。"
+    },
+    {
+      "id": "craft_06",
+      "category": "craft",
+      "name": "すぐ傷む素材の保存相談",
+      "reward_band": "small",
+      "condition_text": "保存方法の具体案が出て、依頼主が採る方法を決めた。"
+    },
+    {
+      "id": "craft_07",
+      "category": "craft",
+      "name": "器具の手入れ講習",
+      "reward_band": "medium",
+      "condition_text": "手入れの要点が伝えられ、依頼主が手順を自分の言葉で確認した。"
+    },
+    {
+      "id": "craft_08",
+      "category": "craft",
+      "name": "危険な調合手順の口頭確認",
+      "reward_band": "medium",
+      "condition_text": "手順の読み合わせが最後まで行われ、依頼主が危ない箇所の確認を済ませた。"
+    },
+    {
+      "id": "craft_09",
+      "category": "craft",
+      "name": "失敗作（危険物）の捨て方相談",
+      "reward_band": "medium",
+      "condition_text": "安全な処分の段取りが決まり、依頼主が納得した。"
+    },
+    {
+      "id": "craft_10",
+      "category": "craft",
+      "name": "薬草の香りの利き比べ",
+      "reward_band": "small",
+      "condition_text": "利き比べが実施され、違い（当たり外れ）を二人で確認した。"
+    },
+    {
+      "id": "craft_11",
+      "category": "craft",
+      "name": "打刻のリズムの善し悪しを聞いて",
+      "reward_band": "small",
+      "condition_text": "依頼主が打刻のリズムを披露し、主人公の感想を受け止めた。"
+    },
+    {
+      "id": "craft_12",
+      "category": "craft",
+      "name": "砥ぎ上がりの刃の確認",
+      "reward_band": "medium",
+      "condition_text": "刃の仕上がりについて確認結果が伝えられ、依頼主が出来を判断した。"
+    },
+    {
+      "id": "craft_13",
+      "category": "craft",
+      "name": "護符に彫る紋様の相談",
+      "reward_band": "small",
+      "condition_text": "紋様の案が絞られ、依頼主が彫る紋様（または最終候補）を決めた。"
+    },
+    {
+      "id": "craft_14",
+      "category": "craft",
+      "name": "満月と新月どちらで採るか相談",
+      "reward_band": "small",
+      "condition_text": "両者の利害が話され、依頼主が採る時期を決めた。"
+    },
+    {
+      "id": "craft_15",
+      "category": "craft",
+      "name": "高値素材の売り時相談",
+      "reward_band": "medium",
+      "condition_text": "売り時の判断材料が話され、依頼主が売る時期か方針を決めた。"
+    },
+    {
+      "id": "craft_16",
+      "category": "craft",
+      "name": "行商人の掘り出し物の真偽の相談（話題として）",
+      "reward_band": "medium",
+      "condition_text": "品物について真偽の見立てと理由が話され、依頼主が買うか買わないか（または確かめ方）を決めた。"
+    },
+    {
+      "id": "craft_17",
+      "category": "craft",
+      "name": "調合レシピ改良案の壁打ち",
+      "reward_band": "medium",
+      "condition_text": "改良案の検討が進み、依頼主が試す変更点を決めた。"
+    },
+    {
+      "id": "craft_18",
+      "category": "craft",
+      "name": "毒草の見分け講習のお願い",
+      "reward_band": "medium",
+      "condition_text": "見分けの要点が伝えられ、依頼主が判別のポイントを自分の言葉で確認した。"
+    },
+    {
+      "id": "craft_19",
+      "category": "craft",
+      "name": "鉱石の産地当てクイズ",
+      "reward_band": "small",
+      "condition_text": "クイズのやり取りが複数回成立し、結果を二人で振り返った。"
+    },
+    {
+      "id": "craft_20",
+      "category": "craft",
+      "name": "打った剣の銘を決めたい",
+      "reward_band": "small",
+      "condition_text": "銘の案が出て、依頼主が銘（または最終候補）を決めた。"
+    },
+    {
+      "id": "craft_21",
+      "category": "craft",
+      "name": "二人で採りに行く前の分担決め",
+      "reward_band": "small",
+      "condition_text": "採取行の分担と段取りが決まり、双方が確認した。"
+    },
+    {
+      "id": "craft_22",
+      "category": "craft",
+      "name": "工房の枠を主人公に譲ってほしいお願い",
+      "reward_band": "small",
+      "condition_text": "主人公が枠について可否や条件をはっきり返答し、依頼主が結論を受け止めた。"
+    },
+    {
+      "id": "craft_23",
+      "category": "craft",
+      "name": "属性触媒の相性相談",
+      "reward_band": "medium",
+      "condition_text": "触媒の相性について見立てが話され、依頼主が使う組み合わせを決めた。"
+    },
+    {
+      "id": "craft_24",
+      "category": "craft",
+      "name": "古い道具の由来調べ",
+      "reward_band": "medium",
+      "condition_text": "道具の由来について手掛かりか結論が得られ、依頼主が分かったこと（または次の調べ先）を確認した。"
+    },
+    {
+      "id": "craft_25",
+      "category": "craft",
+      "name": "大収穫の採取かご自慢を聞いて",
+      "reward_band": "small",
+      "condition_text": "依頼主が収穫を披露して語り終え、主人公の反応に満足を示した。"
+    },
+    {
+      "id": "craft_26",
+      "category": "craft",
+      "name": "失敗続きの調合の厄払い相談",
+      "reward_band": "small",
+      "condition_text": "不調の切り替え方（験直しの案か原因の整理）が出て、依頼主が気持ちを立て直したと口にした。"
+    },
+    {
+      "id": "craft_27",
+      "category": "craft",
+      "name": "素材の交換交渉の話し合い",
+      "reward_band": "medium",
+      "condition_text": "交換の条件がまとまり（または不成立の結論が出て）、双方が結果を確認した。"
+    },
+    {
+      "id": "craft_28",
+      "category": "craft",
+      "name": "秘伝の下処理の聞き取り",
+      "reward_band": "medium",
+      "condition_text": "依頼主が下処理の手順を語り、主人公が聞き取った要点を確かめ、依頼主が合っていると認めた。"
+    },
+    {
+      "id": "craft_29",
+      "category": "craft",
+      "name": "図鑑にない素材の届け出先相談",
+      "reward_band": "small",
+      "condition_text": "届け出先か手順の見当がつき、依頼主が取る手を決めた。"
+    },
+    {
+      "id": "craft_30",
+      "category": "craft",
+      "name": "工房の後片付けのおしゃべり付き合い",
+      "reward_band": "small",
+      "condition_text": "片付けの区切りがつくまで会話が続き、依頼主が礼か満足を口にした。"
+    },
+    {
+      "id": "craft_31",
+      "category": "craft",
+      "name": "お守り石の磨き方講習",
+      "reward_band": "medium",
+      "condition_text": "磨き方の要点が伝えられ、依頼主が手順を自分の言葉で確認した。"
+    },
+    {
+      "id": "craft_32",
+      "category": "craft",
+      "name": "押し草標本の披露",
+      "reward_band": "small",
+      "condition_text": "依頼主が標本を披露して語り終え、主人公の反応に満足を示した。"
+    },
+    {
+      "id": "life_01",
+      "category": "life",
+      "name": "恋愛相談（相手は話題まで）",
+      "reward_band": "small",
+      "condition_text": "依頼主が想いを打ち明け、主人公の助言か励ましを受けて、どうするか（心の整理でも可）を口にした。"
+    },
+    {
+      "id": "life_02",
+      "category": "life",
+      "name": "家族への手紙の添削",
+      "reward_band": "small",
+      "condition_text": "手紙の内容が確認され、依頼主が直す点か「このままで良い」の結論に納得した。"
+    },
+    {
+      "id": "life_03",
+      "category": "life",
+      "name": "贈り物選びの相談",
+      "reward_band": "small",
+      "condition_text": "贈る相手に合う候補が絞られ、依頼主が贈る物（または最終候補）を決めた。"
+    },
+    {
+      "id": "life_04",
+      "category": "life",
+      "name": "愚痴聞き",
+      "reward_band": "small",
+      "condition_text": "依頼主が愚痴を吐き出し終え、気が済んだ旨を口にした。"
+    },
+    {
+      "id": "life_05",
+      "category": "life",
+      "name": "噂の真偽の相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "噂について確かめ方か向き合い方が決まり、依頼主が納得した。"
+    },
+    {
+      "id": "life_06",
+      "category": "life",
+      "name": "ルームメイトとの生活時間の相談",
+      "reward_band": "small",
+      "condition_text": "生活時間のすり合わせ案が出て、依頼主が試す案を決めた。"
+    },
+    {
+      "id": "life_07",
+      "category": "life",
+      "name": "金欠の節約術相談",
+      "reward_band": "small",
+      "condition_text": "節約の具体案が出て、依頼主が実行する策を選んだ。"
+    },
+    {
+      "id": "life_08",
+      "category": "life",
+      "name": "髪型・身だしなみの相談",
+      "reward_band": "small",
+      "condition_text": "似合う方向の結論が出て、依頼主が試す形を決めた。"
+    },
+    {
+      "id": "life_09",
+      "category": "life",
+      "name": "苦手な人との距離の取り方相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "距離の取り方の方針が決まり、依頼主が納得した。"
+    },
+    {
+      "id": "life_10",
+      "category": "life",
+      "name": "告白されて困っている相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "返事の方向（または考える道筋）が定まり、依頼主が心を決めた。"
+    },
+    {
+      "id": "life_11",
+      "category": "life",
+      "name": "友人へのサプライズ計画（話題として）",
+      "reward_band": "medium",
+      "condition_text": "サプライズの計画（何を・いつ・どうやって）が固まり、依頼主が実行を決めた。"
+    },
+    {
+      "id": "life_12",
+      "category": "life",
+      "name": "ホームシックの話し相手",
+      "reward_band": "small",
+      "condition_text": "依頼主が故郷の話をし終え、気持ちが和らいだ旨を口にした。"
+    },
+    {
+      "id": "life_13",
+      "category": "life",
+      "name": "卒業後の進路相談",
+      "reward_band": "medium",
+      "condition_text": "進路の考えが整理され、依頼主が次の一歩を口にした。"
+    },
+    {
+      "id": "life_14",
+      "category": "life",
+      "name": "兄弟姉妹への嫉妬の相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "気持ちの整理か向き合い方の糸口を依頼主が得て、受け止めを口にした。"
+    },
+    {
+      "id": "life_15",
+      "category": "life",
+      "name": "引かないで聞いてほしい秘密の趣味",
+      "reward_band": "small",
+      "condition_text": "依頼主が趣味を打ち明け、主人公の受け止めに安心か喜びを示した。"
+    },
+    {
+      "id": "life_16",
+      "category": "life",
+      "name": "変な夢の解釈",
+      "reward_band": "small",
+      "condition_text": "夢の解釈（こじつけで可）が語られ、依頼主が面白がるか腑に落ちた反応をした。"
+    },
+    {
+      "id": "life_17",
+      "category": "life",
+      "name": "眠れない夜の相談",
+      "reward_band": "small",
+      "condition_text": "眠れない原因への向き合い方か安眠の工夫が出て、依頼主が試すことを決めた。"
+    },
+    {
+      "id": "life_18",
+      "category": "life",
+      "name": "編み物など手仕事の披露",
+      "reward_band": "small",
+      "condition_text": "依頼主が手仕事を披露して語り終え、主人公の反応に満足を示した。"
+    },
+    {
+      "id": "life_19",
+      "category": "life",
+      "name": "料理の味見役",
+      "reward_band": "medium",
+      "condition_text": "主人公が実際に味見して感想を伝え、依頼主が出来の判断か改良点を確認した。"
+    },
+    {
+      "id": "life_20",
+      "category": "life",
+      "name": "誕生日会の招待客の相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "招く顔ぶれ（または決め方）が決まり、依頼主が納得した。"
+    },
+    {
+      "id": "life_21",
+      "category": "life",
+      "name": "時効だと思うから聞いてほしい昔の失敗",
+      "reward_band": "small",
+      "condition_text": "依頼主が失敗談を語り終え、主人公の受け止めに気が軽くなった旨を示した。"
+    },
+    {
+      "id": "life_22",
+      "category": "life",
+      "name": "人見知り克服の初対面練習（主人公相手の練習）",
+      "reward_band": "medium",
+      "condition_text": "初対面のやり取りの練習が実際に行われ、依頼主が手応えか課題を確認した。"
+    },
+    {
+      "id": "life_23",
+      "category": "life",
+      "name": "口癖矯正の見張り役",
+      "reward_band": "medium",
+      "condition_text": "会話中の口癖チェックが機能し（指摘か「出なかった」確認）、依頼主が成果を確認した。"
+    },
+    {
+      "id": "life_24",
+      "category": "life",
+      "name": "文通相手への返事の相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "返事に書く内容の方向が決まり、依頼主が書けそうだと口にした。"
+    },
+    {
+      "id": "life_25",
+      "category": "life",
+      "name": "お小遣いの使い道会議",
+      "reward_band": "small",
+      "condition_text": "使い道の結論（または優先順位）が出て、依頼主が決めた。"
+    },
+    {
+      "id": "life_26",
+      "category": "life",
+      "name": "友人げんかの仲裁に入るべきか相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "入るか入らないか（または入り方）の結論に依頼主が達した。"
+    },
+    {
+      "id": "life_27",
+      "category": "life",
+      "name": "憧れの先輩の話を聞いて（話題として）",
+      "reward_band": "small",
+      "condition_text": "依頼主が先輩への想いを語り終え、聞いてもらえた満足を示した。"
+    },
+    {
+      "id": "life_28",
+      "category": "life",
+      "name": "自信をなくした自分の長所探し",
+      "reward_band": "small",
+      "condition_text": "主人公が依頼主の長所を具体的に挙げ、依頼主がそれを受け止めて前向きな言葉を口にした。"
+    },
+    {
+      "id": "life_29",
+      "category": "life",
+      "name": "早起き宣言の証人",
+      "reward_band": "small",
+      "condition_text": "依頼主が宣言の中身（起きる時刻・続ける期間）を明言し、主人公が証人になることを引き受けた。"
+    },
+    {
+      "id": "life_30",
+      "category": "life",
+      "name": "二択を代わりに決めて（決断代行）",
+      "reward_band": "small",
+      "condition_text": "主人公がどちらかを理由付きで選び、依頼主がその決定を受け入れた。"
+    },
+    {
+      "id": "life_31",
+      "category": "life",
+      "name": "新しい趣味探しの相談",
+      "reward_band": "small",
+      "condition_text": "依頼主に合いそうな趣味の候補が出て、試すものを決めた。"
+    },
+    {
+      "id": "life_32",
+      "category": "life",
+      "name": "休日の過ごし方会議",
+      "reward_band": "small",
+      "condition_text": "休日の過ごし方が決まり、依頼主が楽しみを口にした。"
+    },
+    {
+      "id": "life_33",
+      "category": "life",
+      "name": "話し方が硬い悩みの雑談練習",
+      "reward_band": "medium",
+      "condition_text": "雑談の練習が実際に行われ、依頼主が手応えか課題を確認した。"
+    },
+    {
+      "id": "life_34",
+      "category": "life",
+      "name": "声が小さい悩みの発声練習の付き合い",
+      "reward_band": "medium",
+      "condition_text": "発声練習が実施され、依頼主が変化か続け方を確認した。"
+    },
+    {
+      "id": "life_35",
+      "category": "life",
+      "name": "忘れっぽさの対策づくり",
+      "reward_band": "small",
+      "condition_text": "物忘れへの対策が具体的に決まり、依頼主が採用した。"
+    },
+    {
+      "id": "life_36",
+      "category": "life",
+      "name": "朝の身支度の時短会議",
+      "reward_band": "small",
+      "condition_text": "時短の工夫が出て、依頼主が試す段取りを決めた。"
+    },
+    {
+      "id": "life_37",
+      "category": "life",
+      "name": "好きな本の布教を聞いて",
+      "reward_band": "small",
+      "condition_text": "依頼主が本の魅力を語り終え、主人公の反応に満足を示した。"
+    },
+    {
+      "id": "life_38",
+      "category": "life",
+      "name": "部屋の模様替えの配置相談",
+      "reward_band": "small",
+      "condition_text": "配置の案が固まり、依頼主が採用した。"
+    },
+    {
+      "id": "life_39",
+      "category": "life",
+      "name": "貯金目標の宣言と見届け",
+      "reward_band": "small",
+      "condition_text": "目標（金額と目的）が明言され、主人公が見届け役を引き受けた。"
+    },
+    {
+      "id": "life_40",
+      "category": "life",
+      "name": "夕暮れの散歩に付き合って",
+      "reward_band": "small",
+      "condition_text": "散歩をひと回りした区切りが会話で示され、依頼主が礼か満足を口にした。"
+    },
+    {
+      "id": "life_41",
+      "category": "life",
+      "name": "仲直りの練習台（主人公が友人役）",
+      "reward_band": "medium",
+      "condition_text": "主人公が友人役を演じる練習が実際に行われ、依頼主が本番で言う謝り方を固めた。"
+    },
+    {
+      "id": "life_42",
+      "category": "life",
+      "name": "誘いの断り方の練習（主人公が誘い役）",
+      "reward_band": "medium",
+      "condition_text": "主人公が誘い役を演じる練習が実際に行われ、依頼主が断り文句を固めた。"
+    },
+    {
+      "id": "campus_01",
+      "category": "campus",
+      "name": "クラブ勧誘の口上練習",
+      "reward_band": "small",
+      "condition_text": "依頼主が口上を実演し、主人公の反応か助言を受けて本番の形を固めた。"
+    },
+    {
+      "id": "campus_02",
+      "category": "campus",
+      "name": "行事の出し物のアイデア出し",
+      "reward_band": "small",
+      "condition_text": "出し物の案が複数出て、依頼主が推す案（または絞った候補）を決めた。"
+    },
+    {
+      "id": "campus_03",
+      "category": "campus",
+      "name": "委員会書類片付けの付き合い",
+      "reward_band": "medium",
+      "condition_text": "片付け作業の区切りがつき、依頼主が進んだ量への礼か達成を口にした。"
+    },
+    {
+      "id": "campus_04",
+      "category": "campus",
+      "name": "探しものの聞き込み",
+      "reward_band": "medium",
+      "condition_text": "探しものの特徴と心当たりの整理が進み、依頼主が次に当たる先を決めた（または見つかった）。"
+    },
+    {
+      "id": "campus_05",
+      "category": "campus",
+      "name": "新入生案内ルートの下見",
+      "reward_band": "medium",
+      "condition_text": "案内ルートの確認が済み、依頼主が回る順路を決めた。"
+    },
+    {
+      "id": "campus_06",
+      "category": "campus",
+      "name": "寮の部屋替え交渉の相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "交渉の切り出し方と落としどころが決まり、依頼主が採用した。"
+    },
+    {
+      "id": "campus_07",
+      "category": "campus",
+      "name": "星降り祭の屋台メニュー会議",
+      "reward_band": "small",
+      "condition_text": "メニュー案が出て、依頼主が出す品（または最終候補）を決めた。"
+    },
+    {
+      "id": "campus_08",
+      "category": "campus",
+      "name": "行事練習の合唱・演奏の聞き役",
+      "reward_band": "small",
+      "condition_text": "依頼主が演目を披露し、主人公の感想を受け止めた。"
+    },
+    {
+      "id": "campus_09",
+      "category": "campus",
+      "name": "劇の台本読み合わせ",
+      "reward_band": "medium",
+      "condition_text": "読み合わせが実際に行われ、依頼主が収穫（台詞の課題か仕上がり）を確認した。"
+    },
+    {
+      "id": "campus_10",
+      "category": "campus",
+      "name": "衣装づくりの意見聞き",
+      "reward_band": "small",
+      "condition_text": "衣装の案か現物について意見が伝えられ、依頼主が方針を決めた。"
+    },
+    {
+      "id": "campus_11",
+      "category": "campus",
+      "name": "予算申請の理由書の相談",
+      "reward_band": "medium",
+      "condition_text": "理由書の骨子（何をどう書くか）が固まり、依頼主が書けると口にした。"
+    },
+    {
+      "id": "campus_12",
+      "category": "campus",
+      "name": "掲示板ポスターの講評",
+      "reward_band": "small",
+      "condition_text": "ポスターについて講評が伝えられ、依頼主が直す点か完成を判断した。"
+    },
+    {
+      "id": "campus_13",
+      "category": "campus",
+      "name": "落とし物の持ち主推理の付き合い",
+      "reward_band": "small",
+      "condition_text": "持ち主の見当か返し方の手順が決まり、依頼主が次の行動を決めた。"
+    },
+    {
+      "id": "campus_14",
+      "category": "campus",
+      "name": "学院新聞のネタ相談・取材練習（主人公が取材相手）",
+      "reward_band": "medium",
+      "condition_text": "取材の練習が実際に行われ、依頼主が記事にできそうだと確認した。"
+    },
+    {
+      "id": "campus_15",
+      "category": "campus",
+      "name": "生徒会選挙の演説練習（依頼主が自分の演説を聞かせる）",
+      "reward_band": "medium",
+      "condition_text": "依頼主が演説を通しで聞かせ、主人公の反応を受けて本番の形を固めた。"
+    },
+    {
+      "id": "campus_16",
+      "category": "campus",
+      "name": "目安箱に投書すべきか相談",
+      "reward_band": "small",
+      "condition_text": "投書するかしないか（または書き方）の結論に依頼主が達した。"
+    },
+    {
+      "id": "campus_17",
+      "category": "campus",
+      "name": "伝統行事の由来調べ",
+      "reward_band": "medium",
+      "condition_text": "由来について分かったこと（または次に調べる先）がまとまり、依頼主が確認した。"
+    },
+    {
+      "id": "campus_18",
+      "category": "campus",
+      "name": "席替えの根回し相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "根回しの進め方が決まり、依頼主が納得した。"
+    },
+    {
+      "id": "campus_19",
+      "category": "campus",
+      "name": "週番仕事の引き継ぎ確認",
+      "reward_band": "small",
+      "condition_text": "引き継ぎ事項の確認が最後まで済み、依頼主が漏れがないと確認した。"
+    },
+    {
+      "id": "campus_20",
+      "category": "campus",
+      "name": "備品をなくした言い出し方相談（話題として）",
+      "reward_band": "small",
+      "condition_text": "打ち明け方（誰に・どう言うか）が決まり、依頼主が言うと決めた。"
+    },
+    {
+      "id": "campus_21",
+      "category": "campus",
+      "name": "学食新メニュー投票の作戦会議",
+      "reward_band": "small",
+      "condition_text": "推しメニューを通す作戦が決まり、依頼主が実行を決めた。"
+    },
+    {
+      "id": "campus_22",
+      "category": "campus",
+      "name": "遅刻常習の対策会議",
+      "reward_band": "small",
+      "condition_text": "遅刻をなくす具体策が決まり、依頼主が実行を約束した。"
+    },
+    {
+      "id": "campus_23",
+      "category": "campus",
+      "name": "これは校則違反になるのか相談",
+      "reward_band": "small",
+      "condition_text": "該当の行いについて判断か確かめ方が定まり、依頼主が納得した。"
+    },
+    {
+      "id": "campus_24",
+      "category": "campus",
+      "name": "保護者来訪日の準備相談",
+      "reward_band": "small",
+      "condition_text": "当日の準備・案内の段取りが決まり、依頼主が納得した。"
+    },
+    {
+      "id": "campus_25",
+      "category": "campus",
+      "name": "図書委員の推薦本選び",
+      "reward_band": "small",
+      "condition_text": "推薦する本（または最終候補）が決まり、依頼主が選定理由を口にした。"
+    },
+    {
+      "id": "campus_26",
+      "category": "campus",
+      "name": "行事の記録係の構図相談",
+      "reward_band": "small",
+      "condition_text": "記録する場面と構図の方針が決まり、依頼主が採用した。"
+    },
+    {
+      "id": "campus_27",
+      "category": "campus",
+      "name": "表彰式スピーチの添削",
+      "reward_band": "medium",
+      "condition_text": "スピーチの内容が確認され、依頼主が直す点か完成の結論に納得した。"
+    },
+    {
+      "id": "campus_28",
+      "category": "campus",
+      "name": "卒業生への寄せ書きの文面相談",
+      "reward_band": "small",
+      "condition_text": "寄せ書きの文面が固まり、依頼主が書けると口にした。"
+    },
+    {
+      "id": "campus_29",
+      "category": "campus",
+      "name": "学院七不思議の検証計画会議",
+      "reward_band": "medium",
+      "condition_text": "どの不思議をどう検証するかの計画が固まり、依頼主が実行を決めた。"
+    },
+    {
+      "id": "campus_30",
+      "category": "campus",
+      "name": "忘れ物防止の仕組みづくり相談",
+      "reward_band": "small",
+      "condition_text": "防止の仕組みが具体的に決まり、依頼主が採用した。"
+    },
+    {
+      "id": "campus_31",
+      "category": "campus",
+      "name": "自室の静けさ改善相談",
+      "reward_band": "small",
+      "condition_text": "騒がしさの原因への対策が決まり、依頼主が試すことを決めた。"
+    },
+    {
+      "id": "campus_32",
+      "category": "campus",
+      "name": "掃除当番の効率化会議",
+      "reward_band": "small",
+      "condition_text": "効率化の段取りが決まり、依頼主が採用した。"
+    },
+    {
+      "id": "campus_33",
+      "category": "campus",
+      "name": "なくした備品の捜索の同伴",
+      "reward_band": "medium",
+      "condition_text": "捜索が進み、見つかったか次に捜す先が決まったことを依頼主が確認した。"
+    },
+    {
+      "id": "campus_34",
+      "category": "campus",
+      "name": "学食新メニューの試食感想会",
+      "reward_band": "small",
+      "condition_text": "試食の感想が交わされ、依頼主が聞きたかった結論（推せるか）を得た。"
+    },
+    {
+      "id": "campus_35",
+      "category": "campus",
+      "name": "行事の雨天プラン検討",
+      "reward_band": "small",
+      "condition_text": "雨天時の代替プランが固まり、依頼主が納得した。"
+    },
+    {
+      "id": "quirk_01",
+      "category": "quirk",
+      "name": "夜の学院見回りの同伴",
+      "reward_band": "large",
+      "condition_text": "見回りの行程を回り終えた（または異常の有無を確認し終えた）ことが確認され、依頼主が礼を口にした。"
+    },
+    {
+      "id": "quirk_02",
+      "category": "quirk",
+      "name": "賭け勝負の証人（勝負自体は話題まで）",
+      "reward_band": "small",
+      "condition_text": "賭けの内容と条件が明言され、主人公が証人を引き受けた。"
+    },
+    {
+      "id": "quirk_03",
+      "category": "quirk",
+      "name": "秘密の共有",
+      "reward_band": "small",
+      "condition_text": "依頼主が秘密を打ち明け、主人公が他言しない旨を約束した。"
+    },
+    {
+      "id": "quirk_04",
+      "category": "quirk",
+      "name": "占い・験担ぎの実験台",
+      "reward_band": "medium",
+      "condition_text": "占い（験担ぎ）が主人公相手に実施され、結果を二人で確認した。"
+    },
+    {
+      "id": "quirk_05",
+      "category": "quirk",
+      "name": "使い魔の躾相談",
+      "reward_band": "small",
+      "condition_text": "躾の困りごとへの具体案が出て、依頼主が試す方法を決めた。"
+    },
+    {
+      "id": "quirk_06",
+      "category": "quirk",
+      "name": "幽霊の目撃談の検証の付き合い",
+      "reward_band": "medium",
+      "condition_text": "目撃談の検証（話の突き合わせか説明づけ）が進み、依頼主が結論か次の手を口にした。"
+    },
+    {
+      "id": "quirk_07",
+      "category": "quirk",
+      "name": "呪いのアイテム（自称）鑑定の立会い",
+      "reward_band": "medium",
+      "condition_text": "鑑定（観察と見立て）が行われ、依頼主が呪いの真偽か扱い方の結論を受け止めた。"
+    },
+    {
+      "id": "quirk_08",
+      "category": "quirk",
+      "name": "変な音の出所探しの同伴",
+      "reward_band": "medium",
+      "condition_text": "出所の見当がついた（または安全と分かった）ことを依頼主が確認した。"
+    },
+    {
+      "id": "quirk_09",
+      "category": "quirk",
+      "name": "不吉な星占いが怖い話を聞いて",
+      "reward_band": "small",
+      "condition_text": "依頼主が不安を語り終え、主人公の受け止めで気持ちが落ち着いた旨を口にした。"
+    },
+    {
+      "id": "quirk_10",
+      "category": "quirk",
+      "name": "自作の詩・歌の初公開",
+      "reward_band": "small",
+      "condition_text": "依頼主が作品を披露し、主人公の感想への反応で区切りを示した。"
+    },
+    {
+      "id": "quirk_11",
+      "category": "quirk",
+      "name": "無表情克服の百面相練習",
+      "reward_band": "small",
+      "condition_text": "表情の練習が実際に行われ、依頼主が手応えか課題を確認した。"
+    },
+    {
+      "id": "quirk_12",
+      "category": "quirk",
+      "name": "詠唱嚙み対策の早口言葉特訓",
+      "reward_band": "small",
+      "condition_text": "早口言葉の特訓が実施され、依頼主が出来を振り返った。"
+    },
+    {
+      "id": "quirk_13",
+      "category": "quirk",
+      "name": "必殺技の名乗り・決め台詞づくり",
+      "reward_band": "small",
+      "condition_text": "台詞の案が出て、依頼主が使う台詞（または最終候補）を決めた。"
+    },
+    {
+      "id": "quirk_14",
+      "category": "quirk",
+      "name": "開かずの扉の張り込みの付き合い",
+      "reward_band": "large",
+      "condition_text": "張り込みの区切り（何かを見たか・今夜は空振りか）がつき、依頼主が付き合いへの礼を口にした。"
+    },
+    {
+      "id": "quirk_15",
+      "category": "quirk",
+      "name": "タイムカプセルの場所思い出し会議",
+      "reward_band": "small",
+      "condition_text": "記憶の手掛かりが掘り起こされ、依頼主が場所の見当か次に確かめる手を決めた。"
+    },
+    {
+      "id": "quirk_16",
+      "category": "quirk",
+      "name": "魔法水の利き当てっこ",
+      "reward_band": "small",
+      "condition_text": "利き当てのやり取りが実施され、結果を二人で振り返った。"
+    },
+    {
+      "id": "quirk_17",
+      "category": "quirk",
+      "name": "苦手食材克服の立会い",
+      "reward_band": "medium",
+      "condition_text": "依頼主が苦手食材に実際に挑み、結果（食べられた・無理だった）を二人で確認した。"
+    },
+    {
+      "id": "quirk_18",
+      "category": "quirk",
+      "name": "深夜の空腹の共犯相談",
+      "reward_band": "small",
+      "condition_text": "夜食の算段がまとまり、依頼主が満足か共犯の礼を口にした。"
+    },
+    {
+      "id": "quirk_19",
+      "category": "quirk",
+      "name": "くしゃみで魔法が暴発する悩み",
+      "reward_band": "medium",
+      "condition_text": "暴発の困りごとへの対策案が出て、依頼主が試す策を決めた。"
+    },
+    {
+      "id": "quirk_20",
+      "category": "quirk",
+      "name": "自分の影が変な動きをする気がする相談",
+      "reward_band": "small",
+      "condition_text": "影の話について確かめ方か説明がつき、依頼主が安心か次の手を口にした。"
+    },
+    {
+      "id": "quirk_21",
+      "category": "quirk",
+      "name": "雨の日限定の趣味の披露",
+      "reward_band": "small",
+      "condition_text": "依頼主が趣味を披露して語り終え、主人公の反応に満足を示した。"
+    },
+    {
+      "id": "quirk_22",
+      "category": "quirk",
+      "name": "コレクション自慢",
+      "reward_band": "small",
+      "condition_text": "依頼主がコレクションを語り終え、主人公の反応に満足を示した。"
+    },
+    {
+      "id": "quirk_23",
+      "category": "quirk",
+      "name": "二つ名を考えてほしい",
+      "reward_band": "small",
+      "condition_text": "二つ名の案が出て、依頼主が名乗る二つ名（または最終候補）を決めた。"
+    },
+    {
+      "id": "quirk_24",
+      "category": "quirk",
+      "name": "虫が怖い悩みの克服相談",
+      "reward_band": "small",
+      "condition_text": "克服の段階案（慣らし方）が決まり、依頼主が試すことを決めた。"
+    },
+    {
+      "id": "quirk_25",
+      "category": "quirk",
+      "name": "鏡の中の自分と目が合わない気がする雑談",
+      "reward_band": "small",
+      "condition_text": "雑談として話が転がり、依頼主が気が済んだ旨を口にした。"
+    },
+    {
+      "id": "quirk_26",
+      "category": "quirk",
+      "name": "罰ゲームの見届け（賭けの負け・自分ルールいずれも）",
+      "reward_band": "medium",
+      "condition_text": "依頼主が罰ゲームを実行し、主人公が見届けたことを二人で確認した。"
+    },
+    {
+      "id": "quirk_27",
+      "category": "quirk",
+      "name": "変装の完成度チェック",
+      "reward_band": "small",
+      "condition_text": "変装について見破りポイントか完成度の判定が伝えられ、依頼主が受け止めた。"
+    },
+    {
+      "id": "quirk_28",
+      "category": "quirk",
+      "name": "月夜にしか話せない話",
+      "reward_band": "small",
+      "condition_text": "依頼主が話を打ち明け終え、聞いてもらえた安堵か満足を示した。"
+    },
+    {
+      "id": "quirk_29",
+      "category": "quirk",
+      "name": "運試しのくじの同伴",
+      "reward_band": "small",
+      "condition_text": "くじ（運試し）が実施され、結果を二人で受け止めた。"
+    },
+    {
+      "id": "quirk_30",
+      "category": "quirk",
+      "name": "敬語禁止デーみたいな自分ルールの監視役",
+      "reward_band": "small",
+      "condition_text": "会話中のルール監視が機能し（違反の指摘か達成の確認）、依頼主が結果を受け止めた。"
+    },
+    {
+      "id": "quirk_31",
+      "category": "quirk",
+      "name": "主人公への何でも勝負の申し込み",
+      "reward_band": "medium",
+      "condition_text": "勝負の種目が決まって実際に勝負が行われ、勝敗を二人で確認した。"
+    },
+    {
+      "id": "quirk_32",
+      "category": "quirk",
+      "name": "教授のものまね披露（依頼主自身の演技として）",
+      "reward_band": "small",
+      "condition_text": "依頼主がものまね（自身の演技と明示）を披露し、主人公の反応に満足を示した。"
+    }
+  ]
+}

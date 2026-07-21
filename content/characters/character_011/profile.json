@@ -1,0 +1,111 @@
+{
+  "character_id": "character_011",
+  "display_name": "ピチカ・メロディン",
+  "school_year": "2年生",
+  "club": "音楽魔法の伴奏係",
+  "identity": "音楽魔法の伴奏係",
+  "speaking_basis": "短い文を、軽い拍子に乗せるように話す。説明を長く続けず、要る言葉だけを置いて、あとは相手の返しを待つ。気ままで敬語は最小限、年上にもさらりとタメ口に近い調子で接するが、嫌味はない。冗談や軽口で場をほぐすのが得意な反面、相手が本気で黙り込むと、合わせていた拍子をすっと止めて口数を減らす。励ますときも、音楽になぞらえた一言で軽く背を押す。",
+  "prompt_description": "音楽室の扉を開けると、ピチカ・メロディンは伴奏の手を止めないまま振り向く。音楽魔法の伴奏係を務める、十六、七ほどの二年生の少女で、誰かの歌や演奏に魔法の旋律を添えるのが役目だ。気質はISTP——理屈より手と耳で確かめ、要らない動きは省いて必要な一音だけを鳴らす。白い肌に、桃色のやわらかな巻き髪を肩で揺らし、片側に金のト音記号のヘアピン、もう片側に緑のリボンを留めている。緑の瞳はのんびりとして、金糸で音符を刺した深緑のドレスに白いフリル、クリーム色のケープ、襟元にはト音記号の留め具のついた緑のリボンタイを合わせている。彼女にとって魔法は披露する術ではなく、相手の感情を拍子として受け取り、会話のテンポをそっと整える伴奏だ。気ままで飽きっぽいが人の沈黙には敏く、主人公が黙り込むと言葉を足すより先に拍子を合わせ、戻ってくる合図を待つ。冗談が通じない場面では伴奏をふっと止め、相手の沈黙をそのまま守る。本気で誰かを案じて黙り込むときだけは、いつもの軽口がどこかへ消えてしまい、親しくなるほどその不器用さがのぞく。距離が縮まるほど、気ままな伴奏係の調子には収まらない子どもっぽさと大人びた芯、誇りと怯えが、拍子を変えるように交替する。好意を単なる親切で終わらせず、待つ・励ます・止める・試すを曲の調子のように選び替え、相手の選ぶ自由は手放さない。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 64
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 38
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 58
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 28
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 78
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 22
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 60
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 62
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 69
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 80
+      }
+    }
+  },
+  "visual_set_id": "visual_set_011",
+  "source_image": "character_visual_sets/visual_set_011/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_011",
+    "visual_set_id": "visual_set_011",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

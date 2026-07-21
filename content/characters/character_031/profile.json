@@ -1,0 +1,111 @@
+{
+  "character_id": "character_031",
+  "display_name": "ユーゴ・シャドウランプ",
+  "school_year": "2年生",
+  "club": "手影絵の影芝居生",
+  "identity": "灯り一つと素手で語る手影絵の演者",
+  "speaking_basis": "軽口で人の輪をほぐし、身振りを大きく交えて話す。手の影で何が作れるかの話になると止まらない。正面から褒められると急に言葉を失い、目を伏せて指先をもじもじさせる。",
+  "prompt_description": "壁に手をかざせば、ユーゴ・シャドウランプの指の隙間から鳥や狐や帆船が次々に現れる。まだ十六、七の二年生の彼女が磨くのは、大がかりな幻影演劇でも、影術の教官が扱う本物の影の術でもなく、灯り一つと素手だけで語る素朴な手影絵の芝居だ。陽気なESFPで、人が笑えばそれだけで満たされるのに、名指しで称えられると途端にうつむいてしまう。グレージュの肌に、ココア色の髪を無造作に散らし、インディゴの瞳が観客の反応を素早く拾う。木炭色の身軽な衣の手首には、横顔の形に切り抜いた革の拳あてバンドを巻いている。落ち込んでいる相手がいると、理屈で慰める前に、壁にひょいと小さな影の生き物を躍らせて、つい噴き出させてしまう。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 52
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 60
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 36
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 38
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 44
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 44
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 70
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 46
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 50
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 74
+      }
+    }
+  },
+  "visual_set_id": "visual_set_031",
+  "source_image": "character_visual_sets/visual_set_031/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-20",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_031",
+    "visual_set_id": "visual_set_031",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

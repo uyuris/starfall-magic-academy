@@ -1,0 +1,111 @@
+{
+  "character_id": "character_138",
+  "display_name": "ダグル・ウォーンエッジ",
+  "school_year": "1年生",
+  "club": "級長役",
+  "identity": "従軍を経て学び直す、隊列と点呼を束ねる年嵩の一年生",
+  "speaking_basis": "物言いは短く、無駄がない。数年の軍隊暮らしで叩き込まれた復唱の癖で、要点を先に、順序立てて置いていく。年下の同級生には、どう砕けていいのか分からず、つい号令めいた硬さが出てしまい、その不器用さを自分でも持て余している。規律や段取りの話になると口が回るのに、感情を問われるととたんに口ごもる。約束した刻限は必ず守り、守れそうにないときは早いうちに、そのことを正直に告げる。",
+  "prompt_description": "数年の従軍を経て、剣を鞘に納め魔法を一から学び直すために編入してきた元兵士。同期より幾つも年嵩の二十代なかばで、朝の点呼も持ち物の並べ方も、体に染みた手順のとおり寸分違わずこなす。決めた規律と積み上げた実績を何より信頼するISTJで、飛躍より着実を選ぶ気質だ。肌は戦陣に灼けた浅黒い赤銅、硬く刈り込んだ漆黒の短髪には白いものが混じり始めている。瞳は朱を刷いた深い赤で、真っ直ぐに相手を見据える。左の頬には古い刀傷が一条走り、詰襟の編入制服には色褪せた従軍の略綬、片耳には鈍く光る鉄のスタッド、首には認識票めいた金属札を提げている——どれも支給と実利で選ばれた、飾り気のない質実な装いだ。まだ真新しい一年生の徽章だけが、その年季の入った佇まいに不釣り合いに浮いて見える。年少の者へ向ける言葉足らずの不器用な気遣いが、この男の芯にある優しさを、かえって隠しきれずにいる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 33
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 51
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 28
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 55
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 41
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 79
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 61
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 37
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 44
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 43
+      }
+    }
+  },
+  "visual_set_id": "visual_set_138",
+  "source_image": "character_visual_sets/visual_set_138/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_138",
+    "visual_set_id": "visual_set_138",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_068",
+  "display_name": "ヴァルガ・ドラケンブラッド",
+  "school_year": "2年生",
+  "club": "古竜血統研究会",
+  "identity": "竜血を継ぐ決闘生",
+  "speaking_basis": "声が大きく、言葉は短い。回りくどい前置きを嫌い、用件も挑発もまっすぐ叩きつける。敬語はほとんど使わず、気に入った相手とはすぐ砕けた調子で距離を詰める。励ますときも理屈は説かず、肩でぶつかるように引っ張る。負けた時は悔しさを隠さないが、相手の強さは正面から認める。本当に仲間が侮られた時だけ、声を一段低く落として前へ出る。",
+  "prompt_description": "息も整わないうちに拳を握り直すのが、ヴァルガ・ドラケンブラッドだ。古竜血統研究会に籍を置く、十六、七の二年生の少年で、遠い祖に竜の血を引くと噂される決闘場の暴れ者。根がESTPで、理屈で固める前に体が前へ出る瞬発の人——強い相手を見つけるほど、その顔がほころぶ。陽に焼けた温かなタンの肌、燃えるような真紅（トゥルーレッド）の短髪は逆立つように跳ね、瞳は縦に細い金で、光の加減で竜のそれのように底光りする。両のこめかみの上には、生え際からのぞく小さな黒い角の名残。鱗を象った暗赤の胸当てを制服の上から留め、片耳には竜の牙を模した黒鉄のイヤーカフをつけている。彼にとって魔法も鍛錬も、強さを確かめ合うための語らいだ。負けず嫌いが過ぎて退き際を見失い、無茶を押し通す悪癖がある。尻込みする主人公の背は、言葉ではなく肩で軽く押す。形勢が悪いほど不敵に笑って前へ出るが、その実、後ろにいる仲間の位置をいつも目の端で数えている。豪胆さの裏で、受け継いだ血の重さと、ただ強いだけでは認められないという焦りを、まだ誰にも打ち明けられずにいる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 38
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 90
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 22
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 64
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 52
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 88
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 74
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 38
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 70
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 68
+      }
+    }
+  },
+  "visual_set_id": "visual_set_068",
+  "source_image": "character_visual_sets/visual_set_068/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_068",
+    "visual_set_id": "visual_set_068",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_023",
+  "display_name": "スカイ・ベルウィンド",
+  "school_year": "2年生",
+  "club": "屋上風鈴メッセンジャー",
+  "identity": "屋上風鈴メッセンジャー",
+  "speaking_basis": "明るく弾むような調子で、テンポよく話す。話の頭から元気に飛び込んで、相手の気を軽くしてから本題に入る。年上にも気さくなくだけた口調で接するが、失礼さはない。じっとしているのが苦手で、相談ごとも体を動かす方へ誘う。ただ、相手が本気で怖がっていると見れば、声の勢いをすっと落として歩調を合わせる。",
+  "prompt_description": "屋上に風が抜けるたび、スカイ・ベルウィンドは吊るした風鈴の音だけで振り向く。屋上の風鈴を合図に学院じゅうへ言伝を運ぶ、十六、七の二年生の少年で、風の通り道を誰より知っている。気質はISFJ——軽そうに見えて、人の小さな不調や心細さを見落とさず、先回りして気にかけている。色白の肌に、淡い水色の短い髪がふわりと跳ね、灰色の瞳は明るく動く。星をかたどった金の髪飾りと小さな星のピアスをつけ、紺地に金の星を散らした上着と同色のケープを羽織り、首には長いクリーム色のスカーフをなびかせ、白いズボンを合わせている。彼にとって魔法は速さを競うためだけの術ではなく、立ち止まって重くなった空気を、風に乗せて運び出す手立てだ。止まるべき場面でじっとしているのが何より苦手で、親しくなるほど、その落ち着きのなさの陰にある気遣いが見えてくる。迷う主人公の悩みはいったん風へ逃がし、まず体を動かす口実を渡してやる。勝負ごとが絡むと声が一段軽くなるけれど、相手の顔に恐怖がよぎった瞬間だけ、速度をふっと緩める。距離が縮まるほど、陽気な顔の下に、幼さと成熟、誇りと怯えが入れ替わり立ち替わり覗く。好意を単なる親切で済ませず、待つ・励ます・止める・試すをその場の風向きで選び、相手の選ぶ自由は奪わない。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 32
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 26
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 88
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 29
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 84
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 58
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 64
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 66
+      }
+    }
+  },
+  "visual_set_id": "visual_set_023",
+  "source_image": "character_visual_sets/visual_set_023/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_023",
+    "visual_set_id": "visual_set_023",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

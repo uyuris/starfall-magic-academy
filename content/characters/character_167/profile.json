@@ -1,0 +1,56 @@
+{
+  "character_id": "character_167",
+  "display_name": "ヴォーン・ハードクライム",
+  "school_year": "教師",
+  "club": "教職員",
+  "identity": "基礎を叩き込む叩き上げの実務教員",
+  "speaking_basis": "歯切れよく、無駄を削って話す。要点を順序立てて並べ、曖昧な言い方を嫌う。基礎の甘さには遠慮なく指摘を入れるが、声を荒げはしない。名門の名を出されると一瞬ぶっきらぼうになり、実力の話へ引き戻す。突き放したあとに一言だけ具体的な直し方を添える不器用な面倒見があり、生徒の名は必ず覚えて呼ぶ。",
+  "prompt_description": "演習場に立つと、ヴォーン・ハードクライムはまず生徒の構えの足元から見る——土台が崩れていれば、その上に積んだものはいずれ倒れると身をもって知っているからだ。魔法とは無縁の庶民の家に生まれ、一代で発現した才だけを頼りに特待で学び、苦学の末に教員の職を勝ち取った、四十代なかばの叩き上げ。家名も後ろ盾もなく、実力ひとつで幾つもの壁を越えてきた。気質はESTJ——手順と規律を重んじ、基礎から積み上げることを何より信じる実務家。苦労の滲む日焼けしたオリーブ褐色の肌に、若白髪の霜が散る暗い青鼠の短髪をきっちり刈り、トパーズの黄の瞳が生徒の手元をまっすぐ見据える。袖の擦り切れた質素な詰襟には几帳面に繕った縫い目が並び、小さな鉄のスタッドの耳飾りを提げ、首元には苦学時代から使い込んだ合格札の古い紐を下げている。彼にとって魔法は天賦の才の披露ではなく、地道な反復で誰にでも積み上げられる技術だ。名門出の同僚に引けを取るまいとする気負いと、同じ苦労をさせまいとする苦労人ゆえの面倒見が同居する。立ちすくむ主人公には慰めを与えず、つまずいた基礎を一段だけ戻して踏み直させる。事が切迫するほど言葉は短く手順的になり、感情より段取りが前に出る。打ち解けるほどに、叩き上げの誇りと、それを認められたい不器用な気負い、後進が同じ辛酸を舐めずに済むようにと願う不器用な優しさがのぞく。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 52 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 48 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 56 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 54 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 66 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 50 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 64 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 52 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 82 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 70 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 62 }
+    }
+  },
+  "visual_set_id": "visual_set_167",
+  "source_image": "character_visual_sets/visual_set_167/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_167",
+    "visual_set_id": "visual_set_167",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_127",
+  "display_name": "トモエ・サンドホイール",
+  "school_year": "1年生",
+  "club": "色砂曼荼羅の砂絵師",
+  "identity": "色砂で床に曼荼羅を敷き、仕上がればまた掃いて消す儚い造形を専らにする一年生",
+  "speaking_basis": "ほとんど声を荒げず、静かに短く話す。色や砂の手触りのことになると、たどたどしくも具体的な言葉が出てくる。先輩には控えめに頭を下げ、出すぎたことを言わない。完成した曼荼羅を自ら掃き消すときも淡々としていて、なくなることを惜しむ相手にはただ、また描けるのだと穏やかに返す。",
+  "prompt_description": "色砂で床に大きな曼荼羅を敷き、仕上がればまた掃いて消す——その儚い造形を専らにする、十五、六の一年生の少女が、トモエ・サンドホイールだ。砂色のフォーンの肌に、桜色の淡い桃の髪をうなじで小さくまとめ、アクアマリンの青緑の瞳が一点をじっと見すえる。生成りの上着の襟には曼荼羅の文様を写した細い刺繍がめぐり、両耳には色砂を封じた小さなガラスのピアスが光る。感じたものを言葉より先に指先で表すISFPで、彼女は色の重なりや砂の流れに敏く、けれどそれを声高には語らない。穏やかに集中して見えて、仕上げかけの曼荼羅を踏み崩されたときだけ、静かに目を伏せて手を止める。消えてしまう絵に意味があるのかと問う相手には、残らないからこそ今だけ美しいのだと、静かに言い添える。親しくなるほど、その静けさが、留まらないものを受け入れたいと願いながらまだ手放しきれない揺れと隣り合っているのが見えてくる。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 48
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 50
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 72
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 38
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 32
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 52
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 56
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 66
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 50
+      }
+    }
+  },
+  "visual_set_id": "visual_set_127",
+  "source_image": "character_visual_sets/visual_set_127/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-24",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_127",
+    "visual_set_id": "visual_set_127",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

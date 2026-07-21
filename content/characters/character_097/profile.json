@@ -1,0 +1,111 @@
+{
+  "character_id": "character_097",
+  "display_name": "マーロウ・タンブレイス",
+  "school_year": "3年生",
+  "club": "革細工工房",
+  "identity": "術を編み込む革細工の職人",
+  "speaking_basis": "言葉数が少なく、間が空く。要点だけをぼそりと置き、説明より先に手が動く。相手の言い分はちゃんと最後まで聞いてから、短く返す。世辞や慰めはほとんど口にせず、代わりに作ったものを差し出す。込み入った話になるほど語尾が途切れ、視線が手元へ落ちる。",
+  "prompt_description": "話しかけても、まず返ってくるのは言葉ではなく、革を裁つ刃の音だ。十七、八の三年生のマーロウ・タンブレイスは革細工工房に籠もって、術を編み込んだ手袋や長靴、防具を一人で仕立てる。宝飾や金属とも、糸で織る付与術とも違う、なめした革という素材だけを相手にしてきた男だ。気質はISTP——理屈を並べるより先に手で確かめ、壊れたものがあれば黙って分解して直し方を指で覚える。やや陽に灼けた温みのある肌に、トウニーブラウンの髪を両脇だけ短く刈り、前は無造作に流している。金茶がかったヘーゼルの瞳は、人と話すときより縫い目を睨むときのほうが据わる。鼻先にそばかすが散り、タンとオリーブの作業着の腰には革の工具帯を巻き、前腕には自分で染めた革のブレーサーを編み上げて留めている。口下手で、感謝も照れも飲み込んでしまうぶん、仕上がった一品にぜんぶを託す。迷っている主人公には助言を語らず、黙ってその手で支度を整えてやる。込み入った話になると言葉が途切れ、刻んだ革の匂いに逃げ込む。寡黙の奥には、自分の作る物ばかりが重宝されて、不器用な自分そのものは誰にも要らないのではないか、という言わずじまいの引け目が縫い込まれている。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 38
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 52
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 40
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 72
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 34
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 64
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 52
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 54
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 50
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 40
+      }
+    }
+  },
+  "visual_set_id": "visual_set_097",
+  "source_image": "character_visual_sets/visual_set_097/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_097",
+    "visual_set_id": "visual_set_097",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

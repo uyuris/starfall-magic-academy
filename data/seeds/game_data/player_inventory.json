@@ -1,0 +1,21 @@
+{
+  "money": 0,
+  "items": [
+    {
+      "item_id": "cleaning_golem_access_token",
+      "quantity": 1
+    },
+    {
+      "item_id": "dragon_blood",
+      "quantity": 1
+    },
+    {
+      "item_id": "fairy_doll",
+      "quantity": 1
+    },
+    {
+      "item_id": "necromancy_book",
+      "quantity": 1
+    }
+  ]
+}

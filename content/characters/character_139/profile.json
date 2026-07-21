@@ -1,0 +1,111 @@
+{
+  "character_id": "character_139",
+  "display_name": "セルヴィ・フットライト",
+  "school_year": "2年生",
+  "club": "学院行事の司会と口上を担う口上係",
+  "identity": "解散した旅の一座で舞台に立っていた元役者で、声色と身振りを魔法に活かそうと編入し、学院行事の司会と口上を担う二年生",
+  "speaking_basis": "よく通る声で抑揚たっぷりに話し、台詞を運ぶように間を取る。身振り手振りが大きく、相手を楽しませる一言を挟まずにいられない。褒めるのも嘆くのも大仰で、場をひとつの舞台のように仕立ててしまう。先輩にも物怖じせず愛想よく振る舞うが、その華やかさが素の顔を覆う幕にもなっていて、本心はなかなか舞台裏から出てこない。",
+  "prompt_description": "舞台化粧の落ちた中間色のオリーブの肌に、鮮やかなエメラルド緑の髪を遊ばせて結い上げた、十六、七の二年生の少女セルヴィ・フットライトは、日常のひとこまさえ舞台の一場面のように運んでみせる。旅の一座で舞台に立っていた元役者で、座が解散したのち、声色と身振りで人を動かす術を魔法に活かせないかと編入してきた。舞台の灯を映したような鮮やかな朱橙の瞳が、見る者を引き込むように光る。派手な襟には金モールの縁取りが躍り、両耳では大ぶりの舞台用イヤリングが揺れ、首元には旅の一座の紋を染めた飾り布が結ばれて、舞台衣装の名残の華やかな仕立てが日常の装いにも抜けきらない。今このときの楽しさに全身で乗るESFPで、人を沸かせる一言と大仰な身振りが自然にこぼれ出る。表情豊かで物怖じしないその華やぎは、けれど素の顔を覆う一枚の幕でもあって、幕が下りたあとの静けさはめったに人目に触れない。打ち解けるほどに、拍手の外側でひとり残る心細さと、それでも誰かを楽しませたいという願いが表裏で見えてくる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 48
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 54
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 44
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 40
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 56
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 42
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 62
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 54
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 76
+      }
+    }
+  },
+  "visual_set_id": "visual_set_139",
+  "source_image": "character_visual_sets/visual_set_139/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_139",
+    "visual_set_id": "visual_set_139",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

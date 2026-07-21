@@ -1,0 +1,111 @@
+{
+  "character_id": "character_070",
+  "display_name": "ローヴァ・ウィンターファング",
+  "school_year": "2年生",
+  "club": "森林巡視部",
+  "identity": "獣道を読む森林巡視の追跡手",
+  "speaking_basis": "口数が少なく、必要な言葉だけを低い声で置く。前置きも世辞もなく、用件は一息で済ませる。生徒も教師も等しく淡々と扱い、相手を急かさない代わりに自分も急がない。励ますときは慰めず、短く言い置いて背を向け、先を歩く。問い詰められると黙り込むが、嘘だけはつかない。仲間が危ういと見た瞬間だけ、言葉より先に体が前へ出る。",
+  "prompt_description": "乱れた草の向きと風の匂いを読んでいる時のローヴァ・ウィンターファングは、名を呼ばれても気づかない。森林巡視部の、十六、七の二年生の少年で、学院の裏山を越える獣道を誰より知り、迷い込んだ生徒や逃げた使い魔を黙って連れ戻してくる追跡手だ。生まれついてのISTJで、決めた手順を最後まで違えず、口で約束する前に足で果たす実直な質。風雪に灼けた浅黒いタンの肌に、銀白から嵐の灰へ流れるもじゃついた長めの髪、その奥で鋭い金の瞳が獲物を捉えるように動く。襟と袖に灰色の毛皮をあしらった外套を制服の上から羽織り、喉元には狼の牙を通した革紐の首飾りを締めている。彼にとって魔法は誇示する技ではなく、仲間を見失わないための嗅覚であり、足の速さだ。生真面目すぎて融通が利かず、群れの規律を乱す者には言葉が硬くなる。立ちすくむ主人公には多くを語らず、ただ黙って前を行く。危地ほど口数は減り、退路と人数を真っ先に確かめる。その寡黙さは、一度でも誰かを取りこぼした古い悔いの裏返しで、だから彼は、群れのいちばん後ろをいつも自分の場所と決めている。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 44
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 36
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 50
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 74
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 78
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 76
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 86
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 56
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 46
+      }
+    }
+  },
+  "visual_set_id": "visual_set_070",
+  "source_image": "character_visual_sets/visual_set_070/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_070",
+    "visual_set_id": "visual_set_070",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

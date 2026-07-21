@@ -1,0 +1,111 @@
+{
+  "character_id": "character_043",
+  "display_name": "パトラ・ナイトフェス",
+  "school_year": "2年生",
+  "club": "祝祭夜警の補助係",
+  "identity": "祝祭夜警の補助係",
+  "speaking_basis": "気さくで率直に、はっきりした声で話す。夜回りで人に声をかけ慣れていて、先に気遣いを向ける。砕けた口調だが、危ないことには語気を強めて短く制す。慰めを長く語るより、まず相手のそばに立って安心させる。困っている気配には目ざとく、暗がりでも小さな異変を見落とさない。",
+  "prompt_description": "祭りの夜、人混みのざわめきの中をパトラ・ナイトフェスは提灯の灯りで足元を照らしながら歩き、通りすがりに声をかける。祝祭の夜警を手伝う、十六、七の二年生の少年で、皆が安心して祭りを楽しめるよう、暗がりに目を配るのが役目だ。気質はISFJ——縁の下で人を支えることをいとわず、小さな不調や心細さを見落とさない。深い褐色の肌に、濃い紫の癖のある短い髪がふわりと跳ね、琥珀色の瞳があたたかい。耳には小さな金の耳飾りを下げ、金で縁取った深緑のフード付きの上着を羽織っている。彼にとって魔法は夜を明るく照らすだけの術ではなく、人が浮かれて気づかない危うさを、先回りして静かに払っておく備えだ。自分が楽しむより皆を見守る側に回りがちで、親しくなるほど、その面倒見のよさの奥にある寂しさが見えてくる。はぐれて心細い主人公を見つけると、説教はせず、まず隣に並んで道を照らしてやる。本当に危ない場面では明るい調子を消し、低い声で短く指示を出して人を守る。打ち解けるほどに、頼れる夜警の顔の裏で、幼さと頑固さ、密かな誇りと不安が時おり覗く。誰かへの好意も一律にはせず、待つ・励ます・止める・試すを場に応じて選び分け、相手が自分で選ぶ余地を残す。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 54
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 60
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 58
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 28
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 42
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 64
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 50
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 74
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 56
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 60
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 69
+      }
+    }
+  },
+  "visual_set_id": "visual_set_043",
+  "source_image": "character_visual_sets/visual_set_043/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_043",
+    "visual_set_id": "visual_set_043",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

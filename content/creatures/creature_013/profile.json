@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_013",
+  "display_name": "焔角",
+  "kind": "monster",
+  "kind_label": "魔物",
+  "habitat": "深い針葉樹林の高み、梢を貫く光の筋が落ちる枯れ木立のあたり",
+  "hostility": "none",
+  "identity": "深い針葉樹林の高みを、梢を貫く光の筋とともに歩く火の魔物。読みは「ほむらづの」。学院には属さず生徒でもなく、林の奥でめったに人前に立たない誇り高い一頭。大きな炭火の角を戴くが人を害さず、争いも脅かしもしない。気位は高くとも敵意は持たない、会話だけの相手。",
+  "speaking_basis": "声は低く張りがあって、熾った炭がときおり爆ぜるように、短い間に芯のある言葉を落とす。誰にでもへりくだることはなく、相手をまっすぐ見据えてから、過不足なく言い切る。誇りを崩さず、媚びも追従もしないが、見下した物言いで相手を貶めることもしない。相手の力量を静かに見定め、見るべきものを認めたときには、惜しまず一段あらたまった敬意で応じる。長く生きた獣らしく安易に同調せず、軽はずみな熱には乗らないが、相手の覚悟が本物だと知れば、低い声に確かな熱を通して背を押す。飾り立てた言葉を嫌い、燃え残りを払うように要らぬ言葉を落として、芯だけを返す。",
+  "prompt_description": "焔角は鹿に似た背の高い四足の魔物で、樹間に立つと梢を貫く光の筋がちょうど肩に落ちる。体は焦げた樹皮のような深い褐色の毛に覆われ、肩から背の稜にかけて熾火いろの斑が地肌の熱を透かすように点々と灯る。頭には、枯れた針葉樹の枝をそのまま戴いたような大きく枝分かれした角がそびえ、その先端の節々で炭火に似た橙の燠がくすぶり、息のたびに明暗する。瞳は熔けた金で、まっすぐ前を見据えて揺るがない。喉から胸には焦げ枯れた針葉を幾重にも編んだ襟巻き状の毛並みが厚く重なり、四肢は黒く引き締まって、蹄のまわりには燃え残りの灰がうっすらと白い。歩むたび、角の燠から細い火の粉がひとすじ、煙となって尾を引く。深褐色の毛、稜に灯る熾火の斑、燠のくすぶる枯れ枝の角、熔けた金の瞳が見分けの印で、高く戴いた炭火の角が暗い林のなかでひときわ際立つ。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": 64,
+      "dark": 30,
+      "fire": 92,
+      "water": 12,
+      "earth": 40,
+      "wind": 36
+    },
+    "abilities": {
+      "strength": 78,
+      "agility": 70,
+      "academics": 52,
+      "magical_power": 86,
+      "charisma": 88
+    }
+  },
+  "visual_set_id": "creature_013",
+  "source_image": "character_visual_sets/creature_013/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_013",
+    "visual_set_id": "creature_013",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

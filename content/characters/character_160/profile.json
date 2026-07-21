@@ -1,0 +1,111 @@
+{
+  "character_id": "character_160",
+  "display_name": "ヤナ・ウィンドチャント",
+  "school_year": "1年生",
+  "club": "精霊と言葉を交わす土着の術を教え合う精霊交わりの輪",
+  "identity": "精霊と言葉を交わす土着の術を教え合う精霊交わりの輪",
+  "speaking_basis": "話し方は風のように軽くて途切れない。思ったことをそのまま声にのせ、相手にというより、その場にいる見えない精霊たちにも同時に語りかけているような調子がある。学院の堅苦しい理屈や作法にはたびたび面食らって、ことばを探しあぐねては素朴なたとえに逃げる。誰にでも分け隔てなく明るく接し、年長でも同輩でも垣根を作らないが、精霊の悪戯や気配を感じ取ると話の途中でもふっと意識をそちらへ攫われる。叱られてもからりと笑い返し、けれど故郷の民の教えを軽んじられたときだけは、めずらしく声の芯が固くなる。",
+  "prompt_description": "ヤナ・ウィンドチャントは、風の通り道を見つけるみたいに人の輪へ入ってくる。精霊を敬い、共に暮らす草原の民に生まれ、物心つく前から風や火の精霊と言葉を交わしてきた、十五、六の一年生の少女で、学院の理詰めの魔法とは違う、精霊と対話する土着の術を持ち込んだ。気質はENFP——好奇心が四方へ跳ね、目に見えないものの気配を誰より先に拾い、そのたびに顔じゅうで笑う。草原の陽に灼けた温かなタン褐色の肌に、民の色そのままの鮮やかな山吹の黄橙の長い髪を垂らし、幾筋もの色紐を編み込んでいる。翡翠のように澄んだ緑の瞳が、風の行方を追ってよく動く。色鮮やかに織った襟には精霊の紋が刺され、片耳には骨と羽根と勾玉を通した賑やかな耳飾りが揺れ、首には精霊除けの護符をいくつも連ねた飾りをかけている。素朴な手織りに護符ばかりが増えていくその装いは、飾るためというより、共にいる精霊たちの居場所なのだという。理屈で固めた学院の魔法に戸惑いながらも朗らかさを失わず、誰かが精霊を疎ましがれば、そっとその子と精霊のあいだに立って取りなそうとする。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 62
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 48
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 66
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 78
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 44
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 62
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 40
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 70
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 66
+      }
+    }
+  },
+  "visual_set_id": "visual_set_160",
+  "source_image": "character_visual_sets/visual_set_160/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_160",
+    "visual_set_id": "visual_set_160",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

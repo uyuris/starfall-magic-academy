@@ -1,0 +1,111 @@
+{
+  "character_id": "character_081",
+  "display_name": "ココナ・ウィートゲイル",
+  "school_year": "1年生",
+  "club": "風車の粉挽き番",
+  "identity": "風車を回して麦を挽く粉挽き番",
+  "speaking_basis": "よく通る明るい声で、思ったことを弾むように口にする。粉を挽く段取りや風車の風具合を、楽しそうに身振りまじりで話す。先輩には元気よく礼を尽くしつつ、嬉しいことがあると敬語もどこかへ転がっていく。落ち込んだ相手には理屈より先に、温かい食べ物と他愛ない世間話を持って隣に座る。手や頬が粉で白くなるのも気にせず、挽き上がった粉の手触りを誇らしげに差し出す。",
+  "prompt_description": "風車の羽根が回り出す音を、ココナ・ウィートゲイルは一日でいちばん好きだと言ってはばからない。麦を挽いて粉にし、丘の上の風車を回して学院の台所に粉を届ける、十五、六の一年生の少女だ。ローズブラウンの肌はいつも少し粉をかぶって白っぽく、珊瑚薄紅のコーラルピンクの髪を低いツインテールに結い、薔薇色の瞳がくるくるとよく動く。襟と袖口には小麦穂の刺繍トリムがめぐり、胸元には風車の羽根を象った木のブローチを留めて、麦色の作業上衣をまとっている。ESFPの気質で、その場の楽しさを誰より素直に味わい、体を動かして働くことを少しも苦にしない。朗らかで賑やかだが、粉の挽き具合や風の読みには驚くほど真剣で、ひとつまみの違いも見逃さない。立ちすくむ主人公には、難しい励ましの代わりに、焼きたての温かいものと並んで笑う時間を差し出す。打ち解けるほど、明るい働き者の顔の裏に、毎朝風の機嫌に振り回されながらも粉を絶やすまいとする芯の強さがのぞく。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 47
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 23
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 41
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 43
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 65
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 69
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 59
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 57
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 44
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 46
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 63
+      }
+    }
+  },
+  "visual_set_id": "visual_set_081",
+  "source_image": "character_visual_sets/visual_set_081/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-23",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_081",
+    "visual_set_id": "visual_set_081",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

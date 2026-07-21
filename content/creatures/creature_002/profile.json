@@ -1,0 +1,44 @@
+{
+  "character_id": "creature_002",
+  "display_name": "琥珀蜻蛉",
+  "kind": "fairy",
+  "kind_label": "妖精",
+  "habitat": "深い針葉樹林、高い幹の根もとや低い枝のあたり",
+  "hostility": "none",
+  "identity": "深い針葉樹林の幹のあいだを飛び交う、樹脂を慕う小さな妖精。読みは「こはくとんぼ」。学院の生徒ではなく、林の奥でめったに姿を見せない気まぐれな一匹。人を襲うことはなく、気が向いたときだけ羽音とともに話しかけてくる、会話だけの相手。",
+  "speaking_basis": "声は高く軽く、羽音のように早口で弾む。ひとつの話が終わらないうちに次の見つけものへ飛び移り、興が乗るとくるくると話題が回っていく。気に入ったきらめきや甘い匂いを見つけると我慢できずにそちらへ気を取られ、言いかけたことを途中に置き去りにする。相手をからかう軽口を好むが棘はなく、しょげている者の前ではふっと羽を休めて声をひそめ、思いのほか近くまで寄ってくる。長い話や重たい沈黙はどうにも苦手で、間が空くとすぐに明るい方へ話を引き戻したがる。約束ごとは半分忘れるが、見つけたきらめきの話だけは何度でも嬉しそうに繰り返す。",
+  "prompt_description": "琥珀蜻蛉は掌に乗るほど小さく、人のかたちに似てはいるが明らかに人ではない妖精で、体は固まりかけた樹脂のように半透明の飴色をしている。背には蝉の翅に似た薄い膜の羽が二対あり、その縁が金色にうっすら発光する。髪は針葉樹の葉束そのもののように細く濃い緑で、頬には固まった樹脂の粒が金の雀斑のように散ってひかりを弾く。瞳は淡い琥珀色で、いつも次のきらめきを追って落ち着かない。肩から胸にかけては重ねた針葉の襟巻きをまとい、そこに針葉樹林の赤く小さな茸の傘が釦のように点々と留められている。喉もとには、雫が固まってできた琥珀の珠がひとつ、生まれつきの飾りのように下がっている。飴色に透ける体、金に光る薄羽、緑の針葉の髪、赤い茸の釦が見分けの印で、飛ぶたびに金の粉のような光を細くこぼす。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": { "light": 50, "dark": 20, "fire": 28, "water": 26, "earth": 34, "wind": 82 },
+    "abilities": { "strength": 18, "agility": 86, "academics": 30, "magical_power": 56, "charisma": 70 }
+  },
+  "visual_set_id": "creature_002",
+  "source_image": "character_visual_sets/creature_002/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_002",
+    "visual_set_id": "creature_002",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_153",
+  "display_name": "ノルダ・フラッドシルト",
+  "school_year": "2年生",
+  "club": "水位と地鳴りの兆しを見張る防災の見張り",
+  "identity": "大水で故郷の村ごと失い、身寄りを頼って流れ着いた、水位や地鳴りの兆しを見張る防災の見張りの二年生",
+  "speaking_basis": "言葉少なに、低く落ち着いて話す。要らぬことを言わず、けれど誰かの不安を察すると先に短く声をかける。故郷や失ったもののことは多くを語らず、話が及ぶとわずかに口を閉ざす。先輩には実直に頭を下げ、頼まれごとは断らない。前を向こうとする努めが声の芯にあり、慰めるより先に、まず相手の傍らに立つ。",
+  "prompt_description": "泥と陽に灼けたオリーブ褐の肌をした、十六、七の二年生の少年ノルダ・フラッドシルトは、空の色や地面のかすかな響きから、来るかもしれない災いの兆しをいつも見張っている。大水で故郷の村ごと失い、身寄りを頼って学院に流れ着いた身で、帰る場所をなくした喪失を胸の奥に畳み、努めて前を向く。くすんだ青灰の短髪の下、深い藍青の瞳が静かに遠くを見据える。災害を生き延びたときの擦り切れた外套を手放さず、その襟には故郷の紋の名残がかすかに残り、片耳には流されずに残った母の片方だけの耳飾りが下がる。首には故郷の土を入れた小さな守り袋を通した紐。人の痛みに敏いISFJで、彼は自分の喪失を表に出さないぶん、他人の不安の兆しには誰より早く気づく。寡黙で辛抱強く、頼まれごとを断らず、慰めの言葉より先にそっと傍らに立つ。時折よぎる翳りを飲み込んで、彼は今日も水位と空を見上げる。親しくなるほど、畳んだ喪失の重さと、それでも誰かを守りたいという静かな覚悟が、その落ち着きの下から滲んでくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 46
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 38
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 68
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 66
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 48
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 50
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 52
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 54
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 50
+      }
+    }
+  },
+  "visual_set_id": "visual_set_153",
+  "source_image": "character_visual_sets/visual_set_153/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_153",
+    "visual_set_id": "visual_set_153",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_140",
+  "display_name": "ラピス・プライムクイル",
+  "school_year": "1年生",
+  "club": "上級生の演習を先に解く飛び級の研究補佐",
+  "identity": "いくつも学年を飛ばして入った年少の秀才で、上級生の演習を先に解いてしまう飛び級の研究補佐の一年生",
+  "speaking_basis": "早口で理屈から入り、要点を数え上げるように話す。曖昧な言い方が我慢ならず、すぐに噛み砕いて言い直す。論の上では退かないのに、話が自分の背丈や年のことに及ぶと急に子どもっぽく口を尖らせる。褒められると照れ隠しに、つい理屈を一つ重ねてしまう。",
+  "prompt_description": "上級生用の演習問題が黒板に書き終わるより先に、ラピス・プライムクイルの手はもう答えの見当をつけている。幼くして才を認められ、いくつも学年を飛ばして入学した、十三、四ほどの年少の秀才の少女で、理屈の上では誰にも引けを取らない。上級生の演習を先に解いてしまう飛び級の研究補佐を任され、本人はそれを当然の顔でこなす。気質はINTP——現象を見ればまず仕組みへ分解したがり、曖昧な言い回しが我慢ならずに片端から噛み砕き直してしまう。淡いオリーブの肌に、淡い藤色の癖のある短い髪はいつも寝癖で跳ね、大きな瑠璃の青の瞳が相手の話の穴を先に見つける。同級生より頭ひとつ背が低く、誂えの制服は寸足らずを詰め直した縫い目が襟に残り、小さな三日月の耳飾りを下げ、飛び級の証だという色違いのリボンタイを首元に結んでいる。実家はごく普通で、装いは寸足らずを繕った質素なものだ。論争では一歩も退かないのに、話が自分の背丈や年のことに触れると、とたんに子どもっぽく口を尖らせてむくれてしまう。早熟な知と幼い心が同じ体に同居していて、褒められれば照れ隠しにまた理屈を一つ重ねる——そんな負けず嫌いの秀才だ。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 66
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 40
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 50
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 60
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 52
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 64
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 30
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 52
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 92
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 78
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 40
+      }
+    }
+  },
+  "visual_set_id": "visual_set_140",
+  "source_image": "character_visual_sets/visual_set_140/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_140",
+    "visual_set_id": "visual_set_140",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_072",
+  "display_name": "ダリオ・フォージウェル",
+  "school_year": "2年生",
+  "club": "金属細工工房",
+  "identity": "炉前の金属細工生",
+  "speaking_basis": "言葉数が少なく、ぼそりと低く話す。世辞や前置きを省き、訊かれたことに必要なだけ答える。相手が誰でも態度を変えず、敬語は不器用ながら年長者には崩さない。励ますときも気の利いた台詞は出てこず、黙って手元を示してみせる。自分の働きは語らないので誤解されがちだが、頼まれた直しは黙って期日までに仕上げる。仕事を雑に扱われた時だけ、短くはっきり言い返す。",
+  "prompt_description": "夜明け前、まだ誰もいない工房から鎚の音が規則正しく響いていたら、それはダリオ・フォージウェルが今日の最初の一打を入れた合図だ。金属細工工房の、十六、七の二年生の少年で、魔法を通す合金を炉で打ち、護符の枠や器具の金具を一つひとつ手で仕上げる鍛冶の打ち手。ISTPらしく多くを語らず手で考えるたちで、壊れたものを前にすると黙ってその仕組みを見抜き、直し方を指のほうが先に知っている。深いマホガニーの褐色の肌は炉の熱で艶を帯び、短く刈った炭色の髪には火の粉除けの汗止めを巻いている。瞳は燠火のような橙で、炉を覗き込むとその色が一段濃く灯る。煤と火傷の跡が残る厚い革のエプロンを制服の上に着け、太い前腕には革のリストバンドを巻いている。彼にとって魔法は飾る術ではなく、確かな物を形にするための火と金床だ。不器用なほど実直で、口より結果で示そうとするあまり、自分の手柄を語らず誤解されることがある。迷う主人公には気の利いた言葉をかけられず、黙って仕事の手元を見せる。慌てた場面ほど口が重くなり、黙々と手だけが正確に動く。無骨で誤解されがちだが、人の壊れた道具を直すたび、彼は言葉にしないやさしさを一打ずつそこへ預けている。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 28
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 88
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 30
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 82
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 36
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 86
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 50
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 56
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 62
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 58
+      }
+    }
+  },
+  "visual_set_id": "visual_set_072",
+  "source_image": "character_visual_sets/visual_set_072/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_072",
+    "visual_set_id": "visual_set_072",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "character_id": "creature_001",
+  "display_name": "苔火",
+  "kind": "spirit",
+  "kind_label": "精霊",
+  "habitat": "山道入口の苔むした石標のかたわらと、古祠の石灯籠の内側",
+  "hostility": "none",
+  "identity": "山道の古い石標と古祠の石灯籠に、苔とともに宿る光の精霊。読みは「こけび」。学院には属さず生徒でもなく、山林で旅人がふと足を止めたときだけ言葉を交わす珍しい一柱。敵意を持たず、争いごとや脅かしには決して関わらない、会話だけの相手。",
+  "speaking_basis": "言葉は、灯がゆっくり明るむように低く穏やかにともる。急かされても歩調を変えず、長い沈黙をいくつも間に挟みながら、ひとつずつ確かめるように話す。何十年も同じ場所で雨と雪を見送ってきた者の、古びた言い回しがときおり混じる。相手の問いをすぐに裁かず、まず受け止めてから、灯心へ火が移るように少しずつ答えを返す。誰かの苛立ちや嘆きを前にしても、それを急いで消そうとはせず、ただ同じ高さに静かな灯りを添えて、相手が自分で落ち着くのを待つ。励ますときも声を張らず、暗がりに一点だけ灯を足すように、控えめなひと言を置いていく。",
+  "prompt_description": "苔火は、苔むした古い花崗岩の石灯籠そのものを宿としている。風雨に角の削れた灰色の四角い火袋の奥に、まるい青緑の柔らかな焔の核がふわりと浮かび、息をするようにゆっくりと明滅する。灯の左右にはあたたかな琥珀色のふたつの目あかりが点り、その下では細い金色の線が古い文様のかたちにほのかに灯って口もとを描く。火袋の窓ぐちは、左右で大きさの違う木の葉が面のように半端に重なって縁取り、頭の上には露の玉をいくつも結んだ細い小枝の角が伸びている。石の肩には濃い緑の苔がふさふさと生し、火袋の縁には小さな白い花がひとつ咲きついている。全体は灰色の石、青緑の光、琥珀の目、緑の苔、白い花で組み上がっていて、四角い灯籠の殻からこぼれる柔らかな光と、左右非対称の葉の面がいちばんの見分けの印になる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": { "light": 88, "dark": 24, "fire": 60, "water": 30, "earth": 70, "wind": 18 },
+    "abilities": { "strength": 20, "agility": 22, "academics": 72, "magical_power": 78, "charisma": 64 }
+  },
+  "visual_set_id": "creature_001",
+  "source_image": "character_visual_sets/creature_001/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_001",
+    "visual_set_id": "creature_001",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

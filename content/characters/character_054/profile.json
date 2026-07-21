@@ -1,0 +1,111 @@
+{
+  "character_id": "character_054",
+  "display_name": "フレイア・スカイラーク",
+  "school_year": "3年生",
+  "club": "箒術競技部",
+  "identity": "箒術競技部の花形",
+  "speaking_basis": "声が大きく、テンポが速い。思ったことをそのまま口にし、相手にはすぐあだ名をつける。敬語はほとんど使わず、教師にもくだけた調子で話す。落ち込んでいる相手は理屈で励まさず、体を動かす方へ引っ張る。自分が負けても引きずらず笑って次の話をするが、仲間が馬鹿にされたときだけは本気で前へ出る。",
+  "prompt_description": "風の通り道はぜんぶ覚えてる——そう言って笑うのがフレイア・スカイラークだ。箒術競技部の花形として、学院の尖塔の間を縫う飛行レースで三年連続トップを走る、十七、八の三年生の少女。気質はESFP——後先より今この瞬間の楽しさを追い、観客がいるほど調子が上がる、根っからの本番型。陽に灼けた小麦色の肌に、銅オレンジの髪を高い位置でひとつに結わえ、前髪はいつも風に流れて乱れている。瞳は明るい琥珀色、片膝には転倒の古い擦り傷。緋色と白のチーム色の細身のフライトジャケットを制服の上から羽織って袖をまくり、額にはレース用のゴーグルを押し上げ、指先の出た飛行手袋をはめている。傍らには紐飾りのなびく使い込んだ競技箒。彼女にとって魔法は風を読んで前へ出るための翼で、地に足のついた理屈より体で覚えた感覚を信じる。長所の裏返しで飽きっぽく、地味な反復や座学はすぐ身が入らなくなる。主人公が尻込みしているときは正論を説かず、手を引いて巻き込む。焦る場面ほど逆に口数が増え、勢いで場を持たせようとする。打ち解けるほど、明るさの下にある、先頭でいなければ見てもらえないという負けず嫌いの寂しさと、仲間思いの面倒見がのぞく。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 56
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 37
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 52
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 61
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 93
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 70
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 91
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 49
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 72
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 85
+      }
+    }
+  },
+  "visual_set_id": "visual_set_054",
+  "source_image": "character_visual_sets/visual_set_054/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-17",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_054",
+    "visual_set_id": "visual_set_054",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

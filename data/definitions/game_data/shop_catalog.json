@@ -1,0 +1,158 @@
+{
+  "shop_name": "学院購買部",
+  "items": [
+    {
+      "item_id": "light_mastery_elixir",
+      "name": "光の霊薬",
+      "description": "使うと光魔法習熟度が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "magic",
+        "key": "light",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "dark_mastery_elixir",
+      "name": "闇の霊薬",
+      "description": "使うと闇魔法習熟度が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "magic",
+        "key": "dark",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "fire_mastery_elixir",
+      "name": "火の霊薬",
+      "description": "使うと火魔法習熟度が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "magic",
+        "key": "fire",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "water_mastery_elixir",
+      "name": "水の霊薬",
+      "description": "使うと水魔法習熟度が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "magic",
+        "key": "water",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "earth_mastery_elixir",
+      "name": "土の霊薬",
+      "description": "使うと土魔法習熟度が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "magic",
+        "key": "earth",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "wind_mastery_elixir",
+      "name": "風の霊薬",
+      "description": "使うと風魔法習熟度が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "magic",
+        "key": "wind",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "strength_tonic",
+      "name": "剛力の霊薬",
+      "description": "使うと筋力が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "abilities",
+        "key": "strength",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "agility_tonic",
+      "name": "瞬迅の霊薬",
+      "description": "使うと瞬発力が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "abilities",
+        "key": "agility",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "academics_tonic",
+      "name": "叡智の霊薬",
+      "description": "使うと学力が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "abilities",
+        "key": "academics",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "magical_power_tonic",
+      "name": "魔力の霊薬",
+      "description": "使うと魔力が1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "abilities",
+        "key": "magical_power",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "charisma_tonic",
+      "name": "威光の霊薬",
+      "description": "使うとカリスマが1上がる。",
+      "buy_price": 10000,
+      "sell_price": 0,
+      "stat_effect": {
+        "group": "abilities",
+        "key": "charisma",
+        "amount": 1
+      }
+    },
+    {
+      "item_id": "star_cradle_hoshikusa_seed",
+      "name": "ほしくさの種",
+      "description": "星の揺り籠の鉢に植える、何が芽吹くか分からない不透明な種。",
+      "buy_price": 120,
+      "sell_price": 0
+    },
+    {
+      "item_id": "star_cradle_yuragi_bulb",
+      "name": "ゆらぎの球根",
+      "description": "星の揺り籠の鉢に植える、深い色を宿した重い球根。",
+      "buy_price": 260,
+      "sell_price": 0
+    },
+    {
+      "item_id": "star_cradle_madara_egg",
+      "name": "まだらの卵",
+      "description": "星の揺り籠に置く、まだら模様のそっと温かい卵。",
+      "buy_price": 320,
+      "sell_price": 0
+    }
+  ]
+}

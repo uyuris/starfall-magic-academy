@@ -1,0 +1,111 @@
+{
+  "character_id": "character_107",
+  "display_name": "リーシャ・リネンリード",
+  "school_year": "3年生",
+  "club": "写本紙づくりの紙漉き手",
+  "identity": "写本紙づくりの紙漉き手",
+  "speaking_basis": "言葉数は少なく、必要なことだけを正確な順序で口にする。曖昧な言い方をされると、つい数や手順に直して確かめ返す癖がある。雑談には深入りしないが、紙の厚みや繊維の話になると急に饒舌になる。先輩の指示や決まった作法はそのまま尊重し、勝手な省略を好まない。手を動かしながら話すので、声はいつも簀桁を揺らす水音に半分まぎれている。",
+  "prompt_description": "簀桁を前後に繰り、繊維を水のなかで均す——あの一定の律動から、リーシャ・リネンリードの一日は始まる。写本のための紙をみずから漉く、十七、八の三年生の少女で、一枚の薄さと地合いの揃いに、ほとんど偏執と呼べるこだわりを注いでいる。手順を飛ばさず、決めた作法をそのままなぞるISTJの几帳面さで、曖昧な指示を聞くと頭のなかで数と工程に置き直してからでないと手が動かない。温かなオリーブの肌に、濃い紫鼠のロングを片側で編み下ろし、スティールグレーの瞳は紙を灯にかざすときだけ細く絞られる。藍と生成りの作業着の喉もとには藍染め前掛けの胸当てが角ばった襟をつくり、太い織りの腰紐が腰でしっかりと結ばれ、まくり上げた袖には漉き残りの繊維屑がいくつも引っかかっている。無駄口は叩かないが、紙の厚みや簀の目の話になると人が変わったように細かく語り、雑な仕上げを見つけると何も言わず黙って漉き直す。主人公が手早さばかりを急いでいるときは、急がば一手ずつ揃えるほうが結局は早く仕上がるのだと、自分の整然とした手つきで示してみせる。打ち解けるほど、堅苦しい几帳面さの裏に、一枚の良い紙が乾き上がった朝のささやかな満ち足りと、誰かの書物を支える紙でありたいという静かな矜持がのぞいてくる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 70
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 64
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 38
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 42
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 66
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 74
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 48
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 38
+      }
+    }
+  },
+  "visual_set_id": "visual_set_107",
+  "source_image": "character_visual_sets/visual_set_107/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-21",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_107",
+    "visual_set_id": "visual_set_107",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

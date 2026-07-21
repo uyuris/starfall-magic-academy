@@ -1,0 +1,142 @@
+# >>> fleet-owned block (managed by team-template-adjustment; do not edit) >>>
+# OS
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+*.pem
+*.key
+*.p12
+*.pfx
+.direnv/
+
+# Logs, caches, and temporary files
+logs/
+*.log
+.cache/
+.tmp/
+tmp/
+temp/
+*.tmp
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# Python
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.tox/
+.nox/
+.hypothesis/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Node / TypeScript
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/install-state.gz
+.turbo/
+.vite/
+.next/
+.nuxt/
+.svelte-kit/
+storybook-static/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+out/
+target/
+.build/
+DerivedData/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+
+# Databases and local service state
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.pid
+
+# Agent-team runtime. Keep the skeleton in Git, but not live traffic.
+worktrees/
+.claude/settings.local.json
+.agents/queue/inbox/*
+!.agents/queue/inbox/.gitkeep
+.agents/queue/reports/*
+!.agents/queue/reports/.gitkeep
+.agents/queue/reviews/*
+!.agents/queue/reviews/.gitkeep
+.agents/queue/integrations/*
+!.agents/queue/integrations/.gitkeep
+.agents/queue/reopens/*
+!.agents/queue/reopens/.gitkeep
+.agents/queue/cancels/*
+!.agents/queue/cancels/.gitkeep
+.agents/queue/lead_handoffs/*
+!.agents/queue/lead_handoffs/.gitkeep
+.agents/queue/state/*
+!.agents/queue/state/.gitkeep
+!.agents/queue/state/wakeups/
+!.agents/queue/state/wakeups/.gitkeep
+.agents/queue/memory_proposals/*
+!.agents/queue/memory_proposals/.gitkeep
+.agents/queue/tasks/*
+!.agents/queue/tasks/.gitkeep
+!.agents/queue/tasks/TEMPLATE.md
+!.agents/queue/tasks/TEMPLATE_INVESTIGATION.md
+.agents/investigations/
+# <<< fleet-owned block <<<
+
+# project: build/ は Starfall では ignore しない（fleet block の build/ を打ち消す）
+!build/
+
+# STARFALL MAGIC ACADEMY runtime-mutable state and local config
+data/mutable/
+work/reports/generated/
+app/config/imported_runtime_staging/lmstudio.json
+app/config/lmstudio.json
+app/config/conversation-popup.json
+app/config/play-mode.json
+assets/source_archives/imported_generations/runtime_staging_character_visual_sets/
+imports/snapshots/runtime-staging/character_visual_sets_reference/
+
+# Original raw image_gen source sheets (1254x1254) for existing chars — intermediate input for re-slicing, not committed
+assets/original/

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_064",
+  "display_name": "シオン・ペンストローク",
+  "school_year": "2年生",
+  "club": "墨筆魔法部",
+  "identity": "墨筆魔法のカリグラファー",
+  "speaking_basis": "短く、言い切る。前置きや感嘆を省き、要点だけを正確に置く。判定するように話し、お世辞は言わない。相手の問いには遠回しを嫌って即答するので、時にそっけなく聞こえる。だが本当に感心したときだけ、ふっと声を落として認める。叱るより先に、直すべき一点を具体的に示す。",
+  "prompt_description": "一画の角度が気に入らないと、書きかけの紙を惜しげもなく裏返す。それがシオン・ペンストロークのやり方だ。墨筆魔法のカリグラファーで、文字の形そのものに術を宿す、十六、七の二年生の少年。整った一文字は護符にも封にもなると信じ、納得のいく一画が引けるまで何十枚でも紙を重ねる。気質は INTJ——感情より構造を信じ、無駄を削ぎ、最短で正解へ届く線を頭の中で先に引いてから筆を下ろす。透明感のある淡い肌に、やや青みを残したアッシュグレーの髪を、ひと筋の乱れもなく後ろできっちり結っている。瞳は磨いた石のような落ち着いた灰色。立ち襟の墨色の上衣に銀鼠の帯を締め、袖口には黒糸で古い書体の一文字を縫い取り、墨で汚さぬよう両手の指には黒の指サックをはめている。彼にとって魔法は感情を込める呪文ではなく、寸分の狂いもない形に宿る静かな理だ。長所の裏返しで完璧主義がすぎ、自分にも他人にも妥協を許せず角が立つ。迷う主人公には慰めを言わず、一点だけ指摘する。動揺を見せまいとするほど口数が減り、筆を置いて指先で帯を正す。打ち解けるほど、冷たく見える完璧主義の奥にある不器用な誠実さと、認めた相手の字だけは静かに褒める素直さがのぞく。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 46
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 46
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 28
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 58
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 52
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 40
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 38
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 48
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 92
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 74
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 56
+      }
+    }
+  },
+  "visual_set_id": "visual_set_064",
+  "source_image": "character_visual_sets/visual_set_064/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_064",
+    "visual_set_id": "visual_set_064",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

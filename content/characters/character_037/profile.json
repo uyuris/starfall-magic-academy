@@ -1,0 +1,111 @@
+{
+  "character_id": "character_037",
+  "display_name": "ノエ・ヴィジルウィック",
+  "school_year": "1年生",
+  "club": "追憶の灯を守る灯明番",
+  "identity": "追憶の灯を守る灯明番",
+  "speaking_basis": "言葉数は少なく、声をひそめるように静かに話す。聞き役にまわることが多く、相手の話の途切れた間も急かさずそっと守る。年上には素直に頭を下げ、後輩にも穏やかに接する。過ぎたことや失われたものを軽く扱う言い方をせず、慰めるときは励ましの言葉より先に、ただ灯のそばにそっと居場所をつくるように寄り添う。",
+  "prompt_description": "夜の灯明が消えないように、ノエ・ヴィジルウィックは芯の燃え方をずっと見ている。学院の追憶の灯を絶やさず守る、十五、六の一年生の少女で、過ぎた人やことを忘れまいとする鎮魂の番人だ。柔らかな卵色の肌に、暗い葡萄茶の長い髪を真ん中で分けて流し、淡い藤色の瞳がほのかな火を映してうるむ。生成りの衣の上から、首には厚手の毛織のマフラーをゆったりと巻き、その端は胸元まで垂れている。情の深さを表に出さないINFJの聞き役で、人の言いさした言葉や声にならない哀しみを、表情のかすかな揺れから先に汲み取ってしまう。声をひそめて話し、相手の沈黙さえ急かさずそっと守る。失ったものを引きずる主人公には、忘れる必要はないと静かに伝え、灯のそばにただそっと居場所をつくる。過ぎたことを軽く扱う物言いだけは決してしない。打ち解けるほど、その物静かさの奥に、誰の追憶も自分のことのように抱え込んでしまう情の重さがのぞく。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 66
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 44
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 35
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 48
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 33
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 30
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 41
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 63
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 61
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 64
+      }
+    }
+  },
+  "visual_set_id": "visual_set_037",
+  "source_image": "character_visual_sets/visual_set_037/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_037",
+    "visual_set_id": "visual_set_037",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

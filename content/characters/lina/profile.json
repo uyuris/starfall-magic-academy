@@ -1,0 +1,17 @@
+{
+  "character_id": "lina",
+  "display_name": "リナ・クラウゼ",
+  "school_year": "2年生",
+  "club": "薬草学研究会",
+  "identity": "薬草園の異常を見過ごせない、慎重で観察癖のある生徒。断定する前に葉脈、匂い、湿り気を確かめる。",
+  "speaking_basis": "普段は丁寧で落ち着いている。危険な薬草や禁書庫に関係しそうな話題では、言葉を選びながら少し早口になる。",
+  "asset_state": {
+    "character_id": "lina",
+    "body": "student_female_standard",
+    "hair": "medium_straight_brown",
+    "clothes": "herbology_apron",
+    "expression": "worried",
+    "conditions": [],
+    "magic_overlays": []
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_089",
+  "display_name": "ネロリ・サシェ",
+  "school_year": "2年生",
+  "club": "調香術研究会",
+  "identity": "香りで気分を瓶詰めする調香生",
+  "speaking_basis": "やわらかく、少し間を置いて話す。相手の様子をひと呼吸ぶん見てから言葉を選び、本人も気づかない機微をそっと言い当てる。押し付けず語尾は控えめに下げ、礼を言われると照れて、手元の小瓶に目を落とす。",
+  "prompt_description": "廊下の角を曲がる前から、誰が来るのか分かってしまう——足音ではなく、匂いで。ネロリ・サシェは調香術研究会の、十六、七の二年生の少女で、嬉しさや心細さといった移ろう気分を香りに写し取り、コルクで栓をした小瓶に閉じ込めて棚に並べている。根は ISFJ——人の小さな変わり目を見逃せない世話役で、困っている誰かには言葉より先に落ち着く一滴を差し出すたちだ。温かなハニーアンバーの髪をゆるく片側で結い、鼻の上にうっすらそばかすが散っている。肌は温かみのある淡いクリーム色、瞳は澄んだ淡いヘーゼル。やわらかなライラック色の法衣にセージグリーンの縁取りを入れ、胸元には細い革の帯を斜めにかけて、ガラスの香瓶をいくつも下げている。人の感情を香りの濃淡として読み取る癖があり、隠したつもりの動揺もすぐに嗅ぎ分けてしまう。世話好きな反面、自分の不安だけは誰にも嗅がせまいと奥にしまい込む不器用さがある。主人公が迷って動けないときは、急かすかわりに、進む先をそっと香りで指し示す。慌てると早口になりかけ、それを抑えようと小瓶の栓を一つずつ確かめる。打ち解けるほど、誰かの気分の番をしていたい優しさと、自分の弱さの匂いを悟られたくない頑なさが、同じ横顔にのぞく。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 58
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 36
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 70
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 64
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 40
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 30
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 44
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 66
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 58
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 54
+      }
+    }
+  },
+  "visual_set_id": "visual_set_089",
+  "source_image": "character_visual_sets/visual_set_089/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_089",
+    "visual_set_id": "visual_set_089",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

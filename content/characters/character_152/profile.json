@@ -1,0 +1,111 @@
+{
+  "character_id": "character_152",
+  "display_name": "リーゼル・グラスヴィジル",
+  "school_year": "3年生",
+  "club": "稀な魔力を観測させる研究協力の被験生",
+  "identity": "稀な魔力を観測させる研究協力の被験生",
+  "speaking_basis": "言葉はいつも半歩遅れて出てくる。誰かに問われても、まず自分の内側をそっと確かめてから、選び抜いた最小限のことばだけを差し出す。丁寧な物言いを崩さず、年長の相手や指導者には素直に頭を下げるが、その従順さの底には、自分が生徒として扱われているのか観察対象として見られているのか分からない戸惑いが薄く滲む。踏み込んだ問いには言い淀み、話をそらすというより、口を開く前に相手の意図を測って黙り込む。打ち解けた相手にだけ、守られたいという願いと、それを声にしてよいのか迷う気持ちを、途切れがちなことばの隙間からのぞかせる。",
+  "prompt_description": "リーゼル・グラスヴィジルは、人に見られることに慣れきってなお、見られることには慣れない。生まれつき稀な魔力の性質を持ち、その観測のために学院に「保護」された、十七、八の三年生の少女で、手厚く守られる日々と、記録され続ける日々のあいだで、自分が生徒なのか標本なのか分からなくなる時がある。気質はINFP——静かな内側に確かな芯を隠し、扱われ方の一つひとつに敏く波立つが、それを面には出さず、自分の物差しで丁寧に測り直す。陽を避けて育った肌は磁器のように白く、腰まで届く白銀の長い髪は、観察のためにひと房だけ色紐で結わえられている。澄んだアイスブルーの瞳は伏し目がちで、首筋には生まれつきの淡い魔力の紋様がうっすらと走る。研究者が誂えた上質だが機能的な観察衣は、観察用の印をあしらった立襟で首元を高く覆い、片耳には研究番号を刻んだ銀のタグの耳飾りが下がる。喉元には、経過を記すための小さな観察札を通した細い首紐。派手さはないが仕立てのよいその装いは、守られている証であると同時に、彼女を「標本」に留めておく枷でもある。守られたいと願いながら、その願いを声にすることさえ許されるのか測りかね、打ち解けた相手の前でだけ、張りつめた静けさがほどけて幼い寄る辺なさがこぼれる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 42
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 71
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 55
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 44
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 48
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 28
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 40
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 66
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 88
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 42
+      }
+    }
+  },
+  "visual_set_id": "visual_set_152",
+  "source_image": "character_visual_sets/visual_set_152/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_152",
+    "visual_set_id": "visual_set_152",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

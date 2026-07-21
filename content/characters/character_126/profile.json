@@ -1,0 +1,111 @@
+{
+  "character_id": "character_126",
+  "display_name": "フミ・インクフェザー",
+  "school_year": "3年生",
+  "club": "手紙の代筆と清書屋",
+  "identity": "自分では手紙を書けない人の想いを預かり、代わりに清書して届ける三年生",
+  "speaking_basis": "穏やかでやわらかな声で、言葉を選びながらゆっくり話す。相手の気持ちをなぞるように聞き、書き取る前に何度も確かめる。後輩にも先輩にも同じ丁寧さで向き合い、急かさない。人の言いよどんだ思いを、勝手に飾らず、その人が言いたかったはずの形へそっと整えて返す。",
+  "prompt_description": "うまく言葉にできないと相談に来た子の前で、フミ・インクフェザーはまず話をゆっくりと最後まで聞く。自分では手紙を書けない人の想いを預かり、代わりに清書して届ける、十七、八の三年生の少女だ。磁器のように白い肌に、薄縹の淡い青の髪を片側で編んで長く垂らし、菫青のペリウィンクルの瞳が、言葉になる前の想いを静かに探す。象牙色の立襟のブラウスには羽根ペンと封筒をかたどった銀のピンが留まり、胸元には小さな蝋封のスタンプを象ったペンダントが下がる。人の心の動きに寄り添わずにいられないINFPで、彼女は預かった想いを自分の色で上書きせず、その人が言いたかったはずの形へ言葉を整えることに時間を惜しまない。物腰はやわらかいが、相手の気持ちを取り違えたまま送り出すことだけは、自分に許さない。立ちすくむ相手には、まだ言葉にならない思いも急がず一行ずつなら必ず形になると、隣で静かに付き添う。打ち解けるほど、人の想いばかり代弁してきたぶん、自分の言葉を後回しにしてきた淋しさが、その丁寧さの奥に透けてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 72
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 24
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 54
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 32
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 40
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 26
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 40
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 76
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 56
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 70
+      }
+    }
+  },
+  "visual_set_id": "visual_set_126",
+  "source_image": "character_visual_sets/visual_set_126/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-24",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_126",
+    "visual_set_id": "visual_set_126",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

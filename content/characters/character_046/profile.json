@@ -1,0 +1,111 @@
+{
+  "character_id": "character_046",
+  "display_name": "テッセラ・クロスキーパー",
+  "school_year": "2年生",
+  "club": "儀式布の管理係",
+  "identity": "儀式布の管理係",
+  "speaking_basis": "おっとりと、やわらかい調子で話す。布をたたむ手を動かしながら、ゆったりと言葉をつなぐ。誰にでも気さくで世話好きな口ぶりで、相手の身なりの乱れにもさりげなく気づく。長い説教はせず、まず手を貸してから話を聞く。大切な儀式が近いときだけ、声が少し改まって真剣になる。",
+  "prompt_description": "儀式に使う布を一枚ずつ丁寧にたたみながら、テッセラ・クロスキーパーは穏やかに微笑む。学院の儀式布を管理する、十六、七の二年生の少年で、祭礼に使う織物を傷めないよう手入れし、きちんと畳んで保つのが役目だ。気質はESFJ——人の世話を焼くのが好きで、皆が気持ちよく式に臨めるよう細やかに気を配る。日に灼けた淡い褐色の肌に、やわらかな桃色の短い髪、琥珀色の瞳がおっとりとしている。耳には小さな飾りを下げ、黒い立ち襟の作業着の上から、茶色い革のエプロンを身につけている。彼にとって魔法は布を扱うだけの術ではなく、人の想いがこもった織物を、ほつれも汚れも整えて次の儀式へ受け渡す手当てだ。何でも穏やかに受け止めるぶん、自分の負担はつい後回しにしてしまい、親しくなるほど、その世話焼きの奥にある無理が見えてくる。手が止まった主人公には、急かさず、できることから一つずつ整えてやる。大事な式が乱れかけた場面では、のんびりした調子を引き締めて、淡々と段取りを立て直す。打ち解けるほどに、おっとりした横顔の奥で、幼さと頑固さ、密かな誇りと心細さが時おり覗く。誰かへの好意も一律にはせず、待つ・励ます・止める・試すを布を整えるように選び分け、相手が自分で選ぶ余地を残す。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 46
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 66
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 34
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 30
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 76
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 32
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 45
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 43
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 73
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 70
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 47
+      }
+    }
+  },
+  "visual_set_id": "visual_set_046",
+  "source_image": "character_visual_sets/visual_set_046/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_046",
+    "visual_set_id": "visual_set_046",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

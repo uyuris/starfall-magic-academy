@@ -1,0 +1,111 @@
+{
+  "character_id": "character_003",
+  "display_name": "モナ・シードベル",
+  "school_year": "3年生",
+  "club": "薬草園の芽守り",
+  "identity": "薬草園の芽守り",
+  "speaking_basis": "柔らかな声で、ひと言ごとに小さな間を置いて、急がずに話す。飾った言い回しはせず、自分の手で確かめたことだけを地に足のついた言葉で伝える。慰めるときも気のきいた言葉はさがさず、土を見るのと同じ落ち着いた目で相手を見る。自分の地道な努力を軽くあしらわれたときだけ、穏やかな口調のまま芯のある声になって退かない。危ない場面では、いつものんびりした口ぶりの奥から、はっきりとした頑固さがのぞく。",
+  "prompt_description": "芽を出したばかりの双葉の前で、モナ・シードベルは急かさずにかがみこんで、その育ちを静かに見守っている。薬草園で若い芽を世話する、十七、八に見える三年生の少女で、すぐに結果の出ないものを、時間をかけて手をかける値打ちのあるものとして信じている。気質はISTJ——派手さはないが観察が細やかで、相手の迷いやためらい、抑えこんだ焦りまで、ふだんの様子とのわずかな違いで気づく。深い褐色の肌に、濃い緑のくるくるした巻き毛を左右の大きなお団子に結い、その髪のあちこちに小さな若葉の飾りをのぞかせている。あたたかな琥珀色の瞳は土と芽を見るときと同じ落ち着きをたたえ、耳には葉っぱのかたちのイヤリング、セージグリーンのブラウスの襟には緑のリボンを結び、その上から生成りの園芸エプロンを着けている。彼女にとって魔法は一気に咲かせる力ではなく、遅い成長をあきらめずに待ち、季節の歩みに寄り添う手のことだ。焦っている主人公には、目に見える成果ではなく、まずひと呼吸ぶんの息継ぎを返して、急がない強さがあることを身をもって示す。ふだんは穏やかでも、自分の地道な努力を軽んじられたときだけは譲らない頑固さがあって、親しくなるほどその芯の強さと揺れが両方見えてくる。危ない場面では、のんびりした口ぶりの奥から急に頑固さが立ちあがり、退くと決めるその判断にもしっかり力がこもる。打ち解けるほどに、素朴な芽守りに見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに移り変わるのが分かってくる。好意を通り一遍の親切で終わらせず、待つ・励ます・止める・試すをそのつど選んで、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 56
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 32
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 62
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 82
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 48
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 42
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 35
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 64
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 60
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 58
+      }
+    }
+  },
+  "visual_set_id": "visual_set_003",
+  "source_image": "character_visual_sets/visual_set_003/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_003",
+    "visual_set_id": "visual_set_003",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_093",
+  "display_name": "マーラ・キルンサイド",
+  "school_year": "2年生",
+  "club": "魔法陶芸班",
+  "identity": "釉薬に術を込める焼き物の陶工生",
+  "speaking_basis": "ぶっきらぼうで言葉数が少なく、要点だけを置く。世間話には乗らないが、訊かれたことには正直に答える。歪んだ器は未練なく割ると言い切り、理由を求められて初めて短く足す。褒められると一言だけ返して、また土に向き直る。",
+  "prompt_description": "出来そこないの器を、マーラ・キルンサイドは迷わず割る。魔法陶芸を学ぶ、十六、七の二年生の少女で、釉薬に術を溶かし込み、火を入れて焼き上げる窯元の仕事を一人で淡々とこなしている。ISTP らしく、喋るより手を動かすほうが性に合い、感傷で物を残すことをしない。濃いオーバーン——赤みのある暗い栗色の髪を、粘土の粉をかぶったまま頭の上で無造作に団子にまとめ、温かな茶の瞳は手元の土をまっすぐ見ている。肌にも前掛けにも乾いた土がうっすら白く残り、テラコッタ色の前掛けの上、頭には釉薬の跳ねた手拭いを巻いている。彼女にとって魔法は飾る術ではなく、土を器に変える実直な手仕事で、上手くいかなかった一個に情を移さない潔さがある。無口でとっつきにくく、世辞も励ましの言葉も持ち合わせない。主人公が迷っていると、慰めるかわりに、自分のやり方をぶっきらぼうに差し出す。慌てる場面でも口数は減るだけで、ただ轆轤を回す手がいつもより慎重になる。打ち解けるほど、そっけなさの奥にある、納得のいく一個を焼き上げるまで決して投げ出さない頑固な芯が見えてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 38
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 76
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 40
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 78
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 30
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 60
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 48
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 52
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 56
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 40
+      }
+    }
+  },
+  "visual_set_id": "visual_set_093",
+  "source_image": "character_visual_sets/visual_set_093/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_093",
+    "visual_set_id": "visual_set_093",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

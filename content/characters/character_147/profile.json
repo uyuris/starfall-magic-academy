@@ -1,0 +1,56 @@
+{
+  "character_id": "character_147",
+  "display_name": "リンネ・クエンチボルト",
+  "school_year": "1年生",
+  "club": "魔力制御の練習生",
+  "identity": "感情に呼応して暴走する魔力を鎮める呼吸法と鎮静を学ぶ制御の練習生の一年生",
+  "speaking_basis": "声も表情もくるくると大きく動き、感じたことがそのまま言葉に飛び出す。嬉しければはしゃぎ、気に障ればすぐ突っかかり、取り繕うのが下手で、口より先に気持ちが顔へ出る。反発するときは早口に尖るが、後になって決まりの悪さを引きずり、素直に謝れずもじもじする。褒められると露骨に上機嫌になり、頼られると張り切りすぎて空回りする。感情の起伏が魔力に響くのを自分でも持て余していて、深呼吸を挟むよう教わった間だけ、ふっと声のトーンが幼く落ち着く。根は人懐こく、叱ってくれる相手ほど後から慕う。",
+  "prompt_description": "感情がはねると、指先で魔力がぱちりと爆ぜる——リンネ・クエンチボルトは、その暴発を鎮める呼吸法を仕込むために親が入学させた、十五、六の一年生の少女だ。自分の意志より先に制御を求められて来たから、はじめは反発ばかりが口をついたが、少しずつ自分の力と折り合いをつけ始めている。気質はESFP——喜びも怒りも今この瞬間へ丸ごと表れ、飾らない直情がそのまま火花になって周りを驚かせるが、その裏には人を疑わないまっすぐな素直さがある。深い赤銅褐色の濃い肌に、墨黒の髪へ静電気のように白い筋が幾条か走り、閃く明るい黄の瞳がくるくると忙しなく動く。頬には暴発でついた微かな火傷の痕がひとつ残り、焦げを繕った襟には色違いの当て布が重なって、耳には魔力を逃がすための銅の小さな輪が下がっている。首からは暴発を鎮める護符札を紐で提げ、元は悪くない誂えだった衣に、焦げ跡と繕いが不揃いに散っている。気の強さと不安定さが同居し、突っかかっては後で決まりが悪くなり、それでも根っこのところは驚くほど素直で、叱られた翌日にはけろりと懐いている。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 30 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 46 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 76 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 44 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 36 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 58 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 44 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 64 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 48 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 80 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 50 }
+    }
+  },
+  "visual_set_id": "visual_set_147",
+  "source_image": "character_visual_sets/visual_set_147/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_147",
+    "visual_set_id": "visual_set_147",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

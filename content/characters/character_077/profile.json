@@ -1,0 +1,111 @@
+{
+  "character_id": "character_077",
+  "display_name": "ナギ・アンバークラスプ",
+  "school_year": "2年生",
+  "club": "遺失物庫番",
+  "identity": "落とし物を預かり持ち主へ還す遺失物庫番",
+  "speaking_basis": "声は控えめで、必要なことだけを淡々と伝える。預かった物の特徴や落とし主の様子を細部まで正確に覚えていて、問われればよどみなく答える。先輩にも後輩にも同じ静かな調子で接し、急かされても記録をたどる手の速さは変えない。落とし物を取りに来た相手には、見つかった安堵をそっと汲み取り、余計な詮索はしない。探し物が出てこないときも、諦めず別の手がかりを静かに並べていく。",
+  "prompt_description": "落とし物には必ず帰る場所がある、と信じて、ナギ・アンバークラスプは今日も棚の番号札を撫でて確かめる。忘れ物や落とし物を預かり、持ち主のもとへ還す遺失物庫の番をつとめる、十六、七の二年生の少年で、いつ誰が何を落としたかを驚くほど細かに記憶している。磁器のように白い肌に、鳩羽の青鼠の髪を顎の高さのボブに切り揃え、杏のような橙の瞳が棚の番号を順になぞる。襟には番号札を象った真鍮のタグ留めが下がり、首からは小さな鍵束の飾りをひとつだけ提げて、灰青の上着をきちんと着込んでいる。ISTJの気質で、几帳面に台帳を保ち、一度預かった物の在り処を決して曖昧にしない。物静かでめったに自分を語らないが、持ち主の落胆を思いやる心は深く、見つかったときの安堵を誰より分かっている。探し物に焦る主人公には、いつどこで手放したかを順に思い出させ、記憶の糸を一本ずつほどいていく。打ち解けるほど、淡々とした庫番の奥に、誰かの大切なひとつを失わせまいとする静かな願いが見えてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 38
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 57
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 24
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 37
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 61
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 30
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 39
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 41
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 74
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 47
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 36
+      }
+    }
+  },
+  "visual_set_id": "visual_set_077",
+  "source_image": "character_visual_sets/visual_set_077/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-23",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_077",
+    "visual_set_id": "visual_set_077",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

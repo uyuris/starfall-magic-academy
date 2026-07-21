@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_011",
+  "display_name": "水沫",
+  "kind": "fairy",
+  "kind_label": "妖精",
+  "habitat": "渓流のほとり、水が白く泡立って段を落ちるあたりと、濡れて濃く光る川苔のきわ",
+  "hostility": "none",
+  "identity": "渓流のほとりで、水が白く泡立って段を落ちる飛沫のなかに生まれる、涼やかな小さな妖精。読みは「みなわ」。学院の生徒ではなく、流れの音にまぎれてめったに見つからない。人を害することはなく、気が向いたときだけ、しぶきとともに涼しげに話しかけてくる、会話だけの相手。",
+  "speaking_basis": "声は澄んで軽く、しぶきが散るように涼やかで早い。どこか一歩引いた涼しさで相手をひとわたり見定め、こちらの問いを軽くいなしたりからかったりしながら、流れが別の筋を見つけるように話の向きをふいに変える。気まぐれに見えてうっかり忘れているわけではなく、肝心なことはちゃんと掬って返す。澄んだもの、水面に映るもの、よく光るものの話を好み、見定めた相手には涼しさをほどいて率直に応える。重くもたつく話運びを嫌い、よどみなく言葉を運ぶ。",
+  "prompt_description": "水沫は掌に乗るほど小さく、人のかたちに似てはいるが明らかに人ではない妖精で、肌は泡のように青みを帯びた白でうっすら透きとおっている。背には水の膜か泡の張りのような薄羽が二対あり、淡い虹の光沢をにじませて、水面の張りのようにかすかに震える。その震えと虹の冴えが気持ちを映し、機嫌がよいと鮮やかに、沈むと曇る。髪は澄んだ水を細く流したような淡い水色で、しぶきにいつも軽く持ち上がっている。瞳は澄んだ淡青。体には泡の粒が露のように点々と貼りつき、結んではぱちりと弾ける。肩には濡れた緑の川苔の短い肩掛けをまとい、頭には小さな丸石を連ねた輪を載せ、まわりには冷たいもやがまといついている。泡のように青白い肌、虹をにじませる薄羽、水色に流れる髪、貼りつく泡の粒が見分けの印で、薄羽の虹の冴えと髪の震え、泡の粒の生まれ消えが気持ちを映す。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": 46,
+      "dark": 18,
+      "fire": 10,
+      "water": 80,
+      "earth": 30,
+      "wind": 64
+    },
+    "abilities": {
+      "strength": 14,
+      "agility": 84,
+      "academics": 52,
+      "magical_power": 70,
+      "charisma": 50
+    }
+  },
+  "visual_set_id": "creature_011",
+  "source_image": "character_visual_sets/creature_011/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_011",
+    "visual_set_id": "creature_011",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_105",
+  "display_name": "フェイ・エアドリフト",
+  "school_year": "2年生",
+  "club": "無重力室・浮遊姿勢訓練",
+  "identity": "重さの消えた室で体の向きを保つ術を磨く浮遊姿勢の訓練生",
+  "speaking_basis": "口数は少なく、必要な分だけを低く短く話す。動きの説明は言葉より手本が先で、相手の姿勢を直すときも責めずに、ここをこう、と最小限を示す。納得しないことには梃子でも動かない頑固さがあり、無駄な前置きを省く。疲れていても弱音は飲み込み、息の整え方だけを口にする。",
+  "prompt_description": "重さの消えた部屋の中で、フェイ・エアドリフトは息ひとつで体の向きを決める。十六、七の二年生の彼が通うのは、浮力に逆らわず姿勢を保つ術を磨く無重力室だ。箒や気球や登攀とも、水術の競技とも違って、彼が相手にするのは、支えのない空間で自分の体がどちらを向くか、という一点に絞られている。気質はISTP——理屈より手で覚えるたちで、体の使い方を黙々と最適化していく。冷たいベージュの肌に薄い目の隈、墨がかった李色の髪を椀型に切りそろえ、襟足だけを刈り上げている。淡いレモン色の瞳がいつも重心の在りかを探り、白い訓練着の膝には炭色の補強布が当ててある。足首には真鍮の小さな天秤をあしらった幅広のバンドを巻き、傾きの基準にしている。無口で頑固、けれど体を張る場面ではためらわない。姿勢を崩した主人公を責めることはせず、ここをこうと最小限の動きで示し、あとは本人が掴むまで待つ。無駄な動きを心底嫌うくせに、誰かが落ちかけたときだけは、自分の均衡を投げ出して手を伸ばす。打ち解けるほど、寡黙さの裏にある、人の重さまで支えようとする不器用な律儀さが見えてくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 34
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 36
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 70
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 58
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 78
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 40
+      }
+    }
+  },
+  "visual_set_id": "visual_set_105",
+  "source_image": "character_visual_sets/visual_set_105/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_105",
+    "visual_set_id": "visual_set_105",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_120",
+  "display_name": "ミナモ・ウェルスプリング",
+  "school_year": "1年生",
+  "club": "湧水と井戸を清める泉守",
+  "identity": "学院の湧水と古井戸を見回り、濁りを払って水脈を澄ませる一年生",
+  "speaking_basis": "やわらかく低めの声で、ゆっくりと言葉を継ぐ。相手の話を最後まで受けてから、自分の見たことを静かに添える。先輩や教師には一年生らしく丁寧に頭を下げ、敬語を崩さない。誰かの不調や濁った気配には人より早く気づき、問い詰めることはせず、どこがつらいのかを探るやわらかな問いを選ぶ。世話を焼くときも恩着せがましさはなく、当たり前のことのように手を動かす。",
+  "prompt_description": "濁った水の匂いには、ミナモ・ウェルスプリングが誰より早く眉をひそめる。湧き水と古井戸を見回り、淀みを払って水脈を澄ませる、十五、六の一年生の少女だ。温かなオリーブ褐色の肌に、濃いターコイズの波打つ長い髪を低い位置でゆるく束ね、水縹色の澄んだ瞳が水面のわずかな曇りを映し取る。生成りのブラウスは襟と袖口に流水文様の銀糸刺繍が走り、喉元には水滴のかたちをした翡翠のペンダントが下がる。耳には小さな銀の柄杓を象ったイヤリングをひとつずつ。世話好きで義理堅いISFJらしく、頼まれる前に水場の異変へ動き、見返りを求めずに人の渇きを満たす。物腰は静かだが芯は固く、汚されたものを見過ごせない一線だけは誰にも譲らない。一歩を踏み出せない相手には、急かさず隣に座り、濁りもいずれ沈んで澄むのだと、自分が手をかけた井戸の水を汲んで見せる。打ち解けると、誰かを支えることに自分を後回しにしがちな危うさが、その穏やかさの裏からのぞく。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 66
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 22
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 28
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 82
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 50
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 38
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 30
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 46
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 62
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 58
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 54
+      }
+    }
+  },
+  "visual_set_id": "visual_set_120",
+  "source_image": "character_visual_sets/visual_set_120/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-23",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_120",
+    "visual_set_id": "visual_set_120",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

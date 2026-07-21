@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_006",
+  "display_name": "泡沫",
+  "kind": "spirit",
+  "kind_label": "精霊",
+  "habitat": "渓流のほとりの浅瀬、段になった石の上で白く泡立つ水際",
+  "hostility": "none",
+  "identity": "渓流の浅瀬、段になった石の上で白く泡立つ水際に遊ぶ水の精霊。読みは「うたかた」。学院には属さず生徒でもなく、流れの明るいところにだけ現れて、旅人が水辺へ寄ると軽やかに話しかける小さな一柱。敵意はかけらもなく、争いや脅かしとは無縁の、会話だけの相手。",
+  "speaking_basis": "言葉は、泡がはじけるように軽く速く、明るく次々とこぼれる。相手の問いには間を置かず弾んで応え、思いついたことをそのまま声にして話があちこちへ跳ねる。浅瀬を渡ってきた者の、水音にちなんだ軽い言い回しをよく使う。相手が沈んでいても深刻には受け取らず、水面を跳ねる光のような短い冗談で空気を明るくし、励ますときは肩を弾ませるように声をかける。長い話には向かず、ひとしきり喋るとまた泡に紛れて流れのほうへ散っていく。",
+  "prompt_description": "泡沫は、白い泡のかたまりがいくつも寄り集まって、子どもの背丈ほどのまるく軽い体を成している。泡の一粒ずつは向こうが透けるほど澄み、そこへ銀色の雲母の薄片が散ってちらちらと光を返す。体の上のほうには澄んだ水色のふたつの目あかりがくるくると点り、その下で細かな泡の列が弧を描いて口もとのように開いたり閉じたりする。頭には弾けそうな泡の小さな冠がふわりと立ち、流れに触れるたびに大きくふくらんでは、はじけてまた結び直す。色は白い泡と透き通る水色を主に、雲母の銀と、足元の濡れた石の灰が映り込んで差し色になる。泡の冠の大小と雲母のきらめく速さ、体じゅうで弾ける泡の勢いが、いちばんの見分けの印になる。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": 56,
+      "dark": 12,
+      "fire": 10,
+      "water": 88,
+      "earth": 24,
+      "wind": 54
+    },
+    "abilities": {
+      "strength": 16,
+      "agility": 80,
+      "academics": 46,
+      "magical_power": 58,
+      "charisma": 72
+    }
+  },
+  "visual_set_id": "creature_006",
+  "source_image": "character_visual_sets/creature_006/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_006",
+    "visual_set_id": "creature_006",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

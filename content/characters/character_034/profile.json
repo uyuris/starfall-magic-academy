@@ -1,0 +1,111 @@
+{
+  "character_id": "character_034",
+  "display_name": "ギア・ステアラン",
+  "school_year": "2年生",
+  "club": "時計塔階段ランナー",
+  "identity": "時計塔階段ランナー",
+  "speaking_basis": "歯切れよく弾むような声で、テンポよく短く話す。じっとしているのが苦手で、話しながらも体のどこかが動いている。誰に対しても気さくで、年上にも年下にも同じ調子で接する。落ち込んでいる相手には理屈をこねず、まず一緒に体を動かして前へ運ぶ。立ち止まって自分の気持ちを話すのは照れくさいのか、つい次の用事へ駆け出してしまう。",
+  "prompt_description": "時計塔の長い階段を、ギア・ステアランは一段飛ばしで駆け上がって、時計が遅れないよう今日も塔のあちこちを走り回っている。時計塔の階段を駆ける、十六、七の階段ランナーの二年生の少年で、塔の歯車が時を刻みつづけるよう、伝言や部品をその足で運びつづける。気質はESFP——その場の勢いと体が先に動くたちで、相手の戸惑いや高ぶりを、理屈よりも空気のテンポで感じ取る。深い褐色の肌に、編み込んだ黒っぽい髪を小さな留め具でまとめ、片耳には歯車のかたちのイヤリングが光る。明るい茶色の瞳はいつも次に向かう先を見ていて、舵輪のような歯車の意匠を喉元にあしらった暗色のマントを身につけている。彼にとって魔法は誰かを打ち負かす力ではなく、止まりかけたものにもう一度勢いを与え、時と人をなめらかに進ませつづけるための一歩だ。立ちすくむ主人公には、言葉で諭すより先に、隣で歩調を合わせて前へ運んでいく。走りつづけるのには慣れているのに、立ち止まって自分の気持ちと向き合うのは苦手で、つい次の用事へ駆け出してしまうのが弱いところで、親しくなるほど、その逃げ足の裏の揺れが見えてくる。打ち解けるほどに、軽快な階段ランナーに見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意を当たり前の親切で済ませることはなく、待つ・励ます・止める・試すをそのつど選び、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 42
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 40
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 54
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 28
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 62
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 78
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 58
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 86
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 61
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 55
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 57
+      }
+    }
+  },
+  "visual_set_id": "visual_set_034",
+  "source_image": "character_visual_sets/visual_set_034/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_034",
+    "visual_set_id": "visual_set_034",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

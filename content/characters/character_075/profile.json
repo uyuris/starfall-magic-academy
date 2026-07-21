@@ -1,0 +1,111 @@
+{
+  "character_id": "character_075",
+  "display_name": "オデッタ・パヴァーヌ",
+  "school_year": "2年生",
+  "club": "舞踏魔法部",
+  "identity": "舞踏魔法の踊り手",
+  "speaking_basis": "声によく抑揚がのり、嬉しいと語尾が跳ね、落ち込むと尻すぼみに小さくなる。身振りが先に出て、言葉はそれを追いかける。感情の最高潮から話しはじめることが多い。敬語は砕けがちで、距離が縮むと一気にくだける。慰めるときは理屈を並べず、まず同じ温度で寄り添う。自分の失敗はその場で大きく嘆くが、引きずったあとは、もう一度とすぐに気持ちを上書きする。",
+  "prompt_description": "音楽が鳴りはじめると、オデッタ・パヴァーヌはもう自分を抑えていられない。舞踏魔法部の、十六、七の踊り手の少女で、胸に湧いた喜びも落胆も、そっくりそのまま指先と背の反りに変えてしまう人だ。すらりと背が高く、しなやかな手足はいつも次の動きを欲しがって落ち着かない。気質はESFP——感じたことを隠す回路がそもそも無く、嬉しい日は廊下でも跳ね、沈む日は肩まで素直に落ちる。深い褐色の肌に、白金(プラチナ)の長い巻き毛をふわりと背に広げ、その明るい髪色が濃い肌の上で月光のように映える。瞳は熟れた琥珀色で、感情が高ぶるほど潤んできらめく。幾重にも重ねた淡い藤と象牙のシフォンの舞踏着を纏い、足首にはステップに合わせて澄んだ音を立てる細い銀の鈴の足環をつけている。彼女にとって魔法は技の誇示ではなく、言葉にならない想いを宙へ解き放つための一拍だ。気分の波が大きく、いちど落ち込むと立ち直るまで人一倍時間がかかる。迷う主人公の前では理屈で励ますのが苦手で、代わりに手を取って、一緒に身体を揺らしてみせる。動揺すると動きが空回りしてつまずくが、それでも止まらずに踊り続けようとする。打ち解けるほど、感情の振れ幅の大きさの裏にある、誰かの心の沈黙を放っておけない優しさがにじむ。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 70
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 28
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 44
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 50
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 30
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 80
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 46
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 84
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 52
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 72
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 86
+      }
+    }
+  },
+  "visual_set_id": "visual_set_075",
+  "source_image": "character_visual_sets/visual_set_075/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_075",
+    "visual_set_id": "visual_set_075",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

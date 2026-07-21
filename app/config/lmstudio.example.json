@@ -1,0 +1,10 @@
+{
+  "provider": "lmstudio",
+  "base_url": "http://127.0.0.1:1234/v1",
+  "chat_model": "gemma-4-31b-it",
+  "reflection_model": "gemma-4-31b-it",
+  "timeout_ms": 120000,
+  "stream": true,
+  "thinking_effort": null,
+  "mock_provider_enabled": true
+}

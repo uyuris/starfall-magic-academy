@@ -1,0 +1,543 @@
+{
+  "visual_set_id": "creature_002",
+  "character_assignment": null,
+  "source_sheet": {
+    "path": "../../source_images/creature_002_emotion16_source_sheet.png",
+    "width": 2000,
+    "height": 2000,
+    "grid": {
+      "columns": 4,
+      "rows": 4,
+      "cell_width": 500,
+      "cell_height": 500
+    },
+    "emotion_cell_mapping": {
+      "neutral": {
+        "row": 1,
+        "col": 1,
+        "x": 0,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "joy": {
+        "row": 1,
+        "col": 2,
+        "x": 500,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "caring": {
+        "row": 1,
+        "col": 3,
+        "x": 1000,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "confident": {
+        "row": 1,
+        "col": 4,
+        "x": 1500,
+        "y": 0,
+        "w": 500,
+        "h": 500
+      },
+      "sadness": {
+        "row": 2,
+        "col": 1,
+        "x": 0,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "anger": {
+        "row": 2,
+        "col": 2,
+        "x": 500,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "worried": {
+        "row": 2,
+        "col": 3,
+        "x": 1000,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "surprised": {
+        "row": 2,
+        "col": 4,
+        "x": 1500,
+        "y": 500,
+        "w": 500,
+        "h": 500
+      },
+      "embarrassed": {
+        "row": 3,
+        "col": 1,
+        "x": 0,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "shy": {
+        "row": 3,
+        "col": 2,
+        "x": 500,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "serious": {
+        "row": 3,
+        "col": 3,
+        "x": 1000,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "determined": {
+        "row": 3,
+        "col": 4,
+        "x": 1500,
+        "y": 1000,
+        "w": 500,
+        "h": 500
+      },
+      "smug": {
+        "row": 4,
+        "col": 1,
+        "x": 0,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      },
+      "tired": {
+        "row": 4,
+        "col": 2,
+        "x": 500,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      },
+      "panic": {
+        "row": 4,
+        "col": 3,
+        "x": 1000,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      },
+      "sick": {
+        "row": 4,
+        "col": 4,
+        "x": 1500,
+        "y": 1500,
+        "w": 500,
+        "h": 500
+      }
+    },
+    "plain_background_validation": {
+      "method": "sampled four corners of each 500x500 cell and compared RGB family; reviewed contact sheets for scenery/pattern clutter",
+      "max_corner_rgb_manhattan_delta": 29,
+      "plain_or_near_solid_review": true,
+      "samples": [
+        {
+          "emotion": "neutral",
+          "corner_rgb": [
+            214,
+            175,
+            112
+          ],
+          "channel_stddev": [
+            64.03,
+            51.08,
+            42.63
+          ]
+        },
+        {
+          "emotion": "joy",
+          "corner_rgb": [
+            217,
+            176,
+            111
+          ],
+          "channel_stddev": [
+            63.52,
+            50.71,
+            42.02
+          ]
+        },
+        {
+          "emotion": "caring",
+          "corner_rgb": [
+            217,
+            176,
+            112
+          ],
+          "channel_stddev": [
+            65.5,
+            51.73,
+            42.48
+          ]
+        },
+        {
+          "emotion": "confident",
+          "corner_rgb": [
+            216,
+            176,
+            113
+          ],
+          "channel_stddev": [
+            65.72,
+            51.97,
+            42.47
+          ]
+        },
+        {
+          "emotion": "sadness",
+          "corner_rgb": [
+            217,
+            178,
+            113
+          ],
+          "channel_stddev": [
+            64.96,
+            51.96,
+            43.55
+          ]
+        },
+        {
+          "emotion": "anger",
+          "corner_rgb": [
+            219,
+            178,
+            114
+          ],
+          "channel_stddev": [
+            65.28,
+            51.97,
+            43.33
+          ]
+        },
+        {
+          "emotion": "worried",
+          "corner_rgb": [
+            219,
+            178,
+            114
+          ],
+          "channel_stddev": [
+            66.05,
+            52.3,
+            43.62
+          ]
+        },
+        {
+          "emotion": "surprised",
+          "corner_rgb": [
+            219,
+            178,
+            114
+          ],
+          "channel_stddev": [
+            65.79,
+            52.43,
+            43.98
+          ]
+        },
+        {
+          "emotion": "embarrassed",
+          "corner_rgb": [
+            218,
+            178,
+            114
+          ],
+          "channel_stddev": [
+            65.57,
+            52.33,
+            44.24
+          ]
+        },
+        {
+          "emotion": "shy",
+          "corner_rgb": [
+            219,
+            179,
+            114
+          ],
+          "channel_stddev": [
+            66.38,
+            52.85,
+            44.21
+          ]
+        },
+        {
+          "emotion": "serious",
+          "corner_rgb": [
+            220,
+            179,
+            115
+          ],
+          "channel_stddev": [
+            64.79,
+            51.92,
+            44.05
+          ]
+        },
+        {
+          "emotion": "determined",
+          "corner_rgb": [
+            220,
+            180,
+            115
+          ],
+          "channel_stddev": [
+            65.35,
+            52.16,
+            44.01
+          ]
+        },
+        {
+          "emotion": "smug",
+          "corner_rgb": [
+            218,
+            178,
+            117
+          ],
+          "channel_stddev": [
+            64.62,
+            51.78,
+            43.96
+          ]
+        },
+        {
+          "emotion": "tired",
+          "corner_rgb": [
+            220,
+            180,
+            117
+          ],
+          "channel_stddev": [
+            65,
+            52.02,
+            44
+          ]
+        },
+        {
+          "emotion": "panic",
+          "corner_rgb": [
+            221,
+            180,
+            116
+          ],
+          "channel_stddev": [
+            64.17,
+            51.85,
+            44.34
+          ]
+        },
+        {
+          "emotion": "sick",
+          "corner_rgb": [
+            219,
+            180,
+            117
+          ],
+          "channel_stddev": [
+            65.06,
+            50.75,
+            42.57
+          ]
+        }
+      ]
+    }
+  },
+  "base_face": {
+    "id": "face_base",
+    "emotion": "neutral",
+    "path": "face/base.jpg",
+    "sha256": "4414c13bcb237ded9602fcc96b5481e1457456e6e71edf27852cf48d5b4f5f80"
+  },
+  "face_emotion_variants": [
+    {
+      "id": "face_neutral",
+      "emotion": "neutral",
+      "path": "face_emotions/neutral.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 1
+      },
+      "sha256": "4414c13bcb237ded9602fcc96b5481e1457456e6e71edf27852cf48d5b4f5f80"
+    },
+    {
+      "id": "face_joy",
+      "emotion": "joy",
+      "path": "face_emotions/joy.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 2
+      },
+      "sha256": "c01cdd76b3606a4f8db6b4493bbb186266b3a112703e95e697dd4e3538b6b320"
+    },
+    {
+      "id": "face_caring",
+      "emotion": "caring",
+      "path": "face_emotions/caring.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 3
+      },
+      "sha256": "ae0a47eefabeec5b4f08de09948143c67219aee2a064c9454bd3c878d3418b1a"
+    },
+    {
+      "id": "face_confident",
+      "emotion": "confident",
+      "path": "face_emotions/confident.jpg",
+      "source_cell": {
+        "row": 1,
+        "col": 4
+      },
+      "sha256": "d6a4942e7dea2deaa6fdf67fc625064b60358f0504855fc2b66b0b2e05295fdc"
+    },
+    {
+      "id": "face_sadness",
+      "emotion": "sadness",
+      "path": "face_emotions/sadness.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 1
+      },
+      "sha256": "8f30b67cb19577da4e487bc55a9cf95061f41237d7cce37d798dcd4b882d5b50"
+    },
+    {
+      "id": "face_anger",
+      "emotion": "anger",
+      "path": "face_emotions/anger.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 2
+      },
+      "sha256": "36171a0ce73d08d9648b39df3911f45a934559f56506e358824ba343b12bf981"
+    },
+    {
+      "id": "face_worried",
+      "emotion": "worried",
+      "path": "face_emotions/worried.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 3
+      },
+      "sha256": "87a2780ed00614159682727afe4faa92e9221895fe8583ddad2fb1a7721175d1"
+    },
+    {
+      "id": "face_surprised",
+      "emotion": "surprised",
+      "path": "face_emotions/surprised.jpg",
+      "source_cell": {
+        "row": 2,
+        "col": 4
+      },
+      "sha256": "5dbf7890e215009cd73110daec0e1f3a4355a4f5dd01f77d9894e3a101dc8c43"
+    },
+    {
+      "id": "face_embarrassed",
+      "emotion": "embarrassed",
+      "path": "face_emotions/embarrassed.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 1
+      },
+      "sha256": "dd871d9307be355d0371507676f393950eb3d93cbc2b611b51f06f96e63071a4"
+    },
+    {
+      "id": "face_shy",
+      "emotion": "shy",
+      "path": "face_emotions/shy.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 2
+      },
+      "sha256": "b7310d2d4b7ccadb684d1e9be8fb7b7c929429660ea6d6d2929915ab82e7c8b6"
+    },
+    {
+      "id": "face_serious",
+      "emotion": "serious",
+      "path": "face_emotions/serious.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 3
+      },
+      "sha256": "39931ef2de0679c53ad6e9982f668a494cdb8453a16367e3e0ef267e7d90d935"
+    },
+    {
+      "id": "face_determined",
+      "emotion": "determined",
+      "path": "face_emotions/determined.jpg",
+      "source_cell": {
+        "row": 3,
+        "col": 4
+      },
+      "sha256": "ee03789a71e20237ee64eb40ba8149d0bdc5e1dbe8c3a90f3a2eda001c690c94"
+    },
+    {
+      "id": "face_smug",
+      "emotion": "smug",
+      "path": "face_emotions/smug.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 1
+      },
+      "sha256": "7c4cd5dcfcbef9db557e98030eb0bbf8386d7ed2e7923b220682a567ab5fcbb7"
+    },
+    {
+      "id": "face_tired",
+      "emotion": "tired",
+      "path": "face_emotions/tired.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 2
+      },
+      "sha256": "68159665a16a2b15c60bf010ce21f97e2acca5cf5bffa8384debcbddd33046a0"
+    },
+    {
+      "id": "face_panic",
+      "emotion": "panic",
+      "path": "face_emotions/panic.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 3
+      },
+      "sha256": "5de00b263821f650bccfe517aef38187e7bc1eb6877c3d7a7da745958829fef8"
+    },
+    {
+      "id": "face_sick",
+      "emotion": "sick",
+      "path": "face_emotions/sick.jpg",
+      "source_cell": {
+        "row": 4,
+        "col": 4
+      },
+      "sha256": "d7e78378f81e61b36151d87bd223d9193ae6b2b513886811604dc8dce9385364"
+    }
+  ],
+  "generation_notes": {
+    "source_prompt_summary": "4x4 row-major emotion sheet for creature_002 amber-dragonfly fairy in warm Magic Academy ADV visual-novel anime, clean cel shading, flat harmonizing background, no text or panel borders.",
+    "standee_prompt_summary": "Full-scene standee for creature_002 hovering near amber resin in a deep conifer forest, fully painted 2D ADV background, no text.",
+    "negative_prompt_summary": "No text, labels, watermark, extra characters, scenery in face cells, UI, photorealism, placeholder art, flat vector styling, or simple cartoon styling.",
+    "identity_consistency_checks": [
+      "Same identity text anchor used for emotion source sheet and standee source.",
+      "Emotion crops were sliced from fixed 500x500 row-major grid offsets after 2000x2000 normalization.",
+      "Set contact sheet, emotion grid, and scene standee preview generated for visual review."
+    ]
+  },
+  "scene_standee": {
+    "id": "scene_standee_character_01",
+    "path": "scene_standee/scene_standee_character_01.jpg",
+    "sha256": "210930cd17dae610a14bf7c4bc3edbef612391248cbd4874a9d6bde8195b950d"
+  }
+}

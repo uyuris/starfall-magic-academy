@@ -1,0 +1,1138 @@
+{
+  "reward_bands": {
+    "small": {
+      "min": 1,
+      "max": 3
+    },
+    "medium": {
+      "min": 4,
+      "max": 5
+    },
+    "large": {
+      "min": 6,
+      "max": 8
+    }
+  },
+  "types": [
+    {
+      "id": "star_missing_search",
+      "theme_id": "star_observation",
+      "name": "帰らない星の捜索",
+      "scene_brief": "星図には載っているのに今夜どうしても見つからない星を、望遠鏡と星図を突き合わせてふたりで探す。主催者はその星に観測記録の締切を懸けている。",
+      "condition_text": "主人公が候補の星をひとつ指し示し、探している星かどうかの結論を主催者と出した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "meteor_trace_copy",
+      "theme_id": "star_observation",
+      "name": "流星痕の写し取り競べ",
+      "scene_brief": "同じ流星痕をそれぞれ写し取り、線の走りの違いから互いの観測の癖を突き合わせる。",
+      "condition_text": "主人公が二枚の写しの違いを一箇所指摘し、どちらの癖によるものかを言い当てた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "starchart_errata",
+      "theme_id": "star_observation",
+      "name": "古星図の間違い探し",
+      "scene_brief": "書庫から出てきた古い星図と今夜の空の食い違いを探し、訂正の書き込みを入れていく。",
+      "condition_text": "主人公が星図と実際の空の食い違いを一つ見つけ、訂正文を口述した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "dawn_vigil",
+      "theme_id": "star_observation",
+      "name": "明け方までの粘り観測",
+      "scene_brief": "雲間が切れる一瞬を待って、望遠鏡の前で夜通し粘る。主催者は今夜を逃すと次が数ヶ月先の現象を狙っている。",
+      "condition_text": "主人公が観測を明け方の区切りまで付き合い切り、観測の成否を主催者と確かめ合った。",
+      "reward_band": "large"
+    },
+    {
+      "id": "compass_madness",
+      "theme_id": "star_observation",
+      "name": "羅針盤が狂う夜の検証",
+      "scene_brief": "観測台の羅針盤が特定の夜だけ狂う原因を、位置を変えながら切り分ける。",
+      "condition_text": "主人公が狂いの原因について検証結果を根拠に一つの見立てを述べ、主催者が受け止めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "starfall_omen",
+      "theme_id": "star_observation",
+      "name": "星降りの前兆さがし",
+      "scene_brief": "星降り祭の言い伝えにある「前兆の並び」が本当に現れるのか、星図に印をつけながら追う。",
+      "condition_text": "主人公が前兆とされる並びを星図上で一つ照合し、言い伝えと合うか否かを主催者と結論づけた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "telescope_centering",
+      "theme_id": "star_observation",
+      "name": "望遠鏡の芯合わせ",
+      "scene_brief": "ずれた望遠鏡の芯を、基準星を使ってふたりがかりで合わせ直す。",
+      "condition_text": "主人公が芯合わせの手順を一区切りやり終え、基準星が視野に収まったことを主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "failed_brew_sniff",
+      "theme_id": "potion_brewing",
+      "name": "失敗作の匂い当て",
+      "scene_brief": "主催者が処分しかねている失敗作の小瓶を並べ、匂いと色から「何を入れ間違えたか」を推理し合う。",
+      "condition_text": "主人公が一本について入れ間違いの見立てを述べ、主催者が納得か反証で応じた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "simmer_duel",
+      "theme_id": "potion_brewing",
+      "name": "沸かし加減の見極め競べ",
+      "scene_brief": "同じ薬を二口の火で並行して煮て、火加減ひとつで出来がどう分かれるかを比べる。",
+      "condition_text": "主人公が二つの鍋の差がどの火加減から生まれたかを指摘し、主催者と答え合わせした。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "toxin_shelf_ledger",
+      "theme_id": "potion_brewing",
+      "name": "劇物棚の棚卸しと毒見表づくり",
+      "scene_brief": "表示の剥がれた劇物棚を検分し、取り違えたら危ない組を毒見表にまとめる。",
+      "condition_text": "主人公が取り違えの危険な組を一つ挙げ、見分け方を表に載せる形で言語化した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "lost_recipe_revival",
+      "theme_id": "potion_brewing",
+      "name": "幻の配合レシピの復元",
+      "scene_brief": "先輩が残した断片メモから、失われた配合を一晩がかりで復元してみる。主催者はこの復元に部の存続発表を懸けている。",
+      "condition_text": "主人公が断片から欠けた工程を一つ推定して復元を最後まで試し、結果を主催者と検分した。",
+      "reward_band": "large"
+    },
+    {
+      "id": "bubble_tasting",
+      "theme_id": "potion_brewing",
+      "name": "泡の色で当てる利き薬",
+      "scene_brief": "中身を伏せた小瓶の泡立ちと色だけで薬の正体を当てる遊びめいた稽古。",
+      "condition_text": "主人公が一本の正体を根拠つきで言い当てるか、外した理由を泡の性質から自分で説明した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "no_thermometer_night",
+      "theme_id": "potion_brewing",
+      "name": "温度計を使わない一晩",
+      "scene_brief": "温度計を封印し、湯気と香りだけで適温を見極める旧式の勘を鍛える。",
+      "condition_text": "主人公が温度計なしで『いま適温』の判断を一度下し、答え合わせの結果を主催者と受け止めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "herb_dawn_picking",
+      "theme_id": "potion_brewing",
+      "name": "夜明け前の薬草の下拵え",
+      "scene_brief": "夜明け前にしか摘めない薬草の下処理を、鮮度が落ちる前にふたりで捌き切る。",
+      "condition_text": "主人公が下拵えを一区切りまでやり終え、仕上がりの良し悪しを主催者と確かめた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "line_time_trial",
+      "theme_id": "physical_drills",
+      "name": "白線タイムトライアル",
+      "scene_brief": "走り込み白線で自己記録更新に挑む主催者の計時係と声かけ役。次の実技考査の合格線がかかっている。",
+      "condition_text": "主人公が計時と声かけで一本付き合い、記録が縮んだか否かを主催者と確かめた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "breakfall_thousand",
+      "theme_id": "physical_drills",
+      "name": "受け身千本の付き合い",
+      "scene_brief": "マットの上で受け身を数を決めて反復し、崩れを見合う。",
+      "condition_text": "主人公が受け身の崩れを一つ指摘し、主催者が直して見せた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "strength_remeasure",
+      "theme_id": "physical_drills",
+      "name": "測定記録の測り直し会",
+      "scene_brief": "部の測定記録に疑わしい数字があり、器具から見直して測り直す。",
+      "condition_text": "主人公が再計測を一区切り手伝い、記録の食い違いの有無を主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "obstacle_course_build",
+      "theme_id": "physical_drills",
+      "name": "障害走コースの設計試走",
+      "scene_brief": "マットと壁型で障害走コースを組み、実際に走って調整する。",
+      "condition_text": "主人公がコースの一区画を設計して置き、試走の感想を主催者から引き出した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "limit_challenge",
+      "theme_id": "physical_drills",
+      "name": "限界一本勝負の立会い",
+      "scene_brief": "主催者が自己限界の更新に挑む。補助と声かけで最後まで支える。",
+      "condition_text": "主人公が補助と声かけで挑戦を最後まで支え、更新の成否を主催者と受け止めた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "breathing_compare",
+      "theme_id": "physical_drills",
+      "name": "走りの呼吸くらべ",
+      "scene_brief": "走りながらの呼吸の刻み方を二種試して楽さを比べる。",
+      "condition_text": "主人公が試した刻み方の差を述べ、どちらを採るか主催者と決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "aftercare_workshop",
+      "theme_id": "physical_drills",
+      "name": "明日に残さない手入れ会",
+      "scene_brief": "鍛えた後の伸ばし・冷やしの手入れを実地で学ぶ。",
+      "condition_text": "主人公が手入れの手順を一通りやってみせ、主催者が要点を認めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "unlabeled_book_trace",
+      "theme_id": "library_study",
+      "name": "借覧札のない本の出どころ調べ",
+      "scene_brief": "書架に紛れ込んだ札のない古書がどこから来たのかを、書き込みや蔵書印から追う。",
+      "condition_text": "主人公が本の中の手がかりを一つ示し、出どころの見立てを主催者と一致させた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "notes_restoration",
+      "theme_id": "library_study",
+      "name": "滲んだノートの復元会",
+      "scene_brief": "水濡れで滲んだ講義ノートを、互いの記憶と照らして復元する。",
+      "condition_text": "主人公が滲んだ一節の中身を推定して口述し、主催者が採用した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "contradicting_books",
+      "theme_id": "library_study",
+      "name": "相反する二冊の突き合わせ",
+      "scene_brief": "同じ術理について正反対を説く二冊のどちらが正しいかを検証する。主催者はレポートの結論をこれに懸けている。",
+      "condition_text": "主人公が二冊の食い違いの核心を一つ特定し、どちらに与するかを根拠つきで述べた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "relay_summary",
+      "theme_id": "library_study",
+      "name": "三十分一冊の要約回し",
+      "scene_brief": "時間を区切って一冊を分担して読み、要点を持ち寄って全体像を組む。",
+      "condition_text": "主人公が受け持ち分の要点を報告し、主催者の分と繋げて全体像を組み立てた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "footnote_labyrinth",
+      "theme_id": "library_study",
+      "name": "脚注の迷宮踏破",
+      "scene_brief": "脚注が脚注を呼ぶ古書の参照連鎖を、行き着く先まで辿る。",
+      "condition_text": "主人公が参照連鎖の行き着く先を突き止め、主催者と到達を確認した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "restricted_copying",
+      "theme_id": "library_study",
+      "name": "禁帯出書の書き写し当番",
+      "scene_brief": "持ち出せない資料の必要箇所を分担で書き写す。",
+      "condition_text": "主人公が受け持ちの書き写しを一区切り終え、写し間違いがないか読み合わせた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "index_making",
+      "theme_id": "library_study",
+      "name": "研究ノートの索引づくり",
+      "scene_brief": "主催者の研究ノートに索引をつける地道な内職。",
+      "condition_text": "主人公が索引の立て方を提案し、一区切り分の項目を立て終えた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "stone_glow_duel",
+      "theme_id": "mana_control",
+      "name": "星灯石の灯り比べ",
+      "scene_brief": "同じ石をどちらが静かに長く灯せるかを競う。",
+      "condition_text": "主人公が一回の灯りを保ち切り、揺れの原因か保てた工夫を主催者と言い合った。",
+      "reward_band": "small"
+    },
+    {
+      "id": "single_drop_ripple",
+      "theme_id": "mana_control",
+      "name": "水盤一滴の波紋制御",
+      "scene_brief": "水盤へ落とす魔力を一滴分に絞り、波紋の大きさを狙い通りにする。",
+      "condition_text": "主人公が波紋を狙いの大きさに一度収め、コツを言葉にした。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "raging_stone_calming",
+      "theme_id": "mana_control",
+      "name": "暴れ石の鎮め当番",
+      "scene_brief": "魔力を溜め込み過ぎた星灯石を二人がかりで少しずつ抜いて鎮める。しくじれば実習室が数日使えない。",
+      "condition_text": "主人公が抜き取りの一翼を最後まで担い、石が鎮まったことを主催者と確認した。",
+      "reward_band": "large"
+    },
+    {
+      "id": "mana_signature_tasting",
+      "theme_id": "mana_control",
+      "name": "利き魔力",
+      "scene_brief": "石に残る魔力の癖から、誰が使った石かを当てる。",
+      "condition_text": "主人公が一つの石の使い手の見立てを根拠つきで述べ、答え合わせをした。",
+      "reward_band": "small"
+    },
+    {
+      "id": "endurance_glow",
+      "theme_id": "mana_control",
+      "name": "途切れさせない持久灯",
+      "scene_brief": "灯りを一定に保ち続け、途切れた回数を数える持久戦。",
+      "condition_text": "主人公が持久灯に挑み、途切れた瞬間の原因を自分で言い当てた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "offhand_control",
+      "theme_id": "mana_control",
+      "name": "利き手封じの制御練習",
+      "scene_brief": "利き手を封じて制御の粗さをあぶり出す。",
+      "condition_text": "主人公が利き手封じで一課題をやり切り、露わになった癖を主催者と確認した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "glow_signal_relay",
+      "theme_id": "mana_control",
+      "name": "灯り文字の伝言",
+      "scene_brief": "石の明滅で簡単な合図を送り合う遊びめいた訓練。",
+      "condition_text": "主人公が明滅の合図を一往復成立させ、決めた符丁を主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "affinity_field_test",
+      "theme_id": "elemental_sparring",
+      "name": "属性相性の実地検分",
+      "scene_brief": "教本で語られる相性が本当か、小規模の撃ち合いで確かめる。",
+      "condition_text": "主人公が一組の相性について実地の結果を根拠に結論を述べ、主催者が受け止めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "one_element_bout",
+      "theme_id": "elemental_sparring",
+      "name": "一属性縛りの模擬戦",
+      "scene_brief": "得意属性を封じた模擬戦で引き出しを増やす。",
+      "condition_text": "主人公が縛りの模擬戦を最後までやり切り、増えた引き出しを一つ挙げた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "marker_circuit",
+      "theme_id": "elemental_sparring",
+      "name": "標識石の的当て巡回",
+      "scene_brief": "円陣の標識石を順に狙って精度を上げる巡回練習。",
+      "condition_text": "主人公が巡回を一周やり終え、外した的の原因を主催者と検分した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "cancel_distance",
+      "theme_id": "elemental_sparring",
+      "name": "相殺の間合い探し",
+      "scene_brief": "撃ち合う術が丁度打ち消し合う間合いと強さを探る。",
+      "condition_text": "主人公が相殺の成立を一度作り、その条件を言葉にした。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "shortcast_limit",
+      "theme_id": "elemental_sparring",
+      "name": "詠唱短縮の危なげ検証",
+      "scene_brief": "短縮詠唱がどこまで安全かを段階を刻んで確かめる。",
+      "condition_text": "主人公が短縮の限度についての見立てを述べ、主催者と安全線を引いた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "element_switching",
+      "theme_id": "elemental_sparring",
+      "name": "二属性の継ぎ目練習",
+      "scene_brief": "属性を切り替える瞬間の澱みをなくす練習。",
+      "condition_text": "主人公が切り替えの澱みの原因を一つ特定し、直す試しを一度やった。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "referee_school",
+      "theme_id": "elemental_sparring",
+      "name": "審判役の勉強会",
+      "scene_brief": "模擬戦の判定基準を学び、実際に一試合を捌く。",
+      "condition_text": "主人公が一試合を審判として捌き切り、判定の根拠を問われて答えた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "first_words_drill",
+      "theme_id": "salon_practice",
+      "name": "初対面の話し出し稽古",
+      "scene_brief": "初対面相手への最初のひと言を役を替えて練習する。",
+      "condition_text": "主人公が話し出しを実演し、主催者の感触を聞いて一度作り直した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "one_card_talk",
+      "theme_id": "salon_practice",
+      "name": "発表カード一枚勝負",
+      "scene_brief": "カード一枚に絞った発表で要点をまとめる力を鍛える。",
+      "condition_text": "主人公がカード一枚の発表をやり切り、削った中身を問われて答えた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "silence_handling",
+      "theme_id": "salon_practice",
+      "name": "沈黙の受け流し稽古",
+      "scene_brief": "会話が途切れた時の受け方・繋ぎ方をわざと沈黙を作って試す。",
+      "condition_text": "主人公が沈黙の場面を一度受けて繋ぎ、主催者がその繋ぎ方を講評した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "praise_variations",
+      "theme_id": "salon_practice",
+      "name": "誉め言葉の言い換え百本",
+      "scene_brief": "「すごい」を使わずに誉める語彙を増やす。",
+      "condition_text": "主人公が言い換えを三つ実演し、主催者が一番効くものを選んだ。",
+      "reward_band": "small"
+    },
+    {
+      "id": "listener_seventy",
+      "theme_id": "salon_practice",
+      "name": "聞き役七割の稽古",
+      "scene_brief": "相手に七割話させる聞き回しの練習。",
+      "condition_text": "主人公が聞き役に回って主催者から話を引き出し、効いた鍵の質問を自分で挙げた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "seating_puzzle",
+      "theme_id": "salon_practice",
+      "name": "お茶会の席次パズル",
+      "scene_brief": "気難しい面々の仮想の席次を組む遊びめいた演習。",
+      "condition_text": "主人公が席次案を一つ組み、そう並べた理由を説明した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "debut_rehearsal",
+      "theme_id": "salon_practice",
+      "name": "大広間デビューの通し稽古",
+      "scene_brief": "近い行事での挨拶回りを本番さながらに通す。主催者には本番で失敗できない事情がある。",
+      "condition_text": "主人公が通し稽古の相手役を最後まで務め、主催者が本番の形を固めた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "firstaid_quiz",
+      "theme_id": "healing_practice",
+      "name": "手当手順の試験ごっこ",
+      "scene_brief": "擦り傷・打ち身の手当手順を試験形式で出題し合う。",
+      "condition_text": "主人公が一手順を実演か口述でやり切り、主催者が採点した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "charm_inspection",
+      "theme_id": "healing_practice",
+      "name": "治癒護符の見立て会",
+      "scene_brief": "書き上がった治癒護符の出来を見立て、弱い箇所を直す。",
+      "condition_text": "主人公が護符の弱い箇所を一つ指摘し、直し方を主催者と決めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "night_duty_shadowing",
+      "theme_id": "healing_practice",
+      "name": "夜勤医務の同伴見習い",
+      "scene_brief": "保健室の夜勤に同伴し、実際の手当てを間近で学ぶ。",
+      "condition_text": "主人公が夜勤の区切りまで付き添い、学んだ処置を一つ挙げて主催者が認めた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "herb_karuta",
+      "theme_id": "healing_practice",
+      "name": "薬草の効能かるた",
+      "scene_brief": "薬草皿を並べて効能を当てる速さ比べ。",
+      "condition_text": "主人公が薬草の効能を三つ言い当てるか、間違えた一つの正しい効能を言い直した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "patient_roleplay",
+      "theme_id": "healing_practice",
+      "name": "痛がる患者役の問診稽古",
+      "scene_brief": "患者役相手に、痛みの核心を聞き出す問診を練習する。",
+      "condition_text": "主人公が問診で痛みの核心を聞き出し、主催者が問診の運びを講評した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "healing_boundary",
+      "theme_id": "healing_practice",
+      "name": "治癒と自然回復の線引き談義",
+      "scene_brief": "どこまで治癒魔法で治し、どこから体に任せるかを実例で詰める。",
+      "condition_text": "主人公が一事例について自分の線引きを述べ、主催者と結論を出した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "firstaid_bag_refit",
+      "theme_id": "healing_practice",
+      "name": "救急鞄の詰め直し",
+      "scene_brief": "救急鞄の中身を点検し、足りない物と期限切れを洗い出す。",
+      "condition_text": "主人公が鞄の不足か期限切れを一つ見つけ、補充の優先を主催者と決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "shadow_two_roles",
+      "theme_id": "shadow_control",
+      "name": "影絵の一人二役",
+      "scene_brief": "影で二役を演じ分ける稽古。",
+      "condition_text": "主人公が影の演じ分けを一度やり切り、見分けが付いたか主催者に確かめた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "shadow_anchoring",
+      "theme_id": "shadow_control",
+      "name": "自分の影を留める練習",
+      "scene_brief": "体が動いても影だけその場に留める制御練習。",
+      "condition_text": "主人公が影留めを一度成立させるか、崩れる瞬間の原因を自分で説明した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "one_lamp_hide",
+      "theme_id": "shadow_control",
+      "name": "灯り一つの隠れんぼ",
+      "scene_brief": "光源一つの部屋で影に紛れる位置取りを学ぶ。",
+      "condition_text": "主人公が見つからない位置取りを一度成立させ、選んだ理由を明かした。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "shadow_clock",
+      "theme_id": "shadow_control",
+      "name": "影の長さで時刻当て",
+      "scene_brief": "影の伸びから時刻を読む古い技を試す。",
+      "condition_text": "主人公が影から時刻を推定し、答え合わせの誤差を主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "unscary_shadow_talk",
+      "theme_id": "shadow_control",
+      "name": "怖がらせない影の使い方談義",
+      "scene_brief": "影の術が周りに与える印象との付き合い方を話し合う。",
+      "condition_text": "主人公が影術の見せ方について自分の考えを述べ、主催者が受け止めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "shadow_relay",
+      "theme_id": "shadow_control",
+      "name": "影送りの伝言リレー",
+      "scene_brief": "離れた壁へ影の形で合図を送る練習。",
+      "condition_text": "主人公が影の合図を一往復成立させ、崩れた回の原因を言い当てた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "midnight_shadow_walk",
+      "theme_id": "shadow_control",
+      "name": "消灯後の影踏み実地",
+      "scene_brief": "消灯後の廊下で影から影へ渡る実地訓練。見回りに見つかれば中断。",
+      "condition_text": "主人公が実地を区切りまでやり抜き、成果と冷や汗を主催者と語り合った。",
+      "reward_band": "large"
+    },
+    {
+      "id": "candle_lighting_duel",
+      "theme_id": "flame_focus",
+      "name": "蝋燭一本の火起こし競べ",
+      "scene_brief": "芯を切った蝋燭へ最小の火を灯す精度勝負。",
+      "condition_text": "主人公が点火を一度決めるか、失敗の原因を火加減の言葉で説明した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "steady_flame_pair",
+      "theme_id": "flame_focus",
+      "name": "揺れない炎の保ち合い",
+      "scene_brief": "息を合わせて二つの炎を同じ高さに保ち続ける。",
+      "condition_text": "主人公が保ち合いを一区切り続け、揺れた瞬間の原因を主催者と特定した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "ember_reading",
+      "theme_id": "flame_focus",
+      "name": "炭皿の熾火読み",
+      "scene_brief": "熾火の色から温度と残り時間を読む。",
+      "condition_text": "主人公が熾火の見立てを述べ、答え合わせの結果を受け止めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "extinguish_manners",
+      "theme_id": "flame_focus",
+      "name": "火消しの作法総ざらい",
+      "scene_brief": "火の大きさ別の正しい消し方を実地で確認する。",
+      "condition_text": "主人公が一種類の消し方を実演し、主催者が手順を認めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "flame_mirror",
+      "theme_id": "flame_focus",
+      "name": "心を映す炎の観察",
+      "scene_brief": "集中の乱れが炎に出るのを互いに観察し合う。",
+      "condition_text": "主人公が主催者の炎の乱れから心当たりを言い当てるか、自分の乱れの原因を認めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "night_flame_keeping",
+      "theme_id": "flame_focus",
+      "name": "一晩の灯守",
+      "scene_brief": "儀式用の灯を朝まで絶やさない灯守の当番に付き合う。",
+      "condition_text": "主人公が灯守を区切りまで務め上げ、灯が保たれたことを主催者と確認した。",
+      "reward_band": "large"
+    },
+    {
+      "id": "three_heats_cooking",
+      "theme_id": "flame_focus",
+      "name": "火加減三段の茶と軽食",
+      "scene_brief": "学んだ火加減の使い分けを茶と軽食で試す息抜き回。",
+      "condition_text": "主人公が火加減を使い分けて一品を仕上げ、主催者の講評を受けた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "rippleless_touch",
+      "theme_id": "water_meditation",
+      "name": "波紋ゼロの着水",
+      "scene_brief": "水盤に指を波紋なく着ける静の極み。",
+      "condition_text": "主人公が着水を一度成立させるか、波紋が立つ原因を自分の言葉で特定した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "mirror_reading",
+      "theme_id": "water_meditation",
+      "name": "水鏡の映り込み読み",
+      "scene_brief": "水面の映りから背後や室内の気配を読む練習。",
+      "condition_text": "主人公が水鏡越しに一つの動きを言い当て、主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "half_hour_listening",
+      "theme_id": "water_meditation",
+      "name": "半刻の水音聴き",
+      "scene_brief": "半刻のあいだ水音だけに耳を澄まし、湧いた雑念を数える。",
+      "condition_text": "主人公が半刻をやり抜き、雑念の数と中身の傾向を主催者と共有した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "settling_water",
+      "theme_id": "water_meditation",
+      "name": "濁り水の澄み待ち",
+      "scene_brief": "かき混ぜた水が澄むまで何もせず待つ、「待つ」ことそのものの稽古。",
+      "condition_text": "主人公が澄むまで待ち切り、待っている間の心持ちを言葉にした。",
+      "reward_band": "small"
+    },
+    {
+      "id": "underwater_letters",
+      "theme_id": "water_meditation",
+      "name": "水面下の文字当て",
+      "scene_brief": "水底に沈めた文字を、波紋を立てずに読み取る。",
+      "condition_text": "主人公が文字を一つ読み当てるか、読めなかった原因を水の状態から説明した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "tears_talk",
+      "theme_id": "water_meditation",
+      "name": "水鏡の前の打ち明け話",
+      "scene_brief": "水鏡の前で、最近心が揺れたことを静かに話す回。",
+      "condition_text": "主人公が自分の心の揺れを一つ打ち明け、主催者が受け止めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "first_water_pilgrimage",
+      "theme_id": "water_meditation",
+      "name": "夜明けの初汲み行",
+      "scene_brief": "夜明けに汲む「初水」を静室まで一滴も揺らさず運ぶ行。",
+      "condition_text": "主人公が初汲みの行程をやり終え、水面の静けさを主催者と検分した。",
+      "reward_band": "large"
+    },
+    {
+      "id": "seam_hunting",
+      "theme_id": "earth_barrier",
+      "name": "壁の継ぎ目探し",
+      "scene_brief": "立てた土壁の弱い継ぎ目を叩いて探し、補強する。",
+      "condition_text": "主人公が弱い継ぎ目を一つ見つけ、補強の仕方を主催者と決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "four_stakes_contest",
+      "theme_id": "earth_barrier",
+      "name": "杭四本の張り比べ",
+      "scene_brief": "同じ杭四本でどれだけ広く強く張れるか、工夫を競う。",
+      "condition_text": "主人公が自分の張り方を試し、強度の差の理由を主催者と検分した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "breaker_and_keeper",
+      "theme_id": "earth_barrier",
+      "name": "崩し役と守り役",
+      "scene_brief": "交互に壁を崩す側・守る側に回り、攻守両面から弱点を学ぶ。",
+      "condition_text": "主人公が崩し役として弱点を一つ突き、守りの直しを主催者と話し合った。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "refuge_wall_drill",
+      "theme_id": "earth_barrier",
+      "name": "実物大の避難壁演習",
+      "scene_brief": "有事想定で、人が隠れられる壁を制限時間内に立て切る。",
+      "condition_text": "主人公が演習を最後までやり切り、間に合ったか否かと改善点を主催者と総括した。",
+      "reward_band": "large"
+    },
+    {
+      "id": "stake_sound_check",
+      "theme_id": "earth_barrier",
+      "name": "杭打ちの音診断",
+      "scene_brief": "打った時の音で杭の効きを判定する職人技を学ぶ。",
+      "condition_text": "主人公が音から効きの判定を一度下し、答え合わせを受け止めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "mud_foundation",
+      "theme_id": "earth_barrier",
+      "name": "泥濘での基礎固め",
+      "scene_brief": "悪条件の地面での基礎の作り方を実地で試す。",
+      "condition_text": "主人公が泥濘での工夫を一つ試し、効いたかどうかを主催者と確認した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "stake_inscription_trace",
+      "theme_id": "earth_barrier",
+      "name": "結界杭の銘調べ",
+      "scene_brief": "古い杭に刻まれた銘から歴代の張り手を辿る。",
+      "condition_text": "主人公が銘の一つを読み解き、誰の代の物かの見立てを主催者と一致させた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "ribbon_still_walk",
+      "theme_id": "wind_step",
+      "name": "リボンを揺らさぬ歩み",
+      "scene_brief": "リボンの真横を風を立てずに通り抜ける歩法練習。",
+      "condition_text": "主人公が無風の通り抜けを一度成立させるか、揺らした原因を歩の運びで説明した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "tailwind_sprint",
+      "theme_id": "wind_step",
+      "name": "追い風拾いの駆け比べ",
+      "scene_brief": "回廊の風を背に受ける位置取りで速さを競う。",
+      "condition_text": "主人公が一本を駆け抜け、風を拾えた区間と逃した区間を主催者と振り返った。",
+      "reward_band": "small"
+    },
+    {
+      "id": "paper_handoff",
+      "theme_id": "wind_step",
+      "name": "紙一枚の受け渡し",
+      "scene_brief": "走りながら紙一枚を風で崩さず受け渡す。",
+      "condition_text": "主人公が受け渡しを一度成功させるか、落とした原因を風の読みで説明した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "headwind_posture",
+      "theme_id": "wind_step",
+      "name": "向かい風の姿勢研究",
+      "scene_brief": "向かい風で最も削られない姿勢を試し比べる。",
+      "condition_text": "主人公が姿勢の差による違いを体感で述べ、採る形を主催者と決めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "wind_shift_call",
+      "theme_id": "wind_step",
+      "name": "風向きの先読み当て",
+      "scene_brief": "リボンの揺れから次の風の変わり目を当てる。",
+      "condition_text": "主人公が変わり目を一度言い当てるか、外れた読みの誤りを自分で特定した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "silent_night_run",
+      "theme_id": "wind_step",
+      "name": "消灯後の無音走",
+      "scene_brief": "夜の回廊を足音なく走り抜ける実地。音を立てたら最初から。",
+      "condition_text": "主人公が無音走を区切りまでやり抜き、音が出た箇所の改善を主催者と決めた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "old_gait_reenact",
+      "theme_id": "wind_step",
+      "name": "歩法の型の読み合わせ",
+      "scene_brief": "古い歩法書の型を読み、その場で再現してみる。",
+      "condition_text": "主人公が型を一つ再現してみせ、書との違いを主催者と確かめた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "diagram_gap_filling",
+      "theme_id": "ritual_research",
+      "name": "術式図の欠け埋め",
+      "scene_brief": "虫食いだらけの術式図の欠けた記号を、前後の流れから推定する。",
+      "condition_text": "主人公が欠けの一箇所に入る記号の見立てを述べ、主催者と一つの案に決めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "seal_replacement_duty",
+      "theme_id": "ritual_research",
+      "name": "封印符の張り替え当番",
+      "scene_brief": "期限の切れかけた封印符を作法どおりに張り替える。",
+      "condition_text": "主人公が張り替えを一枚やり終え、作法の要点を問われて答えた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "forbidden_reason_dig",
+      "theme_id": "ritual_research",
+      "name": "禁じられた理由調べ",
+      "scene_brief": "ある儀式が禁止された経緯を古い記録から掘り起こす。真相は思ったより重いかもしれない。",
+      "condition_text": "主人公が禁止の理由につながる記録を一つ掘り当て、読み取れる経緯を主催者と組み立てた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "small_rite_reenactment",
+      "theme_id": "ritual_research",
+      "name": "小儀式の完全再現",
+      "scene_brief": "無害な小儀式を手順書どおりに完全再現してみる。",
+      "condition_text": "主人公が再現の一翼を最後まで務め、手順書との差異の有無を主催者と検分した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "circle_drawing_drill",
+      "theme_id": "ritual_research",
+      "name": "儀式円の描き稽古",
+      "scene_brief": "儀式円を狂いなく描く基礎稽古。",
+      "condition_text": "主人公が円陣を一つ描き上げ、狂いの箇所の直しを主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "offering_meanings",
+      "theme_id": "ritual_research",
+      "name": "供物の意味談義",
+      "scene_brief": "儀式の供物ひとつひとつの意味を資料で確かめ合う。",
+      "condition_text": "主人公が供物一つの意味の解釈を述べ、主催者と結論を出した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "broken_rite_whodunit",
+      "theme_id": "ritual_research",
+      "name": "効かない儀式の犯人捜し",
+      "scene_brief": "昔から効かないと言われる儀式の、どこが誤伝なのかを突き止める。",
+      "condition_text": "主人公が誤伝の疑い箇所を一つ特定し、根拠を挙げて主催者が納得した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "key_ring_mystery",
+      "theme_id": "artifact_appraisal",
+      "name": "鍵束の主当て",
+      "scene_brief": "出どころ不明の鍵束がどの扉の物かを、造りと摩耗から推理する。",
+      "condition_text": "主人公が一本の鍵の用途の見立てを述べ、検証の結果を主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "fake_spotting",
+      "theme_id": "artifact_appraisal",
+      "name": "贋作の見抜き稽古",
+      "scene_brief": "本物と贋作を並べて、見抜く目を鍛える。",
+      "condition_text": "主人公が一点の真贋判定を根拠つきで下し、答え合わせを受け止めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "cursed_item_inspection",
+      "theme_id": "artifact_appraisal",
+      "name": "曰く付きの検分",
+      "scene_brief": "呪いつきと噂される魔導具を、安全手順を守って検分する。",
+      "condition_text": "主人公が検分の手順を最後まで務め、呪いの有無の結論を主催者と出した。",
+      "reward_band": "large"
+    },
+    {
+      "id": "parts_sketching",
+      "theme_id": "artifact_appraisal",
+      "name": "部品バラしの写生会",
+      "scene_brief": "機械部品を分解しながら構造を写生する。",
+      "condition_text": "主人公が一部品の役割を図から説明し、主催者が認めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "staff_history_reading",
+      "theme_id": "artifact_appraisal",
+      "name": "古杖の来歴読み",
+      "scene_brief": "使い込まれた杖の傷や癖から、歴代の持ち主の来歴を読む。",
+      "condition_text": "主人公が杖の痕跡から来歴の見立てを一つ組み立て、主催者と突き合わせた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "appraisal_price_duel",
+      "theme_id": "artifact_appraisal",
+      "name": "値付けの根拠比べ",
+      "scene_brief": "同じ品に別々に値を付け、根拠を突き合わせる。",
+      "condition_text": "主人公が自分の値付けの根拠を述べ、主催者と妥当な線を決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "dormant_device_ignition",
+      "theme_id": "artifact_appraisal",
+      "name": "眠る魔導具の火入れ",
+      "scene_brief": "長く眠っている魔導具に慎重に火を入れ、反応を見る。",
+      "condition_text": "主人公が火入れの一手順を担い、動いたか否かと次の一手を主催者と決めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "first_thread",
+      "theme_id": "barrier_weaving",
+      "name": "一本糸の張り初め",
+      "scene_brief": "光る糸一本を狂いなく枠に張る基礎。",
+      "condition_text": "主人公が張り初めを一本やり終え、たわみの直しを主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "torn_barrier_mending",
+      "theme_id": "barrier_weaving",
+      "name": "破れ結界の繕い物",
+      "scene_brief": "破れた結界の網目を、元の織りに合わせて繕う。",
+      "condition_text": "主人公が破れの原因を織り目から一つ特定し、繕いの一針を入れた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "duet_weaving",
+      "theme_id": "barrier_weaving",
+      "name": "二人織りの呼吸合わせ",
+      "scene_brief": "二人で一枚を織る協調作業。呼吸が乱れると目が飛ぶ。",
+      "condition_text": "主人公が二人織りを一区切り続け、目が飛んだ原因を主催者と特定した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "mesh_design_talk",
+      "theme_id": "barrier_weaving",
+      "name": "猫も通さぬ網目談義",
+      "scene_brief": "何を通し何を止める網目にするか、使い所ごとの設計を話し合う。",
+      "condition_text": "主人公が通す・止めるの設計を一案述べ、主催者と落とし所を決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "room_scale_weave",
+      "theme_id": "barrier_weaving",
+      "name": "実習室まるごと張り演習",
+      "scene_brief": "実習室全体を覆う大物に挑む。日が暮れるまでに張り終わるか。",
+      "condition_text": "主人公が大張りの持ち場を最後まで務め、張り上がりの検分を主催者とやり遂げた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "old_weave_pattern",
+      "theme_id": "barrier_weaving",
+      "name": "古い織り紋の解読",
+      "scene_brief": "伝統の織り紋が持つ意味と効きを、資料と実物で確かめる。",
+      "condition_text": "主人公が織り紋一つの意味の見立てを述べ、実物の効きと突き合わせた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "charm_paper_tour",
+      "theme_id": "barrier_weaving",
+      "name": "護符紙の漉き入れ見学記",
+      "scene_brief": "護符紙がどう漉かれるかを工程を追って学ぶ。",
+      "condition_text": "主人公が工程の勘所を一つ挙げ、主催者が補って理解が揃った。",
+      "reward_band": "small"
+    },
+    {
+      "id": "flag_reading_takeoff",
+      "theme_id": "broom_flight",
+      "name": "旗読みの離陸判断",
+      "scene_brief": "風読み旗から離陸の可否とタイミングを判断する練習。",
+      "condition_text": "主人公が離陸判断を一度下し、その根拠の旗の読みを主催者と確認した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "low_figure_eight",
+      "theme_id": "broom_flight",
+      "name": "低空八の字の精度比べ",
+      "scene_brief": "決められた低空八の字を、どれだけ小さく正確に回れるか。",
+      "condition_text": "主人公が八の字を一本飛び切り、膨らんだ箇所の原因を主催者と検分した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "broom_swap_ride",
+      "theme_id": "broom_flight",
+      "name": "箒の癖の乗り替え体験",
+      "scene_brief": "互いの箒を交換して癖の違いを体感する。",
+      "condition_text": "主人公が相手の箒の癖を一つ言い当て、主催者が頷いた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "crosswind_landing",
+      "theme_id": "broom_flight",
+      "name": "横風着地の反復",
+      "scene_brief": "いちばん事故の多い横風着地を、安全高度で反復する。",
+      "condition_text": "主人公が横風着地を一本降り切り、ぶれた原因を風と姿勢で説明した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "dusk_formation",
+      "theme_id": "broom_flight",
+      "name": "夕暮れの編隊飛行",
+      "scene_brief": "二人で間隔を保った編隊を組み、夕暮れの一周に挑む。",
+      "condition_text": "主人公が編隊の一周を保ち切り、間隔が乱れた場面の立て直しを主催者と振り返った。",
+      "reward_band": "large"
+    },
+    {
+      "id": "bristle_care",
+      "theme_id": "broom_flight",
+      "name": "箒の穂先の手入れ会",
+      "scene_brief": "飛び味に直結する穂先の手入れを学ぶ。",
+      "condition_text": "主人公が手入れを一本やり終え、飛び味の変化の見立てを述べた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "grounded_day_talk",
+      "theme_id": "broom_flight",
+      "name": "風待ちの過ごし方談義",
+      "scene_brief": "飛べない風の日に何を積むかを語り合う回。",
+      "condition_text": "主人公が風待ち日の練習案を一つ出し、主催者と次の風待ち日の予定を決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "bell_calling",
+      "theme_id": "familiar_bonding",
+      "name": "呼び鈴一つの呼び分け",
+      "scene_brief": "鈴の鳴らし方だけで目当ての使い魔を呼び分ける練習。",
+      "condition_text": "主人公が呼び分けを一度成立させるか、応えなかった理由の見立てを述べた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "pawprint_rollcall",
+      "theme_id": "familiar_bonding",
+      "name": "足跡当ての朝点呼",
+      "scene_brief": "控え場の足跡から夜のうちの出入りを読む。",
+      "condition_text": "主人公が足跡一組の主を言い当て、主催者と照合した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "shy_one_bridging",
+      "theme_id": "familiar_bonding",
+      "name": "人見知りの子の顔つなぎ",
+      "scene_brief": "人に慣れない使い魔に、少しずつ距離を縮める根気の回。",
+      "condition_text": "主人公が距離を一段縮めることに成功し、効いた接し方を主催者と確認した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "treat_tasting",
+      "theme_id": "familiar_bonding",
+      "name": "好物調べの利き餌",
+      "scene_brief": "餌の好みを記録して個体票を埋める。",
+      "condition_text": "主人公が一匹の好みを一つ突き止め、個体票に載せる書き方を主催者と決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "escape_artist_chase",
+      "theme_id": "familiar_bonding",
+      "name": "脱走癖の子の追跡演習",
+      "scene_brief": "よく逃げる子の逃げ道を突き止め、先回りで捕まえる。",
+      "condition_text": "主人公が追跡を最後までやり抜き、逃げ道の対策を主催者と決めた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "cry_diary_collation",
+      "theme_id": "familiar_bonding",
+      "name": "鳴き声日誌の付け合わせ",
+      "scene_brief": "鳴き声の変化から体調や機嫌を読む記録を突き合わせる。",
+      "condition_text": "主人公が鳴き声の変化一つの意味の見立てを述べ、主催者の記録と突き合わせた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "match_making_talk",
+      "theme_id": "familiar_bonding",
+      "name": "使い魔と主の相性談義",
+      "scene_brief": "どんな主にどんな子が合うのか、厩舎の実例で語り合う。",
+      "condition_text": "主人公が相性の持論を実例つきで述べ、主催者が受け止めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "single_stroke_contest",
+      "theme_id": "rune_calligraphy",
+      "name": "一画入魂の書き比べ",
+      "scene_brief": "同じルーンを書き比べ、光の乗りで出来を見る。",
+      "condition_text": "主人公が一字を書き上げ、光の乗らない画の原因を主催者と特定した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "rubbing_gap_inference",
+      "theme_id": "rune_calligraphy",
+      "name": "拓本の欠け字推定",
+      "scene_brief": "碑文拓本の欠けた字を前後の文脈から推定する。",
+      "condition_text": "主人公が欠け字の候補を根拠つきで挙げ、主催者と一字に決めた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "ink_mixing_duty",
+      "theme_id": "rune_calligraphy",
+      "name": "発光インクの調合当番",
+      "scene_brief": "インクの練り加減で光り方が変わるのを実地で学ぶ。",
+      "condition_text": "主人公が一鉢を練り上げ、光り方の良し悪しを主催者と検分した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "scribble_decoding",
+      "theme_id": "rune_calligraphy",
+      "name": "走り書きルーンの解読",
+      "scene_brief": "昔の学生の走り書きを、読めるところまで解読する。",
+      "condition_text": "主人公が走り書きの一文を読み下し、意味の解釈を主催者と揃えた。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "mirror_writing_fix",
+      "theme_id": "rune_calligraphy",
+      "name": "左右反転文字の矯正",
+      "scene_brief": "鏡写しに書いてしまう癖を直す反復。",
+      "condition_text": "主人公が反転せずに一連を書き切るか、反転が出る瞬間の癖を自分で言い当てた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "night_rubbing_op",
+      "theme_id": "rune_calligraphy",
+      "name": "碑文写しの夜間作業",
+      "scene_brief": "中庭の碑文を、人目の少ない夜に一枚まるごと拓本に取る。",
+      "condition_text": "主人公が拓本取りを最後まで務め、写りの検分を主催者とやり遂げた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "working_vs_ornament",
+      "theme_id": "rune_calligraphy",
+      "name": "効くルーン・飾りのルーン談義",
+      "scene_brief": "実効のある字と装飾の字の境目を実例で確かめる。",
+      "condition_text": "主人公が一字について効く/飾りの判定を述べ、検証の結果を主催者と確認した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "lamp_flicker_sensing",
+      "theme_id": "spirit_listening",
+      "name": "灯明ひとつの気配当て",
+      "scene_brief": "灯明の揺れだけで室内の気配の在り処を言い当てる。",
+      "condition_text": "主人公が気配の在り処を一度言い当てるか、外した理由を灯の読みで説明した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "voiceless_ledger",
+      "theme_id": "spirit_listening",
+      "name": "声なき声の聞き分け帳",
+      "scene_brief": "聞こえた「声にならない音」を記録して分類する。",
+      "condition_text": "主人公が聞き取ったものを一つ描写して帳面に載せ、主催者と分類を決めた。",
+      "reward_band": "small"
+    },
+    {
+      "id": "under_cloth_guess",
+      "theme_id": "spirit_listening",
+      "name": "黒布の下の正体当て",
+      "scene_brief": "丸卓の黒布の下に置かれた品を、気配だけで当てる。",
+      "condition_text": "主人公が一品の正体を当てるか、感じ取れた手がかりを言語化した。",
+      "reward_band": "small"
+    },
+    {
+      "id": "no_reply_training",
+      "theme_id": "spirit_listening",
+      "name": "返事をしてはいけない稽古",
+      "scene_brief": "何かに呼ばれても返事をしない、傾聴の作法を身につける。",
+      "condition_text": "主人公が稽古を最後まで作法どおりに通し、呼ばれた感覚の有無を主催者と共有した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "predawn_listening",
+      "theme_id": "spirit_listening",
+      "name": "夜明け前の傾聴行",
+      "scene_brief": "いちばん「聞こえる」と言われる夜明け前に、二人で耳を澄ます。",
+      "condition_text": "主人公が傾聴行を区切りまでやり抜き、聞こえたものの照合を主催者とやり遂げた。",
+      "reward_band": "large"
+    },
+    {
+      "id": "fragment_verification",
+      "theme_id": "spirit_listening",
+      "name": "聞こえた話の裏取り",
+      "scene_brief": "傾聴で得た断片が実際の出来事と合うか、裏を取る。",
+      "condition_text": "主人公が断片一つの裏取りの結果を報告し、合致の判定を主催者と下した。",
+      "reward_band": "medium"
+    },
+    {
+      "id": "staying_unafraid",
+      "theme_id": "spirit_listening",
+      "name": "怖くならないための座談",
+      "scene_brief": "聞こえすぎる日の心の守り方を語り合う。",
+      "condition_text": "主人公が自分なりの心の守り方を一つ話し、主催者が受け止めた。",
+      "reward_band": "small"
+    }
+  ]
+}

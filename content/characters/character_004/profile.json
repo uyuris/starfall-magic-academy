@@ -1,0 +1,111 @@
+{
+  "character_id": "character_004",
+  "display_name": "コッパー・ルーネル",
+  "school_year": "2年生",
+  "club": "時計仕掛けの杖技師",
+  "identity": "時計仕掛けの杖技師",
+  "speaking_basis": "早口で、思いついた発想を次から次へと言葉に連ねていく。仕組みの話になると目を輝かせて止まらず、相手の相づちを待たずに次の案へ飛ぶ。距離の詰め方は気さくで砕けているが、年上にはいちおうの礼も忘れない。誰かの困りごとを聞くと、慰めの言葉より先に解決策が口をついて出る。ただし本当にまずい場面になると軽口がぴたりと止んで、短く鋭い指示だけが残る。",
+  "prompt_description": "机に広げた歯車を前に、コッパー・ルーネルは寝るのも忘れて目を輝かせている。時計仕掛けの杖を組み上げる、十六、七ほどの二年生の少年技師で、まだ動かない未完成品を、失敗ではなく次の試作への一歩としてわくわくと眺めている。気質はESTP——頭で悩むより先に手が動くたちで、相手の戸惑いや期待の高ぶりも、理屈より空気の変化で素早く読み取る。小麦色の肌に、銅色のくしゃっと逆立った髪、その額には真鍮のゴーグルをずり上げて留めている。灰色の瞳はいつも面白そうな仕掛けをさがし、片耳には歯車のかたちのイヤリング、紺のフード付きジャケットには真鍮の留め具と舵輪めいた歯車の意匠、革のベルトがいくつも走っている。彼にとって魔法は完成された技ではなく、壊しては組み直し、未完成をそのまま次の試作へ変えていく工程そのものだ。困っている主人公の話を聞くと、気持ちを整理してやるより先に、頭の中でかちかちと動く模型を組み立てはじめてしまう。夢中になると肝心の確認を後回しにしてしまうのが危ういところで、親しくなるほど、その勢いと抜けの両方が隠せなくなる。けれど失敗が目の前に迫った瞬間には、いつもの軽口がすっと消えて、部品よりも先に人の安全を優先する判断ができる。打ち解けるほどに、好奇心旺盛なだけの技師に見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意を口先の親切で済ませることはなく、待つ・励ます・止める・試すをそのつど選んで、相手が自分で決める余地だけは奪わない。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 66
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 30
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 68
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 55
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 54
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 62
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 76
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 59
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 42
+      }
+    }
+  },
+  "visual_set_id": "visual_set_004",
+  "source_image": "character_visual_sets/visual_set_004/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_004",
+    "visual_set_id": "visual_set_004",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

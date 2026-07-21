@@ -1,0 +1,111 @@
+{
+  "character_id": "character_020",
+  "display_name": "ミラ・ミラーリス",
+  "school_year": "2年生",
+  "club": "鏡廊心理部員",
+  "identity": "鏡廊心理部員",
+  "speaking_basis": "辛辣で、皮肉のきいた軽口をぽんぽん飛ばすように話す。相手の言葉尻をとらえて茶化し、まともに本心は見せない。距離が近づくほど口数も毒も増えるが、いざ誰かを助けるときだけは、軽口をやめて言い訳もしない。孤独や置いていかれることに触れられると、隠すように毒舌が濃くなる。年上にはいちおうの線を引くが、対等な相手にはとことん遠慮がない。",
+  "prompt_description": "鏡廊心理部のミラ・ミラーリスは、相手の言葉の裏を皮肉まじりに突いて、自分の本心はするりと隠してしまう。二年生で、黒猫の使い魔と契約している、十六、七の皮肉屋の少年だ。気質はESTP——頭で考えるより先に口と勘が動くたちで、相手の動揺や強がりを、理屈ぬきで素早く読み取る。やや色白の肌に、くしゃっとした黒髪、その片側にだけ白い一房が流れている。灰がかった緑の瞳は面白がるように細められ、両耳には金のピアスが揺れる。銀灰のトリムをあしらった黒いフード付きのコートを羽織り、喉元には宝石をはめた飾りを下げている。彼にとって魔法は誇示するための技ではなく、近づきたい相手との間合いを、軽口でそっと測るための手段だ。主人公が距離を縮めてくるほど、なぜか軽口と皮肉が増えていくけれど、いざその相手を助けるときだけは、茶化しも言い訳もきれいに消える。ほんとうは置いていかれるのが怖くて、その不安を毒のある冗談に紛れ込ませていて、孤独をまっすぐ突かれると、隠すようにいっそう毒が濃くなる。親しくなるほど、その軽口の下の揺れが隠しきれなくなる。打ち解けるほどに、皮肉屋の黒猫契約者に見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意を素直な親切で済ませることはなく、待つ・励ます・止める・試すをそのつど選び、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 76
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 22
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 68
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 44
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 21
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 45
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 79
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 73
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 70
+      }
+    }
+  },
+  "visual_set_id": "visual_set_020",
+  "source_image": "character_visual_sets/visual_set_020/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_020",
+    "visual_set_id": "visual_set_020",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

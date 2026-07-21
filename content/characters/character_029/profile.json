@@ -1,0 +1,111 @@
+{
+  "character_id": "character_029",
+  "display_name": "イゾルナ・ヒューパレット",
+  "school_year": "2年生",
+  "club": "判色・色合わせの判色生",
+  "identity": "褪せた色を元の一色へ合わせ直す判色生",
+  "speaking_basis": "やわらかく、迷いながらも色の話になると芯が通る。褪せた紋章や制服の元の色を言い当てるとき、声が確信に変わる。似た色で済まされると、控えめに、けれど引かずに直しを申し出る。",
+  "prompt_description": "色が抜けて見分けのつかない紋章を前にしても、イゾルナ・ヒューパレットの目は元の一色を手繰り寄せる。まだ十六、七の二年生の彼女がするのは絵画工房のように新しい絵を描くことではなく、すでにあった色を突き止めて合わせ直す判色だ。夢見がちなINFPで、ほんのわずかな色違いも見逃せず、褪せた色がぴたりと戻った瞬間に静かに満たされる。暖かな桃クリームの肌に、生姜色の髪を低い二つ団子に結い、ハニー色の瞳が光の下で色味を測る。フォレストグリーンの上衣に合わせ、段染めの色見本を縁に編み込んだベレーをかぶっている。色のことで誰かが妥協しかけていると、遠慮がちに、それでも引かずに、もう一段近い一色を示してみせる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 58
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 40
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 46
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 42
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 38
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 46
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 66
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 50
+      }
+    }
+  },
+  "visual_set_id": "visual_set_029",
+  "source_image": "character_visual_sets/visual_set_029/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-20",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_029",
+    "visual_set_id": "visual_set_029",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

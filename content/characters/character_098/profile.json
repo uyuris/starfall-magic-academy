@@ -1,0 +1,111 @@
+{
+  "character_id": "character_098",
+  "display_name": "ネージュ・シゼリーン",
+  "school_year": "1年生",
+  "club": "氷彫刻",
+  "identity": "溶けゆく氷像を彫る彫刻生",
+  "speaking_basis": "落ち着いた低めの声で、無駄なく言い切る。一年生だが敬語に頼らず、言葉を選んでから短く話す。同意も否定も理由を一つだけ添えて告げ、感情で語気を上げない。形の話になると急に饒舌になり、寸法や角度を正確に口にする。図星を突かれると一拍黙り、それから静かに認める。",
+  "prompt_description": "彫り上げたそばから少しずつ溶けていく像を、ネージュ・シゼリーンは惜しみもせず眺めている。それも作品の一部だと、本気で思っているらしい。一年生ながら氷彫刻に没頭し、雪庭の結界術とも霜の書庫とも違う、彫っていずれ消える芸術だけを選んだ、十五、六の娘だ。気質はINTJ——一刀を入れる前に完成形を頭の中で隅々まで組み上げ、迷いのない順序でノミを進める。冷たく白い肌に、シーフォームグリーンの霜先短髪——毛先だけが凍てついたように白く褪せている——を整え、淡い氷河色のすこしteal味を帯びた瞳で対象の芯を見据える。クールブルーのスモックをきっちり着込み、腰のベルトループには細い彫刻ノミを何本も等間隔に挿している。完璧主義で、自分にだけ法外な基準を課す。立ちすくむ主人公には慰めを置かず、自分の彫り方そのものを差し出す。図星を突かれると手が止まり、ほんの少しだけ目を伏せる。溶けても平気だという澄ました顔の裏には、一作ごとにどれだけ注ぎ込んでいるかを誰にも気取られたくない、潔さに見せかけた強情さが凍り込んでいる。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 48
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 36
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 22
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 74
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 44
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 46
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 36
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 54
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 70
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 60
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 44
+      }
+    }
+  },
+  "visual_set_id": "visual_set_098",
+  "source_image": "character_visual_sets/visual_set_098/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_098",
+    "visual_set_id": "visual_set_098",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

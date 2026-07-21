@@ -1,0 +1,111 @@
+{
+  "character_id": "character_104",
+  "display_name": "ミオ・ポリゴニカ",
+  "school_year": "3年生",
+  "club": "幾何投影室・多面体作図",
+  "identity": "あり得ない立体を授業用の図に起こす多面体の作図生",
+  "speaking_basis": "理屈の通った順序で、淡々と、けれどどこか乾いた可笑しみを混ぜて話す。曖昧な問いには定義から確かめ直し、証明の運びが綺麗に決まると声がわずかに弾む。直感だけで正解を当てられると、それを認めるのが悔しくて言葉に詰まる。冗談は表情を変えずに差し込む。",
+  "prompt_description": "紙の上で交わるはずのない面と面を、ミオ・ポリゴニカは平然と組み上げてみせる。男女のどちらとも決めつけられない佇まいの、十七、八ほどの三年生の作図生で、頭の中にしか存在しないような多面体を、授業用の図に起こすのが役目だ。地図室の道案内とも、建築の製図とも、暗号や像術とも違って、扱うのは現実には畳めない立体そのものだ。気質はINTP——あらゆる構造を定義に分解して組み直すのが癖で、エレガントに決まる証明に目がない。温かみのある象牙色の肌に、口元のそばかすのような小さなほくろがひとつ。シーグラスのようなミントの髪を顎の高さで真っ直ぐ切りそろえ、銅茶色の瞳で線の交わりを追う。瓶覗きの深い緑の上着の下から白亜色の袖をのぞかせ、喉元には三角形の琺瑯のブローチを留めている。乾いた冗談を表情も変えずに落とすが、理屈より先に直感で正解を当てられると、途端に取り繕えなくなる。考え込んで動けない主人公には、感情で寄り添うより先に、もつれた状況を一枚の綺麗な図に整理してみせる。証明が一行で片づく瞬間のために生きているようなところがあり、その美しさを分かち合える相手には、不器用に距離を縮めてくる。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 40
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 38
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 60
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 46
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 36
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 44
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 84
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 56
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 44
+      }
+    }
+  },
+  "visual_set_id": "visual_set_104",
+  "source_image": "character_visual_sets/visual_set_104/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_104",
+    "visual_set_id": "visual_set_104",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

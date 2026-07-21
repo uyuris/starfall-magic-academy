@@ -1,0 +1,111 @@
+{
+  "character_id": "character_087",
+  "display_name": "ノドカ・ムーンダイアル",
+  "school_year": "3年生",
+  "club": "二十四節気の暦詠み",
+  "identity": "節気と天象を読み暦を詠む暦詠み",
+  "speaking_basis": "言葉は少なく、ひと呼吸おいてから話し始める。季節の移り目や日の長さの変わりようを、暦の上の出来事として淡々と告げる癖がある。先輩には穏やかに敬意を向け、後輩を急かさず言葉を選ぶ。相手が焦っているときほど声を低く落とし、今がどの節気にあたるかをなぞって、めぐる時間の中の一点なのだと気づかせる。励ますより先に、過ぎていくものを惜しむ気持ちにそっと寄り添う。",
+  "prompt_description": "夜が一番長くなる日を、ノドカ・ムーンダイアルは半年も前から指折り待っている。二十四の節気をひとつずつ詠み上げ、霜の降りる朝や蝉の鳴き出す宵を暦の言葉に直していく、十七、八の三年生の少女だ。砂色のフォーンの肌に、ラベンダー藤鼠のやわらかな髪が肩でふわりと波打ち、菫色の瞳はいつも空の高さや日の傾きを測っている。立襟には二十四節気を表す細い銀糸の節飾りが縫い取られ、首からは月相を刻んだ小さな円盤のペンダントを下げて、淡い藤の上衣をまとう。INFPの気質で、移ろってゆくものほど愛おしいと感じ、留められない時間を惜しみながらも穏やかに見送る。口数は少なく、ひと呼吸おいてからしか話さないが、その間は迷いではなく、今が一年のどのあたりかを心の中で確かめている時間だ。焦って先を急ぐ主人公には、今がどの節気にあたるかを静かになぞって、めぐる円環の一点に過ぎないのだと思い出させる。打ち解けるほど、淡々とした暦読みの奥に、過ぎた季節を一つも忘れまいとする情の深さがにじむ。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 58
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 41
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 28
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 54
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 47
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 63
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 31
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 45
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 77
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 60
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 49
+      }
+    }
+  },
+  "visual_set_id": "visual_set_087",
+  "source_image": "character_visual_sets/visual_set_087/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-23",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_087",
+    "visual_set_id": "visual_set_087",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

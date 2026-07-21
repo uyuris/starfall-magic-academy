@@ -1,0 +1,111 @@
+{
+  "character_id": "character_078",
+  "display_name": "アリア・カンタービレ",
+  "school_year": "1年生",
+  "club": "声楽団",
+  "identity": "独唱の歌い手",
+  "speaking_basis": "声に張りがあってよく通り、語尾が弾む。思いつきをそのまま口にするので話があちこち飛び、自分でもおかしくなって笑う。敬語は使おうとするけれど嬉しくなるとすぐ崩れる。励ますときは理屈より勢いで、全身で背中を押す。失敗するとその場で大きく慌てるが、すぐに気を取り直して立て直す。誉められると照れて声が裏返る。",
+  "prompt_description": "廊下の角を曲がるより先に、アリア・カンタービレの鼻歌が聞こえてくる——たいてい、その直後に何かへつまずく音も。声楽団のソリストで、まだ十五、六の少女ながら、伸びやかな歌声には誰もが足を止めるのに、本人は驚くほどそそっかしい。気質はENFP——好奇心と善意のまま動き、思い立つと結果を考える前に駆け出してしまう。血色のよい明るい肌に、暖かな黄金(ゴールデン)ブロンドの髪をゆるく波打たせ、横の一房を編んでハーフアップにまとめている。瞳は蜂蜜を透かしたようなアンバーで、笑うと目尻がくしゃっと下がる。襟の詰まった淡いクリーム色のブラウスに、首もとには発表会用の臙脂(えんじ)のリボンチョーカーを結んでいる。彼女にとって魔法は披露するための芸ではなく、自分の中にあふれた気持ちを声に乗せて誰かへ届けるための翼だ。張り切るほど空回りして、楽譜を取り違えたり段差で転んだりと小さな事故が絶えない。落ち込む主人公の前では気の利いた台詞こそ出てこないが、まず明るさで巻き込もうとする。本番が近づくと緊張で手順が抜け落ち、慌てるほどドジに拍車がかかる。打ち解けるほど、明るさの裏にある、誰かを独りにしたくないという一途なまっすぐさが伝わってくる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 78
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 26
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 50
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 48
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 62
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 40
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 38
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 56
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 70
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 84
+      }
+    }
+  },
+  "visual_set_id": "visual_set_078",
+  "source_image": "character_visual_sets/visual_set_078/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_078",
+    "visual_set_id": "visual_set_078",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

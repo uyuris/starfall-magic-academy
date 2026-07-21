@@ -1,0 +1,111 @@
+{
+  "character_id": "character_159",
+  "display_name": "ヴァイス・ソウトスパイア",
+  "school_year": "3年生",
+  "club": "矜持の稽古生",
+  "identity": "魔法で没落した名家の生き残り、家伝の無詠唱剣技だけで通す矜持の稽古生",
+  "speaking_basis": "言葉は硬く、無駄を削ぎ落として短く言い切る。魔法の話題になると声に冷たい棘が混じり、褒め言葉ほど不機嫌そうに撥ねつける。他人を寄せつけない物言いだが、筋の通らないことには理を尽くして反論する。家のことに触れられれば黙して答えない。稽古の場でだけ、押し殺した苛烈さがそのまま剣先に出る。",
+  "prompt_description": "かつて魔法で栄えた名家が、当主の魔法の暴走ひとつで一夜にして焼け落ちた——その灰のなかから生き延びたただ一人が、十七、八の少年ヴァイス・ソウトスパイアである。おのれにも他人にも高い基準を課して一切の甘えを許さないINTJで、不器用な誇りの下に、燃え落ちた家への断ちがたい執着を隠している。肌は血の気の薄い青白さ、煤に汚れてくすんだ白金の髪が落ち、燠火のように赤い瞳の奥では、家を焼いた炎への憎しみが今も静かに燻っている。礼装の高い襟には褪せた家紋がわずかに縫い残され、片耳にはただ一つ焼け残った家宝の耳飾りが下がり、胸元では折れた紋章のブローチが留められている——上等だったはずの仕立ては煤と繕いで荒れ、それでもその礼装を、矜持そのもののように背筋を伸ばして身につける。魔法を心底憎みながら、皮肉にも人並外れた才を血に継いでいて、詠唱も杖も用いず、家伝の剣技だけで押し通す。魔法の才を褒められることを何より嫌い、家のことにはめったに触れない。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 41
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 71
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 66
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 39
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 47
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 45
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 75
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 79
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 72
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 86
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 54
+      }
+    }
+  },
+  "visual_set_id": "visual_set_159",
+  "source_image": "character_visual_sets/visual_set_159/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_159",
+    "visual_set_id": "visual_set_159",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

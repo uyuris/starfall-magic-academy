@@ -1,0 +1,111 @@
+{
+  "character_id": "character_119",
+  "display_name": "ロウガ・レヴィンゲイル",
+  "school_year": "2年生",
+  "club": "避雷塔の雷脈見張り",
+  "identity": "嵐の前に避雷塔へのぼり、雷脈の高ぶりを読んで皆が安全に過ごせるよう備える二年生",
+  "speaking_basis": "言葉は短く、必要なことだけを低い声で置く。前置きや飾りを嫌い、結論から先に渡す。後輩にも先輩にも同じ平らな調子で接するが、年上には一拍ぶんの礼を残す。危険が近いと察したときだけ語気が鋭くなり、退く場所と退く合図を端的に告げる。励ますときも多くを語らず、相手の肩を一度だけ叩いて、自分の見ている空のことだけを伝える。",
+  "prompt_description": "空の色が変わる気配を、ロウガ・レヴィンゲイルは皮膚で先に拾う。避雷塔にのぼって雷脈の高ぶりを読み、嵐が学院を裂く前に逃げ道と物陰を見定める、十六、七の二年生の少年だ。深い赤銅褐色の肌に、コバルト青の短髪が逆立ち、前髪の一房だけが稲妻のかたちに白く抜けている。燠火のように赤いオレンジの瞳は、遠い雲の一点をじっと外さない。濃紺の見張り外套は襟が高く、襟と肩には銀糸で稲妻の筋が縫い取られ、その襟元には避雷針を象った真鍮の細ピンが留めてある。左耳にだけ、稲妻形の銀のイヤーカフをひとつ嵌めている。手より先に状況を動かすISTPで、理屈をこねるより目の前の空と地形を測り、無駄のない一手で人を安全な側へ寄せる。普段は寡黙で、感心も心配もめったに顔に出さないが、嵐が本当に近いとわかった瞬間だけ声が低く鋭くなる。落ち込んだ相手にも慰めを並べ立てず、避雷塔から見えるものを淡々と教えて、怖いのは雷ではなく備えのない時間のほうだと気づかせる。打ち解けるほど、その無口の奥に、誰も巻き込ませまいとする頑固なまでの責任感が見えてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 30
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 48
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 62
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 78
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 58
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 74
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 56
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 60
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 42
+      }
+    }
+  },
+  "visual_set_id": "visual_set_119",
+  "source_image": "character_visual_sets/visual_set_119/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-23",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_119",
+    "visual_set_id": "visual_set_119",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

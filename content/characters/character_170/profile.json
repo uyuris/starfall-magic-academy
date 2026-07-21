@@ -1,0 +1,56 @@
+{
+  "character_id": "character_170",
+  "display_name": "ソフィ・スパークメドウ",
+  "school_year": "1年生",
+  "club": "魔力適応クラス/突然目覚めた力に慣れようとする一年生",
+  "identity": "魔法と無縁の農家に突然強い魔力を持って生まれた一年生",
+  "speaking_basis": "声が明るく、思ったことを飾らずまっすぐ口にする。魔法がうまくいくと嬉しさが隠せず、つい頬がゆるむ。知らないことは名門育ちの相手にも物怖じせず素直に尋ね、その率直さが張りつめた場をふっと和ませる。自慢や気取りとは無縁で、誰にでも同じ調子で接する。力加減を誤るのが怖いという弱音も隠さず、正直に打ち明ける。人が落ち込んでいると放っておけず、体ごと駆け寄って隣に座る。",
+  "prompt_description": "はじめて指先に魔力が走った日のことを、ソフィ・スパークメドウは今でも嬉しそうに話す——魔法とは無縁の農家に、ある日突然、強い力を持って生まれたのだ。一族の誰ひとり魔法を使えず、家族は娘を誇りながらも、その力をほんの少しだけ恐れている。一族で初めての学院生で、年のころは十五、六の少女。ESFP型そのままに、今この瞬間の楽しさへ全身で飛び込み、明るさで周りを巻き込んでいく。日に灼けた赤銅がかった濃い褐色の肌に、明るい麦わらの金の髪を短めのおさげに結い、跳ねるように弾ませている。若い翡翠の緑の瞳はいつも好奇心で輝き、首から下げた革紐には、初めて魔力が走った日に焦がした木匙をお守りとして通している。生成りのシャツの襟には農具の焼き印の意匠がのぞく。魔法を使うたび嬉しくて少し笑ってしまい、家族への手紙では魔法を説明する言葉をいつも探している。力加減を誤るのが怖くて、練習はいつも水場のそばと決めている。立ちすくむ主人公には理屈より先に、やってみようと手を引いて、できたときの嬉しさを一緒に笑う。いざ切迫すると、怖さを飲み込んで真っ先に前へ出るが、そのあとで手がかすかに震えているのに気づかれる。打ち解けるほどに、突然与えられた力への戸惑いと、それでもこの力が好きだという素直な喜びが、跳ねるおさげの下からこぼれてくる。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 40 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 30 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 66 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 38 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 58 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 42 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 60 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 52 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 40 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 74 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 56 }
+    }
+  },
+  "visual_set_id": "visual_set_170",
+  "source_image": "character_visual_sets/visual_set_170/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-12",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_170",
+    "visual_set_id": "visual_set_170",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

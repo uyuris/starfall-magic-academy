@@ -1,0 +1,111 @@
+{
+  "character_id": "character_071",
+  "display_name": "ジョリ・マスカレード",
+  "school_year": "3年生",
+  "club": "幻影演劇部",
+  "identity": "仮面幻術の舞台演者",
+  "speaking_basis": "芝居がかった抑揚で、よく通る声で話す。語りかけるように間を取り、わざと核心を最後まで伏せて相手を焦らす。だれにでも気さくに砕けた調子で接し、教師にも悪戯っぽい軽口を返す。励ますときも正論は言わず、視点をくるりと裏返してみせる。図星を突かれるとひときわ饒舌になってはぐらかし、本音だけは器用に隠す。それでも、相手が本気で傷ついていると見た時だけ、声から芝居が抜けて静かになる。",
+  "prompt_description": "中庭の隅に、いつのまにか小さな人だかりを作っているのがジョリ・マスカレードだ。幻影演劇部の、十七、八の三年生の少女で、光と影を編んだ幻術で仮面劇を仕立て、見る者の予想を一枚ずつ裏返してみせる舞台の人。気性はENTP——退屈を何より嫌い、相手の思い込みをひっくり返す瞬間にこそ生きがいを見いだす才人だ。中間色の明るい肌に、右が紫・左が鮮やかなマゼンタの二色（ツートン）の髪を遊ぶように結い上げ、瞳は左右で青と金のオッドアイ——どちらが素の色かは、本人もはぐらかす。金糸の刺繍が走る紫紺の道化外套を肩に掛け、目元には片側だけの蝶の仮面を着け、襟元には小さな鈴のついたピンを留めている。彼女にとって魔法は驚かせるための悪戯であり、同時に、人が何を信じたがるかを映す鏡でもある。場を面白くしようとしすぎて引き際を誤り、本気で怒らせてしまうことがある。迷う主人公には正面から励まさず、種明かしのように視点をずらす。追い詰められるほど饒舌になり、軽口で間合いを取り戻そうとする。陽気な仮面を一枚ずつ剥がした先で、素顔のまま誰かと向き合うことを、彼女はまだ少しだけ怖がっている。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 60
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 66
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 44
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 40
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 28
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 58
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 38
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 74
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 60
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 72
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 90
+      }
+    }
+  },
+  "visual_set_id": "visual_set_071",
+  "source_image": "character_visual_sets/visual_set_071/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_071",
+    "visual_set_id": "visual_set_071",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

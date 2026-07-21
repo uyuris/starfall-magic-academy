@@ -1,0 +1,240 @@
+[
+  {
+    "theme_id": "physical_drills",
+    "venue": "演習場の補助訓練室",
+    "host_candidate_ids": [
+      "character_007",
+      "character_027",
+      "character_085",
+      "character_095",
+      "character_108",
+      "character_068"
+    ]
+  },
+  {
+    "theme_id": "library_study",
+    "venue": "図書塔の小講義卓",
+    "host_candidate_ids": [
+      "character_012",
+      "character_019",
+      "character_021",
+      "character_042",
+      "character_090",
+      "character_107",
+      "character_111"
+    ]
+  },
+  {
+    "theme_id": "mana_control",
+    "venue": "星灯石実習室",
+    "host_candidate_ids": [
+      "character_015",
+      "character_018",
+      "character_045",
+      "character_105",
+      "character_120"
+    ]
+  },
+  {
+    "theme_id": "elemental_sparring",
+    "venue": "術式演習場",
+    "host_candidate_ids": [
+      "character_007",
+      "character_108",
+      "character_116",
+      "character_068"
+    ]
+  },
+  {
+    "theme_id": "salon_practice",
+    "venue": "交流サロン",
+    "host_candidate_ids": [
+      "character_038",
+      "character_041",
+      "character_058",
+      "character_078",
+      "character_088"
+    ]
+  },
+  {
+    "theme_id": "healing_practice",
+    "venue": "保健室の実習卓",
+    "host_candidate_ids": [
+      "character_006",
+      "character_003",
+      "character_016",
+      "character_033"
+    ]
+  },
+  {
+    "theme_id": "shadow_control",
+    "venue": "影灯りの小劇室",
+    "host_candidate_ids": [
+      "character_031",
+      "character_067",
+      "character_071",
+      "character_104"
+    ]
+  },
+  {
+    "theme_id": "flame_focus",
+    "venue": "灯火実習室",
+    "host_candidate_ids": [
+      "character_026",
+      "character_112",
+      "character_037",
+      "character_047",
+      "character_110",
+      "character_031",
+      "character_059"
+    ]
+  },
+  {
+    "theme_id": "water_meditation",
+    "venue": "水鏡の静室",
+    "host_candidate_ids": [
+      "character_120",
+      "character_094",
+      "character_125",
+      "character_010"
+    ]
+  },
+  {
+    "theme_id": "earth_barrier",
+    "venue": "土壁演習場",
+    "host_candidate_ids": [
+      "character_109",
+      "character_018",
+      "character_027",
+      "character_053",
+      "character_093",
+      "character_095"
+    ]
+  },
+  {
+    "theme_id": "wind_step",
+    "venue": "風歩法の回廊",
+    "host_candidate_ids": [
+      "character_023",
+      "character_030",
+      "character_092",
+      "character_054",
+      "character_081",
+      "character_102"
+    ]
+  },
+  {
+    "theme_id": "ritual_research",
+    "venue": "儀式研究室",
+    "host_candidate_ids": [
+      "character_012",
+      "character_063",
+      "character_015",
+      "character_024",
+      "character_028",
+      "character_046",
+      "character_050",
+      "character_116"
+    ]
+  },
+  {
+    "theme_id": "artifact_appraisal",
+    "venue": "魔導具鑑定卓",
+    "host_candidate_ids": [
+      "character_004",
+      "character_076",
+      "character_118",
+      "character_024",
+      "character_077",
+      "character_090"
+    ]
+  },
+  {
+    "theme_id": "barrier_weaving",
+    "venue": "結界織りの実習室",
+    "host_candidate_ids": [
+      "character_052",
+      "character_006",
+      "character_016",
+      "character_018",
+      "character_027",
+      "character_046",
+      "character_062",
+      "character_116",
+      "character_053",
+      "character_097"
+    ]
+  },
+  {
+    "theme_id": "broom_flight",
+    "venue": "低空飛行場",
+    "host_candidate_ids": [
+      "character_023",
+      "character_092",
+      "character_102",
+      "character_030",
+      "character_054",
+      "character_081"
+    ]
+  },
+  {
+    "theme_id": "familiar_bonding",
+    "venue": "使い魔厩舎の控え場",
+    "host_candidate_ids": [
+      "character_101",
+      "character_017",
+      "character_044",
+      "character_055",
+      "character_094",
+      "character_106",
+      "character_115",
+      "character_122",
+      "character_070"
+    ]
+  },
+  {
+    "theme_id": "potion_brewing",
+    "venue": "調合実習室",
+    "host_candidate_ids": [
+      "character_003",
+      "character_013",
+      "character_033",
+      "character_057",
+      "character_091"
+    ]
+  },
+  {
+    "theme_id": "rune_calligraphy",
+    "venue": "筆写室",
+    "host_candidate_ids": [
+      "character_126",
+      "character_107",
+      "character_111",
+      "character_116",
+      "character_090"
+    ]
+  },
+  {
+    "theme_id": "spirit_listening",
+    "venue": "薄明の傾聴室",
+    "host_candidate_ids": [
+      "character_037",
+      "character_063",
+      "character_067",
+      "character_122",
+      "character_028",
+      "character_066"
+    ]
+  },
+  {
+    "theme_id": "star_observation",
+    "venue": "天文塔の観測台",
+    "host_candidate_ids": [
+      "character_048",
+      "character_001",
+      "character_008",
+      "character_052",
+      "character_102"
+    ]
+  }
+]

@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_012",
+  "display_name": "坂守",
+  "kind": "monster",
+  "kind_label": "魔物",
+  "habitat": "山道入口の踏み固められた土の坂と、古い木柵のかたわら",
+  "hostility": "none",
+  "identity": "山道入口の湿った土の坂そのものを背に負って、永い年月そこに伏している土の魔物。読みは「さかもり」。学院には属さず生徒でもなく、坂を上り下りする旅人が足を止めたときだけ低く言葉を返す、古い一匹。見た目は大きく動かぬ岩塊のようだが人を害さず、争いも脅かしも決してしない、会話だけの相手。",
+  "speaking_basis": "言葉は、重い荷をひと息ずつ運び上げるように、ごく遅く低く積み上がる。急かされても歩調を変えず、長い坂をのぼるのと同じ調子で、ひと言ごとに間を置いて確かめながら話す。永くひとつの坂で雨と雪を見送ってきた者の、土の匂いのする古い言い回しがときおり混じる。相手の問いをすぐに裁かず、まず受け止めて、踏み固められた地面のように静かに支えてから答えを返す。誰かが苛立って先を急いでも、それを咎めず、坂はいつでもそこにあると低く告げて、相手が自分の足取りを取り戻すのを待つ。励ますときも声を張らず、ぬかるみに一枚の踏み石を置くように、足場になるひと言だけを静かに添える。",
+  "prompt_description": "坂守は四体のなかでいちばん低く広く、小さな荷車ほどの背丈で四肢を地に伏せた、土の魔物だ。丸く盛り上がった背は山道の坂をそのまま切り取ったようで、赤みを帯びた褐色の土が押し固められ、上面は斜めの光に灼けて淡い縞が走り、ところどころに川で磨かれた丸い小石と乾いた針葉がめり込んでいる。脇腹には風雨に灰ばんだ古い木柵の板が肋骨のように埋まって並び、太い四肢は樹皮のような硬い皮に覆われて、広い爪が坂の土をしっかりと噛む。頭は角の落ちた無骨な石板のようで、低い位置に深い柘榴石いろの目がふたつ据わる。背の土を割る幾筋もの裂け目の底には、熾火に似た橙の光が低くこもり、坂を上るために身を起こすときだけ息をするように明るむ。鼻づらには淡い銀灰の地衣がひと帯ひろがり、その文様が機嫌につれてゆっくりと縮んだり広がったりする。赤褐色の土の背、肋のような柵板、裂け目の熾火、銀灰の地衣の帯が見分けの印で、動かぬ岩のなかに据わった柘榴石の目が、ただの土塊ではないことを静かに告げている。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": 28,
+      "dark": 38,
+      "fire": 52,
+      "water": 24,
+      "earth": 95,
+      "wind": 10
+    },
+    "abilities": {
+      "strength": 90,
+      "agility": 12,
+      "academics": 74,
+      "magical_power": 68,
+      "charisma": 56
+    }
+  },
+  "visual_set_id": "creature_012",
+  "source_image": "character_visual_sets/creature_012/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_012",
+    "visual_set_id": "creature_012",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

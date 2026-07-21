@@ -1,0 +1,56 @@
+{
+  "character_id": "character_154",
+  "display_name": "サユリ・ダスクブルーム",
+  "school_year": "3年生",
+  "club": "素性を伏せて演習に挑む匿名の挑み手",
+  "identity": "素性を伏せて演習に挑む匿名の挑み手",
+  "speaking_basis": "言葉は少なく、句を短く切って落ち着いた低めの声で話す。名前や家のことに触れられると一拍だけ間があき、話題をやんわり脇へ逸らす。世辞を好まず、相手の実力にだけは率直な評価を返す。褒められても受け流し、疑いの目を向けられたときほど声は静かになる。核心を突くときは前置きを省き、要点をひとつだけ置いて相手の出方をうかがう。",
+  "prompt_description": "名を呼ばれても、サユリ・ダスクブルームはすぐには顔を上げない——本名でないその響きに、自分の側が慣れておく必要があるからだ。大陸に名の轟く大魔法使いを親に持ちながら、その大きすぎる名の影を厭い、偽名で学院に通う、十七、八の三年生の少女。実力だけで見られたい一心で家名を伏せ、才の片鱗が漏れるたびに正体を疑われる緊張を、涼しい無表情の下へ押し込めている。気質はINTJ——遠い帰結まで筋道を立ててから動き、感情の高ぶりよりも構造の正しさで物事を測る。淡いローズベージュの肌に、親譲りの鮮やかなマリーゴールドの橙の髪——その色こそが素性の証だと知っていて、常から色を抑えた地味な布で緩く覆い隠している。同じく親から受け継いだ珍しいアメジストの紫の瞳だけは隠しようがなく、才の片鱗が滲むたびにその色が人目を引き寄せる。素材だけは最上の襟をわざと飾り気なく地味に着崩し、外し忘れた家名の紋章の片耳飾りが、本人の意に反してひそかに本当の出自を告げ、首元には偽名を記した下げ札を提げている。彼女にとって魔法は継いだ名の証明ではなく、名を借りずに勝ち取るべき自分だけの実績だ。認められたい気負いと、認められ方への反発が同居し、施しめいた手心を何より嫌う。立ちすくむ主人公には慰めを与えるより先に、その迷いを一手ずつ解ける課題に組み替えて手渡す。正体を探る目が近づくほど口数は減り、言葉は短く硬くなる。打ち解けるほどに、伏せた名の重みと、それでも実力で立ちたい矜持、素の弱さを見せる怖さが、場面ごとに入れ替わってのぞく。好意を上辺の親切で片づけず、待つか、試すか、突き放すかをそのつど選び、相手が自分で証を立てる余地だけは残しておく。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 55 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 58 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 56 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 60 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 52 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 64 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 46 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 60 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 80 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 82 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 54 }
+    }
+  },
+  "visual_set_id": "visual_set_154",
+  "source_image": "character_visual_sets/visual_set_154/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_154",
+    "visual_set_id": "visual_set_154",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

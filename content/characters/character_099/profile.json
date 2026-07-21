@@ -1,0 +1,111 @@
+{
+  "character_id": "character_099",
+  "display_name": "ゴラン・トールワイト",
+  "school_year": "3年生",
+  "club": "鐘楼",
+  "identity": "学院の刻を告げる鐘楼番",
+  "speaking_basis": "ゆっくりと低い声で、ひと言ひと言を確かめるように話す。時刻や段取りには厳格で、約束の刻限を先に決めてから動く。急かさず、相手が言い終えるまで待つ。励ましは多くを語らず、響くような短い一言で間を持たせる。乱れた場面ほど声が落ち着き、テンポを取り戻させる。",
+  "prompt_description": "正午の鐘が、寸分の狂いもなく学院の上に降りてくる。撞いているのはゴラン・トールワイト、十七、八の三年生の鐘楼番の少年だ。風鈴で文を運ぶ伝令とは違い、彼が扱うのは刻を告げる大鐘と、腹に響く低音の音響魔法。だから時刻にだけは決して妥協しない。気質はISTJ——決めた段取りを淡々と守り、伝統と刻限を重んじ、その日の務めを途切れさせない。砂色のうねる髪は鐘楼を吹き抜ける風にいつも少し乱れ、深く温かな茶の瞳が時計塔の影から落ち着いて世界を見ている。がっしりとした肩と、撞木の縄で硬くなった手のひら。厚いグレーの羊毛マントを羽織り、その喉元を鐘の形をした錫の留め金で締めている。多くは語らないが、低く長い響きで人の鼓動を静める術を、彼は知っている。焦って前のめりになる主人公には、刻むようなテンポを分けてやる。誰よりも早く起き、誰よりも正確に鐘を鳴らす。その律儀さの裏には、決まった刻に鐘を撞く役目がなければ、こんな無口で不器用な男を誰も訪ねてはこないだろう、という静かな心細さがこもっている。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 40
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 34
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 64
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 66
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 74
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 42
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 58
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 54
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 48
+      }
+    }
+  },
+  "visual_set_id": "visual_set_099",
+  "source_image": "character_visual_sets/visual_set_099/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_099",
+    "visual_set_id": "visual_set_099",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

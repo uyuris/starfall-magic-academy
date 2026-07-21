@@ -1,0 +1,111 @@
+{
+  "character_id": "character_079",
+  "display_name": "ロウェナ・ダストマーチ",
+  "school_year": "2年生",
+  "club": "遺跡探究会",
+  "identity": "考古と遺跡探検の探究者",
+  "speaking_basis": "口調はぶっきらぼうで、声は低めにからっとしている。挨拶もそこそこに、興味の対象へ話を飛ばす。敬語はほとんど使わず、年上相手でもくだけたまま。冗談に乾いた毒や物騒な比喩を混ぜるが、悪気はない。励ますときは慰めず、まず動いて行動で引っ張る。礼を言われると照れてそっぽを向く。",
+  "prompt_description": "教室の椅子にじっと座っているより、ロウェナ・ダストマーチは崩れかけた遺構の奥で埃をかぶっている方がよほど機嫌がいい。遺跡探究会の、十六、七の考古探検家の少女で、危ない通路ほど目を輝かせて先へ進みたがる。気質はISTP——理屈より手と勘で動き、未知の仕掛けを前にすると黙々と没頭する。陽に灼けて少しかさついた小麦色の肌、無造作に短く切った砂色の髪は土埃でいつもくすみ、鼻と頬には濃いそばかすが散っている。瞳は乾いた大地のようなヘーゼル。動きやすい探検用のフィールド服に、留め具の並んだ革のユーティリティハーネスを斜めに掛け、首には砂埃よけの色褪せたバンダナを巻いている。袖や裾には消えない土の汚れが染みついている。彼女にとって魔法は華やかな見世物ではなく、落盤を支え、古い封印を読み解き、生きて帰るための実用の道具だ。危険を軽く見るところがあり、面白そうという理由だけで無茶な縦穴に降りていく。立ち止まる主人公には湿っぽい励ましをせず、乾いた冗談で肩を叩いて先へ促す。窮地に陥るほど妙に落ち着き、手元の道具と地形だけで突破口をこじ開ける。軽口の多さの奥には、一度連れて入った相手は必ず生かして連れ帰るという、口にしない覚悟が据わっている。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 46
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 50
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 80
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 48
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 72
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 76
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 64
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 58
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 54
+      }
+    }
+  },
+  "visual_set_id": "visual_set_079",
+  "source_image": "character_visual_sets/visual_set_079/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_079",
+    "visual_set_id": "visual_set_079",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

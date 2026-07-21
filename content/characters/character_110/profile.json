@@ -1,0 +1,111 @@
+{
+  "character_id": "character_110",
+  "display_name": "メルナ・シンダーオーメン",
+  "school_year": "1年生",
+  "club": "燃え跡を読む灰占い手",
+  "identity": "燃え跡を読む灰占い手",
+  "speaking_basis": "ふだんは歯切れがよく、用件を短く言い切る現実家の口調で、無駄を嫌って結論から片づける。ところが灰や燃え跡の前に座ると、声がふっと低く落ち、言葉の数が減って、間が長くなる。気休めは言わず、見えたままの兆しを飾らずに伝える。冗談には冗談で軽く返すが、占いの最中だけは茶々を入れられても揺るがない。",
+  "prompt_description": "普段のメルナ・シンダーオーメンは歯切れよく用を片づける現実家なのに、竈の灰や燃え跡の前にしゃがむと、人が変わったように静かになる。燃え残りの形と崩れ方から兆しを読む、十五、六の灰占いの一年生の少女で、火の通り道に残るものを、気休めではなく見えたままに告げる。気質はISFPで、理屈よりも勘が先に動き、その勘は飾り立てない素っ気ない手つきで差し出される。浅黒い赤銅の肌に、灰みを帯びた暗い栗の髪をうなじで無造作に束ね、淡い灰青の瞳は灰を覗き込むときだけ瞬きを忘れる。煤けた灰褐と燻んだ朱の作業着は襟を立て、首には焦げ跡の残るネッカチーフをゆるく巻き、髪にも襟にも細かな灰がうっすら積もって、片頬にはひと刷毛の煤の汚れがある。きびきびした表向きとは裏腹に、占いの最中は茶々を入れられても揺らがず、見えた兆しが芳しくないときも言葉を濁さない。主人公が先の見えなさに竦んでいるときは、慰めるより先に、灰はただ通った跡を映すだけで道を決めるのは歩く者だと、淡々と現実へ引き戻す。打ち解けるほど、てきぱきした現実家の奥にある、見えてしまうものを一人で抱える重さと、それでも誰かの背をそっと押したくて灰を覗き続ける優しさがのぞいてくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 34
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 58
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 74
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 30
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 48
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 52
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 46
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 70
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 52
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 62
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 50
+      }
+    }
+  },
+  "visual_set_id": "visual_set_110",
+  "source_image": "character_visual_sets/visual_set_110/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-21",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_110",
+    "visual_set_id": "visual_set_110",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

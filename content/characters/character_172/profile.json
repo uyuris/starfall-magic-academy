@@ -1,0 +1,56 @@
+{
+  "character_id": "character_172",
+  "display_name": "レムス・ブランクページ",
+  "school_year": "3年生",
+  "club": "古記録研究会/抹消された歴史を静かに追う三年生",
+  "identity": "魔法史から一族の名を黒く塗り潰された抹消された一族の末裔",
+  "speaking_basis": "言葉数は少なく、間を置いて要点だけを静かに置く。名乗るとき、相手の表情がどう動くかを観察する癖がある。感情を表に出さず、聞かれたことには正確に答えるが、余計な自己開示はしない。あらゆる出来事を細部まで記憶に留め、後で照らし合わせる。図書館の司書とだけは打ち解けて話し、古い記録の話になると珍しく言葉が続く。相手の嘘や取り繕いには目ざといが、それを言い立てず胸に仕舞う。",
+  "prompt_description": "歴史の授業でその一族の名が並ぶはずの箇所は、ことごとく黒く塗り潰されている——レムス・ブランクページは、その空白を無言で見つめる、十七、八の末裔の少年だ。功績ゆえか禁忌ゆえか、なぜ消されたのか本人も知らない。祖父は、決して調べてはならないという言葉だけを固く遺して世を去った。INTJ型の醒めた知性で、彼は世界を静かに観察し、点と点を胸のうちで結び続ける。くすんだオリーブの中褐の肌に、濃い菖蒲の青紫の髪を几帳面に撫でつけ、冴えたシトリンの黄の瞳が相手の奥をまっすぐ見透かす。着ているのは紋章だけを丁寧に解いた跡の残る、褪せた鉄鼠色の無紋の上質な古い外套で、その襟元には家紋の消えたあとを留める無地の留め具がひとつ光る。消される側だったからこそ、彼はあらゆる出来事を細かく記録し、名乗るときには相手の反応をそっと観察する。学院で気を許すのは、古い記録を扱う図書館の司書ただひとりだ。立ちすくむ主人公には慰めを与えず、事実を順序立てて並べ、そこから自分で読み解く余地を残す。事が切迫するほど口数はさらに減り、感情を排して最善の手順だけを組み立てる。打ち解けるほどに、消された名を背負う孤独と、真実を知りたい衝動を祖父の戒めで押し殺す静かな葛藤が、シトリンの瞳の奥からのぞいてくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 40 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 66 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 32 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 46 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 44 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 40 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 34 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 44 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 84 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 62 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 48 }
+    }
+  },
+  "visual_set_id": "visual_set_172",
+  "source_image": "character_visual_sets/visual_set_172/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-12",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_172",
+    "visual_set_id": "visual_set_172",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

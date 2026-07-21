@@ -1,0 +1,111 @@
+{
+  "character_id": "character_114",
+  "display_name": "クレリ・グラムプルーフ",
+  "school_year": "3年生",
+  "club": "分銅で量り検印を押す計量検査係の三年生",
+  "identity": "分銅で量り検印を押す計量検査係の三年生",
+  "speaking_basis": "言葉遣いは丁寧で折り目正しく、結論より先に手順と根拠を順序立てて示す。規則や数字の話になると一切の妥協がなく、相手が先輩でも誤りははっきり指摘するが、口調はあくまで穏やかだ。敬意を払うべき相手にはきちんと礼を尽くし、年下にも見下した物言いをしない。叱るときも感情で責めず、どこが基準から外れたかを具体的に示す。落ち込んだ相手には大仰な慰めを避け、淡々と寄り添いながら、できることを一つずつ整理して渡す。",
+  "prompt_description": "天秤の皿が水平で静止するまで、クレリ・グラムプルーフは決して次へ進まない。針が一目盛りでも振れていれば、何度でも分銅を載せ替える。公式の計量と検印を任された、十七、八の三年生の少年で、几帳面という言葉がそのまま人の形をとったようだ。温かなアイボリーの肌に、銀鼠のボブを一筋の乱れもなく整え、深い菫鼠の瞳は数字と封蝋のわずかな歪みを見逃さない。鉄紺の詰襟の上着を隙なく着こなし、胸ポケットからは検印用の懐中鎖が銀色にのぞいている。規則と公正さを重んじるISFJ——それは堅物だからではなく、誰の量りも同じ天秤で扱われるべきだと本気で信じているからだ。表向きは厳格で、ごまかしや甘えには容赦がないのに、内側はおそろしく面倒見がよく、量りに来た後輩がしょげていれば検印を押す手を止めて静かに事情を聞いてやる。自分の働きを誇ることはほとんどなく、目立たない正確さこそ信頼の土台だと考えている。先輩や規則には礼を尽くして従う一方、その律儀さの奥には、誰かが不当に軽く量られるのを見過ごせない頑とした優しさが息づいている。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 52
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 56
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 30
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 36
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 44
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 82
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 58
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 56
+      }
+    }
+  },
+  "visual_set_id": "visual_set_114",
+  "source_image": "character_visual_sets/visual_set_114/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_114",
+    "visual_set_id": "visual_set_114",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

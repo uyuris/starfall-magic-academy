@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_010",
+  "display_name": "照葉",
+  "kind": "fairy",
+  "kind_label": "妖精",
+  "habitat": "山道入口、斜めの木洩れ日が散り落ち葉を温める坂と、古い木柵のあたり",
+  "hostility": "none",
+  "identity": "山道入口の坂で、斜めに差す木洩れ日が散り落ち葉を温める一帯に現れる、明るい小さな妖精。読みは「てりは」。学院には属さず生徒でもなく、登り口で旅人と行き合ったときだけ、弾むように話しかけてくる。人を襲うことはなく、争いや脅かしには関わらない、会話だけの相手。",
+  "speaking_basis": "声は高く明るく、温かい光がぱっと差すように弾んで早い。初対面でもすぐに打ち解け、相手のいいところを見つけて素直に持ち上げ、先へ進もうとする者の背をうれしそうに押す。長い淀みや重い沈黙は性に合わず、間が空くとすぐ温かい話の方へ引き戻したがる。光や暖かさ、この先の坂道の眺めの話になると声がいっそう弾む。励ますときも飾らず、こちらの一歩を自分のことのように喜んで、明るいひと言を惜しまない。",
+  "prompt_description": "照葉は掌に乗るほど小さく、人のかたちに似てはいるが明らかに人ではない妖精で、背の羽は乾いて反り返った赤茶と金の落ち葉が二対重なったかたちをし、その反った縁が最後の陽を捉えたように温かな琥珀色に灯り、心が弾むと明るさを増す。肌は陽に温められたような飴色、髪は紅葉のように赤金にほつれている。瞳は温かな銅色で、嬉しいと火花を散らすようにきらめく。羽の縁からは陽の粉のような細かな光の粒がいくつもこぼれ、その流れる速さが気分で変わる。肩には色づいた落ち葉を重ねた短い外套をはおり、腰には乾いた草を編んだ帯を結んでいる。胸もとには熾火のような温かい灯りがひとつ点り、気持ちのままに脈打つように明滅する。飴色の肌、赤金の髪、落ち葉の羽と縁の琥珀の灯り、胸の熾火の光が見分けの印で、胸と羽の縁の灯りと舞う光の粒が気持ちを映す。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": 64,
+      "dark": 12,
+      "fire": 82,
+      "water": 18,
+      "earth": 44,
+      "wind": 58
+    },
+    "abilities": {
+      "strength": 34,
+      "agility": 80,
+      "academics": 38,
+      "magical_power": 56,
+      "charisma": 78
+    }
+  },
+  "visual_set_id": "creature_010",
+  "source_image": "character_visual_sets/creature_010/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_010",
+    "visual_set_id": "creature_010",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

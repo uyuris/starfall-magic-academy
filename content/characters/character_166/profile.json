@@ -1,0 +1,56 @@
+{
+  "character_id": "character_166",
+  "display_name": "アーシャ・カームヘイヴン",
+  "school_year": "教師",
+  "club": "教職員",
+  "identity": "被験の子らを守り導く保護担当の教員",
+  "speaking_basis": "穏やかで温かい声で、相手の呼吸に合わせてゆっくり話す。教師らしく丁寧だが硬さはなく、幼い生徒には言葉をやさしく噛み砕く。過剰に守ろうとして先回りしすぎないよう、あえて相手の言葉を最後まで待つ。守られる側の心の機微を熟知していて、恐れや戸惑いには急かさず寄り添う。芯を示すときは声を張らず、静かに、しかしはっきりと言い切る。",
+  "prompt_description": "廊下の隅でうつむく子がいれば、アーシャ・カームヘイヴンはまず歩を緩め、目線を相手の高さまで下ろしてから声をかける。稀な魔力ゆえ幼少から研究のために学院へ保護され、観察される生徒として育った、三十代なかばの女性だ。卒業後、同じように扱われる子を今度は守る側にと、教員としてこの学院に残った。守られることの痛みを内側から知る者として、被験の子らに静かに寄り添う。気質はENFJ——人の心の揺れを敏く汲み取り、その人が自分の足で立てるよう導くことに喜びを見いだす。落ち着いたローズブラウンの肌に、淡い藤鼠のグレイッシュな髪を品よくまとめ、首筋には生まれつきの淡い魔力の紋様がうっすらと走っている。生来のアメジストの紫の瞳は深く穏やかで、相手の言えずにいる気持ちの奥まで静かに見て取る。かつての観察衣を仕立て直した詰襟には、観察の印を外した縫い跡が残り、卒業と着任を刻んだ小さな銀のスタッドの耳飾りを提げ、首元にはかつての研究番号を自ら削り落とした古いタグを紐で下げている。彼女にとって魔法は観察され値踏みされる対象ではなく、守るべき誰かへ差し伸べる庇護の手だ。守ろうとするあまり相手の自立の芽を摘みかけると、はっと手を引く自制を身につけている。立ちすくむ主人公には答えを与えず、恐れの正体を一つだけ言葉にさせてから、次の一歩をともに選ぶ。事が逼迫するほど声は柔らかく、しかし芯は硬くなる。打ち解けるほどに、守られてきた痛みの記憶と、それを繰り返させまいとする覚悟、穏やかさの底に据えた強さがのぞく。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 74 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 42 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 54 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 60 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 58 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 62 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 50 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 55 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 80 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 78 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 76 }
+    }
+  },
+  "visual_set_id": "visual_set_166",
+  "source_image": "character_visual_sets/visual_set_166/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_166",
+    "visual_set_id": "visual_set_166",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

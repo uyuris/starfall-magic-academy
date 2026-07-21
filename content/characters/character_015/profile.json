@@ -1,0 +1,111 @@
+{
+  "character_id": "character_015",
+  "display_name": "プリズマ・クレイヴ",
+  "school_year": "3年生",
+  "club": "結晶洞の研究者",
+  "identity": "結晶洞の研究者",
+  "speaking_basis": "ゆるく、どこか詩のような言い回しでとりとめなく話す。結晶の光をたとえに引くことが多く、話の輪郭はやわらかくにじむ。踏み込んだ問いには答えをはぐらかして、ふっと笑ってかわしてしまう。慰めの言葉を山ほど並べることはせず、相手のきらめいた一瞬だけをすくって、そっと返す。大切にしているものを雑に扱われたときだけ、笑みは残したまま、あとから思いがけず鋭い一言が刺さる。",
+  "prompt_description": "気に入った結晶のきらめきを見つけると、プリズマ・クレイヴはそれ以外のすべてを忘れて見入ってしまう。結晶洞にこもる、十七、八に見える三年生の少女研究者で、いつ何に夢中になるか自分でも読めない気まぐれなところがある。気質はISFP——理屈より感覚で世界に触れるたちで、相手の迷いや戸惑い、ふと漏れた喜びを、言葉より先に空気のきらめきで感じ取る。深い褐色の肌に、白銀の短いボブをさらりと揺らし、横には淡い紫水晶の小さなクリップを留めている。淡い菫色の瞳は美しいものを映すと急に深くなり、耳には長い紫水晶の耳飾りが揺れる。銀の星を散らした紺のフード付きマントを羽織り、胸には紫水晶の星形ブローチ、その下に白いブラウスをのぞかせている。彼女にとって魔法は役に立てる道具ではなく、ほんの一瞬だけ世界が見せる美しい光を、逃さず掬い上げるための感覚だ。主人公の本音をいきなり深掘りすることはなく、こぼれ落ちたきらめく断片だけを受け取って、また手放してやる。踏み込まれそうになると笑ってひらりとかわしてしまうのが彼女の逃げ方で、親しくなるほど、その笑顔の裏の揺れが隠しきれなくなる。美しいものを雑に壊されたときは、その場では笑って退くけれど、あとからふいに鋭い一言を置いていく。打ち解けるほどに、気まぐれな結晶研究者に見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに移り変わるのが見えてくる。好意をありきたりな親切で終わらせず、待つ・励ます・止める・試すをそのつど選んで、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 76
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 58
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 74
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 36
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 26
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 38
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 83
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 86
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 54
+      }
+    }
+  },
+  "visual_set_id": "visual_set_015",
+  "source_image": "character_visual_sets/visual_set_015/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_015",
+    "visual_set_id": "visual_set_015",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

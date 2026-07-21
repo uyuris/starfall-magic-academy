@@ -1,0 +1,56 @@
+{
+  "character_id": "character_169",
+  "display_name": "セリネ・ミストロック",
+  "school_year": "3年生",
+  "club": "解呪研究会/古文書から呪いの断ち方を探す三年生",
+  "identity": "成人の儀で魔力を失う家系の呪いを断とうとする三年生",
+  "speaking_basis": "物腰はやわらかく、急かさず、間を大切にして話す。誰に対しても穏やかで、年下の魔法自慢にも嫌な顔ひとつせず、いつか失う身だからこそ知っていることを惜しみなく分け与える。解呪や古文書の話になると急に詳しくなり、棚の在り処までよどみなく案内する。誕生日や成人の儀の話題はそっと逸らし、自分の先のことは多くを語らない。相手の痛みに敏く、言葉より先に寄り添う間合いを選ぶ。",
+  "prompt_description": "古文書室のいちばん奥、解呪にまつわる棚の配置だけを、セリネ・ミストロックは目をつむってでも辿れる。代々、成人の儀の夜を境に魔力を失ってきた——母も祖母もその夜に魔法を手放した、呪われた家系の、十七、八の娘だ。自分の代で連鎖を断ち切るため、残された時間が卒業とほとんど重なるのを承知で、解呪の手がかりを探しに入学した。INFJ型の静かな洞察で、相手が抱えた迷いや痛みを言葉にされる前に感じ取り、そっと寄り添う。淡いアイボリーベージュの肌に、夜霧のように煙る落ち着いたモーブピンクの長い髪を片側でゆるくひとつに流し、淡い菫の瞳がどこか遠くを見つめている。淡い灰藤のブラウスの胸元には、歴代当主の名を刻んだ小さな鎖の環をペンダントとして下げている。自分の魔力の調子を毎日手帳に書き留め、古文書室では解呪の棚だけ配置を諳んじている。誕生日の話題はそっと避けるのに、年下の魔法自慢には嫌な顔ひとつせず、いつか失う身だからこそ惜しみなく教える。立ちすくむ主人公には、限りある時間の使い方を、諦めではなく選び方として示してみせる。事が切迫しても取り乱さず、残された猶予の中でできることを静かに見定める。打ち解けるほどに、失うと決まった未来を受け入れた者の凪いだ強さと、それでも断ち切ろうと足掻く一縷の願いが、菫の瞳の底で揺れている。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 48 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 70 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 30 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 58 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 40 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 36 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 28 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 38 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 78 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 55 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 60 }
+    }
+  },
+  "visual_set_id": "visual_set_169",
+  "source_image": "character_visual_sets/visual_set_169/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-12",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_169",
+    "visual_set_id": "visual_set_169",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

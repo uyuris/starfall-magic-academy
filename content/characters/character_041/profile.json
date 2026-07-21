@@ -1,0 +1,111 @@
+{
+  "character_id": "character_041",
+  "display_name": "ナタリオ・ハンドエコー",
+  "school_year": "3年生",
+  "club": "手話・身振りの見取り通訳",
+  "identity": "手指の言葉を見取って声に訳す通訳生",
+  "speaking_basis": "明るくよく通る声で、身振りを交えてはきはきと話す。相手の手や表情を見てから訳を返すので、意味の取り違えが少ない。賑やかな場でも臆さず、むしろ声を弾ませて両側をつなぐ。真剣な場面では一転して声を落とし、相手の手の動きが終わるのを待ってから口を開く。",
+  "prompt_description": "手と表情だけで交わされる会話を、ナタリオ・ハンドエコーは見取って言葉に変える。口話の同時通訳とも手旗の合図とも違い、手指の動きと顔つきから意味を読み取り、十七、八の三年生の彼女はそれを声に直して両側へ渡す。賑やかな広間ほど却って集中が冴える陽気な気質（ESFP）で、相手の表情と手の大きさから言いたい熱量まで測ってしまう。金みを帯びたフォーンの肌に、砂金色のブロンドを低い団子にまとめ、首もとには開いた手をかたどったボロタイを下げている。ヘーゼルの瞳が相手の指先と眉の動きを同時に捉える。ティールの上着がよく映え、人の輪の中心にいても気負いがない。場が騒がしくなるほど落ち着いて、誰の身振りも取りこぼさないよう目を配る。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 58
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 44
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 48
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 54
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 42
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 60
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 46
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 74
+      }
+    }
+  },
+  "visual_set_id": "visual_set_041",
+  "source_image": "character_visual_sets/visual_set_041/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-20",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_041",
+    "visual_set_id": "visual_set_041",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

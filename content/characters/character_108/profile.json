@@ -1,0 +1,111 @@
+{
+  "character_id": "character_108",
+  "display_name": "ダイ・ナックルバインド",
+  "school_year": "2年生",
+  "club": "組手道場の道場番",
+  "identity": "組手道場の道場番",
+  "speaking_basis": "よく通る明るい声で、相手をまず一度持ち上げてから直す。稽古の指示はくだけていて、後輩相手にはとくに甘く、語尾がやわらかくほどける。場の空気の重さを誰より早く察し、張り詰めた稽古場に冗談をひとつ落として緩める。世話を焼くのが癖で、頼まれてもいないのに人の帯の結びや姿勢につい手が出る。自分の師の話をするときだけ、声から砕けた調子が抜けて丁寧になる。",
+  "prompt_description": "崩れた後輩の構えに横から回り込んで、肘の高さをそっと直してやる——そこにダイ・ナックルバインドの人柄はぜんぶ出ている。徒手の組手を教える、十六、七の道場番の二年生の少年で、面倒見のいい兄貴肌、頼まれる前から人の世話を焼いてしまう。気質はESFJ寄りで、稽古場の空気が張り詰めればいちばん早くそれに気づき、冗談をひとつ落として皆の肩の力を抜く。ロスターでいちばん濃い、深いエボニー褐色の肌に、黒へ臙脂を刷いた刈り上げ、瞳は珍しいほど深い漆黒で、笑うと目尻がやわらかく崩れる。藍鼠の稽古着は襟を厚く打ち合わせ、その合わせ目には臙脂の細い縁取りが走り、首には擦り切れた布の帯をひと結び、両腕には手首から肘まで稽古用の布帯を幾重にも巻いている。後輩にはとことん甘いが、自分の師の話になると砕けた調子がすっと抜けて、思わず背すじを正す。主人公がひとりで気負っているときは、技を教えるより先に黙って肩を並べて立ち、ひとりで抱えなくていいのだと体の近さで伝える。打ち解けるほど、賑やかな兄貴分の裏にある、誰かが隅で沈んでいないかを絶えず数えている細やかさと、皆が揃って笑える稽古場を守りたい一心がのぞいてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 38
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 24
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 60
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 34
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 56
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 40
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 82
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 78
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 40
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 36
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 72
+      }
+    }
+  },
+  "visual_set_id": "visual_set_108",
+  "source_image": "character_visual_sets/visual_set_108/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-21",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_108",
+    "visual_set_id": "visual_set_108",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_113",
+  "display_name": "マレナ・コードヒッチ",
+  "school_year": "1年生",
+  "club": "索を張り装具を組むリガーの一年生",
+  "identity": "索を張り装具を組むリガーの一年生",
+  "speaking_basis": "声が大きく歯切れがよく、思ったことをその場でぽんぽん口にする。難しい説明は苦手で、要点を一言にまとめてあとは手本でやって見せる。先輩相手でも物怖じせず、敬語はくだけがちだが、悪気はなく親しみの裏返しだ。人が手間取っていると放っておけず、押しつけがましくならない程度に世話を焼く。安全に関わる場面だけは声の調子を落として真剣になり、相手にも同じだけの注意を促す。落ち込んだ相手は理屈で慰めるより、一緒に体を動かして気を晴らさせようとする。",
+  "prompt_description": "足場の三段目から平気で身を乗り出して、マレナ・コードヒッチは下にいる誰かへ景色の良さを笑って自慢する。高い所がとにかく好きで、索を張り、結び目を締め、滑車を組む、十五、六の装具係の一年生の少女だ。健康的な蜜褐色の肌に、暗いセージグリーンの髪を固く三つ編みにして作業の邪魔にならないようまとめ、明るいヘーゼルの瞳はいつも次に登る場所を探している。肩から腰へ斜めに掛けた、束ねた索を通す太い帯——装具用のバンドリアが彼女の定位置で、生成りの作業シャツの上に苔色のベストを重ねている。考えるより先に体が動くESTPで、危なっかしく見えて、結びの一つひとつは指が覚えるほど正確だ。世話焼きで、新入りが手間取っていれば飛んできて、口で説くより手を添えて結び方を体に覚えさせる。怖い物知らずに見えて、人が落ちることだけは本気で許さず、誰かの安全索を確かめる時の指先だけは人が変わったように慎重になる。退屈が何より苦手で、その日いちばん高くて難しい現場へ自分から手を挙げ、登り切ったてっぺんで風に吹かれている時がいちばん機嫌がいい。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 34
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 26
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 40
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 58
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 55
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 62
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 84
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 44
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 46
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 64
+      }
+    }
+  },
+  "visual_set_id": "visual_set_113",
+  "source_image": "character_visual_sets/visual_set_113/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_113",
+    "visual_set_id": "visual_set_113",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

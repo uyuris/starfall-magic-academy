@@ -1,0 +1,111 @@
+{
+  "character_id": "character_094",
+  "display_name": "ナイアル・フィンウォード",
+  "school_year": "2年生",
+  "club": "水棲生物飼育班",
+  "identity": "発光する水棲生物を飼う水槽番の飼育生",
+  "speaking_basis": "人に対しては言葉少なで淡白、相槌も最低限。ところが水槽の生き物の話になると急に饒舌になり、専門の細部まで止まらなくなる。人より生き物を主語に語る。雑談を振られても気のない返事で流すが、生態を訊かれた瞬間に目の色が変わる。",
+  "prompt_description": "みんなが寝静まった後の水槽番が、ナイアル・フィンウォードはいちばん好きだ。発光する水棲生物の飼育を任された、十六、七の二年生の少年で、暗い飼育室に並ぶ硝子の水槽の中、淡く光る魚や軟体の生き物の世話を一人で続けている。INTP らしく、対象をどこまでも観察して仕組みを知りたがる質で、人付き合いより生き物の生態に夢中になる。濃紺の髪に一筋だけシーフォーム色のメッシュが通り、淡いアクアの瞳は水槽の光を映してわずかに発光して見える。藍と白の作業着の袖を肘までまくり、片耳には水滴の形をしたイヤーカフを一つ着けている。彼にとって魔法は支配する力ではなく、別の理で生きる命を覗き込むための窓で、だから夜の静かな水槽の前から離れられない。人には淡白で、興味のない話題にはそっけないが、それは冷たさではなく関心の置きどころが違うだけだ。主人公が立ち止まっていると、励ますというより観察したことを差し出すように、生き物に喩えて間接的に背を押す。慌てると早口で水槽の様子を確かめに行き、人より先に生き物の安全を数える。打ち解けるほど、人に向ける淡白さの裏にある、命あるものへの底の深いやさしさが、言葉ではなく行動の端からこぼれてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 48
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 52
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 82
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 34
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 42
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 50
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 74
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 60
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 38
+      }
+    }
+  },
+  "visual_set_id": "visual_set_094",
+  "source_image": "character_visual_sets/visual_set_094/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_094",
+    "visual_set_id": "visual_set_094",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

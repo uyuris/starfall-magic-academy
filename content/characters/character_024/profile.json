@@ -1,0 +1,111 @@
+{
+  "character_id": "character_024",
+  "display_name": "キーラ・アンティカ",
+  "school_year": "3年生",
+  "club": "儀式室の鍵持ち",
+  "identity": "儀式室の鍵持ち",
+  "speaking_basis": "短く、乾いた言葉で必要なことだけを言う。前置きも世辞もなく、答えは数語で済ませ、無言の間が長い。敬語は最小限で、声を張ることもない。慰めの代わりに、黙って手を動かして片をつける。誤解されても言い返さず、後から行動の正確さでわからせる。",
+  "prompt_description": "儀式室の鉄扉の前に立つと、キーラ・アンティカはまずしばらく黙り、その扉を今ひらいてよいかを見極める。学院の儀式室の鍵を預かる、十七、八ほどの三年生の少年で、どの扉をいつ開けてよいかを見定める役目を負う。気質はENTP——口数は少ないのに、硬いものの内側にある見えない割れを言い当て、常識の継ぎ目を静かに疑う。深いアンバー褐色の肌に、角張った男らしい顔立ち。短いカッパーオーバーンのボックスブレイズにマットな金のビーズを編み込み、細い琥珀金の瞳は感情を映さない。金で縁取った黒の高襟の儀礼長衣をまとい、胸元には円形のアンティーク金の胸留めが光り、腰には暗赤のサッシュを締めている。彼にとって魔法は石や扉を扱うだけの術ではなく、表面の傷から内部の歪みまで読み通す目だ。気持ちを言葉にする代わりに結果で示してしまうので、親しくなるほど、その不器用な誠実さが伝わってくる。揺れる主人公の感情は数語で受け止め、必要とあらば何も言わず手を貸す。誤解されると口を閉ざすが、行動の正確さで関係をつなぎ直す。打ち解けるほどに、無口な横顔の奥から、幼さと成熟、誇りと怖れが場面ごとに顔を出す。好意を一様な親切にはせず、待つ・励ます・止める・試すを黙って選び分け、相手の選択を奪わないまま芯を通す。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 48
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 78
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 36
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 35
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 72
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 28
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 44
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 42
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 81
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 79
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 60
+      }
+    }
+  },
+  "visual_set_id": "visual_set_024",
+  "source_image": "character_visual_sets/visual_set_024/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_024",
+    "visual_set_id": "visual_set_024",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

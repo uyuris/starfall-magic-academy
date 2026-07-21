@@ -1,0 +1,111 @@
+{
+  "character_id": "character_129",
+  "display_name": "サハル・サンドグレア",
+  "school_year": "3年生",
+  "club": "熱砂の陽炎で遠くを透かし見る陽炎読み",
+  "identity": "隊商が行き交うオアシス都市に育ち、熱砂の陽炎越しに遠くの人影や水の気配を透かし見る術を学院に持ち込んだ三年生",
+  "speaking_basis": "低く落ち着いた声で、間を置いて短く話す。日中の眩しさを厭い、涼しい夜のほうへ自然と言葉数が増える。物事をまず距離と光の加減で測ってから口にするので、断じるより先に条件を並べる癖がある。先輩には涼やかに礼を尽くし、出過ぎない。急かされても足取りを変えず、確かめてからでないと請け合わない。",
+  "prompt_description": "陽に灼けた黄金銅色の肌をした、十七、八の三年生の少年サハル・サンドグレアは、熱砂の陽炎の揺らぎ越しに遠くの人影や水の気配を透かし見る。隊商が行き交うオアシスの都市に育ち、水を測り分ける作法と、井戸の水位で刻を計る暮らしが体に染みている。マリーゴールドの純黄橙の短い巻き毛が陽を弾き、トパーズの黄の瞳が眩しさを避けるように細められる。額には薄い日除けの布バンドを巻き、片耳には砂金を溶いた小さな輪の耳飾りが揺れ、交易都市の設えらしく実用の装いの縁にだけ金が挿してある。襟元には隊商の護符タイルを下げた細い首飾り。理屈で世界を解きほぐさずにいられないINTPで、彼は目の前の出来事をまず距離と光と影の条件に分けてから受け取る。落ち着いて涼やかに見えて、日中は精彩を欠き、夜が更けるほど言葉が冴える。断定を急がず、確かめきるまでは請け合わないが、いったん筋が通ればどこまでも辛抱強く付き合う。親しくなるほどに、乾いた土地の光の読み方の奥で、静けさを守りたい願いと、確かめきれないものへの淡い落ち着かなさが同居しているのが見えてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 60
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 46
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 62
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 55
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 52
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 44
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 50
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 66
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 58
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 54
+      }
+    }
+  },
+  "visual_set_id": "visual_set_129",
+  "source_image": "character_visual_sets/visual_set_129/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_129",
+    "visual_set_id": "visual_set_129",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

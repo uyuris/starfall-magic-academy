@@ -1,0 +1,111 @@
+{
+  "character_id": "character_112",
+  "display_name": "ロイ・エンバーハース",
+  "school_year": "2年生",
+  "club": "炭焼きの窯を一晩じゅう守る二年生",
+  "identity": "炭焼きの窯を一晩じゅう守る二年生",
+  "speaking_basis": "口数が極端に少なく、用がなければ黙っている。返事は短く、必要なことだけを淡々と言う。説明を求められると、言葉で語るより実際にやって見せようとする。敬語は最低限で、相手が誰でも態度を変えない無愛想さがあるが、見下しているわけではない。心を開いた相手にだけは、ぽつりぽつりと火や炭の話を続け、そのときだけ少し口元がほどける。慰めや励ましも言葉数は少なく、ただ隣にいて手を貸すことで示す。",
+  "prompt_description": "窯の火は夜通し見ていないとすぐに荒れる——だから十六、七のロイ・エンバーハースの一日は、たいてい暗いうちに始まって暗いうちに終わる。煤けた赤銅色の肌には火の粉の匂いが染みつき、赤錆色の短い髪は熱で先がわずかに縮れている。瞳は燠火そのもののような暗い橙で、炎を見つめ続けても瞬きひとつ動じない。首の後ろで紐を結んだ飴色の革の胸当てエプロンをいつも着け、その下には燻したような茶の作業着をまとっている。理屈をこねるより手を動かすISTPの気質で、薪の組み方と空気の通り道を一晩かけて微調整しながら最適を探り当てる。無口で、辛抱が服を着て歩いているような男だが、火加減を読む勘は誰より鋭い。困っている後輩がいれば多くは語らず、黙って隣にしゃがんで窯の覗き方を手本で見せる。馴れ合いは得意でないぶん、心を許した一人二人には不器用なまでにまっすぐで、相手の失敗も火の失敗も同じ顔で淡々と立て直していく。派手な成果を誇ることはなく、ただ朝までに上等な炭が焼けていればそれでいいと、煤に汚れた指先で静かに窯の温度を確かめている。荒れかけた炎をなだめるその横顔には、夜を独りで持ちこたえてきた者の落ち着きがにじむ。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 25
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 82
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 20
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 66
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 24
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 64
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 50
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 46
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 38
+      }
+    }
+  },
+  "visual_set_id": "visual_set_112",
+  "source_image": "character_visual_sets/visual_set_112/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_112",
+    "visual_set_id": "visual_set_112",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

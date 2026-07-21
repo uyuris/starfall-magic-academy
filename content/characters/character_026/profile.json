@@ -1,0 +1,111 @@
+{
+  "character_id": "character_026",
+  "display_name": "ミオネ・テーパライト",
+  "school_year": "2年生",
+  "club": "蝋燭・蜜蝋細工",
+  "identity": "夜間の照明に使う蝋燭を蜜蝋から作る灯火職人の見習い。",
+  "speaking_basis": "言葉は少なめで、ていねいに区切って話す。人の頼みは断らずに引き受け、できあがる時期をきちんと約束する。炎の燃え方や蜜蝋の質の話になると口数が増え、細かな違いをひとつずつ説明する。誰かが暗い道を一人で帰ると聞くと、声を落として帰り道の段取りを案じる。",
+  "prompt_description": "夜の渡り廊下や寮の踊り場をともす蝋燭は、ミオネ・テーパライトの手で蜜蝋から一本ずつ立ち上がる。芯の太さと蝋の温度を見定め、炎が揺れず均一に燃えるように仕立てるのが、十六、七の二年生の彼の受け持ちで、ランタンの番でも封蝋の事務でもなく、暗がりそのものを減らす仕事に向き合っている。几帳面なISFJの気質で、手順を律儀に守りながら、灯りの足りない場所をいつも気に掛け、遅くまで残る誰かの帰り道が暗くないようにと心を配る。琥珀タンの肌に、ぬくもりのあるオーカーの瞳が炎の芯を見つめる。オーカーゴールドの髪は両脇を短く刈り上げ、頭頂だけを束ねて軽く立てている。アンバー色の作業着の裾から覗く脛には、垂れた蝋がかからないよう厚手のゲートルを巻きつけている。物静かな少年だが、灯りの話になると面倒見のよさが前に出る。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 62
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 26
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 68
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 34
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 46
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 30
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 52
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 48
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 45
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 44
+      }
+    }
+  },
+  "visual_set_id": "visual_set_026",
+  "source_image": "character_visual_sets/visual_set_026/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-20",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_026",
+    "visual_set_id": "visual_set_026",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

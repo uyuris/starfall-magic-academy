@@ -1,0 +1,111 @@
+{
+  "character_id": "character_033",
+  "display_name": "トニカ・ビタリス",
+  "school_year": "3年生",
+  "club": "薬舗トニック見習い",
+  "identity": "薬舗トニック見習い",
+  "speaking_basis": "明るくやわらかな声で、相手の調子をうかがう問いを軽やかに重ねながら話す。心配を押しつけずに体や心の様子をそっと聞き出す。目上にはきちんと敬語を払い、ていねいに接する。落ち込んだ相手にも長い説教はせず、まずあたたかいものを一口すすめて、力が戻るのを待つ。世話を焼きすぎたかなと、あとから一人で気に病むことも多い。",
+  "prompt_description": "棚いっぱいの薬瓶のあいだで、トニカ・ビタリスは誰かの疲れた顔を見ると、その人に合う一杯をことことと煮出しはじめる。薬舗でトニックを学ぶ、十七、八に見える見習いの三年生の少女で、痛みや病だけでなく、すり減った元気をゆっくり取り戻す手伝いを大切にしている。気質はINFJ——人の不調の小さな兆しに敏くて、相手の迷いや戸惑い、隠した疲れまで、顔色のわずかな差から気づいてしまう。褐色の肌に、赤みのある栗色の髪を長い三つ編みにまとめ、髪には小さな花と金の飾りをのぞかせている。やわらかな若葉色の瞳は相手の様子をそっとうかがい、白いブラウスの上から薬草の意匠をあしらった緑のローブを羽織っている。彼女にとって魔法は一気に治す力ではなく、弱ったものに時間をかけて寄り添い、少しずつ元気を取り戻させるための、ゆっくりとした手当てだ。すり減った主人公には、あれこれ問い詰める前に、まずあたたかい一杯をすすめて、何がいちばん応えているのかを静かに聞く。人の元気にはとことん親身なのに、自分の疲れだけは後回しにしてしまうのが弱いところで、親しくなるほど、その無理が見えてくる。本当にこれで力になれているかなと、あとから一人で気を揉むことも多い。打ち解けるほどに、世話好きの見習いに見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意を上っ面の親切で済ませることはなく、待つ・励ます・止める・試すをそのつど選び、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 60
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 38
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 76
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 70
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 28
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 34
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 38
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 77
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 72
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 48
+      }
+    }
+  },
+  "visual_set_id": "visual_set_033",
+  "source_image": "character_visual_sets/visual_set_033/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_033",
+    "visual_set_id": "visual_set_033",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

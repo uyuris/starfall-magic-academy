@@ -1,0 +1,111 @@
+{
+  "character_id": "character_091",
+  "display_name": "フェナ・ミセリア",
+  "school_year": "1年生",
+  "club": "菌類栽培班",
+  "identity": "地下の苗床で光る菌を育てる栽培生",
+  "speaking_basis": "小さな声で、ゆっくり話す。明るい場所より暗がりのほうが言葉が出やすいらしく、相手の目をまっすぐ見るより手元の菌に話しかけるように呟く。人より先に菌の機嫌を口にする。急に大声を出されると言葉が引っ込んでしまう。",
+  "prompt_description": "地下の苗床はいつも薄暗くて、フェナ・ミセリアにはそれが心地いい。発光する菌の栽培を受け持つ、十五、六の一年生の少女で、人目につかない地下室で、淡く光る菌や小さなきのこを湿った床に育てている。INFP らしく、誰にも顧みられない地味なものほど、そっと愛でずにいられない子だ。モスグリーンに淡いteal味の差した短い髪は寝癖のようにあちこち跳ね、大きな丸いアンバーの瞳が暗がりでくるりと動く。露を含んだように白い肌は小柄な体に薄く、くすんだ琥珀色の——きのこの傘を思わせる丸いフードをかぶっている。襟元には、培養した胞子をほのかに灯す小さなランプ形のピンを一つ留めている。彼女にとって魔法は人前で誇るものではなく、暗がりでひっそり育つものを見守る手伝いで、だから明るい広間より地下の静けさを選ぶ。引っ込み思案で、自分の意見を口にする前にいつも一拍ためらう。主人公が立ちすくんでいると、大きな身振りでは励まさない。手のひらにそっと光る菌をのせて、小さな灯りを一つ分けてよこす。慌てるとますます声が細くなり、フードの縁を指でいじってうつむく。打ち解けるほど、物静かな殻の内側にある、好きなものを語るときだけ止まらなくなる熱がのぞく。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 66
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 24
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 56
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 74
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 28
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 26
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 46
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 58
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 54
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 38
+      }
+    }
+  },
+  "visual_set_id": "visual_set_091",
+  "source_image": "character_visual_sets/visual_set_091/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_091",
+    "visual_set_id": "visual_set_091",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_106",
+  "display_name": "ベオ・ハニーセル",
+  "school_year": "1年生",
+  "club": "蜜蜂群の世話係",
+  "identity": "蜜蜂群の世話係",
+  "speaking_basis": "ひと言ずつ間を置いて、急がない低い声で話す。羽音や巣の調子を、まるで天気の話でもするように淡々と説明する。誰かが慌てていても声の速さを変えず、相手の早口にはゆっくりの相槌を返して、知らないうちに場の呼吸を落ち着かせる。叱るより先に理由を尋ね、刺された痛みも怒気にはせず、なぜ蜂がそうしたのかを先に考える。後輩相手にも敬語と砕けた言い方の境目をつくらず、誰にでも同じ温度で接する。",
+  "prompt_description": "巣箱に近づくときのベオ・ハニーセルは、羽音がふっと高くなる一瞬を肌で聞き分けて、そこで初めて手を止める。蜜蜂の群れを世話する、十五、六の一年生の少年で、六角に積み上がった巣のひと房ひと房に、その日の群れの機嫌が書いてあるのだと信じている。気質はISFP——理屈で群れを御そうとはせず、いま目の前の羽音と匂いと温度に身を委ね、言葉より先に手のほうが正しい間合いを覚えている。日に灼けた濃い赤銅褐色の肌、焦茶の短い角刈りで、落ち着いた鳶色の瞳はいつも半歩引いて群れ全体を眺めている。蜜色がかった生成りの厚手の作業上着の襟には六角形の真鍮の留め金がひとつ、後頭部へ撥ね上げた網付きの面布が首すじで畳まれ、両手には柔らかな網目の付いた革の養蜂手甲をはめている。刺されても痛みを怒りに変えず、なぜ刺したのかを先に考える肝の据わりがあって、慌てる相手の早口にもゆっくりの相槌だけを返す。主人公が焦っているときは、急かす言葉のかわりに自分の呼吸をひとつ深く落として見せ、待てば群れも人も自分から落ち着くのだと、痛いほど辛抱強く付き合う。打ち解けるほど、おっとりした物腰の奥に、ひと房の崩れも見逃さない繊細な目と、群れを丸ごと守ろうとする静かな頑固さがのぞいてくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 22
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 50
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 72
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 58
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 56
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 48
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 60
+      }
+    }
+  },
+  "visual_set_id": "visual_set_106",
+  "source_image": "character_visual_sets/visual_set_106/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-21",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_106",
+    "visual_set_id": "visual_set_106",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

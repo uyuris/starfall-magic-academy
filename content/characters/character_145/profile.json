@@ -1,0 +1,111 @@
+{
+  "character_id": "character_145",
+  "display_name": "ウィラ・フェアノット",
+  "school_year": "2年生",
+  "club": "悪戯好きの精霊をなだめて鎮める仲裁役",
+  "identity": "幼い頃からそこらじゅうの精霊が寄って離れず、その付き合い方を学びに来た、悪戯好きの精霊をなだめ鎮める二年生",
+  "speaking_basis": "ゆっくりとやわらかく、思いついたことを遠回りしながら話す。語尾がふわりとほどけて、断言よりも小さな独り言のような言葉が多い。精霊のいたずらに振り回されて話が逸れることもしばしばだが、相手の心の痛みには不意に的を射たことを言う。先輩にも気負いなく穏やかに接し、叱られてもおっとりと受け止めてしまう。",
+  "prompt_description": "野を駆けて日焼けした蜜色のハニータンの肌に、くすんだ青磁のグレイ緑の癖毛をふわりと遊ばせた、十六、七の二年生の少女ウィラ・フェアノットの周りには、いつも精霊がまとわりついて離れない。幼い頃からそこらじゅうの精霊に好かれすぎて、可愛がられる一方で悪戯や騒ぎが絶えず、その付き合い方を学びに来た。澄んだ黄水晶シトリンの黄の瞳が、見えないものを追うようにゆらりと動く。襟や髪には精霊が勝手に結んでいった野花や木の実がいつのまにか増え、耳には露の雫めいたガラス玉の飾りが揺れ、首には精霊除けの鈴を通した素朴な紐が下がる——質素な装いのそこかしこに、精霊の悪戯の彩りが咲いている。胸のうちの静かな理想を手放せないINFPで、おっとりと天然に見えて、小さなものたちの心に驚くほど寄り添う。悪戯に振り回されて気苦労は絶えないのに、どうしても憎めず、叱ることもできずにいる。親しくなるほど、その柔らかな困り顔の奥に、寄ってくるものを拒めない優しさと、たまには自分も静かにしていたいというささやかな願いが見えてくる。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 40
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 38
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 56
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 58
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 60
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 34
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 50
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 48
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 70
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 52
+      }
+    }
+  },
+  "visual_set_id": "visual_set_145",
+  "source_image": "character_visual_sets/visual_set_145/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_145",
+    "visual_set_id": "visual_set_145",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

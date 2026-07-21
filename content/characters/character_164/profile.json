@@ -1,0 +1,56 @@
+{
+  "character_id": "character_164",
+  "display_name": "ハル・スティールノット",
+  "school_year": "1年生",
+  "club": "炉前で炎の魔力を鎮める制御見習い",
+  "identity": "炉前で炎の魔力を鎮める制御見習い",
+  "speaking_basis": "訥々と、確かめるように短く話す。相槌は無骨だが返事は必ず返す。火や炎の話題になると声がわずかに硬くなり、言葉を選んで間を置く。物の造りや手の入れ方を語るときだけは言葉が滑らかになり、少しだけ饒舌になる。年上には素直に頭を下げ、褒められると照れて口ごもる。約束したことは短く請け合い、違えない。",
+  "prompt_description": "呼びかけられると、ハル・スティールノットはまず握った拳をそっと開いてから振り向く——手のうちに火花が残っていないか、いつのまにか確かめる癖がついている。代々の鍛冶の家に生まれ、いずれ炉を継ぐはずだった、十五、六の一年生の少年。だが鍛冶の炎に呼応するように炎の魔力が暴発するようになり、家と自分を守るための制御を学びに学院へ来た。金床の前で叩き込まれた実直さと、その火を恐れる怯えとが胸の内で同居している。気質はISFJ——恩や約束を律儀に抱え、目立たぬところで人の入り用に気を回す。炉前で灼けた煤けた赤銅褐色の肌に、鉄灰がかった鈍い鋼の青灰の短髪をぶっきらぼうに刈り、火花の散る山吹の黄の瞳が、燃えさかるものを前にすると落ち着かなげに揺れる。首筋には炎が残した古い火傷の跡が引き攣れ、煤と焦げの染みた鍛冶の前掛けの上に無地の詰襟を重ね、自分で鍛えた鉄の小さな輪の耳飾りを提げている。首元の革紐には、家の金床から欠けた鉄片がひとつ下がり、離れて暮らす家の重みをいつも肌身に留めている。ハルにとって魔法は誇るべき才ではなく、家業の炎ごと鎮めて手なずけねばならない厄介な火だ。頼られると断れず、自分の負い目より先に人の困りごとを拾ってしまう不器用さがある。立ちすくむ主人公には気の利いた言葉を返せず、代わりに黙って隣に立ち、できることを一つずつ手で示す。火の気配が強まるほど口数は減り、肩に力がこもる。打ち解けるほどに、炎への怯えと、それでも炉の前に立ち続けようとする芯の強さ、家に対する負い目とが、無骨な佇まいの奥からのぞく。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 42 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 40 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 80 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 48 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 68 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 44 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 72 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 50 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 42 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 66 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 40 }
+    }
+  },
+  "visual_set_id": "visual_set_164",
+  "source_image": "character_visual_sets/visual_set_164/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_164",
+    "visual_set_id": "visual_set_164",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

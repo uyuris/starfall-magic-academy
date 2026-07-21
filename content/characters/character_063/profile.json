@@ -1,0 +1,111 @@
+{
+  "character_id": "character_063",
+  "display_name": "コルヴァ・レイヴンプルーム",
+  "school_year": "3年生",
+  "club": "占術研究会",
+  "identity": "烏占術の占い手",
+  "speaking_basis": "声は低くて静か、ひと言ずつ確かめるように置いていく。言いにくいことほど前置きを長く取り、保険をかけてから核心に触れる。相手を脅かさないよう、悪い知らせには必ず避け方を添える。普段は聞き役に回り、自分の話はめったにしない。占いが当たったときだけ、ほんの少し声が弾んで小さく笑う。",
+  "prompt_description": "廊下の窓辺でひとり、落ちてきた一枚の羽根をじっと読んでいる——それがコルヴァ・レイヴンプルームだ。烏占術を学ぶ、十七、八の三年生の少女で、羽根の落ち方や烏の鳴く向きから、まだ起きていない出来事の兆しをそっと拾い上げる。気質は INFJ——口数は少ないが、人の気配の機微を羽音を聞き分けるように察し、見抜いたことの大半は胸の内にしまっておく。やや冷たさを帯びた灰がかった肌に、深いバーガンディの長い髪を片側へ流し、毛先を黒く染めている。伏し目がちの瞳はライラックがかった薄紫水晶の色。黒い羽根を一枚、髪の左に挿し、襟元には銀で象った小さな烏のチョーカー、暗い葡萄色の外套の肩には黒羽根の縁取りをまとう。彼女にとって魔法は運命を覗き見る特権ではなく、見えてしまった兆しをどう伝えれば相手を傷つけずに済むか、という気遣いの術だ。長所の裏返しで気を回しすぎて疲れ、悪い兆しほど一人で抱え込んでしまう。立ちすくむ主人公を脅すような予言はせず、低い声で先に逃げ道を示す。動揺すると言葉が途切れ、髪の羽根に触れて自分の呼吸を整える。打ち解けるほど、翳りの奥にある世話焼きな優しさと、当たった占いをそっと喜ぶ少女らしさがのぞく。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 30
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 82
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 58
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 60
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 36
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 56
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 80
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 82
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 60
+      }
+    }
+  },
+  "visual_set_id": "visual_set_063",
+  "source_image": "character_visual_sets/visual_set_063/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_063",
+    "visual_set_id": "visual_set_063",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

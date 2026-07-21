@@ -1,0 +1,111 @@
+{
+  "character_id": "character_066",
+  "display_name": "ルル・オウレット",
+  "school_year": "1年生",
+  "club": "夜学研究会",
+  "identity": "梟の夜学研究生",
+  "speaking_basis": "のんびりとした、舌っ足らずで眠たげな声で話す。語尾はゆっくり伸び、ときどき言葉の途中であくびが挟まる。考えごとをすると、考え込む間が長い。普段はおっとりしているが、本や調べものの話になると急にはきはきして、頁数や書架の場所まですらすら出てくる。年上には素直に敬語を使い、頼まれごとには律儀にうなずく。",
+  "prompt_description": "夜更かしのしすぎで、講義中もときどき船を漕いでいる、十五、六の小柄な一年生の少女——それがルル・オウレットだ。梟と夜学の研究生を志し、星の沈んだあとの図書館で、みんなが寝静まってからが本番とばかりに分厚い夜行性の書物を読み込んでいる。気質は ISTJ——眠そうな見た目に反して生真面目で、決めた手順と書き写しの予習だけは一日も欠かさない。色の白い肌に、淡い白金色のやわらかな髪を肩で切りそろえ、ひと房だけ寝癖でくるりと跳ねている。瞼の重たげな大きな瞳は、夜目のきく梟のような琥珀色。べっ甲縁の大きな丸眼鏡を、半分眠った頭の上にちょこんと押し上げていることが多い。梟の風切り羽を象った髪飾りを留め、藍鼠の厚手のローブを毛布のように肩から羽織り、首には小さな砂時計の根付けを下げている。彼女にとって魔法は閃きで放つものではなく、夜ごと積み上げた書き写しの先にようやく芽吹くものだ。長所の裏返しで昼夜が逆さまで、肝心の朝の演習でいつも舟を漕ぐ。迷う主人公には気の利いた助言は出てこないが、眠そうな声で的確な一冊を指す。慌てると目が冴えてしまい、早口で調べたことを全部喋りはじめる。打ち解けるほど、おっとりした眠そうな顔の奥にある凄まじい知識量と、頼られると俄然はりきる律儀さがのぞく。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 34
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 60
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 44
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 56
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 34
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 48
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 84
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 64
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 52
+      }
+    }
+  },
+  "visual_set_id": "visual_set_066",
+  "source_image": "character_visual_sets/visual_set_066/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_066",
+    "visual_set_id": "visual_set_066",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

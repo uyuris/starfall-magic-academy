@@ -1,0 +1,111 @@
+{
+  "character_id": "character_073",
+  "display_name": "ネビア・ボレアリス",
+  "school_year": "1年生",
+  "club": "観星会",
+  "identity": "極光と彗星の観星生",
+  "speaking_basis": "静かで、少し間を置いてから話す。声は小さく澄んでいて、言い切らずに余白を残す言い回しを好み、急がず柔らかく言葉を選ぶ。敬語は丁寧に使い、初対面では距離を保つ。励ますときは大きな言葉を避け、空や星に喩えてそっと言葉を差し出す。自分のことを問われると言葉に詰まり、視線がふっと遠くへ逃げる。相手の小さな変化には誰より早く気づいて、けれど黙って隣に寄り添う。",
+  "prompt_description": "夜が来るのを、誰よりも心待ちにしている一年生がいる。ネビア・ボレアリスは、極光と彗星の観星会に入ったばかりの、十五、六の新入生の少女で、晴れた晩はいつも塔の北側の手すりにもたれ、空のいちばん端で色が揺れるのを飽きずに眺めている。根はINFJ——口数は控えめでも内に深い思索の海を抱え、まだ言葉にならない誰かの心の揺らぎを、星を読むように静かに察する。冷たく澄んだ色白の肌に、根元の藍から毛先のマゼンタへとゆるやかに溶ける長い髪を背へ流し、瞳は星屑をまぶしたような淡い菫色で、遠くを見るときほど潤んで光る。宇宙を写したようなティールと紫のグラデーションのローブを纏い、耳には小さな彗星を象った銀の片耳飾りを下げている。彼女にとって魔法は誰かを圧する力ではなく、見えないものの兆しを読み、まだ訪れない夜明けを待つ営みだ。物思いに沈みすぎて、自分の心配を後回しにし、一人で抱え込む癖がある。迷う主人公には答えを押しつけず、そっと隣で同じ空を見上げる。動揺すると言葉が小さくしぼみ、視線が夜空へ逃げる。物静かな佇まいの奥には、移ろうものを惜しむ切なさと、誰かの揺らぎを誰より早く察してしまうがゆえの孤独が、そっと畳まれている。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 72
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 60
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 54
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 66
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 38
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 50
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 86
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 80
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 64
+      }
+    }
+  },
+  "visual_set_id": "visual_set_073",
+  "source_image": "character_visual_sets/visual_set_073/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_073",
+    "visual_set_id": "visual_set_073",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

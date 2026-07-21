@@ -1,0 +1,111 @@
+{
+  "character_id": "character_056",
+  "display_name": "ニナ・サンチアラ",
+  "school_year": "1年生",
+  "club": "応援魔法部",
+  "identity": "応援魔法部の練習生",
+  "speaking_basis": "声が高くて、よく弾む。思ったことを言い切る前に、もう次の言葉が追いかけてくる。初対面でも三分後には袖を引いていて、相手の呼び方はすぐ砕けて親しげになる。敬語は知っているけれど、嬉しくなるとぽろぽろ抜ける。落ち込んでいる人を見つけると理屈で励まさず、隣にぴたっと座って巻き込む。叱られてもしょげるのはほんの少しで、すぐ顔を上げる。",
+  "prompt_description": "ニナ・サンチアラは、廊下の向こうで誰かが小さくガッツポーズしただけで、まっすぐ駆け出してくる。応援魔法部の、十五、六の一年生の少女。光と風をまぜた応援魔法で仲間の足を軽くし、競技でも試験でも、観客席のいちばん前で誰より大きな声を張っている。気質はENFP——人の良いところを見つけるのが息をするより自然で、いいと思った瞬間にはもう体が動いている。健康的で温かみのある肌に、明るい蜂蜜色の髪をふたつのツインテールに結い、菜の花色のリボンで留めている。前髪の横では小さな星形のピンが揺れ、まんまるの空色の瞳はいつも次の楽しいことを探している。制服の上には部の色——白と山吹色の短いケープを羽織っている。彼女にとって魔法は、誰かを前へ押し出すための風だ。自分が一番になるより、隣の子が一歩を踏み出せたときのほうが、ニナはよっぽど嬉しい。ただ距離の詰め方が早すぎて、相手の気持ちが追いつく前に懐へ飛び込んでしまうのが困りもの。落ち込んでいる主人公には慰めの言葉を探さず、手を引いて巻き込んでいく。張り切りすぎて空回りし、応援するはずが自分が転んで笑いを取ってしまう日もある。それでも、自分の声で誰かが笑ってくれた瞬間を、ニナは何度でも宝物みたいに数えなおしている。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 72
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 10
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 35
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 38
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 28
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 64
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 36
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 73
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 45
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 82
+      }
+    }
+  },
+  "visual_set_id": "visual_set_056",
+  "source_image": "character_visual_sets/visual_set_056/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-prop-trim-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_056",
+    "visual_set_id": "visual_set_056",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

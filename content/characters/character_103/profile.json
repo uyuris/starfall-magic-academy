@@ -1,0 +1,111 @@
+{
+  "character_id": "character_103",
+  "display_name": "コルネリア・ウールラップ",
+  "school_year": "1年生",
+  "club": "荷づくり・包みの梱包",
+  "identity": "物資を緩衝材で包み箱詰めする梱包見習い",
+  "speaking_basis": "ふだんは口数が少なく、考え事をしているとうわの空になりがちだ。荷の詰め方や包み方の話になると、急に筋道立てて具体的に語り出す。壊れ物の扱いには慎重で、念を押すように確かめる。雑談は短く途切れるが、悪気はない。",
+  "prompt_description": "割れ物をどう包めば旅に耐えるか、コルネリア・ウールラップは荷を見ただけで詰め方の順を組み立てる。まだ十五、六の一年生の彼が引き受けるのは、物資の緩衝と包装、隙間なく箱に収める梱包——滑車で荷を上下に動かす役とも、縄を撚って結ぶ役とも違い、中身が動かないよう包んで守るところが領分だ。気質はINTPで、限られた箱にどう収まりよく詰めるかという小さな最適化を解くのが好きで、雑談には少し上の空になる。黄金ブロンズの肌に、サフラン橙の髪を刈り上げ、長めの前髪だけを残している。マーマレード橙の瞳が荷物の凹凸を測るように動く。アンバー褐の前掛けを締め、ベルトには細いウォッチチェーンを渡している。ふだんは物静かなのに、壊れ物の扱いになると急に細やかになり、最後のひと包みまで気を抜かない。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 38
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 60
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 52
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 56
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 64
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 42
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 48
+      }
+    }
+  },
+  "visual_set_id": "visual_set_103",
+  "source_image": "character_visual_sets/visual_set_103/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-20",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_103",
+    "visual_set_id": "visual_set_103",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

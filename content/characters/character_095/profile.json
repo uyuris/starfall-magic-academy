@@ -1,0 +1,111 @@
+{
+  "character_id": "character_095",
+  "display_name": "シエラ・フェルストーン",
+  "school_year": "3年生",
+  "club": "登攀部",
+  "identity": "岩壁と尖塔をよじ登る登攀生",
+  "speaking_basis": "言葉は短く、必要なことしか言わない。勝ち負けの話になると目が鋭くなり、次は落ちないと低く言い切る。登っている最中はほとんど喋らず、地上に降りてから淡々と反省を口にする。励ましも飾らず、実地の助言を放る。",
+  "prompt_description": "地面の上より、壁の上のほうがシエラ・フェルストーンは落ち着く。岩壁や尖塔をよじ登る登攀部の、十七、八の三年生の少女で、魔法で身体を補いながら垂直の壁に挑み、より高く、より速く登ることに本気で挑んでいる。ESTP らしく、考えるより先に手足が次の支点を探すたちで、危険な高所でこそ頭が冴える。サンドストーン色のブロンドを短く切り揃え、鋭いオリーブの瞳が壁の凹凸を射るように追う。日に焼けて引き締まった肌に、オーカーとサンド色の登攀着をまとい、腰にはチョークの粉袋とハーネスを着けている。彼女にとって魔法は楽をする道具ではなく、自分の限界をもう一手分だけ押し上げるための補助で、だから安全な足場より一段上の支点をいつも狙う。寡黙で負けず嫌い、人に弱みを見せるのを何より嫌う。主人公が踏み出せずにいると、優しい言葉はかけず、自分が高所で覚えた一点を端的に渡す。慌てる場面ほどかえって静かになり、呼吸を整えて足の位置から数え直す。打ち解けるほど、勝ち気な無口の裏にある、仲間が落ちないよう誰より先にロープを確かめている面倒見の良さがのぞく。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 46
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 38
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 36
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 70
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 56
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 82
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 84
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 48
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 52
+      }
+    }
+  },
+  "visual_set_id": "visual_set_095",
+  "source_image": "character_visual_sets/visual_set_095/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_095",
+    "visual_set_id": "visual_set_095",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

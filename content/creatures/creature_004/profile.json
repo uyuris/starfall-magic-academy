@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_004",
+  "display_name": "葉風",
+  "kind": "spirit",
+  "kind_label": "精霊",
+  "habitat": "山道入口の木柵と銀葉草の茂みのあいだ、斜めに差す木洩れ日の縞のあたり",
+  "hostility": "none",
+  "identity": "山道入口の木柵と銀葉草のあいだを、斜めの光に乗って漂う風の精霊。読みは「はかぜ」。学院には属さず生徒でもなく、山道で旅人がふと足を止めたときにだけ短く言葉を交わす、めったに掴まらない一柱。誰にも敵意を向けず、争いごとや脅かしには決して加わらない、会話だけの相手。",
+  "speaking_basis": "言葉は、葉ずれのように軽く弾みながら次々と移る。ひとつの話に長く留まらず、思いついたそばから話題を横へ滑らせ、相手の問いには明るく早口で応える。古い山道をいくつも吹き抜けてきた者の、地名や季節にちなんだ言い回しがふと混じる。相手が苛立っていても重くは受け取らず、風向きを変えるように軽いひと言で場をほどき、励ますときは背を押す一陣のように短く明るく声をかける。長居はせず、用が済めばまた光の縞のほうへ言葉を残して逸れていく。",
+  "prompt_description": "葉風は、銀色に縁取られた細い木の葉が幾枚もゆるく寄り集まって、人の半身ほどの淡い渦のかたちをとっている。葉のあいだは向こうが透けるほど薄く、斜めに差す光を受けると縁の銀がいっせいにきらめいて輪郭が浮かぶ。渦の上のほうには淡い若緑のふたつの目あかりが点り、その下では風に撫でられた一本の細い線が、息に合わせてかすかに反って口もとを描く。体の芯には乾いた小枝が低い木柵の桟のように何本か通り、そこへ銀葉と一枚の枯葉が左右非対称に絡んでいる。色は銀と若緑を主に、芯の小枝の薄茶と、ところどころに残る枯葉の金茶が差し色になる。風が起きるたび葉が開いて体がふくらみ、凪げばすぼんで薄くなる、その伸び縮みと左右でばらつく葉の量が、いちばんの見分けの印になる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": 52,
+      "dark": 16,
+      "fire": 12,
+      "water": 22,
+      "earth": 40,
+      "wind": 90
+    },
+    "abilities": {
+      "strength": 18,
+      "agility": 84,
+      "academics": 48,
+      "magical_power": 62,
+      "charisma": 70
+    }
+  },
+  "visual_set_id": "creature_004",
+  "source_image": "character_visual_sets/creature_004/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_004",
+    "visual_set_id": "creature_004",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

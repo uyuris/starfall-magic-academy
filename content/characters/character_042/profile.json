@@ -1,0 +1,111 @@
+{
+  "character_id": "character_042",
+  "display_name": "フロリア・フロストマーク",
+  "school_year": "3年生",
+  "club": "霜書庫の目録係",
+  "identity": "霜書庫の目録係",
+  "speaking_basis": "落ち着いた声で、順序立ててはっきりと話す。要点を番号でも振るように整理し、曖昧なまま流さない。丁寧な口調を崩さず、相手が取り乱していても声の調子は変えない。慰めを飾り立てず、代わりに次にやるべきことを一つずつ並べて示す。心を動かされても表には出にくく、ほんの少し言葉が和らぐ程度に滲む。",
+  "prompt_description": "霜の降りた書庫の奥で、十七、八ほどの少年フロリア・フロストマークは凍てつく棚から一冊を取り、背の番号を確かめて元の位置へ戻す。霜書庫の蔵書を一冊ずつ目録に記し、冷気の中で本を守るのが役目だ。気質はISTJ——きちんと順序立てて物事を収め、決めたことを地道にやり遂げる。色白の肌に、紺がかった黒のくしゃっとした髪、青みがかった灰色の瞳が静かに澄んでいる。雪の結晶をかたどった銀の雫形の耳飾りを下げ、銀糸で雪花を刺した白い毛皮縁のフード付きマントを、暗色の立ち襟の上から羽織り、細い鎖を垂らしている。彼にとって魔法は霜を操るだけの術ではなく、移ろい消えていくものを冷気に閉じ込め、形のまま守り抜く手立てだ。何もかもをきちんと収めようとするあまり、整理しきれない感情を前にすると戸惑ってしまい、親しくなるほど、その几帳面さの奥にある不器用なあたたかさが見えてくる。取り乱した主人公には、散らばった出来事を一つずつ番号を振るように並べ直し、必要な一冊を確かに探し当ててやる。慌ただしい場でも手順を崩さず、冷たい棚を整えるように落ち着いて筋道を立てる。打ち解けるほどに、冷静な横顔の奥で、幼さと頑固さ、密かな誇りと心細さが時おり覗く。誰かへの好意も一律にはせず、待つ・整えて励ます・やんわり止める・そっと試すを選び分けて、相手が自分で選ぶ余白を残す。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 60
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 58
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 16
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 84
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 52
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 20
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 34
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 89
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 75
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 49
+      }
+    }
+  },
+  "visual_set_id": "visual_set_042",
+  "source_image": "character_visual_sets/visual_set_042/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_042",
+    "visual_set_id": "visual_set_042",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

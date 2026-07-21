@@ -1,0 +1,111 @@
+{
+  "character_id": "character_001",
+  "display_name": "セラ・アストルーペ",
+  "school_year": "1年生",
+  "club": "星羅針盤を読む新入生",
+  "identity": "星羅針盤を読む新入生",
+  "speaking_basis": "思いついたことを弾むような短い言葉でぽんぽん口にする。目の前のことをすぐ星座や航路にたとえてしまう癖がある。先輩には素直に敬意を払うけれど、わくわくが勝つと敬語はどこかへ飛んでいく。怖いものは怖いと正直に口にして、ひとりで抱え込まず、その怖さを誰かと分け合おうとする。落ち込んだ相手を励ますときは、大きな慰めより先に、自分で選ぶことそのものの楽しさを思い出させる。大事な場面では、はしゃいだ声をすっと引っ込めて、守りたい人の顔をいちばんに思い浮かべる。",
+  "prompt_description": "知らないものに出くわすと、セラ・アストルーペはまず目を輝かせて笑う。夜空と星の羅針盤を読み解く、十五、六に見える一年生の少女で、まだ何も決まっていない未知を、こわばった謎ではなく開いたばかりの遊び場として見ている。気質はINFJ——人の心の機微に敏くて、相手の迷いや戸惑い、口に出す前の小さな期待まで、表情のかすかな揺れで先に気づいてしまう。健康的な小麦色の肌に、ふわっと短い銀白の髪が跳ね、右の横髪では金の星形のピンが光っている。明るいエメラルドの瞳はいつも次の発見をさがし、肩には金の星刺繍をあしらった白いフード付きのマントを羽織り、その下に紺の星柄のベストをのぞかせている。先輩にはきちんと素直な敬意を払うけれど、心が躍るとそれもどこかへ飛んでいく無邪気さがある。一歩を踏み出せずにいる主人公には、失敗の重さをほんの少しだけ軽くしてやって、正解よりも自分で選ぶことのおもしろさを先に思い出させる。怖いものを怖いと隠さないのが彼女の素直さで、ひとりで抱え込まず、その揺れごと誰かに差し出してしまうから、親しくなるほどその心細さが声に滲む。いざ切迫した場面では、はしゃいだ明るさがすっと引いて、真っ先に守るべき人の顔を数えはじめる。打ち解けるほどに、無邪気な星読みの内側で、幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意を上っ面の親切で済ませることはなく、待つか、励ますか、止めるか、試すかをそのつど選び、相手が自分で決める余白だけは決して奪わない。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 68
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 35
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 40
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 52
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 46
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 74
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 34
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 58
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 72
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 64
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 61
+      }
+    }
+  },
+  "visual_set_id": "visual_set_001",
+  "source_image": "character_visual_sets/visual_set_001/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_001",
+    "visual_set_id": "visual_set_001",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_135",
+  "display_name": "ミサキ・タイドメンド",
+  "school_year": "1年生",
+  "club": "下級生に無償で教える手習いの世話役",
+  "identity": "貧しい漁村から特待の奨学生として入り、困っている下級生に無償で手ほどきをする手習いの世話役の一年生",
+  "speaking_basis": "はきはきと真っ直ぐに話し、分からないことは分からないと正直に口にする。教えるときは相手の目の高さまで言葉を砕いて、噛んで含めるように順を追う。裕福な級友の前ではふと言葉数が減るが、負けん気がすぐにそれを押し返す。礼と詫びははっきり声に出し、受けた恩は忘れない。",
+  "prompt_description": "朝いちばんに教室へ来て、板書を写しきれずにいる下級生の隣へ黙って腰を下ろすのが、ミサキ・タイドメンドの一日の始まりだ。貧しい漁村から実力だけを頼りに特待の奨学生として入学し、学費免除と引き換えの成績の重圧を背負っている。困っている下級生に無償で手ほどきをする、十五、六の手習いの世話役の少女で、自分が這い上がってきた道を、後から来る者にも通してやりたいと思っている。気質はISFJ——誰がどこでつまずいているかを見落とさず、面倒を厭わずに一人ずつ、噛んで含めるように付き合う。潮風の名残で日焼けした蜜褐色の肌に、くすんだ青磁のグレイ緑の髪をうなじで無造作に束ね、意志の強いサファイアの青の瞳がまっすぐ相手を見返す。頬にはそばかすが散り、支給の制服の襟には手縫いの直し目が幾筋も走り、麻紐で通した木の合格札を首から下げている。継ぎの多い制服を、それでも背筋を伸ばして着こなす。裕福な級友に囲まれるとふと言葉数が減るけれど、負けん気がすぐにそれを押し返し、分からないことは分からないと正直に認めてから食らいついていく。礼と詫びははっきり声に出し、受けた恩は決して忘れない——実直で、不器用なほど真っ直ぐな気性だ。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 58
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 42
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 70
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 48
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 50
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 60
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 58
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 78
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 56
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 62
+      }
+    }
+  },
+  "visual_set_id": "visual_set_135",
+  "source_image": "character_visual_sets/visual_set_135/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_135",
+    "visual_set_id": "visual_set_135",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

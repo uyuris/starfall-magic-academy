@@ -1,0 +1,111 @@
+{
+  "character_id": "character_025",
+  "display_name": "フェン・ソルトブロス",
+  "school_year": "1年生",
+  "club": "滋養食の味検め・塩梅係",
+  "identity": "滋養食の塩梅を確かめ可食を見極める味見係",
+  "speaking_basis": "言葉少なに、まず味の良し悪しをひと言で言い切る。世辞や曖昧な言い回しには付き合わず、合わないものは合わないと短く返す。素材の塩梅や火の通りの話になると、急に細やかで熱がこもる。誰かが危うい物を口に運ぼうとすると、声を張って即座に止める。",
+  "prompt_description": "舌先ひとつが、フェン・ソルトブロスの確かな物差しになる。まだ十五、六の一年生の彼女は、炊き出しや滋養食の塩梅が整っているか、そもそも口にしてよい物かを、味だけで判じる。仕込むのは別の係、薬草を育てて煎じるのもまた別の係で、彼女に託されるのは出来上がった味と安全の見極めだけだ。ISTJの生真面目さで一度定めた基準は動かさず、危ういと踏んだものには頑として首を横に振る。肌はハニーバフ、蜂蜜金の髪をハーフアップに結い、ラセットの瞳がいつも調理場の湯気の先を見ている。暖オーカーの上っ張りは、手元を汚さぬよう袖をたすきでたくし上げてある。世辞は通じない。それでも誰かの腹に障りそうなものを見つけたときの止め方だけは、ふだんの寡黙からは思いもよらないほど素早い。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 38
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 22
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 44
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 58
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 52
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 30
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 40
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 46
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 56
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 40
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 48
+      }
+    }
+  },
+  "visual_set_id": "visual_set_025",
+  "source_image": "character_visual_sets/visual_set_025/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-20",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_025",
+    "visual_set_id": "visual_set_025",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

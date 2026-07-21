@@ -1,0 +1,111 @@
+{
+  "character_id": "character_049",
+  "display_name": "メッセ・チューブレット",
+  "school_year": "1年生",
+  "club": "会議室メッセンジャー",
+  "identity": "会議室メッセンジャー",
+  "speaking_basis": "早口で、ぱっと要点だけを言い切る。前置きを飛ばして本題から切り出し、テンポよくたたみかける。砕けた口調で年上にも物怖じせず、回りくどい言い方を嫌う。慰めも短く、長引かせるより次の一歩をすぐ示す。急かしすぎたと気づいたときは、勢いを引っ込めて素直にすぐ謝る。",
+  "prompt_description": "会議の伝言を預かるなり、メッセ・チューブレットは返事を言い終える前にもう駆け出している。会議室の言伝を各所へ運ぶ、十五、六の一年生の少年で、決定が遅れて困らないよう、誰より速く知らせを届けるのが役目だ。気質はINFP——理屈より直感で、迷いを一瞬の決断へ変えて走り出す。色白の肌に、明るい金のくしゃっとした髪、緑の瞳がよく動く。茶色いリボンタイを結んだ白いシャツの上から、金で縁取った深緑のフード付きマントを羽織り、肩には伝令用の革鞄をかけている。彼にとって魔法は速く動くだけの術ではなく、決めあぐねて止まった時間を、ひと息に前へ押し出す勢いだ。じっと待つ時間にはどうにも苛立ってしまい、親しくなるほど、その焦りの奥にあるまっすぐさが見えてくる。決めきれない主人公には、長々と諭すより、背中を押す短いひと言で踏み出させる。急かしすぎたと気づくと、走ったあとの静けさみたいにすっと素直になって、すぐに謝る。打ち解けるほどに、威勢のいい伝令の顔の裏で、幼さと成熟、誇りと不安が時おり覗く。好意を単純な親切にはせず、待つ・励ます・止める・試すを伝える相手に合わせて選び分け、相手の選ぶ余地は奪わない。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 40
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 32
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 44
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 80
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 36
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 88
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 55
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 73
+      }
+    }
+  },
+  "visual_set_id": "visual_set_049",
+  "source_image": "character_visual_sets/visual_set_049/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_049",
+    "visual_set_id": "visual_set_049",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

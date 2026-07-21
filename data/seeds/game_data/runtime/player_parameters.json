@@ -1,0 +1,72 @@
+{
+  "magic": {
+    "light": {
+      "min": 0,
+      "max": 100,
+      "label": "光魔法習熟度",
+      "value": 39
+    },
+    "dark": {
+      "min": 0,
+      "max": 100,
+      "label": "闇魔法習熟度",
+      "value": 26
+    },
+    "fire": {
+      "min": 0,
+      "max": 100,
+      "label": "火魔法習熟度",
+      "value": 26
+    },
+    "water": {
+      "min": 0,
+      "max": 100,
+      "label": "水魔法習熟度",
+      "value": 27
+    },
+    "earth": {
+      "min": 0,
+      "max": 100,
+      "label": "土魔法習熟度",
+      "value": 26
+    },
+    "wind": {
+      "min": 0,
+      "max": 100,
+      "label": "風魔法習熟度",
+      "value": 27
+    }
+  },
+  "abilities": {
+    "strength": {
+      "min": 0,
+      "max": 100,
+      "label": "筋力",
+      "value": 27
+    },
+    "agility": {
+      "min": 0,
+      "max": 100,
+      "label": "瞬発力",
+      "value": 27
+    },
+    "academics": {
+      "min": 0,
+      "max": 100,
+      "label": "学力",
+      "value": 25
+    },
+    "magical_power": {
+      "min": 0,
+      "max": 100,
+      "label": "魔力",
+      "value": 29
+    },
+    "charisma": {
+      "min": 0,
+      "max": 100,
+      "label": "カリスマ",
+      "value": 25
+    }
+  }
+}

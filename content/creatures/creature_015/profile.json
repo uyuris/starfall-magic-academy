@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_015",
+  "display_name": "霧曳",
+  "kind": "monster",
+  "kind_label": "魔物",
+  "habitat": "渓流のほとりと古祠を渡る朝靄、水際の泡と石鉢の水面に立つ水気のあたり",
+  "hostility": "none",
+  "identity": "渓流の飛沫と古祠の水面から立ちのぼる靄を身にまとって、ほとりを音もなく渡る風の魔物。読みは「きりひき」。学院には属さず生徒でもなく、靄の濃い朝にだけ淡く姿を結ぶ、物静かな一匹。輪郭の定まらぬ異形だが人を害さず、争いも脅かしもしない。霧が晴れるように穏やかな、会話だけの相手。",
+  "speaking_basis": "言葉は、立ちのぼる靄がゆっくりほどけていくように、低く澄んで間をたっぷり置きながら流れる。慌てず声を荒げず、相手の様子を静かに見はからってから、一語ずつ確かめるように口を開く。永く水辺の移ろいを眺めてきた者らしく、断じきらず、含みを持たせて穏やかに語り、相手の問いの芯だけをそっと掬って返す。急いている相手を急かし返すことはせず、流れにまかせて待つよう、霧が引くのを待つようにと低く促す。物言いに飾りは少なく、見たままを淡々と告げるが、その静けさには冷たさがなく、寄り添う温度がほのかに通っている。重たい話のあとには、水面に木洩れ日が落ちるような、ささやかな明るさをひとつ残していく。",
+  "prompt_description": "霧曳は馬ほどの大きさの四足の魔物だが、その輪郭は立ちのぼる靄のように淡くほどけ、背や脇から絶えず薄い水気がゆらめき立つ。体は乳白と淡青のあわいに霞み、芯のあたりだけがやや濃く結んで、内に灯る真珠いろの淡い光がそこから滲み出す。たてがみと尾は流れる水気そのもので、長く尾を引いて漂い、動くたびに細かな飛沫を撒いて宙にとどまる。顔は穏やかで、ふたつの目は澄んだ淡青の乳白に静まり、人のものでないと一目で知れる。額から鼻すじには、川面の泡を写したような白い細かな粒の連なりが浮かび、その明滅で気息が知れる。四肢は霧が地に触れるところで淡く実体を結び、踏み出すたびに水際の苔のような淡緑がほのかに透ける。乳白と淡青に霞む体、真珠いろに灯る芯、流れる水気のたてがみと尾、額の泡粒の連なりが見分けの印で、輪郭のほどけた靄のなかに静まる淡青の目が、異形のなかにやわらかさを残している。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": 50,
+      "dark": 40,
+      "fire": 14,
+      "water": 72,
+      "earth": 28,
+      "wind": 84
+    },
+    "abilities": {
+      "strength": 46,
+      "agility": 64,
+      "academics": 80,
+      "magical_power": 82,
+      "charisma": 66
+    }
+  },
+  "visual_set_id": "creature_015",
+  "source_image": "character_visual_sets/creature_015/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_015",
+    "visual_set_id": "creature_015",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

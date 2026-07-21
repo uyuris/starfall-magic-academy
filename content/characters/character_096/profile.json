@@ -1,0 +1,111 @@
+{
+  "character_id": "character_096",
+  "display_name": "サイファ・リドル",
+  "school_year": "2年生",
+  "club": "暗号術班",
+  "identity": "秘密の通信を設計し解読する暗号生",
+  "speaking_basis": "まわりくどく、まっすぐには答えない。質問に質問で返し、謎かけめいた言い回しで人を試す。理屈の通らない話には容赦なく穴を指摘する。心を許した相手にだけ、ふと答えの“鍵”をひとつだけ差し出す。",
+  "prompt_description": "まっすぐ訊いても、サイファ・リドルはまっすぐには答えない——代わりに、解けば分かるようにできた謎をひとつ寄こす。学生どうしの秘密の通信を成り立たせる符牒や暗号を設計し、ときに他人の暗号を解いてみせる、十六、七の二年生の少女だ。INTJ らしく、頭の中で先の先まで筋道を組み立て、底の見えない相手ほど面白がる。インクブルーの前下がりボブが片頬に影を落とし、アンバーの瞳が値踏みするように細められる。スレートグレーの制服にマスタード色を差し色として効かせ、両手には指ぬきのグローブ、首からは回すと文字盤が動く暗号環のペンダントを下げている。彼女にとって魔法は力比べではなく、隠された規則を見つけ出す知恵比べで、誰でも読める言葉より、分かる者にだけ届く符牒のほうを信じている。秘密主義で理屈っぽく、人をすぐには信用しない。主人公が迷っていると、答えを手渡すかわりに、解く糸口だけを意地悪く、けれど確かに置いていく。慌てる場面でも顔には出さず、ただ指がペンダントの環を無意識に回している。打ち解けるほど、人を試す癖の奥にある、本当は自分の作った謎を誰かに解いてほしくてたまらない寂しさが、ほどけて見えてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 44
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 56
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 32
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 48
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 32
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 52
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 84
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 58
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 60
+      }
+    }
+  },
+  "visual_set_id": "visual_set_096",
+  "source_image": "character_visual_sets/visual_set_096/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_096",
+    "visual_set_id": "visual_set_096",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

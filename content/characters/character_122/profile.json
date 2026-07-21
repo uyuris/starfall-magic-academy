@@ -1,0 +1,111 @@
+{
+  "character_id": "character_122",
+  "display_name": "ハツネ・ドーンフェザー",
+  "school_year": "1年生",
+  "club": "野鳥の声を書き取る声採り生",
+  "identity": "野鳥の声を書き取る声採り生",
+  "speaking_basis": "口数は控えめで、話す前に一拍おいて相手の声の調子を聞き取る癖がある。鳥の名前や鳴き方の話になると、急に言葉がよどみなく流れ出す。先輩には崩しすぎず、後輩には短い相槌で安心させる。誰かが沈んでいるときは慰めを並べず、その人の声がいつもと違う一音を黙って聞き分け、無理に喋らせない。",
+  "prompt_description": "夜明け前の薄闇に最初の一声が落ちると、ハツネ・ドーンフェザーは息をひそめて耳だけを澄ます。野鳥のさえずりを音の高さごと書き取る、十五、六の一年生の少年で、誰より早く起きて藪のそばに座る。小麦色の肌に、マゼンタピンクの短髪が外へ跳ね、淡い黄レモンの瞳が枝の動きを先に追っている。詰襟の作業着の襟には羽根ペンを象った小さな銀のピンが留まり、首からは音合わせに使う小さな呼子笛を革紐で下げている。派手に見える髪とは裏腹に、必要なことだけを淡々と手で運ぶ ISTP の落ち着きがあって、彼は待つことを退屈とは思わない。耳がよく、人の話す癖や言い淀みまで鳥の声と同じように覚えてしまうが、それを言いふらしはしない。前へ進めない主人公には、聞き逃した声も翌朝もう一度来れば録れると、自分も何度も録りそびれてきたと言い添えて促す。打ち解けるほど、淡白に見える横顔の奥に、まだ誰も書き取れていない一声を待ち続ける粘り強さがのぞく。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 30
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 28
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 45
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 41
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 72
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 47
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 63
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 58
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 46
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 44
+      }
+    }
+  },
+  "visual_set_id": "visual_set_122",
+  "source_image": "character_visual_sets/visual_set_122/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_122",
+    "visual_set_id": "visual_set_122",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

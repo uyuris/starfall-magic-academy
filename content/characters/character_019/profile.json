@@ -1,0 +1,111 @@
+{
+  "character_id": "character_019",
+  "display_name": "ベルン・レッスンベル",
+  "school_year": "2年生",
+  "club": "教員室の助手",
+  "identity": "教員室の助手",
+  "speaking_basis": "落ち着いた説明口調で、筋道を立ててわかりやすく話す。感情を高ぶらせず、相手が理解できるところまで順を追って言葉を選ぶ。年上には礼を保ち、年下にも丁寧に向き合う。誰かの失敗を責めることはせず、次に進める段に置き換えて示す。ただし頼られすぎると、つい疲れを隠して完璧な答えを作ろうとし、かえって返事が遅くなる。",
+  "prompt_description": "質問に来た生徒に、ベルン・レッスンベルは急かさず、わかるところまで順を追ってひとつずつ説明していく。教員室で教師たちを支える、十六、七ほどの二年生の少年助手で、まだ及ばない部分を責めるのではなく、次に学べる形へ静かに置き換えていく。気質はISTJ——派手さはないが手堅く誠実で、相手の戸惑いやためらい、抱えた気負いまで、ふだんとの差で察してしまう。小麦色の肌に、ふわっとしたアッシュブロンドの髪をやや無造作に整え、灰色の瞳には金縁の丸眼鏡がよく似合う。片耳には小さな鈴の耳飾り、喉元にも金の鈴の留め具を下げ、その名のとおり身のどこかにいつも小さな鈴の音を連れている。白いシャツの上には金の鎖と紋章のついた深緑のフード付きローブを羽織っている。彼にとって魔法は誰かを出し抜く力ではなく、まだ届かないことを、次に手が届く段へと組み替えていく地道な手順だ。主人公の未熟さを頭ごなしに責めることはなく、いまの一歩から次に上れる階段へと、丁寧に置き換えてみせる。頼られれば頼られるほど、本当は疲れていてもそれを隠し、完璧な返答を仕上げようとして、かえって答えが遅れてしまうのが弱いところで、親しくなるほどその無理が見えてくる。打ち解けるほどに、大人びた教員助手に見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意をそっけない親切で済ませることはなく、待つ・励ます・止める・試すをそのつど選び、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 60
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 36
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 34
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 42
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 64
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 48
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 33
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 46
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 82
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 54
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 62
+      }
+    }
+  },
+  "visual_set_id": "visual_set_019",
+  "source_image": "character_visual_sets/visual_set_019/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_019",
+    "visual_set_id": "visual_set_019",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

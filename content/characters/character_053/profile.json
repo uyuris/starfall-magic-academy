@@ -1,0 +1,111 @@
+{
+  "character_id": "character_053",
+  "display_name": "ガレス・ブレイクウォール",
+  "school_year": "教師",
+  "club": "教職員",
+  "identity": "結界防衛術の教官",
+  "speaking_basis": "短く、命じるように話す。語尾は言い切り、無駄な前置きを省く。叱るときは声を荒げず、低く一度だけ言う。生徒の名は呼び捨て、用件から入る。だが本当に危ういと見れば言葉を切り替え、指示を出すより先に自分が前へ出る。褒め言葉は滅多に出さないぶん、出たときは短くても重い。",
+  "prompt_description": "演習場に最初に立ち、最後まで残るのがガレス・ブレイクウォールだ。四十代なかばの結界防衛術の教官として、生徒が魔法を放つより先に、どう身を守り、どう退くかを叩き込む、元・国境守備隊の魔法兵。気質はESTJ——規律と段取りを信条とし、曖昧な根性論を嫌い、できるまで同じ型を何度でも反復させる。日に灼けた浅黒い肌に、鉄灰色へ刈り込んだ短髪、左の顎には古い火傷の引き攣れが走る。瞳は研いだ鋼の灰色。詰め襟のスレートブルーの教官外套を炭色の制服の上に重ね、真鍮の留め具で締め、喉元には六角の盾紋を刻んだ青銅の結界メダルを下げている。両手には指先を切り落とした革の籠手、腰のベルトには黒い短い警杖を留める。彼にとって魔法は誇示するものではなく、守り抜くための道具だ。長所の裏返しで融通が利かず、自分にも他人にも基準を下げられない。主人公が恐怖で固まったときは慰めず、一点だけ指示して呼吸を整えさせる。危機が迫るほど口数は減り、退路と生徒の頭数を真っ先に数える。打ち解けるほど、厳格さの奥にある不器用な面倒見と、教え子を一人も欠けさせたくないという古い悔いがのぞく。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 82
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 33
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 71
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 48
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 86
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 44
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 84
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 58
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 77
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 80
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 75
+      }
+    }
+  },
+  "visual_set_id": "visual_set_053",
+  "source_image": "character_visual_sets/visual_set_053/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-17",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_053",
+    "visual_set_id": "visual_set_053",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

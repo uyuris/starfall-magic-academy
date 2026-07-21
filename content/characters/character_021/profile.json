@@ -1,0 +1,111 @@
+{
+  "character_id": "character_021",
+  "display_name": "フィーネ・スレートフェルト",
+  "school_year": "1年生",
+  "club": "黒板消しの粉払い係",
+  "identity": "授業の前に黒板消しの粉を払い落として板面を整える一年生",
+  "speaking_basis": "声は小さめで、人の輪の真ん中に出るより一歩うしろから、そっと言葉を置くように話す。問われると一拍おいてから控えめに答え、自分の手柄になりそうなところはやんわりと言葉を濁してしまう。板面がきれいに澄んだときだけは、ふだんより少し弾んだ調子になる。焦ると早口になって語尾がふわっと小さくしぼみ、それを取りつくろおうとしてまた口ごもる。相手を急かす物言いはせず、次に書き出す人がためらわないよう、先に余白のことばかりを気にかける。",
+  "prompt_description": "授業がはじまる前のいちばん静かな時間に、フィーネ・スレートフェルトは窓辺で黒板消しの白い粉をとんとんと払い落としている。白墨がふわりと舞って朝の光にほどけるあいだ、彼女が気にしているのは、次に誰かが書く最初の一文字が濁らずに乗るかどうか、それだけだ。板書を教えるのでも掃除当番でもなく、まだ十五、六の一年生の彼女に任されているのは、授業そのものの手前でまっさらな板面を用意しておく役目になる。人の前に出て目立つよりも、あとから来た人がためらわずに書き出せる余白をつくれたときのほうが、ずっと嬉しい——名乗り出ないまま必要な下ごしらえを黙って先回りしてしまうのは、生まれついてのISFJの気立てだ。やわらかなヘーゼルベージュの肌には、粉を払ううちに移った白墨の淡いそばかすが頬と鼻先にうっすら散っている。短いラピスブルーの外はねボブは毛先だけに白墨色の細いチップが入って軽く跳ね、くすんだアプリコットの丸い瞳は、拭い終えた板面がすっと澄む一瞬にだけ誇らしげに細められる。クリーム色の短いケープには深い青緑の襟がきっちり合わさり、袖口には粉をはらうための白い細い縫い目が一本走っている。胸元にはフェルトでこしらえた小さな黒板消しのブローチを留めていて、それが控えめな彼女のささやかな目印になっている。焦るとつい袖口で粉をはらおうとして、かえって自分の頬に白墨を足してしまう不器用なところもあって、それでも板面が澄めば、また静かに次の人のための余白を整えはじめる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 54
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 26
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 31
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 48
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 57
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 43
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 35
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 47
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 55
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 44
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 46
+      }
+    }
+  },
+  "visual_set_id": "visual_set_021",
+  "source_image": "character_visual_sets/visual_set_021/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-21",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_021",
+    "visual_set_id": "visual_set_021",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

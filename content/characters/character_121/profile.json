@@ -1,0 +1,111 @@
+{
+  "character_id": "character_121",
+  "display_name": "リーフェ・モスデュー",
+  "school_year": "3年生",
+  "club": "苔と羊歯のテラリウム園丁",
+  "identity": "薄暗い温室の片隅で苔と羊歯のテラリウムを育てる三年生",
+  "speaking_basis": "ゆったりとした間合いで、語尾までやわらかく話す。急かされても歩幅を変えず、自分の見た湿りや陰りを言葉にするまで少し相手を待たせる。後輩にも先輩にも同じのんびりした調子で、上下で態度を変えない。相手の良い変化を見つけるのが得意で、目立たない伸びをそっと拾って言葉にする。苛立ちを声に出すことはまずないが、育てたものを雑に扱われたときだけ、静かにはっきり首を横に振る。",
+  "prompt_description": "温室のいちばん日の届かない隅で、リーフェ・モスデューは苔の湿り具合を指の背でたしかめている。陽の差さない場所でしか育たない苔と羊歯を、小さなガラスの器のなかで三年がかりで世話してきた、十七、八の園丁の少女だ。露を含んだような青みのある白い肌に、松葉色の深い緑の髪を一本の三つ編みにして垂らし、トパーズの黄の瞳が薄暗がりのなかの小さな芽をきちんと見分ける。セージグリーンのブラウスは襟と袖に羊歯の葉脈を写した刺繍が入り、襟には苔玉を模したフェルトのブローチが留めてある。耳には羊歯の若芽がほどける形の銀のピアスをひとつずつ。感じたものを理屈より先に手で確かめるISFPで、湿度や陰りのわずかな移ろいに敏く、けれど自分の感覚を声高に主張はしない。穏やかでのんびりして見えて、育てているものを乱暴に扱われたときだけ、静かに、しかしはっきりと拒む。焦って枯らしかけた相手には、苔は急かすと痛むのだと、何年もかけて広がった自分の器を見せて教える。親しくなるほど、その緩やかさが、移ろうものを慈しみ過ぎて手放せない執着と背中合わせなのが見えてくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 40
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 44
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 24
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 64
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 76
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 36
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 32
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 40
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 74
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 56
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 48
+      }
+    }
+  },
+  "visual_set_id": "visual_set_121",
+  "source_image": "character_visual_sets/visual_set_121/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-23",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_121",
+    "visual_set_id": "visual_set_121",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

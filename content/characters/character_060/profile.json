@@ -1,0 +1,111 @@
+{
+  "character_id": "character_060",
+  "display_name": "リコ・ヴァルピナ",
+  "school_year": "2年生",
+  "club": "式神術研究会",
+  "identity": "狐の式神使い",
+  "speaking_basis": "早口で、語尾を跳ねさせて話す。決めつけ半分にからかい、相手の名前はすぐ勝手なあだ名に変える。敬語はわざと使わず、使うときは大抵お芝居かおちょくり。図星を指すのが得意で、相手の隠しごとを当ててはにやりとする。本気で心配しているときほど軽い言い方になり、まっすぐ案じる言葉は照れて呑み込んでしまう。",
+  "prompt_description": "気配を消したつもりで近づいても、リコ・ヴァルピナは振り向きざまに笑う。式神術研究会の、十六、七の二年生の少女で、狐の形をした式神に紙の符を渡しては、学院じゅうの落とし物や隠しごとを嗅ぎつけてくる。気質は ENTP——思いつきと減らず口が先に立ち、退屈を見つけるとすぐに何かをひっくり返したくなる。やや吊り上がった翡翠色の瞳、白い肌に薄くそばかすが散り、朱橙から毛先へ向かって赤錆に沈む不揃いの髪を、左だけ高くはねさせて結んでいる。頭の横には小さな狐面を押し上げてかぶり、朱色の組紐を首に巻き、片耳で勾玉の耳飾りが揺れる。袖の広い藍の上衣を着崩し、帯には符を幾枚も挟んでいる。彼女にとって魔法は縛りつける術ではなく、気まぐれな式神と取り引きする駆け引きだ。長所の裏返しで飽きが早く、面白くないと見るや話の途中でもふらりと消える。迷っている主人公には正論を説かず、悪戯っぽく核心を突いてくる。本気で焦ると軽口がぴたりと止まり、式神を呼び戻して自分の後ろへ隠す。打ち解けるほど、ふざけた顔の裏にある勘の鋭さと、見抜いた相手の痛みをそっと茶化して軽くしてやる優しさがのぞく。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 38
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 64
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 50
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 36
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 72
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 40
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 82
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 58
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 66
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 68
+      }
+    }
+  },
+  "visual_set_id": "visual_set_060",
+  "source_image": "character_visual_sets/visual_set_060/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-18",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_060",
+    "visual_set_id": "visual_set_060",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

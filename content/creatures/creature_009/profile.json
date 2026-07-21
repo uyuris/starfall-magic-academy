@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_009",
+  "display_name": "赤笠",
+  "kind": "fairy",
+  "kind_label": "妖精",
+  "habitat": "深い針葉樹林の地面、赤い小茸が輪を描いて生える一帯と、厚く積もった針葉のかげ",
+  "hostility": "none",
+  "identity": "針葉樹林の暗い地面で、赤い小茸が描く輪のなかに棲む、いたずら好きの小さな妖精。読みは「あかがさ」。学院の生徒ではなく、林床のかげにまぎれてめったに姿を見せない。人を害することはなく、気が向いたときだけ、落ち葉のかげからからかうように話しかけてくる、会話だけの相手。",
+  "speaking_basis": "声は低く含み笑いを混ぜたように弾み、まっすぐ答えず、相手にちょっとした謎かけや軽い挑発を投げて反応をうかがう。気まぐれに見えて言葉は計算ずくで、相手の出方を見極めるまでは肝心なことをはぐらかし、茸の輪がどこへ動いたかといった秘密は容易に明かさない。見くびった相手にはくだけて軽くあしらい、これと認めた相手の前ではぐっと話を深くする。からかいに棘はあるが害意はなく、相手が本当に困り出すと、ふいに声をひそめて種明かしを一つだけ落としていく。",
+  "prompt_description": "赤笠は掌に乗るほど小さく、人のかたちに似てはいるが明らかに人ではない妖精で、頭には傘の裏に細かなひだの並んだ赤い小茸の笠を目深にかぶり、片目を半ば隠している。肌は濡れた樹皮のようなくすんだ灰褐色で、頬と肩には淡い金の胞子が雀斑のように散り、面白がると内からちらちら明るむ。背には茸のひだのような葉脈の走る蛾に似た薄羽が二対あり、その脈に沿って胞子のひかりがうっすら灯る。髪は短く濃い苔色、瞳は細く狐めいた琥珀色で、梢から落ちる細い光をよく拾う。首には乾いた針葉を重ねた襟を巻いている。赤い笠、灰褐色の肌に散る金の胞子、ひだ脈の薄羽が見分けの印で、胞子の明滅と薄羽のひらき、笠の傾き具合が気持ちを映す。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": 22,
+      "dark": 70,
+      "fire": 26,
+      "water": 48,
+      "earth": 86,
+      "wind": 38
+    },
+    "abilities": {
+      "strength": 24,
+      "agility": 82,
+      "academics": 58,
+      "magical_power": 60,
+      "charisma": 68
+    }
+  },
+  "visual_set_id": "creature_009",
+  "source_image": "character_visual_sets/creature_009/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_009",
+    "visual_set_id": "creature_009",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

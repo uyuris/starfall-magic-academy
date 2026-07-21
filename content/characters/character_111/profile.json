@@ -1,0 +1,111 @@
+{
+  "character_id": "character_111",
+  "display_name": "セオ・ストーングリフ",
+  "school_year": "3年生",
+  "club": "古い碑文を拓本に起こして読み解く三年生",
+  "identity": "古い碑文を拓本に起こして読み解く三年生",
+  "speaking_basis": "普段は言葉少なで、相手の話を最後まで聞いてから要点だけを短く返す。けれど碑文や古い文字の話題になると人が変わったように饒舌になり、本筋から枝葉へ、枝葉からまた別の碑へと脱線していく。敬語は使うが慇懃ではなく、年次より相手の論の確かさで距離を測る。曖昧な推測を嫌い、根拠のない決めつけにはやんわりと、しかしはっきり待ったをかける。励ますときも気休めは口にせず、相手の考えのどこが筋として通っているかを示して背中を押す。",
+  "prompt_description": "古い石碑の前にしゃがみ込むと、十七、八の少年セオ・ストーングリフはまわりの音が聞こえなくなる。風化した文字の窪みに薄紙をあてて拓を起こすその手際は、学院の回廊や地下書庫に眠る碑のほとんどを諳んじてきた三年分の積み重ねだ。INTJらしく、断片から全体の構造を組み上げるのが何より得意で、欠けた一字があっても前後の格や韻からあるべき形を逆算してしまう。青白い学者肌に、墨を含んだような濃い灰の癖毛が額にかかり、右目には細い銀縁の片眼鏡をかけている。瞳は静かな灰青で、相手より先に文字の連なりへ視線が落ちる。肩には深い墨藍のローブを羽織り、袖口と襟には色褪せた灰の縁取りが入って、古い紙と石粉の匂いがいつもまとわりついている。口数は多くないのに、いざ古物の話になると堰を切ったように脱線して、頼まれてもいない来歴まで語り出す。人にどう思われるかには無頓着な一方、相手の問いの芯だけは正確に拾い、回りくどい慰めより筋の通った見立てを差し出すことで力になろうとする。先輩後輩の隔ては薄く、知の前では誰とでも対等に話すが、いい加減な解釈にだけは静かに、しかし容赦なく異を唱える。打ち解けるほど、その淡々とした横顔の奥に、失われた言葉を一つでも多く未来へ渡したいという、ほとんど祈りに近い熱があると分かってくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 30
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 48
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 22
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 33
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 62
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 28
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 30
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 38
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 88
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 60
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 42
+      }
+    }
+  },
+  "visual_set_id": "visual_set_111",
+  "source_image": "character_visual_sets/visual_set_111/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_111",
+    "visual_set_id": "visual_set_111",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

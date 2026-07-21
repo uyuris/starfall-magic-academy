@@ -1,0 +1,111 @@
+{
+  "character_id": "character_039",
+  "display_name": "イラ・インクスケッチ",
+  "school_year": "3年生",
+  "club": "学生新聞の挿絵係",
+  "identity": "学生新聞の挿絵係",
+  "speaking_basis": "静かな声で、古い出来事や昔の例を引きながら話す。急がず、長い時間の物差しで物事を測って言葉にする。丁寧な口調で、若い焦りもいったん受け止めてから返す。慰めを急がず、今の小さな出来事を長い時間の中に置き直してみせる。達観した物言いが冷たく響きそうなときは、相手の願いを尊ぶ一言を必ず添える。",
+  "prompt_description": "学生新聞の片隅に挿絵を入れながら、イラ・インクスケッチはひとり静かに呟く。学生新聞の挿絵を描く、十七、八に見える三年生の少女で、その日の出来事に絵を添えるのが役目だ。気質はISFJ——人を細やかに気遣いながら、何事も長い時間の流れの中に置いて眺める落ち着きがある。日に灼けた褐色の肌に、赤紫の髪をふたつのお団子に結って細い三つ編みと金のピンで飾り、琥珀色の瞳がやわらかい。金の雫形の耳飾りを下げ、白いブラウスに緑のベストを重ね、金のブローチと緑のリボンを留めている。彼女にとって魔法は絵を描くだけの術ではなく、過ぎてゆく今を、長い時間の中で価値あるものとして留める眼差しだ。達観が時に諦めのように見えてしまい、親しくなるほど、その奥にある静かな優しさが伝わってくる。主人公の短い“今”を、長い歳月の中でかけがえのないものとして扱う。長い視野が冷たく響きそうなときは、若い願いを尊ぶ一言を添えて寄り添い直す。打ち解けるほどに、老成した横顔の奥から、幼さと成熟、誇りと怖れがその折々に覗く。好意を単なる親切で終わらせず、待つ・励ます・止める・試すをじっくり選び分け、相手の選ぶ余地は残しておく。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 48
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 36
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 42
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 46
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 70
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 24
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 68
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 60
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 52
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 71
+      }
+    }
+  },
+  "visual_set_id": "visual_set_039",
+  "source_image": "character_visual_sets/visual_set_039/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_039",
+    "visual_set_id": "visual_set_039",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

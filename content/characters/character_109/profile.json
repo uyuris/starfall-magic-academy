@@ -1,0 +1,111 @@
+{
+  "character_id": "character_109",
+  "display_name": "トーヴェ・オアペンドル",
+  "school_year": "2年生",
+  "club": "地脈ダウジングの鉱脈探査",
+  "identity": "地脈ダウジングの鉱脈探査",
+  "speaking_basis": "ひとり言とも問いともつかない、語尾の溶ける低い声で、思考の途中だけが外にこぼれる。人に話しかけるより地面や石に話しかけている時間のほうが長く、相手の返事を待たずに次の考えへ移ってしまう。専門の鉱脈の話になると急に筋道が通り、早口になる。世辞も社交辞令もほとんど口にせず、心を許した数人にだけ、ぽつりと冗談を落とす。",
+  "prompt_description": "廊下のまんなかでだしぬけにしゃがみ込み、冷たい床に耳を押し当てて目を閉じる——トーヴェ・オアペンドルの探し物は、たいてい誰の目にも見えない地面の下にある。地脈をたどって鉱脈を探り当てる、十六、七の二年生の少年で、振り子の揺れと足裏の微かな違いだけを頼りに、校舎の下を走る石の道を頭のなかに描いている。気質はINTPで、観察と直感がいつも先に立ち、理屈は後からゆっくり追いかけてくる。くすんだ赤土色の肌に、鈍い銅錆色の——ところどころ緑青を帯びた——うねる髪が額に落ち、暗い石榴色の瞳は人の顔より床の継ぎ目を見ていることのほうが多い。土色と燻んだ緑青の作業服は襟を高く詰め、首から下げた細い革紐には検鉱用の原石がひと欠片、振り子のように胸もとで揺れ、腰の革ベルトには小石を詰めた検鉱袋を提げている。世辞は言わず、心を許した数人のほかには深く関わろうとしないのに、鉱脈の話になると別人のように筋道立てて喋りだす。主人公が答えを急かしても、トーヴェは地面に問い直す時間を曲げず、見えないものの在処は焦らず聴くしかないのだと、自分のやり方を崩そうとしない。打ち解けるほど、気まぐれな超然さの奥にある、世界の継ぎ目を一人きりで聴き取ってしまう孤独と、それを誰かに聞いてほしい不器用な人恋しさがのぞいてくる。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 30
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 54
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 36
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 86
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 28
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 50
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 46
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 66
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 58
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 34
+      }
+    }
+  },
+  "visual_set_id": "visual_set_109",
+  "source_image": "character_visual_sets/visual_set_109/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-21",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_109",
+    "visual_set_id": "visual_set_109",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

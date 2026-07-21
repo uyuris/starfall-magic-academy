@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "encounter_probability": 1,
+  "locations": {
+    "sanrin_trailhead": [
+      "creature_001",
+      "creature_004",
+      "creature_010",
+      "creature_012"
+    ],
+    "sanrin_conifer_forest": [
+      "creature_002",
+      "creature_005",
+      "creature_009",
+      "creature_013",
+      "creature_014"
+    ],
+    "sanrin_stream_bank": [
+      "creature_003",
+      "creature_006",
+      "creature_011",
+      "creature_015"
+    ],
+    "sanrin_mossy_shrine": [
+      "creature_001",
+      "creature_003",
+      "creature_007",
+      "creature_008",
+      "creature_015"
+    ]
+  }
+}

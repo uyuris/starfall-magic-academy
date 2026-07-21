@@ -1,0 +1,111 @@
+{
+  "character_id": "character_101",
+  "display_name": "カイ・ガロウェイ",
+  "school_year": "2年生",
+  "club": "騎獣術部",
+  "identity": "魔獣を駆る騎獣術の乗り手",
+  "speaking_basis": "歯切れよく、勢いのある砕けた口調で話す。誰が相手でも気安く距離を詰め、思いついたら先に体が動く。自慢めいた断言が多いが、嫌味にはならない明るさがある。励ますときは理屈より先に、巻き込んで連れ出す。詰まると早口になり、勢いで押し切ろうとする。",
+  "prompt_description": "鞍上から振り向いて笑うのが、十六、七の二年生の少年カイ・ガロウェイだ。使い魔の厩舎で世話をする係とは立場が違って、彼は自分で魔獣にまたがり駆ける乗り手——競技寄りの騎獣術にのめり込んでいる。気質はESTP——考えるより先に飛び乗って、走りながら間合いを掴むタイプ。アンバーがかった褐色の肌に、短く詰まった黒い巻き毛、琥珀色の瞳が獲物より先に次の一手を探している。深緑の革を継いだハーフケープを片肩に流し、乗馬用のグローブをはめ、喉元には相棒の魔獣から贈られた獣牙のペンダントを革紐で下げている。自信家で行動が早く、相棒の獣を誇りにしていて、その話になると止まらない。立ちすくむ主人公には説教をせず、ともかく巻き込んで連れ出す。じっとしているのが何より苦手で、追い詰められるほど早口になる。威勢のよさの裏には、走って跳んでいる自分にしか値打ちがない——立ち止まったら何も残らないんじゃないか、という言わない不安が手綱を握っている。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 42
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 38
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 54
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 36
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 50
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 60
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 72
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 82
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 44
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 48
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 70
+      }
+    }
+  },
+  "visual_set_id": "visual_set_101",
+  "source_image": "character_visual_sets/visual_set_101/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_101",
+    "visual_set_id": "visual_set_101",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

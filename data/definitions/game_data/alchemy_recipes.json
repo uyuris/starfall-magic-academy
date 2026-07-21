@@ -1,0 +1,1365 @@
+{
+  "items": [
+    {
+      "item_id": "alchemy_stardust_konpeito",
+      "name": "星屑の金平糖",
+      "description": "舌の上でほろりと解け、噛むたび淡い光の粒がまたたく、実習室仕込みの砂糖菓子。",
+      "category": "gift",
+      "affinity_bonus": 3
+    },
+    {
+      "item_id": "alchemy_moonlight_yakigashi",
+      "name": "月光の焼き菓子",
+      "description": "月の光を練り込んだ生地を低温で焼き上げた、ほろ苦く香ばしい小さな菓子。",
+      "category": "gift",
+      "affinity_bonus": 3
+    },
+    {
+      "item_id": "alchemy_sunny_tea_leaves",
+      "name": "陽だまりの紅茶葉",
+      "description": "陽だまりの温もりごと乾かした茶葉。淹れると琥珀色の湯気がゆるくほどける。",
+      "category": "gift",
+      "affinity_bonus": 3
+    },
+    {
+      "item_id": "alchemy_clearwater_candy",
+      "name": "澄み水の飴玉",
+      "description": "透きとおった湧き水を煮詰めて固めた飴。含むとひやりと澄んだ甘さが広がる。",
+      "category": "gift",
+      "affinity_bonus": 3
+    },
+    {
+      "item_id": "alchemy_fragrant_potted_flower",
+      "name": "香り土の鉢植え花",
+      "description": "肥えた土の香りごと小鉢に仕立てた一輪の花。渡した相手の机をそっと明るくする。",
+      "category": "gift",
+      "affinity_bonus": 5
+    },
+    {
+      "item_id": "alchemy_breeze_ribbon",
+      "name": "そよ風のリボン",
+      "description": "結ぶと風をはらんで軽くそよぐ、淡い色のリボン。",
+      "category": "gift",
+      "affinity_bonus": 5
+    },
+    {
+      "item_id": "alchemy_lamplight_perfume_oil",
+      "name": "灯火の香油",
+      "description": "灯した芯からやわらかな光と甘い香りが立ちのぼる、手のひらほどの香油瓶。",
+      "category": "gift",
+      "affinity_bonus": 5
+    },
+    {
+      "item_id": "alchemy_nightdew_perfume",
+      "name": "夜露の香水",
+      "description": "夜露を集めて蒸留した、深く落ち着いた香りの小瓶。ひと吹きで肌に夜気が残る。",
+      "category": "gift",
+      "affinity_bonus": 8
+    },
+    {
+      "item_id": "alchemy_starchart_bookmark",
+      "name": "星図の栞",
+      "description": "開いた頁のあいだで星座がかすかにまたたく、薄い金箔の栞。",
+      "category": "gift",
+      "affinity_bonus": 8
+    },
+    {
+      "item_id": "alchemy_earth_ward_brooch",
+      "name": "大地の守り石ブローチ",
+      "description": "地の力を宿した石を留め具にあしらった、身につけると胸元がほのかに温かいブローチ。",
+      "category": "gift",
+      "affinity_bonus": 8
+    },
+    {
+      "item_id": "alchemy_meteor_earrings",
+      "name": "流星の耳飾り",
+      "description": "揺れるたびに尾を引く光がひとすじ走る、流星を写し取ったような耳飾り。",
+      "category": "gift",
+      "affinity_bonus": 12
+    },
+    {
+      "item_id": "alchemy_sixcolor_kaleidoscope",
+      "name": "六色の万華鏡",
+      "description": "覗くたびに六系統の魔力が織りなす模様が回り、同じ景色を二度と結ばない万華鏡。",
+      "category": "gift",
+      "affinity_bonus": 12
+    },
+    {
+      "item_id": "alchemy_light_resonance_tonic",
+      "name": "光の共鳴薬",
+      "description": "光の魔力を体になじませ、渡した相手の光魔法への手応えを確かに引き上げる共鳴薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "light",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_dark_resonance_tonic",
+      "name": "闇の共鳴薬",
+      "description": "闇の魔力を体になじませ、渡した相手の闇魔法への手応えを確かに引き上げる共鳴薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "dark",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_fire_resonance_tonic",
+      "name": "火の共鳴薬",
+      "description": "火の魔力を体になじませ、渡した相手の火魔法への手応えを確かに引き上げる共鳴薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "fire",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_water_resonance_tonic",
+      "name": "水の共鳴薬",
+      "description": "水の魔力を体になじませ、渡した相手の水魔法への手応えを確かに引き上げる共鳴薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "water",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_earth_resonance_tonic",
+      "name": "土の共鳴薬",
+      "description": "土の魔力を体になじませ、渡した相手の土魔法への手応えを確かに引き上げる共鳴薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "earth",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_wind_resonance_tonic",
+      "name": "風の共鳴薬",
+      "description": "風の魔力を体になじませ、渡した相手の風魔法への手応えを確かに引き上げる共鳴薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "wind",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_might_elixir_kai",
+      "name": "剛力の霊薬・改",
+      "description": "鉱の重みを溶かし込み、渡した相手の筋力をひときわ引き上げた改良霊薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "strength",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_gale_elixir_kai",
+      "name": "疾風の霊薬・改",
+      "description": "風の芯を練り込み、渡した相手の瞬発力を鋭く研ぎ澄ます改良霊薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "agility",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_wisdom_elixir_kai",
+      "name": "叡智の霊薬・改",
+      "description": "澄んだ光を巡らせ、渡した相手の学力を深く冴えさせる改良霊薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "academics",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_magic_elixir_kai",
+      "name": "魔力の霊薬・改",
+      "description": "濃い闇と火種を掛け合わせ、渡した相手の魔力そのものを押し上げる改良霊薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "magical_power",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_grace_elixir_kai",
+      "name": "華麗の霊薬・改",
+      "description": "水と光をなめらかに合わせ、渡した相手のカリスマを艶やかに際立たせる改良霊薬。",
+      "category": "ally_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "charisma",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_light_secret_elixir",
+      "name": "光の秘薬",
+      "description": "高位の光の素材だけを惜しみなく注いだ、自らの光魔法を大きく伸ばす秘蔵の一品。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "light",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_dark_secret_elixir",
+      "name": "闇の秘薬",
+      "description": "高位の闇の素材だけを惜しみなく注いだ、自らの闇魔法を大きく伸ばす秘蔵の一品。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "dark",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_fire_secret_elixir",
+      "name": "火の秘薬",
+      "description": "高位の火の素材だけを惜しみなく注いだ、自らの火魔法を大きく伸ばす秘蔵の一品。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "fire",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_water_secret_elixir",
+      "name": "水の秘薬",
+      "description": "高位の水の素材だけを惜しみなく注いだ、自らの水魔法を大きく伸ばす秘蔵の一品。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "water",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_earth_secret_elixir",
+      "name": "土の秘薬",
+      "description": "高位の土の素材だけを惜しみなく注いだ、自らの土魔法を大きく伸ばす秘蔵の一品。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "earth",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_wind_secret_elixir",
+      "name": "風の秘薬",
+      "description": "高位の風の素材だけを惜しみなく注いだ、自らの風魔法を大きく伸ばす秘蔵の一品。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "magic",
+          "key": "wind",
+          "amount": 4
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_might_secret_elixir",
+      "name": "剛力の秘薬",
+      "description": "地心の重鉱を練り込み、飲めば自らの筋力を大きく底上げする秘薬。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "strength",
+          "amount": 6
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_gale_secret_elixir",
+      "name": "疾風の秘薬",
+      "description": "天嵐の芯を封じ、飲めば自らの瞬発力を大きく研ぎ澄ます秘薬。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "agility",
+          "amount": 6
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_wisdom_secret_elixir",
+      "name": "叡智の秘薬",
+      "description": "天光と玄闇を巡らせ、飲めば自らの学力を大きく冴えさせる秘薬。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "academics",
+          "amount": 6
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_magic_source_secret_elixir",
+      "name": "魔源の秘薬",
+      "description": "深淵の闇に火種を溶かし、飲めば自らの魔力の源を大きく押し広げる秘薬。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "magical_power",
+          "amount": 6
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_starbloom_secret_elixir",
+      "name": "星華の秘薬",
+      "description": "蒼海の玉と光を合わせ、飲めば自らのカリスマを大きく花開かせる秘薬。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "charisma",
+          "amount": 6
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_sage_elixir",
+      "name": "賢者の霊薬",
+      "description": "六系統の最上位素材と大金を注ぎ込んだ、あらゆる能力をあまねく底上げする賢者の霊薬。",
+      "category": "self_boost",
+      "parameter_effects": [
+        {
+          "group": "abilities",
+          "key": "strength",
+          "amount": 2
+        },
+        {
+          "group": "abilities",
+          "key": "agility",
+          "amount": 2
+        },
+        {
+          "group": "abilities",
+          "key": "academics",
+          "amount": 2
+        },
+        {
+          "group": "abilities",
+          "key": "magical_power",
+          "amount": 2
+        },
+        {
+          "group": "abilities",
+          "key": "charisma",
+          "amount": 2
+        }
+      ]
+    },
+    {
+      "item_id": "alchemy_light_throwing_bomb",
+      "name": "光の投擲弾",
+      "description": "投げつけると弾けて視界内の敵一体を光の力が貫く、単体特化の投擲弾。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_single",
+      "element": "light",
+      "power": 520
+    },
+    {
+      "item_id": "alchemy_dark_throwing_bomb",
+      "name": "闇の投擲弾",
+      "description": "投げつけると弾けて視界内の敵一体を闇の力が貫く、単体特化の投擲弾。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_single",
+      "element": "dark",
+      "power": 520
+    },
+    {
+      "item_id": "alchemy_fire_throwing_bomb",
+      "name": "火の投擲弾",
+      "description": "投げつけると弾けて視界内の敵一体を火の力が貫く、単体特化の投擲弾。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_single",
+      "element": "fire",
+      "power": 520
+    },
+    {
+      "item_id": "alchemy_water_throwing_bomb",
+      "name": "水の投擲弾",
+      "description": "投げつけると弾けて視界内の敵一体を水の力が貫く、単体特化の投擲弾。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_single",
+      "element": "water",
+      "power": 520
+    },
+    {
+      "item_id": "alchemy_earth_throwing_bomb",
+      "name": "土の投擲弾",
+      "description": "投げつけると弾けて視界内の敵一体を土の力が貫く、単体特化の投擲弾。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_single",
+      "element": "earth",
+      "power": 520
+    },
+    {
+      "item_id": "alchemy_wind_throwing_bomb",
+      "name": "風の投擲弾",
+      "description": "投げつけると弾けて視界内の敵一体を風の力が貫く、単体特化の投擲弾。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_single",
+      "element": "wind",
+      "power": 520
+    },
+    {
+      "item_id": "alchemy_light_great_blast",
+      "name": "光の大爆薬",
+      "description": "着弾点から光の力が爆ぜ広がり、周囲の敵一帯を丸ごと薙ぎ払う大爆薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_area",
+      "element": "light",
+      "power": 480,
+      "radius": 4
+    },
+    {
+      "item_id": "alchemy_dark_great_blast",
+      "name": "闇の大爆薬",
+      "description": "着弾点から闇の力が爆ぜ広がり、周囲の敵一帯を丸ごと薙ぎ払う大爆薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_area",
+      "element": "dark",
+      "power": 480,
+      "radius": 4
+    },
+    {
+      "item_id": "alchemy_fire_great_blast",
+      "name": "火の大爆薬",
+      "description": "着弾点から火の力が爆ぜ広がり、周囲の敵一帯を丸ごと薙ぎ払う大爆薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_area",
+      "element": "fire",
+      "power": 480,
+      "radius": 4
+    },
+    {
+      "item_id": "alchemy_water_great_blast",
+      "name": "水の大爆薬",
+      "description": "着弾点から水の力が爆ぜ広がり、周囲の敵一帯を丸ごと薙ぎ払う大爆薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_area",
+      "element": "water",
+      "power": 480,
+      "radius": 4
+    },
+    {
+      "item_id": "alchemy_earth_great_blast",
+      "name": "土の大爆薬",
+      "description": "着弾点から土の力が爆ぜ広がり、周囲の敵一帯を丸ごと薙ぎ払う大爆薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_area",
+      "element": "earth",
+      "power": 480,
+      "radius": 4
+    },
+    {
+      "item_id": "alchemy_wind_great_blast",
+      "name": "風の大爆薬",
+      "description": "着弾点から風の力が爆ぜ広がり、周囲の敵一帯を丸ごと薙ぎ払う大爆薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "attack_area",
+      "element": "wind",
+      "power": 480,
+      "radius": 4
+    },
+    {
+      "item_id": "alchemy_healing_elixir",
+      "name": "治癒の霊薬",
+      "description": "傷口に振りかければみるみる塞がる、探索中に自分か同行者へ使える強力な治癒薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "heal",
+      "heal_amount": 50
+    },
+    {
+      "item_id": "alchemy_full_healing_elixir",
+      "name": "完治の霊薬",
+      "description": "ひと息で傷を跡形なく癒す、自分か同行者を全快させる最上級の治癒薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "heal_full"
+    },
+    {
+      "item_id": "alchemy_mana_elixir",
+      "name": "魔力の霊薬",
+      "description": "涸れかけた魔力を呼び戻す、探索中に自分か同行者の魔力を大きく回復させる霊薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "mp_restore",
+      "mp_amount": 25
+    },
+    {
+      "item_id": "alchemy_full_moon_elixir",
+      "name": "満月の霊薬",
+      "description": "満ちる月の力で魔力を満々と満たす、自分か同行者の魔力を全快させる霊薬。",
+      "category": "dungeon_consumable",
+      "effect_kind": "mp_restore_full"
+    },
+    {
+      "item_id": "alchemy_revival_droplet",
+      "name": "蘇生の雫",
+      "description": "倒れた同行者の胸にひとしずく落とせば、半ばの力で立ち上がらせる希少な雫。探索一回につき一度だけ使える。",
+      "category": "dungeon_consumable",
+      "effect_kind": "revive",
+      "revive_hp_ratio": 0.5
+    },
+    {
+      "item_id": "alchemy_stardust_trinket",
+      "name": "星屑の細工玉",
+      "description": "低位の素材を寄せ集めて磨いた小さな細工玉。市場でそこそこの値で引き取られる。",
+      "category": "product",
+      "sell_price": 300
+    },
+    {
+      "item_id": "alchemy_twocolor_incense_stone",
+      "name": "双色の香石",
+      "description": "二色の光を溜め込んだ香り立つ石。好事家に手頃な値で売れる換金品。",
+      "category": "product",
+      "sell_price": 900
+    },
+    {
+      "item_id": "alchemy_iris_crystal_disk",
+      "name": "虹彩の結晶盤",
+      "description": "傾けるたび虹色に移ろう薄い結晶の盤。まとまった額で売れる上物の換金品。",
+      "category": "product",
+      "sell_price": 2600
+    },
+    {
+      "item_id": "alchemy_sage_amber",
+      "name": "賢者の琥珀",
+      "description": "最上位の素材を凝らせて封じた大粒の琥珀。破格の値で取引される最上の換金品。",
+      "category": "product",
+      "sell_price": 7000
+    }
+  ],
+  "recipes": [
+    {
+      "recipe_id": "alchemy_stardust_konpeito",
+      "result_item": "alchemy_stardust_konpeito",
+      "material_costs": [
+        {
+          "item_id": "material_light_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_moonlight_yakigashi",
+      "result_item": "alchemy_moonlight_yakigashi",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_sunny_tea_leaves",
+      "result_item": "alchemy_sunny_tea_leaves",
+      "material_costs": [
+        {
+          "item_id": "material_fire_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_clearwater_candy",
+      "result_item": "alchemy_clearwater_candy",
+      "material_costs": [
+        {
+          "item_id": "material_water_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_fragrant_potted_flower",
+      "result_item": "alchemy_fragrant_potted_flower",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_breeze_ribbon",
+      "result_item": "alchemy_breeze_ribbon",
+      "material_costs": [
+        {
+          "item_id": "material_wind_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_lamplight_perfume_oil",
+      "result_item": "alchemy_lamplight_perfume_oil",
+      "material_costs": [
+        {
+          "item_id": "material_fire_t2",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_light_t1",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_nightdew_perfume",
+      "result_item": "alchemy_nightdew_perfume",
+      "material_costs": [
+        {
+          "item_id": "material_water_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_dark_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_starchart_bookmark",
+      "result_item": "alchemy_starchart_bookmark",
+      "material_costs": [
+        {
+          "item_id": "material_light_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_wind_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_earth_ward_brooch",
+      "result_item": "alchemy_earth_ward_brooch",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_light_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_meteor_earrings",
+      "result_item": "alchemy_meteor_earrings",
+      "material_costs": [
+        {
+          "item_id": "material_light_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_dark_t3",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_sixcolor_kaleidoscope",
+      "result_item": "alchemy_sixcolor_kaleidoscope",
+      "material_costs": [
+        {
+          "item_id": "material_light_t3",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_dark_t3",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_fire_t3",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_water_t3",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_earth_t3",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_wind_t3",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_light_resonance_tonic",
+      "result_item": "alchemy_light_resonance_tonic",
+      "material_costs": [
+        {
+          "item_id": "material_light_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_light_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_dark_resonance_tonic",
+      "result_item": "alchemy_dark_resonance_tonic",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_dark_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_fire_resonance_tonic",
+      "result_item": "alchemy_fire_resonance_tonic",
+      "material_costs": [
+        {
+          "item_id": "material_fire_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_fire_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_water_resonance_tonic",
+      "result_item": "alchemy_water_resonance_tonic",
+      "material_costs": [
+        {
+          "item_id": "material_water_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_water_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_earth_resonance_tonic",
+      "result_item": "alchemy_earth_resonance_tonic",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_earth_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_wind_resonance_tonic",
+      "result_item": "alchemy_wind_resonance_tonic",
+      "material_costs": [
+        {
+          "item_id": "material_wind_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_wind_t1",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_might_elixir_kai",
+      "result_item": "alchemy_might_elixir_kai",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_fire_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_gale_elixir_kai",
+      "result_item": "alchemy_gale_elixir_kai",
+      "material_costs": [
+        {
+          "item_id": "material_wind_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_water_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_wisdom_elixir_kai",
+      "result_item": "alchemy_wisdom_elixir_kai",
+      "material_costs": [
+        {
+          "item_id": "material_light_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_dark_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_magic_elixir_kai",
+      "result_item": "alchemy_magic_elixir_kai",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_fire_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_grace_elixir_kai",
+      "result_item": "alchemy_grace_elixir_kai",
+      "material_costs": [
+        {
+          "item_id": "material_water_t3",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_light_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_light_secret_elixir",
+      "result_item": "alchemy_light_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_light_t3",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_dark_secret_elixir",
+      "result_item": "alchemy_dark_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t3",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_fire_secret_elixir",
+      "result_item": "alchemy_fire_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_fire_t3",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_water_secret_elixir",
+      "result_item": "alchemy_water_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_water_t3",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_earth_secret_elixir",
+      "result_item": "alchemy_earth_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t3",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_wind_secret_elixir",
+      "result_item": "alchemy_wind_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_wind_t3",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_might_secret_elixir",
+      "result_item": "alchemy_might_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_earth_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_gale_secret_elixir",
+      "result_item": "alchemy_gale_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_wind_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_wind_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_wisdom_secret_elixir",
+      "result_item": "alchemy_wisdom_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_light_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_dark_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_magic_source_secret_elixir",
+      "result_item": "alchemy_magic_source_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_fire_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_starbloom_secret_elixir",
+      "result_item": "alchemy_starbloom_secret_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_water_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_light_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_sage_elixir",
+      "result_item": "alchemy_sage_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_light_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_dark_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_fire_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_water_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_earth_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_wind_t4",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 10000
+    },
+    {
+      "recipe_id": "alchemy_light_throwing_bomb",
+      "result_item": "alchemy_light_throwing_bomb",
+      "material_costs": [
+        {
+          "item_id": "material_light_t2",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_dark_throwing_bomb",
+      "result_item": "alchemy_dark_throwing_bomb",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t2",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_fire_throwing_bomb",
+      "result_item": "alchemy_fire_throwing_bomb",
+      "material_costs": [
+        {
+          "item_id": "material_fire_t2",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_water_throwing_bomb",
+      "result_item": "alchemy_water_throwing_bomb",
+      "material_costs": [
+        {
+          "item_id": "material_water_t2",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_earth_throwing_bomb",
+      "result_item": "alchemy_earth_throwing_bomb",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t2",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_wind_throwing_bomb",
+      "result_item": "alchemy_wind_throwing_bomb",
+      "material_costs": [
+        {
+          "item_id": "material_wind_t2",
+          "quantity": 3
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_light_great_blast",
+      "result_item": "alchemy_light_great_blast",
+      "material_costs": [
+        {
+          "item_id": "material_light_t4",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_light_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_dark_great_blast",
+      "result_item": "alchemy_dark_great_blast",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t4",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_dark_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_fire_great_blast",
+      "result_item": "alchemy_fire_great_blast",
+      "material_costs": [
+        {
+          "item_id": "material_fire_t4",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_fire_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_water_great_blast",
+      "result_item": "alchemy_water_great_blast",
+      "material_costs": [
+        {
+          "item_id": "material_water_t4",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_water_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_earth_great_blast",
+      "result_item": "alchemy_earth_great_blast",
+      "material_costs": [
+        {
+          "item_id": "material_earth_t4",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_earth_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_wind_great_blast",
+      "result_item": "alchemy_wind_great_blast",
+      "material_costs": [
+        {
+          "item_id": "material_wind_t4",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_wind_t2",
+          "quantity": 2
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_healing_elixir",
+      "result_item": "alchemy_healing_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_water_t2",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_light_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_full_healing_elixir",
+      "result_item": "alchemy_full_healing_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_water_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_light_t3",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_mana_elixir",
+      "result_item": "alchemy_mana_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t2",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_wind_t2",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_full_moon_elixir",
+      "result_item": "alchemy_full_moon_elixir",
+      "material_costs": [
+        {
+          "item_id": "material_dark_t4",
+          "quantity": 1
+        },
+        {
+          "item_id": "material_wind_t3",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_revival_droplet",
+      "result_item": "alchemy_revival_droplet",
+      "material_costs": [
+        {
+          "item_id": "material_light_t4",
+          "quantity": 2
+        },
+        {
+          "item_id": "material_water_t4",
+          "quantity": 1
+        }
+      ],
+      "money_cost": 5000
+    },
+    {
+      "recipe_id": "alchemy_stardust_trinket",
+      "result_item": "alchemy_stardust_trinket",
+      "material_choice_cost": {
+        "tier": 1,
+        "quantity": 4
+      },
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_twocolor_incense_stone",
+      "result_item": "alchemy_twocolor_incense_stone",
+      "material_choice_cost": {
+        "tier": 2,
+        "quantity": 3
+      },
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_iris_crystal_disk",
+      "result_item": "alchemy_iris_crystal_disk",
+      "material_choice_cost": {
+        "tier": 3,
+        "quantity": 3
+      },
+      "money_cost": 0
+    },
+    {
+      "recipe_id": "alchemy_sage_amber",
+      "result_item": "alchemy_sage_amber",
+      "material_choice_cost": {
+        "tier": 4,
+        "quantity": 2
+      },
+      "money_cost": 0
+    }
+  ]
+}

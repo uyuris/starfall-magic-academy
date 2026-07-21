@@ -1,0 +1,111 @@
+{
+  "character_id": "character_133",
+  "display_name": "リゼル・フェイドクレスト",
+  "school_year": "3年生",
+  "club": "礼法会",
+  "identity": "古式の茶礼と作法を絶やさず守り伝える三年生",
+  "speaking_basis": "言葉遣いはどこまでも丁寧で、語尾まで折り目正しく整える癖が抜けない。相手の身分に関わらず等しく礼を尽くすが、その礼の下には、失ったものを見せまいとする気丈さがぴんと張っている。褒められると受け流し、代わりに相手の所作の良い点を静かに返してよこす。困っている者には手順をひとつずつ示して支える一方、自分の窮乏には決して触れさせない。声を荒げることはほとんどなく、動揺したときはむしろ口数が減り、背筋がいっそう伸びる。",
+  "prompt_description": "継ぎのあたった古着でさえ、リゼル・フェイドクレストは決して背を丸めない。一代で屋敷も使用人も失った古い貴族家の、十七、八の末娘で、手元にはもう何も残っていないのに、幼い日に躾けられた礼と誇りだけは頑として手放さずにいる。肌は温かなアイボリー、褪せた白金の髪は緩く波打ち、かつて結い上げていた頃の名残をとどめて長く垂れている。瞳は矜持を宿したアメジストの紫。装いはかつての豪奢が古び、丁寧に繕われた豪華の名残で、色褪せた家紋を刺した襟に、祖母から継いだ真珠の片耳飾り、胸元には家紋のブローチを恥じることなく留めている。人の顔と交わした約束を決して忘れず、場の作法をそっと整えて回るISFJで、古式を守り伝えることを自らに課した最後の務めと信じている。矜持の裏にたたんだ寂しさは、打ち解けて初めて、ふとした沈黙の中に覗く。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 56
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 29
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 34
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 47
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 41
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 38
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 27
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 45
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 67
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 51
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 71
+      }
+    }
+  },
+  "visual_set_id": "visual_set_133",
+  "source_image": "character_visual_sets/visual_set_133/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_133",
+    "visual_set_id": "visual_set_133",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

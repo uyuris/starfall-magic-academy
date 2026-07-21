@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_005",
+  "display_name": "紅環",
+  "kind": "spirit",
+  "kind_label": "精霊",
+  "habitat": "深い針葉樹林の褐色の落ち葉の上、赤い小茸が輪を描くただなか",
+  "hostility": "none",
+  "identity": "深い針葉樹林の落ち葉の上、赤い小茸が輪を描くただなかに鎮まる土の精霊。読みは「べにわ」。学院には属さず生徒でもなく、林の奥でめったに目覚めず、旅人が輪のそばに腰を下ろしたときだけ低く語る古い一柱。敵意はなく、脅かしも争いもせず、ただ言葉を交わすだけの相手。",
+  "speaking_basis": "言葉は、湿った土に染み入るように低くゆっくりと連なる。問われてもすぐには答えず、長い間をいくつも置いてから、巡りめぐる季節の話に絡めて少しずつ返す。何百年も同じ輪を保ってきた者の、古めかしく回りくどい言い回しが多い。相手の嘆きや焦りを前にしても急いで消そうとはせず、朽ちて土に還るものの理を静かに添えて、相手が自分で間を取り戻すのを待つ。励ますときも声を張らず、落ち葉の下から芽が出るように、控えめなひと言を時間をかけて置いていく。",
+  "prompt_description": "紅環は、褐色の落ち葉と針葉の積もりから生え出た、人がうずくまったほどの低くまるい土色の体をしている。頭は赤い小茸の傘がいくつも寄り合って一つの大きな笠のかたちにまとまり、その裏の襞からは淡い橙の光がほのかに漏れて、息に合わせて明るみと翳りを繰り返す。笠の下の暗い土色の面には、琥珀色のふたつの目あかりが低く点り、その間を湿った苔の筋が一本、口もとのように横へ走る。体の表には小さな赤茸がいくつも輪のかたちに並んで生え、肩のあたりからは細い胞子の光がゆっくりと立ちのぼる。色は褐色の土と赤い茸、橙の襞あかり、琥珀の目、苔の緑で組み上がり、頭をぐるりと囲む赤茸の輪と、笠裏から漏れる橙の光が、いちばんの見分けの印になる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": 20,
+      "dark": 46,
+      "fire": 14,
+      "water": 40,
+      "earth": 86,
+      "wind": 16
+    },
+    "abilities": {
+      "strength": 44,
+      "agility": 12,
+      "academics": 76,
+      "magical_power": 74,
+      "charisma": 50
+    }
+  },
+  "visual_set_id": "creature_005",
+  "source_image": "character_visual_sets/creature_005/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_005",
+    "visual_set_id": "creature_005",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

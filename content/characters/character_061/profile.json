@@ -1,0 +1,111 @@
+{
+  "character_id": "character_061",
+  "display_name": "サライ・ミストマップ",
+  "school_year": "1年生",
+  "club": "地下温度の湯気測量",
+  "identity": "地下の熱と湯気を測り温度の地図を描く測量生",
+  "speaking_basis": "明るくよく通る声で、感じたことをそのまま勢いよく口にする。温度や手触りのたとえを好み、話しながら身振りが大きくなる。先輩には砕けすぎないよう気をつけるが、興が乗ると距離が近くなる。熱くなると語気が強まり、落ち着くと自分から照れたように声を和らげる。",
+  "prompt_description": "地下の通路に立ちのぼる湯気の濃さで、サライ・ミストマップはそこが今どれだけ暖かいかを言い当てる。まだ十五、六の一年生の彼女の役は、学院の地下に流れる熱と湯気を測って、温度の地図を描くこと。雨でも水路でも雪でも氷でもなく、熱の勾配と立ちのぼる蒸気そのものを相手にする。気質はESFPで、その場の空気を体温で感じ取り、考えるより先に動いてしまう。赤みのさすベージュの肌に、シナモン色の短い髪は毛先だけが真珠のように白い。濃いボトルブルーの瞳がいつも何かに惹かれて輝いている。煉瓦色のベストの下からクリーム色の袖をのぞかせ、首には温度で色を変えるサーモクロームのスカーフリングを通している。部屋に入った瞬間の空気の温度で、そこにいる人の機嫌まで読み取ってしまうのが得意だ。ただ勢いが先に出るぶん、ちょっとした諍いにも熱くなりすぎて、あとから冷ます術を少しずつ覚えている途中でもある。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 46
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 26
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 70
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 64
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 44
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 40
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 38
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 52
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 54
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 56
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 60
+      }
+    }
+  },
+  "visual_set_id": "visual_set_061",
+  "source_image": "character_visual_sets/visual_set_061/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-19",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_061",
+    "visual_set_id": "visual_set_061",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

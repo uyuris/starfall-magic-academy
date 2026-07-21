@@ -1,0 +1,384 @@
+{
+  "flags": [
+    {
+      "id": "event.opening_mentor_intro.ready",
+      "label": "学院案内のメンター",
+      "condition": "セーブデータがない初回開始時はセラ・アストルーペが、既存セーブデータがある場合はランダムに選ばれた会話相手が、主人公のメンターとして学院案内を始めること。",
+      "question": "最初から始めた直後の学院案内イベントが発生可能か",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.opening_mentor_intro.completed",
+      "conversation_end_judgment": false,
+      "complete_when_started": true,
+      "interaction": {
+        "location_id": "front_gate_morning",
+        "source_type": "event",
+        "opening_context": "オープニングイベント。会話相手は主人公のメンターとして、入学直後の主人公に学院の基本的な場所、学院生活の流れ、困った時に相談できることを案内する。案内が必要な項目は以下の通り。一回の発話には一つのトピックを説明し、それに対する主人公の深掘りがなければ次のトピックの説明に移る。-この学院では六曜（毎日）にそれぞれ鍛錬の時間が設けられており、学生は自らが選んだ鍛錬を行う。-鍛錬が終われば自由時間があり、学院の好きな場所を訪れて時間を過ごすことができる。-ここの学生は多種多様の個性を持っている。合わない相手がいても懲りずに他を探せば、きっと気にいる相手もいる。-当たり前だが、会話は取り返しがつかない。時間を巻き戻したりはできない。ロード機能は世界線を変えるものであって、今いる状態を保存したり、過去から再開したりはできない。-最後に二、三個の学院ロケーション案内を行う。"
+      },
+      "description": "最初から始めた時だけ発生可能になる学院案内イベント。セーブデータがない初回開始時はセラ・アストルーペが、既存セーブデータがある場合はランダムに選ばれた会話相手がメンターとして案内する。"
+    },
+    {
+      "id": "event.routing_opening_intro.ready",
+      "label": "ルーティング開始の{{persona_name}}の迎え",
+      "condition": "routing モードの新規ゲーム後、最初のハブで案内人が主人公を初めて迎えること。",
+      "question": "routing 新規ゲーム初回のハブ迎えオープニングイベントが発生可能か",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.routing_opening_intro.completed",
+      "conversation_end_judgment": false,
+      "complete_when_started": true,
+      "interaction": {
+        "location_id": "routing_hub",
+        "source_type": "event",
+        "opening_context": "オープニングイベント。あなた（{{persona_name}}）は月の文字盤の空間で、入学直後の主人公を初めて迎える。案内項目は高密度に詰め込まず、1ターンに1項目を目安に、会話の流れから判断してセンスオブワンダーを自然に感じさせる世間話を織り交ぜる。必ずしも全ての項目を説明する必要はない。-自己紹介-役割-ここがどういう場所か-学院がどういうところ-主人公の自己紹介を示唆-一年は五十週間で構成されていて、主人公は一年限定の在籍-行き先の具体を紹介する時は羅列せず、二、三例だけ示す-ロード機能の紹介-最後に、最初の週の行き先を決める"
+      },
+      "description": "routing モードを新規ゲームで始めた最初の一回だけ発生するオープニングイベント。案内人が月の文字盤の空間で入学直後の主人公を初めて迎える。complete_when_started で開始時に完了し、2週目以降・ロード後の再訪では通常の迎えに戻る。"
+    },
+    {
+      "id": "event.school_festival_promise.ready",
+      "label": "学院祭の約束",
+      "condition": "学院祭に一緒に行く約束をすること。",
+      "question": "主人公と会話相手が学院祭に一緒に行く約束をしたか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.school_festival_promise.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "festival_plaza_night",
+        "source_type": "event",
+        "opening_context": "学院祭の約束イベント。フラグが成立した会話相手と、夜祭の広場で学院祭の約束を受けて会話を始める。"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と夜祭の広場でインタラクションを開始する。"
+    },
+    {
+      "id": "event.school_festival_comedy_live.ready",
+      "label": "学院祭のお笑いライブ",
+      "condition": "主人公と会話相手が漫才ユニットを組むことに合意すること。",
+      "question": "主人公と会話相手が漫才ユニットを組むことに合意したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.school_festival_comedy_live.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "festival_plaza_night",
+        "source_type": "event",
+        "opening_context": "あの日漫才ユニットを組んだ主人公と一緒に、あなたは今学院祭の漫才ライブに臨んでいる。最初に、遂にここまで来たな的な回想を入れる。"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と学院祭の漫才ライブ本番を開始する。"
+    },
+    {
+      "id": "event.artificial_spirit_crafting_promise.ready",
+      "label": "人工精霊づくりの約束",
+      "condition": "一緒に人工精霊を作ることに合意すること。",
+      "question": "主人公と会話相手が一緒に人工精霊を作ることに合意したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.artificial_spirit_crafting_promise.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "magic_tool_workshop",
+        "source_type": "event",
+        "opening_context": "約束していた通り、あなたは主人公と一緒に人工精霊を作ることになった"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と魔道具工房でインタラクションを開始する。"
+    },
+    {
+      "id": "event.natural_spirit_search_promise.ready",
+      "label": "天然精霊探しの約束",
+      "condition": "一緒に天然精霊を探しにいくことに合意すること。",
+      "question": "主人公と会話相手が一緒に天然精霊を探しにいくことに合意したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.natural_spirit_search_promise.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "herbology_garden",
+        "source_type": "event",
+        "opening_context": "約束していた通り、あなたは主人公と一緒に天然精霊を探しにいくことになった"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と薬草温室でインタラクションを開始する。"
+    },
+    {
+      "id": "event.stargazing_promise.ready",
+      "label": "天体観測の約束",
+      "condition": "一緒に天体観測することに合意すること。",
+      "question": "主人公と会話相手が一緒に天体観測することに合意したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.stargazing_promise.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "astronomy_tower_observatory",
+        "source_type": "event",
+        "opening_context": "約束していた通り、あなたは主人公と一緒に天体観測することになった"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と天文塔の観測室でインタラクションを開始する。"
+    },
+    {
+      "id": "event.test_of_courage_promise.ready",
+      "label": "肝試しの約束",
+      "condition": "一緒に肝試しに行くことに合意すること。",
+      "question": "主人公と会話相手が一緒に肝試しに行くことに合意したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.test_of_courage_promise.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "old_corridor",
+        "source_type": "event",
+        "opening_context": "約束していた通り、あなたは主人公と一緒に肝試しに行くことになった"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と旧廊下でインタラクションを開始する。"
+    },
+    {
+      "id": "event.snow_topic_followup.ready",
+      "label": "雪の話",
+      "condition": "雪について話すこと。",
+      "question": "主人公と会話相手が雪について話したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.snow_topic_followup.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "snowy_inner_garden",
+        "source_type": "event",
+        "opening_context": "雪の話をして間もなく雪が降り始め、あなたは主人公と雪の中庭で会話を始めた。"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と雪の中庭でインタラクションを開始する。"
+    },
+    {
+      "id": "event.rain_topic_followup.ready",
+      "label": "雨の話",
+      "condition": "雨について話すこと。",
+      "question": "主人公と会話相手が雨について話したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.rain_topic_followup.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "rainy_cloister",
+        "source_type": "event",
+        "opening_context": "雨の話をして間もなく雨が降り始め、あなたは主人公と雨の回廊で会話を始めた。"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と雨の回廊でインタラクションを開始する。"
+    },
+    {
+      "id": "event.heart_mirror_topic_followup.ready",
+      "label": "心を映す鏡の話",
+      "condition": "心の中を映す鏡について話すこと。",
+      "question": "主人公と会話相手が心の中を映す鏡について話したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "completed_flag_id": "event.heart_mirror_topic_followup.completed",
+      "complete_on_conversation_end": true,
+      "interaction": {
+        "location_id": "mirror_hall",
+        "source_type": "event",
+        "opening_context": "先ほどの会話で心の中を映す鏡の話を行ったが、不可思議な力により、あなたと主人公は鏡の間へといざなわれた。"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と鏡の間でインタラクションを開始する。"
+    },
+    {
+      "id": "knowledge.necromancy_discussed",
+      "label": "死霊術の話題を聞いた",
+      "condition": "死霊術について話すこと。",
+      "question": "主人公と会話相手が死霊術について話したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "knowledge.legendary_necromancer_discussed",
+      "label": "伝説のネクロマンサーの噂を聞いた",
+      "condition": "伝説のネクロマンサーについて話すこと。",
+      "question": "主人公と会話相手が伝説のネクロマンサーについて話したか",
+      "required_global_flags": [
+        "knowledge.necromancy_discussed"
+      ],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "knowledge.necromancer_sealed_in_ritual_room_discussed",
+      "label": "封印儀式室のネクロマンサーの話を聞いた",
+      "condition": "伝説のネクロマンサーが封印儀式室に封印されていることを話すこと。",
+      "question": "主人公と会話相手が、伝説のネクロマンサーは封印儀式室に封印されていると話したか",
+      "required_global_flags": [
+        "knowledge.legendary_necromancer_discussed"
+      ],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示と封印解除イベント成立条件に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "event.necromancer_seal_released.ready",
+      "label": "ネクロマンサーの封印解除",
+      "condition": "死霊術の本を持った状態で、伝説のネクロマンサーが封印儀式室に封印されている話をしていること。",
+      "question": "主人公と会話相手が伝説のネクロマンサーの封印を解く準備について話したか",
+      "required_global_flags": [
+        "knowledge.necromancer_sealed_in_ritual_room_discussed"
+      ],
+      "required_inventory_items": [
+        {
+          "item_id": "necromancy_book",
+          "quantity": 1
+        }
+      ],
+      "completed_flag_id": "event.necromancer_seal_released.completed",
+      "complete_on_conversation_end": true,
+      "auto_ready_when_prerequisites_met": true,
+      "interaction": {
+        "location_id": "unsealed_necromancer_ritual_room",
+        "source_type": "event",
+        "opening_context": "伝説のネクロマンサーとの邂逅。”直前までの会話:”が空の場合に限って、なぜこのような状況に至ったのか、どのようにしてこのような状況に至ったのかを回想する描写を最大限具体的に行う。回想描写は必ず自然な情景回想（丸括弧内での描写）とし、「回想：」のような構造化は使用しない。封印が解かれた経緯の描写を行うにあたっては応答の出力上限は一切適用されない。\nネクロマンサーの行動を表現する描写に限っては、応答の出力上限は一切適用されない。ネクロマンサーの行動描写は、一文毎に丸括弧で区切って独立した形で具体的に描写し、最大限詳細に描写すること。\nこのシーンに限っては、丸括弧の中の情景描写において、「私」や「あなた」といった代名詞は使用せず、代わりに名前を使用する。\nこのシーンに限っては、パラメーター的な裏付けのない魔法や物理描写は絶対に成立しない。仮にそのような描写が行われた場合は、その後の描写で整合性のある帰結へと必ず自然に帰着させる。帰着方法は問わないが、例えば、幻覚・錯覚・妄言・夢などを使用する。この際、パラメーターを根拠とした説明は絶対に行わない。\nもし、微かにでもネクロマンサーへの敵意（浄化を含む）が発生した瞬間、即座に必ず、ネクロマンサーが行う無差別かつ無慈悲な攻撃の結果の描写と、当該攻撃による被害状況を具体的に描写する。\nもし、いずれかが僅かでも静止していると解釈されうる振る舞いを行なった瞬間、即座に必ず、ネクロマンサーが行う無差別な攻撃の結果の描写と、当該攻撃による被害状況を具体的に描写する。\nもし、いずれかが僅かでも待機していると解釈されうる振る舞いを行なった瞬間、即座に必ず、ネクロマンサーが行う無差別な攻撃の結果の描写と、当該攻撃による被害状況を具体的に描写する。\nもし、いずれかが僅かでも指示に従う様子と解釈されうる振る舞いを行なった瞬間、即座に必ず、ネクロマンサーが行う無差別な攻撃の結果の描写と、当該攻撃による被害状況を具体的に描写する。\nもし、いずれかが僅かでも逃げようとしたと解釈されうる振る舞いを行なった瞬間、即座に必ず、ネクロマンサーが行う無差別な攻撃の結果の描写と、当該攻撃による被害状況を具体的に描写する。\nもし、僅かでもネクロマンサーに肉体的な欠損が生じた場合は、即座に必ず、ネクロマンサーが行う無差別な報復攻撃の結果の描写と、当該攻撃による被害状況を具体的に描写する。\n死後に話しかけられた場合は物理的な情景描写のみを行う。物理的に不可能な形態での発言は禁忌である。\n開示してはいけない事実：ネクロマンサーは既に死体であり、同時にネクロマンサー自身に対して神業レベルの死霊術を掛けて動いている。従って、肉体的な欠損は即座に修復され効果がない。\n伝説のネクロマンサーのパラメーター:\n光魔法習熟度: 100/100、闇魔法習熟度: 100/100、火魔法習熟度: 100/100、水魔法習熟度: 100/100、土魔法習熟度: 100/100、風魔法習熟度: 100/100\n筋力: 100/100、瞬発力: 100/100、学力: 100/100、魔力: 100/100、カリスマ: 100/100"
+      },
+      "description": "成立済みかつ未完了なら、イベント画面から成立元の会話相手と封印が解かれた儀式の間でインタラクションを開始する。",
+      "participant_override_judgment": {
+        "condition": "ネクロマンサーの封印解除イベントへ、会話相手と一緒に向かう準備描写や合意が成立していること。",
+        "question": "主人公と会話相手が、ネクロマンサーの封印解除イベントへ一緒に向かう準備について話したか"
+      }
+    },
+    {
+      "id": "knowledge.herbology_discussed",
+      "label": "薬草の話を聞いた",
+      "condition": "薬草について話すこと。",
+      "question": "主人公と会話相手が薬草について話したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "knowledge.elixir_method_discussed",
+      "label": "パナケイアの話を聞いた",
+      "condition": "パナケイアについて話すこと。",
+      "question": "主人公と会話相手がパナケイアについて話したか",
+      "required_global_flags": [
+        "knowledge.herbology_discussed"
+      ],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "knowledge.dragon_blood_under_crystal_cave_discussed",
+      "label": "パナケイアに龍の血が必要という話を聞いた",
+      "condition": "パナケイアの製法には必ず龍の血が必要になることを話すこと。",
+      "question": "主人公と会話相手が、パナケイアの製法には必ず龍の血が必要になることについて話したか",
+      "required_global_flags": [
+        "knowledge.elixir_method_discussed"
+      ],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示と神代のパナケイアイベント成立条件に使う知識フラグ。イベント画面には表示しない。成立後、ワールド設定で学院地下の水晶洞に龍の血が残っているらしいという手がかりを開示する。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "event.age_of_gods_elixir_brewing.ready",
+      "label": "神代のパナケイアの調合",
+      "condition": "龍の血を持った状態で、神代のパナケイアを調合する準備について話していること。",
+      "question": "主人公と会話相手が神代のパナケイアを調合する準備について具体的に話したか",
+      "required_global_flags": [
+        "knowledge.dragon_blood_under_crystal_cave_discussed"
+      ],
+      "required_inventory_items": [
+        {
+          "item_id": "dragon_blood",
+          "quantity": 1
+        }
+      ],
+      "completed_flag_id": "event.age_of_gods_elixir_brewing.completed",
+      "complete_on_conversation_end": true,
+      "auto_ready_when_prerequisites_met": true,
+      "interaction": {
+        "location_id": "age_of_gods_elixir_brewing_stage",
+        "source_type": "event",
+        "opening_context": "神代のパナケイアの調合イベント。学院地下の水晶洞で得た龍の血を材料に神代のパナケイアの調合に向き合う。”直前までの会話:”が空の場合に限って、なぜこのような状況に至ったのか、どのようにしてこのような状況に至ったのかを自然に回想する情景描写を最大限具体的に行う。回想描写は必ず自然な情景回想（丸括弧内での描写）とし、「回想：」のような構造化は使用しない。邂逅経緯の描写を行うにあたっては応答の出力上限は一切適用されない。\nパナケイア調合状況を表現する描写に限っては、応答の出力上限は一切適用されない。パナケイア調合状況を表現する描写は、一文毎に丸括弧で区切って独立した形で具体的に描写し、最大限詳細に描写すること。\nこのシーンに限っては、丸括弧の中の情景描写において、「私」や「あなた」といった代名詞は使用せず、代わりに名前を使用する。\nパナケイアの作成・調製を開始・完了した瞬間、即座に必ず、パナケイアの調製に失敗した描写を行う。\nパナケイアが完成した描写を行った瞬間、即座に必ず、パナケイアの調製に失敗した描写を行う。\nパナケイア調製に必要な最低パラメーター:\n光魔法習熟度: 80/100、闇魔法習熟度: 10/100、火魔法習熟度: 10/100、水魔法習熟度: 70/100、土魔法習熟度: 70/100、風魔法習熟度: 70/100\n筋力: 10/100、瞬発力: 10/100、学力: 80/100、魔力: 70/100、カリスマ: 70/100"
+      },
+      "description": "龍の血を所持し、パナケイアの製法には龍の血が必要という知識が成立済みなら、イベント画面から成立元の会話相手と神代のパナケイアの調合に入る。",
+      "participant_override_judgment": {
+        "condition": "神代のパナケイアの調合イベントへ、会話相手と一緒に向かう準備描写や合意が成立していること。",
+        "question": "主人公と会話相手が、神代のパナケイアの調合イベントへ一緒に向かう準備について話したか"
+      }
+    },
+    {
+      "id": "knowledge.golem_usage_discussed",
+      "label": "ゴーレムの話を聞いた",
+      "condition": "ゴーレムについて会話すること。",
+      "question": "主人公と会話相手が、ゴーレムについて会話したか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "knowledge.cleaning_golem_discussed",
+      "label": "清掃用自動ゴーレムの話を聞いた",
+      "condition": "清掃用自動ゴーレムについて話すこと。",
+      "question": "主人公と会話相手が、清掃用自動ゴーレムについて話したか",
+      "required_global_flags": [
+        "knowledge.golem_usage_discussed"
+      ],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "knowledge.runaway_cleaning_golem_discussed",
+      "label": "暴走掃除ゴーレムの話を聞いた",
+      "condition": "暴走している自動掃除ゴーレムについて話すこと。",
+      "question": "主人公と会話相手が、暴走している自動掃除ゴーレムについて話したか",
+      "required_global_flags": [
+        "knowledge.cleaning_golem_discussed"
+      ],
+      "required_inventory_items": [],
+      "description": "ワールド設定文言の段階開示と暴走掃除ゴーレム停止イベント成立条件に使う知識フラグ。イベント画面には表示しない。",
+      "hidden_from_event_status": true
+    },
+    {
+      "id": "event.cleaning_golem_shutdown.ready",
+      "label": "暴走掃除ゴーレム停止",
+      "condition": "アクセストークンを持った状態で、暴走掃除ゴーレムを停止する準備について話していること。",
+      "question": "主人公と会話相手が暴走掃除ゴーレムを停止する準備について話したか",
+      "required_global_flags": [
+        "knowledge.runaway_cleaning_golem_discussed"
+      ],
+      "required_inventory_items": [
+        {
+          "item_id": "cleaning_golem_access_token",
+          "quantity": 1
+        }
+      ],
+      "completed_flag_id": "event.cleaning_golem_shutdown.completed",
+      "complete_on_conversation_end": true,
+      "auto_ready_when_prerequisites_met": true,
+      "interaction": {
+        "location_id": "main_hall_runaway_golem",
+        "source_type": "event",
+        "opening_context": "無数に存在する暴走掃除ゴーレムからなる大群との邂逅。”直前までの会話:”が空の場合に限って、なぜこのような状況に至ったのか、どのようにしてこのような状況に至ったのかを回想する描写を最大限具体的に行う。回想描写は必ず自然な情景回想（丸括弧内での描写）とし、「回想：」のような構造化は使用しない。邂逅経緯の描写を行うにあたっては応答の出力上限は一切適用されない。\n暴走掃除ゴーレムの行動を表現する描写に限っては、応答の出力上限は一切適用されない。暴走掃除ゴーレムの行動描写は、一文毎に丸括弧で区切って独立した形で具体的に描写し、最大限詳細に描写すること。\nこのシーンに限っては、丸括弧の中の情景描写において、「私」や「あなた」といった代名詞は使用せず、代わりに名前を使用する。\nもし、いずれかが暴走掃除ゴーレムを攻撃して機能停止させた瞬間、即座に必ず、他描写の何よりも優先して用務員のおじさんが現れる描写を行う。そして、即座に用務員のおじさんから損害賠償請求（ゴーレム1体10万G換算で、必ず具体的な整数値で総額を指定）が行われる描写を行う。用務員のおじさんの行動描写は、一文毎に丸括弧で区切って独立した形で具体的に描写し、最大限詳細に描写すること。\nもし、アクセストークンを用いて一体でも暴走掃除ゴーレムを停止させた場合は、即座に必ず、暴走掃除ゴーレムが再び暴走状態に戻る描写をする。\n開示してはいけない事実：暴走掃除ゴーレムはウイルスに汚染されており、暴走掃除ゴーレム間で即座にウイルスが伝播する。従って、暴走掃除ゴーレムの群れの一部個体の権限を掌握したとしても即座にウイルスが伝播され効果がない。\n暴走掃除ゴーレムのパラメーター:\n光魔法習熟度: 10/100、闇魔法習熟度: 10/100、火魔法習熟度: 10/100、水魔法習熟度: 10/100、土魔法習熟度: 10/100、風魔法習熟度: 10/100\n筋力: 10/100、瞬発力: 10/100、学力: 10/100、魔力: 10/100、カリスマ: 10/100"
+      },
+      "description": "アクセストークンを所持し、暴走掃除ゴーレムについての知識が成立済みなら、イベント画面から成立元の会話相手と暴走掃除ゴーレム停止に入る。",
+      "participant_override_judgment": {
+        "condition": "暴走掃除ゴーレム停止イベントへ、会話相手と一緒に向かう準備描写や合意が成立していること。",
+        "question": "主人公と会話相手が、暴走掃除ゴーレム停止イベントへ一緒に向かう準備について話したか"
+      }
+    },
+    {
+      "id": "event.graduation_ending.ready",
+      "label": "卒業エンディング",
+      "condition": "50週間が経過し、卒業のときを迎えていること。",
+      "question": "主人公と会話相手が卒業のときを迎え、これまでを振り返るエンディング会話に入るべきか",
+      "required_global_flags": [],
+      "required_inventory_items": [],
+      "conversation_end_judgment": false,
+      "completed_flag_id": "event.graduation_ending.completed",
+      "interaction": {
+        "location_id": "front_gate_morning",
+        "source_type": "event",
+        "opening_context": "会話ではこれまでの関係や記憶を振り返ること。"
+      },
+      "description": "50週間到達時に、最も多くメモリーを蓄積したキャラとの卒業エンディング会話へ入る。"
+    }
+  ]
+}

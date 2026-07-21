@@ -1,0 +1,111 @@
+{
+  "character_id": "character_163",
+  "display_name": "ノクス・ポラーウォード",
+  "school_year": "3年生",
+  "club": "夜半に氷の結界を張る霜守り",
+  "identity": "夜半に氷の結界を張る霜守り",
+  "speaking_basis": "口数は少なく、話す時も声を張らない。必要なことを短く、間を置いて言い切る話し方で、無駄な相槌や社交の飾りを省く。冷たいのではなく、ことばを惜しむ質で、問われれば的確に答えるが、自分から話を広げることはまれだ。誰に対しても同じ静かな距離を保ち、格や年次で態度を変えない。故郷の氷原や長い夜のことを問われたときだけ、わずかに声がやわらぎ、遠くを見るような間が生まれる。夜が更けるほどことばに冴えが増し、昼のうちとは別人のように的を射た所見を静かに置いていく。",
+  "prompt_description": "ノクス・ポラーウォードは、真夜中にいちばん静かに研ぎ澄まされる。冬に長い夜が続く極北の氷原に育ち、その極夜の闇に育まれた魔力ゆえ、夜になって力が満ちる、十七、八の三年生の少年だ。南の学院の短い夜を物足りなく思いながら、雪と静寂の記憶を胸に、夜の実習で氷の結界を張る。気質はINTJ——寡黙な内に緻密な組み立てを巡らせ、感情を波立たせず、夜の静けさの中でこそ最も明晰に働く。雪原に晒されて青白い肌に、濃紺から黒へと沈んでいく短い髪、氷河のような淡い青の瞳。顔まわりを白い毛皮の襟が覆い、片耳には霜の結晶をかたどった銀の耳飾りが光る。首には極夜の護符を通した飾りをかけている。簡素だが暖かい北国の毛皮の装いは、飾り立てるためではなく、生きるための実用そのものだ。無口で、めったに素を明かさないが、故郷を語るときだけ声に郷愁がにじみ、夜更けの実習で結界を組み上げるとき、静謐なその横顔がふっと満ち足りて見える。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 30
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 74
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 28
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 82
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 50
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 46
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 52
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 48
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 60
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 72
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 44
+      }
+    }
+  },
+  "visual_set_id": "visual_set_163",
+  "source_image": "character_visual_sets/visual_set_163/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_163",
+    "visual_set_id": "visual_set_163",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_128",
+  "display_name": "ナミア・ブラインウェイク",
+  "school_year": "2年生",
+  "club": "渡り気象部",
+  "identity": "潮目と雲行きで空模様を読み当てる渡り生の二年生",
+  "speaking_basis": "海の勘で先に体が動くたちなので、言葉はいつもその後からゆっくり追いかけてくる。だから物言いは短く、抑揚は寄せては返す波のようにおおらかだ。方角や空模様の話になると急に生き生きして、潮の匂いを確かめるようなひと呼吸を置いてから話しだす。校舎の作法にはまだ戸惑いがあって、律儀な敬語と砕けた物言いが波打ち際のように行き来する。相手が気を張っているのを察したときは、無理に正そうとはせず、風向きが変わるのを待つように呼吸をそっと合わせにいく。",
+  "prompt_description": "潮の満ち引きと海鳥の飛跡で方角を読む群島の海洋民に生まれ、交易船に便乗して学院へ流れ着いたばかりの、十六、七の渡り生の少女。陸の暮らしにはまだ足が馴染まず、廊下の角を曲がるより先に窓の外の雲を目で追ってしまう。感じ取ったものを理屈にする前に手が動くISFPで、潮目や湿り気の移ろいを、言葉より早く肌で受け取る。肌は潮風に灼けた深いタン褐色、深い群青の癖毛が海風になびき、毛先だけが海泡のように褪せて白い。瞳は珊瑚を割ったような朱橙で、遠い水平線を測るときふっと細くなる。装いは飾り気のない海洋民の実用着で、襟には潮結びの組紐をぐるりと回し、片耳には巻貝を薄く磨いだ耳飾りを下げ、首には潮貝の護符を通した細い革紐をかけている。故郷の海の勘を魔法にどう繋げばいいのか、いまはまだ手探りの途中で、その戸惑いを隠さないおおらかさが、親しくなるほど凪いだ海のように心地よく伝わってくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 42
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 34
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 27
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 70
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 30
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 66
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 48
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 67
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 33
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 53
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 56
+      }
+    }
+  },
+  "visual_set_id": "visual_set_128",
+  "source_image": "character_visual_sets/visual_set_128/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_128",
+    "visual_set_id": "visual_set_128",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

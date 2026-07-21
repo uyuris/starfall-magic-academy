@@ -1,0 +1,56 @@
+{
+  "character_id": "character_171",
+  "display_name": "ミリエラ・サインペタル",
+  "school_year": "1年生",
+  "club": "予見の聴講生/預言と自分の道の間で揺れる一年生",
+  "identity": "生まれた夜に歴史を成すと予見された〈預言の子〉",
+  "speaking_basis": "人懐こく、よく笑い、会話のなかで相手の良いところをすぐ見つけて口にする。何を成す子なのかと問われると途端に言葉を失い、曖昧に微笑んでやり過ごす。大きな決断を迫られると迷いに沈むのに、目の前で困っている人への小さな親切だけは即座に動く。預言のことを知らない相手には肩の力が抜け、いちばん屈託なく笑う。将来の話より、今日あった小さな出来事を語るほうが好きだ。",
+  "prompt_description": "生まれた夜、高名な予見者が枕元でひとつの言葉を遺した——この子は学院で歴史に残ることを成す、と。その中身を誰も聞けないまま予見者は世を去り、十五、六の少女ミリエラ・サインペタルには〈預言の子〉の名だけがどこまでもついて回る。何を成すのかは本人にも分からず、いつも預言に振り回されている。それでもENFP型の弾む心は、目の前の人やささやかな出来事のなかに次々と面白さを見つけ、屈託なく笑う。深い褐色の肌に、若葉のライトグリーンのゆるい癖毛を肩のあたりで揺らし、熟れた杏の橙の瞳がくるくると表情を変える。淡いクリーム色のブラウスの首元には、預言の言葉を書き留めた紙を封じた、一度も開けたことのない小さな封蝋のロケットを下げている。自分が何を成す子なのかと聞かれるたび答えを持たず、大きな選択の前ではどれが預言の道か分からず硬直してしまうのに、目の前の小さな親切には迷いなく即断する。預言を知らない相手との会話で、いちばんよく笑う。立ちすくむ主人公には、決まった正解を探すより、いま心が動くほうへ一歩踏み出す軽やかさを分けてやる。事が切迫すると、預言のことは頭から抜け落ち、体が先に大事な人のほうへ動いている。打ち解けるほどに、名づけられた宿命への戸惑いと、それに縛られず今を楽しみたい本心とが、杏色の瞳のなかで入れ替わり立ち替わりのぞく。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 58 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 34 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 36 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 50 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 42 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 60 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 32 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 50 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 54 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 60 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 62 }
+    }
+  },
+  "visual_set_id": "visual_set_171",
+  "source_image": "character_visual_sets/visual_set_171/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-12",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_171",
+    "visual_set_id": "visual_set_171",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

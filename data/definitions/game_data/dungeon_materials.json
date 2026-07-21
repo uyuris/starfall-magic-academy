@@ -1,0 +1,172 @@
+{
+  "materials": [
+    {
+      "item_id": "material_light_t1",
+      "name": "燐光の砂",
+      "description": "暗がりで振ると、掌のくぼみに青白い光の粒がうっすら散る。乾いた手触りで、すぐに消えてしまう淡い燐光。",
+      "sell_price": 10,
+      "icon": "/canonical/dungeon/material-icons/material_light_t1.png"
+    },
+    {
+      "item_id": "material_light_t2",
+      "name": "暁光の露珠",
+      "description": "朝焼けの色を閉じ込めた、半透明の小さな珠。曇り空の下でも、ひとつまみが仄明るい光を絶やさず放ち続ける。",
+      "sell_price": 40,
+      "icon": "/canonical/dungeon/material-icons/material_light_t2.png"
+    },
+    {
+      "item_id": "material_light_t3",
+      "name": "白曜の輝石",
+      "description": "面を削り出したように平らな結晶で、内側から白い光が絶えず脈打っている。直視すると残像が長く尾を引き、しばらく視界の端に白い線が残る。見た目よりずしりと重い。",
+      "sell_price": 120,
+      "icon": "/canonical/dungeon/material-icons/material_light_t3.png"
+    },
+    {
+      "item_id": "material_light_t4",
+      "name": "天光の宝冠",
+      "description": "王冠の形にひとりでに結晶した、掌に余る光の塊。近づけたものの影が薄れ、金の縁は触れるほど冷ややかなのに、芯だけが灼けるように熱を持つ。頂に掲げられていたかのような威容が、ただの鉱物にはそぐわない。",
+      "sell_price": 400,
+      "icon": "/canonical/dungeon/material-icons/material_light_t4.png"
+    },
+    {
+      "item_id": "material_dark_t1",
+      "name": "宵闇の煤",
+      "description": "触れると指先が黒く汚れ、灯りを近づけてもその一点だけが光を吸って翳る、軽い煤のような黒い粒。",
+      "sell_price": 10,
+      "icon": "/canonical/dungeon/material-icons/material_dark_t1.png"
+    },
+    {
+      "item_id": "material_dark_t2",
+      "name": "玄闇の凝り",
+      "description": "夜の底を掬って握り固めたような、艶のない黒い塊。手のひらの熱でもわずかも緩まず、握るとひやりと沈み込む。",
+      "sell_price": 40,
+      "icon": "/canonical/dungeon/material-icons/material_dark_t2.png"
+    },
+    {
+      "item_id": "material_dark_t3",
+      "name": "冥き黒曜",
+      "description": "鏡のように磨かれた黒曜の板だが、映るはずの顔だけがそこに現れない。縁は剃刀じみて鋭く、断面の奥に暗い層がいくつも折り重なっている。持つ手がじわじわと重くなる。",
+      "sell_price": 120,
+      "icon": "/canonical/dungeon/material-icons/material_dark_t3.png"
+    },
+    {
+      "item_id": "material_dark_t4",
+      "name": "深淵の王珠",
+      "description": "底の見えない黒を丸く閉じ込めた珠で、表面には一点の反射もない。掌に載せると周りの物音が遠のき、部屋の温度がひとつ下がったように肌が粟立つ。深い場所から引き上げられたものだけがまとう、重い静けさがある。",
+      "sell_price": 400,
+      "icon": "/canonical/dungeon/material-icons/material_dark_t4.png"
+    },
+    {
+      "item_id": "material_fire_t1",
+      "name": "熾火の欠片",
+      "description": "まだ芯にかすかな赤みを宿した、炭のように黒い欠片。息を吹きかけると縁がじわりと橙に灯る。",
+      "sell_price": 10,
+      "icon": "/canonical/dungeon/material-icons/material_fire_t1.png"
+    },
+    {
+      "item_id": "material_fire_t2",
+      "name": "焔の凝塊",
+      "description": "揺れる焔をそのまま固めたような、赤と橙の縞が走る塊。表面は絶えず陽炎に揺らいで見え、近づけた指先がほんのり炙られる。",
+      "sell_price": 40,
+      "icon": "/canonical/dungeon/material-icons/material_fire_t2.png"
+    },
+    {
+      "item_id": "material_fire_t3",
+      "name": "業火の熔心",
+      "description": "半ば熔けかけたまま留まった、内側で赤黒く脈打つ核。触れずとも顔に熱が届き、置いた床がじりじりと焦げていく。持ち運ぶには厚い布で幾重にもくるむしかない。",
+      "sell_price": 120,
+      "icon": "/canonical/dungeon/material-icons/material_fire_t3.png"
+    },
+    {
+      "item_id": "material_fire_t4",
+      "name": "劫火の紅蓮核",
+      "description": "紅蓮の炎を幾重にも巻き込んで凝った、拳ほどの灼熱の核。周りの空気が絶えず立ちのぼり、そばに置いた金属がうっすら赤らむ。すべてを灰に変えた後にだけ残るという伝えのとおり、芯の熱は容易には引かない。",
+      "sell_price": 400,
+      "icon": "/canonical/dungeon/material-icons/material_fire_t4.png"
+    },
+    {
+      "item_id": "material_water_t1",
+      "name": "しぶきの雫石",
+      "description": "砕けた波のしぶきがそのまま固まったような、丸く透きとおった小石。振ると内側でかすかな水音がする。",
+      "sell_price": 10,
+      "icon": "/canonical/dungeon/material-icons/material_water_t1.png"
+    },
+    {
+      "item_id": "material_water_t2",
+      "name": "清冽の氷華",
+      "description": "六つの花弁の形に張った、溶けない薄氷の結晶。掌の熱にも形を崩さず、握ると刺すように冷ややか。",
+      "sell_price": 40,
+      "icon": "/canonical/dungeon/material-icons/material_water_t2.png"
+    },
+    {
+      "item_id": "material_water_t3",
+      "name": "潭底の蒼珠",
+      "description": "光の届かない淵の底で育ったという、深い藍をたたえた珠。中を覗けば水面のような揺らぎが幾層も沈み、息を止めたときの静けさに似た重みが掌にずっしりと食い込む。",
+      "sell_price": 120,
+      "icon": "/canonical/dungeon/material-icons/material_water_t3.png"
+    },
+    {
+      "item_id": "material_water_t4",
+      "name": "蒼海の碧玉",
+      "description": "大海そのものを削り出したような、青緑に澄んだ大きな玉。耳を寄せると寄せては返す潮鳴りが絶えず響き、握る腕にゆっくりと引く力がかかる。深い海に沈んでいた歳月の分だけ、玉は静かに重い。",
+      "sell_price": 400,
+      "icon": "/canonical/dungeon/material-icons/material_water_t4.png"
+    },
+    {
+      "item_id": "material_earth_t1",
+      "name": "地脈の小礫",
+      "description": "地の脈を辿って掘り出された、割れ口に細かな金属の粒がちらつく、鉄気の匂いのする灰色の小石。",
+      "sell_price": 10,
+      "icon": "/canonical/dungeon/material-icons/material_earth_t1.png"
+    },
+    {
+      "item_id": "material_earth_t2",
+      "name": "鉱脈の磁鉄",
+      "description": "黒く鈍い光を返すずしりと詰まった鉄の塊で、近づけた釘や小刀が吸い寄せられ、ことりと貼りつく。",
+      "sell_price": 40,
+      "icon": "/canonical/dungeon/material-icons/material_earth_t2.png"
+    },
+    {
+      "item_id": "material_earth_t3",
+      "name": "巌根の重鉱",
+      "description": "山の根から切り出された、片手には余る密度の鉱。持ち上げると見た目の倍は腕に来て、表面には地層の縞がそのまま巻き込まれている。落とせば床が抜けそうな鈍い音を立てる。",
+      "sell_price": 120,
+      "icon": "/canonical/dungeon/material-icons/material_earth_t3.png"
+    },
+    {
+      "item_id": "material_earth_t4",
+      "name": "地心の黄金鉱",
+      "description": "地の芯まで沈んだ金脈が長い年月をかけて凝った、黄金の筋が縦横に走る鉱塊。手にすると大地そのものの重みが腕を伝って背まで抜け、磨かれた金の面が鈍く底光りする。国ひとつ分の地層を潜り抜けてきた質量が、ただ静かにそこにある。",
+      "sell_price": 400,
+      "icon": "/canonical/dungeon/material-icons/material_earth_t4.png"
+    },
+    {
+      "item_id": "material_wind_t1",
+      "name": "そよ風の羽塵",
+      "description": "そよ風がほどいていった羽毛のような、掌に載せても重さのない白い綿塵。息がかかるだけでふわりと浮き上がる。",
+      "sell_price": 10,
+      "icon": "/canonical/dungeon/material-icons/material_wind_t1.png"
+    },
+    {
+      "item_id": "material_wind_t2",
+      "name": "旋風の巻石",
+      "description": "小さな旋風を芯まで巻き込んで固まった、螺旋の筋が渦を描く軽い石。耳を寄せると、遠くで鳴る風の音がかすかに巻いている。",
+      "sell_price": 40,
+      "icon": "/canonical/dungeon/material-icons/material_wind_t2.png"
+    },
+    {
+      "item_id": "material_wind_t3",
+      "name": "烈風の翠角",
+      "description": "吹き荒れる烈風に削られ研がれた、翡翠色の鋭い角状の結晶。握ると内側を風が通り抜けるようにひやりと鳴り、切っ先が空気を裂いて低く唸る。見た目より芯が詰まって重い。",
+      "sell_price": 120,
+      "icon": "/canonical/dungeon/material-icons/material_wind_t3.png"
+    },
+    {
+      "item_id": "material_wind_t4",
+      "name": "天嵐の風芯",
+      "description": "天を覆う大嵐の中心だけを掬い取って凝らせた、透明な渦を孕む芯。掌の上で周りの塵や紙片がゆっくりと回り出し、握れば腕にまとわりつく風がやまない。空のいちばん高い荒れの底に据わっていた、静かな重さがある。",
+      "sell_price": 400,
+      "icon": "/canonical/dungeon/material-icons/material_wind_t4.png"
+    }
+  ]
+}

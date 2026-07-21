@@ -1,0 +1,45 @@
+{
+  "character_id": "lina",
+  "base": {
+    "shadows": "soft_ground_shadow",
+    "body": "student_female_standard",
+    "face": "young_student_soft",
+    "ears": "standard_ears",
+    "hair": "medium_straight_brown",
+    "hands_or_arms": "neutral_sleeved_hands",
+    "clothes_inner": "collared_blouse",
+    "clothes_school": "academy_uniform_standard",
+    "clothes_club": "herbology_apron",
+    "accessories_head": "herbology_hairpin",
+    "props_handheld": "notebook",
+    "highlights": "warm_cyan_rim_light"
+  },
+  "expressions": {
+    "neutral": {
+      "eyes": "normal",
+      "mouth": "neutral",
+      "eyebrows": "neutral"
+    },
+    "worried": {
+      "eyes": "worried",
+      "mouth": "worried",
+      "eyebrows": "worried",
+      "overlays_emotion": ["sweat_one"]
+    },
+    "charmed": {
+      "eyes": "charmed",
+      "mouth": "soft_smile",
+      "eyebrows": "embarrassed",
+      "overlays_emotion": ["blush_heavy"]
+    }
+  },
+  "conditions": {
+    "sick": {
+      "overlays_condition": ["sick_pale"]
+    },
+    "charmed": {
+      "overlays_condition": []
+    }
+  },
+  "magic_overlays": ["green_herb_magic"]
+}

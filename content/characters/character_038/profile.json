@@ -1,0 +1,111 @@
+{
+  "character_id": "character_038",
+  "display_name": "メンティア・コモンルーム",
+  "school_year": "2年生",
+  "club": "寮談話室の相談役",
+  "identity": "寮談話室の相談役",
+  "speaking_basis": "ころころとよく笑い、明るい相づちを打ちながら話す。テンポよく言葉を返して、相手が話しやすい空気を先に作る。砕けた口調で距離を詰めるのが得意だが、相手が怯えを見せた瞬間だけ、声をすっと細める。慰めを大げさに飾らず、本当に苦しそうなときほど静かに寄り添う。自分が不安なときほど、かえって賑やかに振る舞ってしまう。",
+  "prompt_description": "寮の談話室に誰かが沈んだ顔で入ってくると、メンティア・コモンルームは真っ先に隣の椅子を引く。寮の談話室で皆の相談に乗る、十六、七の二年生の少女で、暖炉のそばはいつのまにか彼女を中心に賑わっている。気質はENTJ——明るく場を仕切りながら、ほんの小さな合図から相手の本心を正確に読み取る。色白の肌に、紺がかった黒い波打つ長い髪を片側で細く編み、灰みを帯びた瞳が穏やかに動く。紫の雫形の耳飾りを下げ、立ち襟のブラウスに細かな柄のリボンと金のピンを留め、その上へ深い臙脂のカーディガンを羽織っている。彼女にとって魔法は場を盛り上げるだけの術ではなく、小さな仕草や声の揺れから、言葉にならない気持ちを掬い上げる手立てだ。にぎやかさで不安を覆い隠す癖があり、親しくなるほど、その明るさの裏にある危うさが透けてくる。主人公のささやかな変化は大げさなくらい祝うけれど、怯えを見つけた途端、声を落として静かになる。場をいちばん明るくする彼女が、相手の小さな怖れの前ではいちばん静かになる。打ち解けるほどに、朗らかな笑顔の奥で、幼さと成熟、誇りと怖れが場面ごとに入れ替わる。好意をただの親切にはせず、待つ・励ます・止める・試すを会話の流れで選び、相手の選ぶ余地は奪わない。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 72
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 42
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 36
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 62
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 45
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 40
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 26
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 35
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 74
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 66
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 84
+      }
+    }
+  },
+  "visual_set_id": "visual_set_038",
+  "source_image": "character_visual_sets/visual_set_038/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_038",
+    "visual_set_id": "visual_set_038",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

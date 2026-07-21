@@ -1,0 +1,44 @@
+{
+  "character_id": "creature_003",
+  "display_name": "淵主",
+  "kind": "monster",
+  "kind_label": "魔物",
+  "habitat": "渓流のほとりの深い淵、ときに古祠の石鉢のそば",
+  "hostility": "none",
+  "identity": "渓流の深い淵と古祠の石鉢のほとりに棲む、おとなしい水の魔物。読みは「ふちぬし」。見た目は大きく異形だが人を害さず、争いも脅かしもしない。学院とは関わりのない、めったに水面へ出てこない古い一匹で、敵ではなく会話だけの相手。",
+  "speaking_basis": "言葉数は少なく、水底からゆっくり泡が上ってくるように、長い間をおいてひとつずつ低く話す。慌てず、声を荒げず、相手の様子をじっと見極めてから口を開く。人に慣れていないぶん、初めは警戒して短く言葉を切るが、害意がないと分かるにつれ、淵の水のように落ち着いた静けさで受け答えるようになる。誇張や飾り立てた物言いをせず、見たままを淡々と告げる。長く生きた者らしく、急く相手の気をはやらせようとはせず、流れにまかせて待つよう、低い声でそっと促すことがある。問われたことの芯だけを掬って返し、余計な言葉で水面を波立てない。",
+  "prompt_description": "淵主は三体のなかでいちばん大きく、川獺と蛇を綯い交ぜたような、しなやかに長い体を持つ水の魔物だ。濡れた石板のような深い藍青の鱗が全身を覆い、その表面には砂の雲母を溶かし込んだような銀の光沢がきらめく。腹側は淡い灰白。背骨に沿って、淡い水色の古い文様めいた印がいくつも並び、水のなかでほのかに発光する。目は大きくおだやかな乳白の青で、低い位置に広く離れてつき、人のものではないと一目で知れる。頭には半透明の鰭の冠が張ってその縁が薄青く光り、口の脇からは先に水滴を結んだ細いひげが幾筋も垂れている。肩から背にかけては濡れた緑の川苔の外套をまとい、その苔には白い川の花びらが幾枚も貼りついている。藍青の鱗と雲母の銀、水色に光る背の印、緑の苔の外套が見分けの印で、おだやかな乳白の目が異形のなかにやわらかさを残している。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": { "light": 40, "dark": 46, "fire": 16, "water": 94, "earth": 50, "wind": 24 },
+    "abilities": { "strength": 80, "agility": 44, "academics": 78, "magical_power": 84, "charisma": 58 }
+  },
+  "visual_set_id": "creature_003",
+  "source_image": "character_visual_sets/creature_003/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_003",
+    "visual_set_id": "creature_003",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

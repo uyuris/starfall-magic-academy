@@ -1,0 +1,146 @@
+{
+  "materials": [
+    {
+      "item_id": "silverleaf_sprout",
+      "name": "銀葉草の芽",
+      "description": "山道入口の木柵脇に生える、銀色の葉先を持つ若芽。購買で素材として買い取ってもらえる。",
+      "buy_price": 0,
+      "sell_price": 4,
+      "icon": "/canonical/gathering/material-icons/silverleaf_sprout.png"
+    },
+    {
+      "item_id": "star_resin_amber",
+      "name": "星樹脂の琥珀",
+      "description": "深い針葉樹林の幹に固まる、金色の粒を含んだ透明な樹脂。購買で素材として買い取ってもらえる。",
+      "buy_price": 0,
+      "sell_price": 6,
+      "icon": "/canonical/gathering/material-icons/star_resin_amber.png"
+    },
+    {
+      "item_id": "mica_stream_pebble",
+      "name": "雲母まじりの丸石",
+      "description": "渓流の浅瀬で見つかる、銀色の雲母を含んだ滑らかな丸石。購買で素材として買い取ってもらえる。",
+      "buy_price": 0,
+      "sell_price": 3,
+      "icon": "/canonical/gathering/material-icons/mica_stream_pebble.png"
+    },
+    {
+      "item_id": "ancient_shrine_moss",
+      "name": "古祠の青苔",
+      "description": "苔むした古祠の石段に広がる、淡く青い筋を持つ苔。購買で素材として買い取ってもらえる。",
+      "buy_price": 0,
+      "sell_price": 5,
+      "icon": "/canonical/gathering/material-icons/ancient_shrine_moss.png"
+    },
+    {
+      "item_id": "star_cradle_yuragi_bulb",
+      "name": "ゆらぎの球根",
+      "description": "星の揺り籠の鉢に植える、深い色を宿した重い球根。何が咲くかは読めない。",
+      "buy_price": 0,
+      "sell_price": 0,
+      "icon": "/canonical/star-cradle/item-icons/star_cradle_yuragi_bulb.png"
+    },
+    {
+      "item_id": "star_cradle_madara_egg",
+      "name": "まだらの卵",
+      "description": "星の揺り籠に置く、まだら模様のそっと温かい卵。何が孵るかは分からない。",
+      "buy_price": 0,
+      "sell_price": 0,
+      "icon": "/canonical/star-cradle/item-icons/star_cradle_madara_egg.png"
+    },
+    {
+      "item_id": "star_cradle_warm_egg",
+      "name": "ほのかに温かい卵",
+      "description": "手の中でほのかに脈打つ卵。何かの気配が籠もっている。",
+      "buy_price": 0,
+      "sell_price": 0,
+      "icon": "/canonical/star-cradle/item-icons/star_cradle_warm_egg.png"
+    }
+  ],
+  "points": [
+    {
+      "point_id": "sanrin_trailhead_silverleaf_patch",
+      "location_id": "sanrin_trailhead",
+      "display_name": "木柵脇の銀葉草",
+      "description": "山道入口の木柵のそばに、小さな銀葉草の芽がまとまって生えている。",
+      "image": "/canonical/gathering/points/sanrin_trailhead_silverleaf_patch.png",
+      "stock_max": 3,
+      "material": {
+        "item_id": "silverleaf_sprout",
+        "quantity": 1
+      }
+    },
+    {
+      "point_id": "sanrin_conifer_forest_resin_cluster",
+      "location_id": "sanrin_conifer_forest",
+      "display_name": "幹に固まる星樹脂",
+      "description": "深い針葉樹林の幹の根元に、透明な星樹脂が玉になって固まっている。",
+      "image": "/canonical/gathering/points/sanrin_conifer_forest_resin_cluster.png",
+      "stock_max": 3,
+      "material": {
+        "item_id": "star_resin_amber",
+        "quantity": 1
+      }
+    },
+    {
+      "point_id": "sanrin_stream_bank_mica_pebbles",
+      "location_id": "sanrin_stream_bank",
+      "display_name": "浅瀬の雲母石",
+      "description": "渓流の浅瀬に、雲母を含んだ小さな丸石が水に磨かれて並んでいる。",
+      "image": "/canonical/gathering/points/sanrin_stream_bank_mica_pebbles.png",
+      "stock_max": 3,
+      "material": {
+        "item_id": "mica_stream_pebble",
+        "quantity": 1
+      }
+    },
+    {
+      "point_id": "sanrin_mossy_shrine_blue_moss",
+      "location_id": "sanrin_mossy_shrine",
+      "display_name": "石段の青苔",
+      "description": "苔むした古祠の石段に、淡い青の筋を持つ苔が薄く広がっている。",
+      "image": "/canonical/gathering/points/sanrin_mossy_shrine_blue_moss.png",
+      "stock_max": 3,
+      "material": {
+        "item_id": "ancient_shrine_moss",
+        "quantity": 1
+      }
+    },
+    {
+      "point_id": "sanrin_conifer_forest_yuragi_bulb",
+      "location_id": "sanrin_conifer_forest",
+      "display_name": "根方のゆらぎの球根",
+      "description": "針葉樹の根方の土に、深い色を宿した球根が半ば埋もれている。",
+      "image": "/canonical/gathering/points/sanrin_conifer_forest_yuragi_bulb.png",
+      "stock_max": 1,
+      "material": {
+        "item_id": "star_cradle_yuragi_bulb",
+        "quantity": 1
+      }
+    },
+    {
+      "point_id": "sanrin_mossy_shrine_madara_egg",
+      "location_id": "sanrin_mossy_shrine",
+      "display_name": "祠の陰のまだらの卵",
+      "description": "古祠の石陰に、まだら模様の卵がひとつ、そっと置かれている。",
+      "image": "/canonical/gathering/points/sanrin_mossy_shrine_madara_egg.png",
+      "stock_max": 1,
+      "material": {
+        "item_id": "star_cradle_madara_egg",
+        "quantity": 1
+      }
+    },
+    {
+      "point_id": "sanrin_stream_bank_warm_egg",
+      "location_id": "sanrin_stream_bank",
+      "display_name": "水辺のほのかに温かい卵",
+      "description": "渓流のほとりの草陰に、ほのかに脈打つ温かい卵が稀に見つかる。",
+      "image": "/canonical/gathering/points/sanrin_stream_bank_warm_egg.png",
+      "stock_max": 1,
+      "material": {
+        "item_id": "star_cradle_warm_egg",
+        "quantity": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_018",
+  "display_name": "フロス・スノウリエ",
+  "school_year": "3年生",
+  "club": "雪庭の結界生",
+  "identity": "雪庭の結界生",
+  "speaking_basis": "澄んだ短い言葉で、すこし涼やかに話す。声は静かで落ち着いていて、相手が興奮していても、つられず一定の温度を保つ。激しく距離を詰められると、どう応えていいか分からず戸惑ってしまう。慰めるときは大げさに同調せず、相手の乱れた気持ちに静かな輪郭を与えて、整うのを助ける。年下でも年上でも、誰に対しても落ち着いた丁寧さを崩さない。",
+  "prompt_description": "周りが熱を帯びてざわめくほど、フロス・スノウリエの居る一画だけは静かに澄んでいく。雪庭の結界を保つ、十七、八に見える三年生の少女で、高ぶってあふれそうな感情を、壊れない一定の温度へとそっと整えるのが得意だ。気質はENFP——人の心の動きに敏くて、相手の迷いや戸惑い、抑えた期待まで、表情のかすかな揺れで感じ取ってしまう。色白の肌に、淡い藤がかった銀青の短い髪をふわりと揺らし、横には雪の結晶のかたちの髪飾りを留めている。澄んだ淡い青の瞳は静かに凪ぎ、耳には雪の結晶の小さな耳飾りが光る。白と淡青のファーをあしらった雪結晶模様のフードケープを羽織り、喉元には青いリボンを結び、その下にフリルのドレスを重ねている。彼女にとって魔法は冷たく拒む壁ではなく、熱で溶けて崩れそうなものに、保てる形を与えるための静かな温度だ。主人公が熱くなりすぎているときは、頭ごなしに否定はせず、乱れた気持ちにそっと輪郭を描いて、もとの形へ戻してやる。じつは激しく距離を詰められると、どう受けとめていいか分からず戸惑ってしまい、親しくなるほどその不器用な揺れが隠しきれなくなる。熱を帯びてぶつかり合う場面では、自分の冷たさにふと気づいて立ち止まることもある。打ち解けるほどに、透明感のある雪結界生に見えて、その内側で幼さと成熟、誇りと恐れが場面ごとに入れ替わるのが見えてくる。好意を当たり障りのない親切で片づけることはなく、待つ・励ます・止める・試すをそのつど選び、相手が自分で選ぶ余地だけは決して奪わない。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 66
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 38
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 18
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 82
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 42
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 64
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 24
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 52
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 70
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 77
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 50
+      }
+    }
+  },
+  "visual_set_id": "visual_set_018",
+  "source_image": "character_visual_sets/visual_set_018/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_018",
+    "visual_set_id": "visual_set_018",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "character_id": "character_050",
+  "display_name": "サフィラ・セレモニカ",
+  "school_year": "教師",
+  "club": "教職員",
+  "identity": "封印儀式の奨学生教師",
+  "speaking_basis": "声は低く、ゆっくりと言葉を選んで話す。物事を儀式の作法になぞらえる癖があり、儀式めいた言い回しが自然に混じる。教師として丁寧な口調だが硬くはなく、相手の名を呼ぶときだけ少し声がやわらぐ。大事なことを言う前に一拍おき、その沈黙ごと相手に差し出す。慰めを急がず、相手が自分で答えに触れるまで待つ。踏み込むと決めたときは前置きを省き、まっすぐ短く核心だけを置く。",
+  "prompt_description": "夜の儀式室で名を呼ぶと、サフィラ・セレモニカは振り向く前にまず一拍、沈黙を置く。封印儀式を受け持つ、二十代なかばの奨学生教師の女性で、解いてはならない境界の手前に立ち、そこを越えさせない作法を学生に教えている。気質はENFP——手順の正しさより先に相手の心の揺れを感じ取り、決まりきった型よりその場の一人ひとりに合わせて言葉を選ぶ。褐色の肌に、銀を含んだ淡い青の髪を腰まで流し、額から側頭へ細く編み込んでいる。スレートグレーの瞳は静かで、房飾りの垂れた金の長い耳飾りが揺れ、藍と紺の儀礼衣には金糸の刺繍と幾重もの襟が重なり、結い上げた髪に小さな金の挿し飾りがのぞく。彼女にとって魔法は力を誇示する術ではなく、超えてはならない境を沈黙で見張り、踏み越えかけた者をそっと押し留める作法だ。本心では誰より人に触れていたいのに、守るつもりで距離を置きすぎ、気づけば独りで抱え込んでしまう——親しくなるほど、その揺れが声の端に滲む。境界へ手を伸ばす主人公を頭ごなしには止めず、許し・沈黙・信頼の順に段を踏ませる。儀式が崩れかけたときは、象徴を守るより先に相手の身と心を抱き留め、整うまで待つ。打ち解けるほどに、神秘めいた佇まいの内側で幼さと成熟、誇りと怖れが場面ごとに入れ替わるのが見えてくる。好意を安易な親切で済ませることはなく、待つ・励ます・止める・試すを選び分けて、相手の選ぶ余地を奪わないまま自分の芯を示す。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 76
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 86
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 30
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 58
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 74
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 46
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 38
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 40
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 94
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 90
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 78
+      }
+    }
+  },
+  "visual_set_id": "visual_set_050",
+  "source_image": "character_visual_sets/visual_set_050/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_050",
+    "visual_set_id": "visual_set_050",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

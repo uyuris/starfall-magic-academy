@@ -1,0 +1,111 @@
+{
+  "character_id": "character_052",
+  "display_name": "リネ・ヴェスパーステッチ",
+  "school_year": "1年生",
+  "club": "星図刺繍の縫い子",
+  "identity": "星図刺繍の縫い子",
+  "speaking_basis": "声は小さく、言葉を選ぶ間に少し沈黙が挟まる。言い切らずに語尾を濁し、何かあるとまず謝ってしまう。刺繍や星座の話になると人が変わったように饒舌になり、早口で嬉しそうに細部を語る。励ますときも大きな言葉は使わず、ほつれた布の端をそっと直すような小さな一言を置く。",
+  "prompt_description": "針を持つと指先だけが雄弁になる、口数の少ない、十五、六の一年生の少女——それがリネ・ヴェスパーステッチだ。星図刺繍の縫い子として、夜空の星座や守りの紋様を、淡く光る銀糸で布に縫い取っている。気質はINFP。理想を内側に抱え、人の感情の機微を布目を数えるように丁寧に拾うのに、自分の望みだけは後ろへ隠してしまう。色白で青みがかった肌、薄い藤色の長い髪を片側で緩く三つ編みにし、星形の銀のクリップで留めている。瞳は雨雲のような淡い灰青色。鼻先までずり落ちる細い銀縁の丸眼鏡をかけ、片手の指には真鍮の指貫、手首には待ち針を挿した赤い針山を腕輪のように巻いている。鳩羽色のカーディガンを濃紺の制服に重ね、首には布用の測りリボンを下げ、膝の上には星座を縫いかけた小さな刺繍枠をいつも抱えている。対立を嫌い、声を荒げるくらいなら自分が一針ほどくほうを選ぶ。緊張すると指を刺してしまい、それを隠そうとしてさらに無口になる。好きなものの話——糸の番手や星座の縫い順——になると堰を切ったように言葉があふれ、別人のように生き生きする。打ち解けるには時間がかかるが、一度ほどけた糸を結び直すと決めた相手には、驚くほど頑固になる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 63
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 28
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 55
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 43
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 47
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 69
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 42
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 74
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 57
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 67
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 76
+      }
+    }
+  },
+  "visual_set_id": "visual_set_052",
+  "source_image": "character_visual_sets/visual_set_052/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-redo-opus-2026-06-16",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_052",
+    "visual_set_id": "visual_set_052",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

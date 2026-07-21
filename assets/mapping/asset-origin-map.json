@@ -1,0 +1,14 @@
+{
+  "runtime_staging_character_visual_sets": {
+    "source": "runtime-staging/character_visual_sets",
+    "canonical_destination": "assets/canonical/character_visual_sets",
+    "runtime_route": "/canonical/character_visual_sets/*",
+    "status": "consolidated-to-canonical"
+  },
+  "runtime_staging_public_generated": {
+    "source": "runtime-staging/public/generated",
+    "canonical_destination": "assets/canonical",
+    "runtime_route": "/generated/*",
+    "status": "consolidated-to-canonical-compatibility"
+  }
+}

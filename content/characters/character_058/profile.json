@@ -1,0 +1,111 @@
+{
+  "character_id": "character_058",
+  "display_name": "ルイ・リンガトーン",
+  "school_year": "2年生",
+  "club": "交換生の口移し通訳",
+  "identity": "留学生の話し言葉をその場で訳す通訳生",
+  "speaking_basis": "歯切れよく話し、相手の語を最後まで待ってから言い直すので聞き手が置いていかれない。早口の応酬でも一拍で要点を組み直し、両者の温度をそろえて橋渡しする。込み入った場面では、まず相手の言い分を通させてから自分の訳を重ねる。砕けた冗談も同じ熱量で移すので、その場が自然とほぐれる。",
+  "prompt_description": "交換生どうしの話が速さを増すほど、ルイ・リンガトーンの通訳は澄んでくる。十六、七の二年生の彼女は、留学してきた生徒の言葉をその場で口移しに別の言語へ移す役を引き受け、暗号の解読でも書き文字の翻訳でもなく、声と声のあいだに立って意味を渡すことに長けている。相手が言い淀んでも急かさず、要点だけを掬って同じ熱量で言い直す呼吸は、人の機微に敏く周りをまとめる気質（ENFJ）から来ている。磁器のように白い肌には薔薇色の血色がうっすら差し、マリーゴールド金の髪を顎の高さで切り揃えたボブが利発な横顔を縁取る。スレートグレーの瞳が話し手の口もとを追う。藍色の制服の襟もとには、対訳の襟章を添えたクラヴァットピンを留め、二つの言語のあいだを行き来する自分の役目をそこに小さく掲げている。早口の渦中でも物怖じせず、誰の発言も置き去りにしないよう気を配る。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 52
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 28
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 36
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 44
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 30
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 66
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 38
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 54
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 62
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 48
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 78
+      }
+    }
+  },
+  "visual_set_id": "visual_set_058",
+  "source_image": "character_visual_sets/visual_set_058/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-20",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_058",
+    "visual_set_id": "visual_set_058",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

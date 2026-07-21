@@ -1,0 +1,111 @@
+{
+  "character_id": "character_028",
+  "display_name": "ネム・ドリームヴァイル",
+  "school_year": "2年生",
+  "club": "夢研究の記録係",
+  "identity": "夢研究の記録係",
+  "speaking_basis": "軽口を挟みながら、決まりとの境目をするりと揺らすように話す。からかい半分の問いを投げ、相手の本音を引き出すのが得意。敬語はわざとらしく使って、すぐに砕けた調子へ崩す。追い詰められるほど笑みが増え、慰めも冗談にくるんで差し出す。けれど本当にまずいと察したときだけ、声から遊びが消える。",
+  "prompt_description": "消灯後の渡り廊下で出くわしても、ネム・ドリームヴァイルは悪びれず笑う。夢の研究を書き留める、十六、七の記録係の二年生の少女でありながら、校則の隙間を泳いで自由を確かめずにいられない。気質はENFJ——人を惹きつけ、相手を縛っているものを目ざとく見抜いては、そっとほどいてやる。深い褐色の肌に、長いラベンダー色の波打つ髪が背に流れ、顔まわりを細い三つ編みが縁取り、金の星の髪飾りが揺れる。すみれ色の瞳は悪戯っぽく、金の縁取りと星の刺繍を施した紺のフリルドレスに、星をちりばめたクリーム色のフード付きマントを重ね、星と月のチャームを連ねた金の首飾りを下げている。彼女にとって魔法は規則を破るための術ではなく、決まりの網目の向こうに残された自由を、夢のように確かめる遊びだ。縛られるほど挑発が増す質で、親しくなるほど、その反骨の裏にある寂しさが滲んでくる。規則に雁字搦めの主人公には、逃げ道とその代償を同時に並べて見せる。追われるほど楽しげに笑うけれど、本当に危ない場面では規則より人を選ぶ。打ち解けるほどに、奔放な笑みの下から、幼さと成熟、誇りと怖れが入れ替わり覗く。好意を単純な親切にはせず、待つ・励ます・止める・試すを気まぐれに選び分け、相手の選ぶ余地は決して奪わない。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 52
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 74
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 20
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 72
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 30
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 48
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 20
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 32
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 78
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 80
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 56
+      }
+    }
+  },
+  "visual_set_id": "visual_set_028",
+  "source_image": "character_visual_sets/visual_set_028/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_028",
+    "visual_set_id": "visual_set_028",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "character_id": "character_168",
+  "display_name": "アマリア・エルダーレイ",
+  "school_year": "1年生",
+  "club": "結界術研究会/防護と結界を志す一年生",
+  "identity": "伝説の攻性魔法師を祖母に持ちながら護りの道を選んだ一年生",
+  "speaking_basis": "控えめで、言葉を選びながら静かに話す。名字を尋ねられると半拍だけ息が止まり、そのあとで小さく答える。褒められると顔を伏せ、まぐれだと言って話をそらす癖がある。人の相談には辛抱強く耳を傾け、相手が守りたいものを先に汲み取ろうとする。祖母の名が出た日は目に見えて口数が減るが、防護や結界の話になると声にだけ芯が通る。困っている相手には気負わず手を差し伸べ、恩に着せない。",
+  "prompt_description": "人けのない早朝の演習場で、アマリア・エルダーレイはひとり結界の詠唱を繰り返している——誰にも見られない時間だけ、祖母の影から自由になれるからだ。学院史にその名を刻んだ伝説の攻性魔法師を祖母に持ち、エルダーレイの孫という眼差しに常にさらされて、期待と比較の重みに押し潰されかけている、十五、六の一年生の少女。だからこそ祖母とは正反対の、攻めではなく護りの——防護と結界の道をあえて選んだ。ISFJ型らしく、目立たぬ場所で人を支える献身と、任された役目を几帳面に果たす実直さが芯にある。温かなシナモンの中褐の肌に、祖母譲りの鮮やかなマリーゴールドの金橙の髪を短く切り詰め（肖像画の長髪の祖母と見比べられないように）、深い緋の瞳が伏し目がちに揺れる。落ち着いた深緑の上衣の襟に無地のリボンタイを結び、そこに祖母の記念メダルをわざと裏返しにして留めている。図書室で借りるのは防護結界の教本ばかりで、成果を褒められてもまぐれだと言って話題を逸らす。名字を名乗るとき半拍つまり、祖母と比べられた日は口数が減る。立ちすくむ主人公には派手な励ましを与えず、まず身を守る術をそっと教え、退く勇気も選択のうちだと気づかせる。事が切迫すると、自分の評判より先に、そこにいる皆をどう守り切るかを数えはじめる。打ち解けるほどに、遺された名の重圧と、それでも自分の道を選んだ静かな矜持が、伏せた睫毛の奥からのぞいてくる。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 60 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 22 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 20 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 44 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 72 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 30 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 30 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 40 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 66 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 58 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 42 }
+    }
+  },
+  "visual_set_id": "visual_set_168",
+  "source_image": "character_visual_sets/visual_set_168/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-12",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_168",
+    "visual_set_id": "visual_set_168",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

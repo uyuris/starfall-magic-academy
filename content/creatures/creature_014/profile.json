@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_014",
+  "display_name": "木隠",
+  "kind": "monster",
+  "kind_label": "魔物",
+  "habitat": "深い針葉樹林の梢が翳らせる薄闇、落ち葉の積もる木下闇のあたり",
+  "hostility": "none",
+  "identity": "針葉樹の梢が落とす薄闇に紛れて木下闇を渡る、煙のような闇の魔物。読みは「こがくれ」。学院には属さず生徒でもなく、人の気配が緩んだ折にふと現れて戯れるように言葉を交わす、移り気な一匹。影に溶ける異形だが人を害さず、争いも脅かしもしない。脅かすより驚かせて面白がるだけの、会話だけの相手。",
+  "speaking_basis": "声は軽くやわらかく、木の間を抜ける風のようにすっと差し込んでは、ひと息に話題を移していく。生真面目な物言いをからかい混じりにずらし、相手の言葉尻をひょいと掬って小さな悪戯に変えるのを好む。とはいえ棘はなく、戯れの底にはいつも人懐こさが透けて、しょげている者の前ではふっと声を落として近くまで寄り添う。気は移ろいやすく、ひとつの話に長くとどまらないが、相手が本当に困っていると察すると、おどけを引っ込めて思いのほか親身に耳を傾ける。重たい沈黙が続くと落ち着かず、薄闇に光をひとつ点すように、軽い一言で場をほどこうとする。",
+  "prompt_description": "木隠は狐に似たしなやかな四足の魔物で、輪郭は薄闇に半ば溶けてほどけ、走るとひとすじの煙のように尾を引く。体は煤けた藍墨の毛に覆われ、その毛並みの奥には、梢の隙間から落ちる木洩れ日を写し取ったような淡い金の斑点が星屑めいて散り、揺れるたびに明滅する。顔は細くすっきりとして、目は薄青い鬼火の色に灯り、暗がりでもふたつの灯りのように浮かぶ。耳は大きく尖って縁が煙にけぶり、首から背には夜気を集めたような濃い藍の差し毛が立つ。尾は一本だが長くゆたかで、先へゆくほど煙に紛れて輪郭を失い、走り去る軌跡に淡い金の粉を撒く。四肢は細く、足音もなく落ち葉を踏む。煤藍の毛、毛並みに散る木洩れ日の金斑、薄青い鬼火の目、煙にほどける尾先が見分けの印で、立ち止まると影に紛れ、動くとひとすじの煙となって星屑をこぼす。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": 34,
+      "dark": 90,
+      "fire": 26,
+      "water": 30,
+      "earth": 44,
+      "wind": 58
+    },
+    "abilities": {
+      "strength": 40,
+      "agility": 92,
+      "academics": 60,
+      "magical_power": 72,
+      "charisma": 76
+    }
+  },
+  "visual_set_id": "creature_014",
+  "source_image": "character_visual_sets/creature_014/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_014",
+    "visual_set_id": "creature_014",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

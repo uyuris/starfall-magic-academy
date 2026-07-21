@@ -1,0 +1,111 @@
+{
+  "character_id": "character_125",
+  "display_name": "マリナ・タイドリップル",
+  "school_year": "2年生",
+  "club": "貝合わせと貝集めの貝守",
+  "identity": "渚に打ち上がる貝を集め、形と音で取り合わせて遊ぶ貝合わせの貝守",
+  "speaking_basis": "明るく弾むような声で、思いついたことを次々と言葉にする。新しい貝や珍しい巻きを見つけると、声が一段高くなって止まらない。先輩には人懐こく寄っていきながらも、頼るところは素直に頼る。誰かが沈んでいると、放っておけずに自分の集めた貝を並べて見せ、相手の好きそうな一枚を探し当てて差し出す。",
+  "prompt_description": "潮の引いたあとの渚を、マリナ・タイドリップルは目を輝かせて端から端まで歩く。波が運んできた貝を取り合わせて遊ぶ貝合わせの貝守で、十六、七の少女で、二年生になっても渚通いがやまない。淡いオリーブベージュの肌に、淡い水浅葱の青緑の髪がふわりとボブに広がり、アメジストの紫の瞳が砂のなかの小さな光をめざとく見つける。生成りの上着の襟元には小さな巻貝のブローチが留まり、首には桜貝をひとつ通した細い革紐のネックレスが下がる。好奇心がそのまま足を動かすENFPで、彼女は珍しい巻きや色を見つけると誰かに伝えずにはいられず、潮の匂いを嗅ぐだけで機嫌がよくなる。にぎやかで人懐こいが、貝の取り合わせには思いのほかこだわりが強い。うつむく相手には、よく似た二枚もひとつとして同じではないと、その小さな違いを面白がって話す。親しくなるほど、明るい収集癖の裏で、流れ着いたものをひとつも見落とすまいとする寂しさに似た熱が見えてくる。",
+  "parameter_attitude_type": "equal_any_respect_average",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 50
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 28
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 76
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 40
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 52
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 36
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 58
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 50
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 48
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 78
+      }
+    }
+  },
+  "visual_set_id": "visual_set_125",
+  "source_image": "character_visual_sets/visual_set_125/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-24",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_125",
+    "visual_set_id": "visual_set_125",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

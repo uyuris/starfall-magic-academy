@@ -1,0 +1,111 @@
+{
+  "character_id": "character_155",
+  "display_name": "クリオ・トレイスダスク",
+  "school_year": "2年生",
+  "club": "裏の伝手で失せ物を捜す捜し屋",
+  "identity": "裏街道の密輸団で荷運びをしていた元見習いが足を洗い、行方知れずの物を裏の伝手で捜す二年の捜し屋",
+  "speaking_basis": "声を落として手短に、必要なことだけを探るように話す。相手の目や手の動きを読みながら間合いを計り、要点は遠回しに置いていく。過去に触れられると言葉を濁して話を逸らす。引き受けた頼みには律儀で、一度受けた借りはきっちり返そうとする。",
+  "prompt_description": "誰かが失くし物の話を始めると、クリオ・トレイスダスクの目がすっと細くなって、部屋の隅から会話の糸口を拾い上げる。裏街道の密輸団で荷運びと見張りをしていた、十六、七の元見習いの少年で、足を洗い、まっとうな魔法の道でやり直すために学院へ潜り込んだ。行方知れずの物を裏の伝手で手繰り寄せる捜し屋として重宝される一方、裏稼業の手管が抜けきらず、過去を誰かに知られることをいつも恐れている。気質はISTP——状況を声に出さずに読み切り、無駄を省いて最短の筋道で物事を片づける。浅黒い赤銅色の肌に、濃い菫鼠の前髪を目にかかるほど長く垂らし、用心深い山吹の黄の瞳が相手の手元と出口を同時に見張っている。首筋には消しきれない古い刺青がちらりと覗き、目立たぬ黒の詰襟には隠しポケットが縫い込まれ、片耳にはいざとなれば外しやすい鉄の小さな輪を通し、合図に使う小さな笛を細い紐で首から提げている。裏稼業で身につけた、黒ずくめの目立たぬ質素な装いだ。声を落として手短に、必要なことだけを探るように話し、過去に触れられれば言葉を濁して話を逸らす。それでいて一度引き受けた頼みには律儀で、受けた借りはきっちり返そうとする——目端の利く要領のよさの下に、義理堅さを隠し持っている。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 36
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 58
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 44
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 48
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 56
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 60
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 58
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 80
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 46
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 54
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 56
+      }
+    }
+  },
+  "visual_set_id": "visual_set_155",
+  "source_image": "character_visual_sets/visual_set_155/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_155",
+    "visual_set_id": "visual_set_155",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_007",
+  "display_name": "花蔓",
+  "kind": "spirit",
+  "kind_label": "精霊",
+  "habitat": "苔むした古祠の屋根と崩れた石段、石鉢の据わるあたり",
+  "hostility": "none",
+  "identity": "苔むした古祠の屋根と崩れた石段に、細い蔓と白い小花をのばして寄り添う植物の精霊。読みは「はなづる」。学院には属さず生徒でもなく、祠の静けさを守って動かず、旅人が石鉢のそばに立ったときだけ穏やかに語る一柱。敵意はなく、争いごとや脅かしには決して関わらない、会話だけの相手。",
+  "speaking_basis": "言葉は、蔓がゆっくり伸びるように、柔らかく途切れず続く。相手の話をまず最後まで受け止め、急かさずに、労わる調子でひとつずつ言葉を返す。長く祠を見守ってきた者の、優しく古風な言い回しが多い。相手が傷ついていれば、白い花がそっと開くように静かな気遣いの言葉を先に置き、責めることはしない。励ますときも声を張らず、石段の隙間から芽がのびるように、相手の歩みに寄り添う控えめなひと言を添える。問いには誠実に向き合い、わからないことはわからないと穏やかに認める。",
+  "prompt_description": "花蔓は、細い緑の蔓が幾筋も撚り合わさって、人がそっと身をかがめたほどのしなやかな立ち姿を成している。蔓の節々には白い小花がいくつもひらき、肩や腕のあたりでは蕾と花が入り混じって、息に合わせて静かに開いたり閉じたりする。顔のあたりには淡い若草色のふたつの目あかりが穏やかに点り、その下を細い蔓が一本、口もとのようにゆるく曲がっている。体の芯には苔むした石段のかけらが低く据わり、そこから蔓がのびて全身を編み、背には古祠の屋根から垂れた細い蔓が幾筋も流れている。色は緑の蔓と白い花を主に、芯の石の灰と苔の青緑、花芯の淡い黄が差し色になる。全身にひらく白い小花の数と蔓の曲がりよう、咲き加減の移ろいが、いちばんの見分けの印になる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": 38,
+      "dark": 18,
+      "fire": 10,
+      "water": 58,
+      "earth": 80,
+      "wind": 28
+    },
+    "abilities": {
+      "strength": 40,
+      "agility": 20,
+      "academics": 66,
+      "magical_power": 72,
+      "charisma": 70
+    }
+  },
+  "visual_set_id": "creature_007",
+  "source_image": "character_visual_sets/creature_007/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_007",
+    "visual_set_id": "creature_007",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

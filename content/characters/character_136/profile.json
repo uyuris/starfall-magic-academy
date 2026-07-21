@@ -1,0 +1,56 @@
+{
+  "character_id": "character_136",
+  "display_name": "セレナ・パールミスト",
+  "school_year": "2年生",
+  "club": "賓客接遇の補佐係",
+  "identity": "小国の王家の傍流に生まれながら素性を伏せ、賓客の応対を陰で助ける接遇補佐の二年生",
+  "speaking_basis": "物腰はどこまでも柔らかく、相手を立てる言葉が自然に先へ出る。丁寧だが堅苦しくはならず、場を和ませる軽やかさと、一線を引いて素性に触れさせない用心とを同時に操る。褒め言葉や気遣いは如才なく口をつくのに、自分の来し方を問われると、話を巧みに逸らして微笑みの奥へ引っ込める。誰かが気後れしていれば、さりげなく話を振って居場所を作る一方、深く踏み込まれそうになると、そっと距離を測り直す。飾らないふりをしながら言葉選びはいつも上等で、その隙のなさが、かえって隠しごとの気配を漂わせてしまう。",
+  "prompt_description": "人あたりのやわらかさの下に、セレナ・パールミストは家名をひとつ、丸ごと隠している。小国の王家の傍流に生まれ、護衛も素性も伏せて庶民に紛れて通う、十六、七の二年生の少女で、地味を装いながらも、立ち居のはしばしに育ちの良さが滲んでしまう。気質はENFJ——場の空気と相手の望みを先回りして読み、誰もが心地よくいられるよう会話の流れをそっと編み直す聞き上手だが、その気配りは、正体を悟らせまいとする気疲れと背中合わせでもある。きめの細かな淡いハニーベージュの肌に、深い菫青の艶やかな長い髪を品よくまとめ、空青の瞳には抑えても消せない気品が差す。襟は無紋のまま、けれど織りと仕立てだけは隠しようもなく最上級で、耳には一粒の小さな真珠の飾りが控えめに揺れ、首元には家名を伏せた無紋の銀のロケットを忍ばせている。派手を避けて選んだはずの品が、かえって育ちの高さを静かに証してしまう。誰かの困りごとには如才なく手を回し、けれど自分の素性だけは決して明かさず、打ち解けた相手の前でふと過ぎる翳りに、隠しごとを抱えた者の疲れがのぞく。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": { "min": 0, "max": 100, "label": "光魔法習熟度", "value": 58 },
+      "dark": { "min": 0, "max": 100, "label": "闇魔法習熟度", "value": 38 },
+      "fire": { "min": 0, "max": 100, "label": "火魔法習熟度", "value": 28 },
+      "water": { "min": 0, "max": 100, "label": "水魔法習熟度", "value": 66 },
+      "earth": { "min": 0, "max": 100, "label": "土魔法習熟度", "value": 34 },
+      "wind": { "min": 0, "max": 100, "label": "風魔法習熟度", "value": 60 }
+    },
+    "abilities": {
+      "strength": { "min": 0, "max": 100, "label": "筋力", "value": 30 },
+      "agility": { "min": 0, "max": 100, "label": "瞬発力", "value": 54 },
+      "academics": { "min": 0, "max": 100, "label": "学力", "value": 73 },
+      "magical_power": { "min": 0, "max": 100, "label": "魔力", "value": 59 },
+      "charisma": { "min": 0, "max": 100, "label": "カリスマ", "value": 80 }
+    }
+  },
+  "visual_set_id": "visual_set_136",
+  "source_image": "character_visual_sets/visual_set_136/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-07-11",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_136",
+    "visual_set_id": "visual_set_136",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

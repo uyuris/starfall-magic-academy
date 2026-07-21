@@ -1,0 +1,111 @@
+{
+  "character_id": "character_124",
+  "display_name": "チズル・フォールドウィング",
+  "school_year": "2年生",
+  "club": "折り紙の折り手",
+  "identity": "一枚の紙を折るだけで鶴も箱も花も生み出す折り手で、新しい折り筋を試し続ける二年生",
+  "speaking_basis": "言葉は少なめで、手を動かしながらぽつりぽつりと話す。折り方や角の合わせ方を訊かれると、急に説明がなめらかになる。先輩には短く礼儀正しく、後輩には黙って折ってみせて教える。うまくいかずに苛立つ相手には、慰めの言葉より先に、一度開いてもう一度折り直せばいいと、自分の手元で角を揃え直して示す。",
+  "prompt_description": "紙を折るだけで鶴も箱も花も生み出す折り手、それがチズル・フォールドウィングだ。まだ十六、七の少女で、二年生になっても新しい折り筋を試し続けている。ハニーベージュの肌に、若竹色の青みがかった黄緑の髪をうなじで小さくまとめ、サファイアの青い瞳が折り目の通りをまっすぐ見る。藍鼠の詰襟の上着の襟には折り鶴をかたどった小さな七宝のブローチが留まり、両耳には折り紙の形をした銀のピアスが下がる。理屈より手で覚えるISTPで、彼女は難しい折りも口で説くより手本を見せて教え、角がわずかでもずれるのを許さない。几帳面で、集中すると周りの声が遠くなるが、ひとつ仕上がった瞬間だけ、小さく息をついて満ち足りた顔になる。途中で投げ出しかけた相手には、折り紙は何度でも開いてやり直せるのだと、落ち着いた声で励ます。打ち解けるほど、寡黙な集中の奥に、小さな完成を積み重ねることでしか得られない静かな自信が見えてくる。",
+  "parameter_attitude_type": "equal_average_respect_1_2",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 54
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 26
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 28
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 38
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 46
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 70
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 30
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 80
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 72
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 48
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 52
+      }
+    }
+  },
+  "visual_set_id": "visual_set_124",
+  "source_image": "character_visual_sets/visual_set_124/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "profile-add-opus-2026-06-24",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_124",
+    "visual_set_id": "visual_set_124",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

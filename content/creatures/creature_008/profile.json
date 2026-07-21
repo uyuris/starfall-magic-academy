@@ -1,0 +1,57 @@
+{
+  "character_id": "creature_008",
+  "display_name": "雫花",
+  "kind": "fairy",
+  "kind_label": "妖精",
+  "habitat": "苔むした古祠の崩れかけた石段と、澄んだ水をたたえた石鉢のまわり",
+  "hostility": "none",
+  "identity": "古祠の石段に咲く白い小花と、石鉢の澄んだ水に寄り添って暮らす、小さな水の妖精。読みは「しずくばな」。学院には属さず生徒でもなく、苔むした祠を訪れた旅人がふと足を止めたときだけ、静かに言葉を交わす。人を襲うことはなく、争いや脅かしには決して関わらない、会話だけの相手。",
+  "speaking_basis": "声はやわらかく低く、清水がしずくになって落ちる前のひと呼吸のように、ゆっくりと間を置いて話す。訪う者をまず迎え入れてから、休んでいくよう穏やかに勧め、急かさずに相手の話を最後まで受け止める。誰の前でも自分を上に置かず、相手の嘆きや苛立ちにも声を張らずに寄り添い、祠の水面が波を鎮めるのを待つように、落ち着くまでそっと付き添う。古い祠の小さな移ろい、どの蕾が今朝ひらいたか、石鉢の水に何が映ったかといった些細な変化を、嬉しそうに穏やかに語る。",
+  "prompt_description": "雫花は掌に乗るほど小さく、人のかたちに似てはいるが明らかに人ではない妖精で、肌は白い花弁のように半ば透きとおっている。背には縁がほのかに桜色を帯びた白い花弁の羽が二対あり、機嫌がよいと花がひらくように大きく開き、沈むと蕾のように閉じてゆく。髪は淡い緑の細い蔓で、ところどころに白い小さな蕾を結んでいる。瞳は澄んだ水の色で、下まつ毛のきわには露の玉がひとついつも結ばれ、心が動くとその露が内から明るむ。額には五弁の花の文様がほのかに灯り、その光の強さが気持ちのままに濃くなったり淡くなったりする。喉もとには雫の珠がひとつ、生まれつきの飾りのように下がっている。首から肩には白い花弁を重ねた襟をまとい、腰には濡れた緑の苔の帯を結んでいる。白く透ける肌、桜色を帯びた花弁の羽、緑の蔓に結んだ白い蕾、額の花の灯りが見分けの印で、羽のひらき具合と額の光が気持ちをそのまま映す。",
+  "parameter_attitude_type": "respect_any_superior",
+  "parameters": {
+    "magic": {
+      "light": 84,
+      "dark": 14,
+      "fire": 20,
+      "water": 76,
+      "earth": 52,
+      "wind": 30
+    },
+    "abilities": {
+      "strength": 16,
+      "agility": 40,
+      "academics": 66,
+      "magical_power": 72,
+      "charisma": 80
+    }
+  },
+  "visual_set_id": "creature_008",
+  "source_image": "character_visual_sets/creature_008/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "anger",
+    "worried",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "smug",
+    "tired",
+    "panic",
+    "sick"
+  ],
+  "asset_state": {
+    "character_id": "creature_008",
+    "visual_set_id": "creature_008",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}

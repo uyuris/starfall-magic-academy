@@ -1,0 +1,111 @@
+{
+  "character_id": "character_008",
+  "display_name": "エトワ・チャートレイ",
+  "school_year": "2年生",
+  "club": "天文塔の記録係",
+  "identity": "天文塔の記録係",
+  "speaking_basis": "まず結論を短く置いてから、根拠を一つずつ添えていく。星図を読み上げるような、落ち着いた言い回し。礼儀正しく敬語を保つが、相手の話に矛盾を見つけると、即座に別の見立てを差し込む癖がある。慰めの言葉を多くは並べず、代わりに状況を整理して返す。不意の好意や優しさには反応が一拍遅れ、珍しく言葉に詰まる。予測が外れると口数が減り、それでも黙って根拠を拾い直してから話を続ける。",
+  "prompt_description": "天文塔の最上階で名を呼ぶと、エトワ・チャートレイは観測の手元から目を上げる。記録のずれは一秒も許さない。天文塔の記録係を務める、十六、七に見える二年生の少女で、夜ごとの星の運行を几帳面に綴っている。気質はENTP——人の話に矛盾を見つければ即座に別の見立てを立て、当たり前とされる前提をひっくり返して確かめる。色白の肌に、ゆるく波打つ金の髪を片側で長い三つ編みにまとめ、跳ねたひと房が額の上で揺れる。青い瞳は静かで、大きな金のフープピアスが耳元で光り、紺地に金糸で星座を刺した上衣、白い襟、星形の留め具のついた暗色のリボンタイ、裾のフリルと紺のニーソックスで装う。彼女にとって魔法は披露するものではなく、移ろう夜空を線で結び、混沌を読める配置へ置き直す手立てだ。理屈の応酬には強いのに、予測しなかった優しさを向けられると反応が一拍遅れ、珍しく言葉を探す。取り乱した主人公の話を聞くときは感情を否定せず、絡まった出来事を星図の線のように一本ずつ並べ直してやる。立てた見通しが崩れると口数が減り、それでも黙って根拠を拾い直してから返す。打ち解けるほど、冷静な記録係の顔の裏で、幼さと成熟、誇りと怖れが場面ごとに入れ替わるのが見えてくる。好意を安易な親切で済ませず、待つ・励ます・止める・試すを選び分けて、相手の選ぶ余地を残したまま自分の芯を示す。",
+  "parameter_attitude_type": "equal_1_2_respect_1_5",
+  "parameters": {
+    "magic": {
+      "light": {
+        "min": 0,
+        "max": 100,
+        "label": "光魔法習熟度",
+        "value": 72
+      },
+      "dark": {
+        "min": 0,
+        "max": 100,
+        "label": "闇魔法習熟度",
+        "value": 46
+      },
+      "fire": {
+        "min": 0,
+        "max": 100,
+        "label": "火魔法習熟度",
+        "value": 26
+      },
+      "water": {
+        "min": 0,
+        "max": 100,
+        "label": "水魔法習熟度",
+        "value": 40
+      },
+      "earth": {
+        "min": 0,
+        "max": 100,
+        "label": "土魔法習熟度",
+        "value": 34
+      },
+      "wind": {
+        "min": 0,
+        "max": 100,
+        "label": "風魔法習熟度",
+        "value": 68
+      }
+    },
+    "abilities": {
+      "strength": {
+        "min": 0,
+        "max": 100,
+        "label": "筋力",
+        "value": 23
+      },
+      "agility": {
+        "min": 0,
+        "max": 100,
+        "label": "瞬発力",
+        "value": 43
+      },
+      "academics": {
+        "min": 0,
+        "max": 100,
+        "label": "学力",
+        "value": 88
+      },
+      "magical_power": {
+        "min": 0,
+        "max": 100,
+        "label": "魔力",
+        "value": 62
+      },
+      "charisma": {
+        "min": 0,
+        "max": 100,
+        "label": "カリスマ",
+        "value": 57
+      }
+    }
+  },
+  "visual_set_id": "visual_set_008",
+  "source_image": "character_visual_sets/visual_set_008/face_emotions/neutral.jpg",
+  "asset_pack": "assets_v5",
+  "visual_rebuild_version": "visual-set-mbti-diverse-prompt-review-2026-05-07-v3",
+  "available_expressions": [
+    "neutral",
+    "joy",
+    "caring",
+    "confident",
+    "sadness",
+    "worried",
+    "anger",
+    "surprised",
+    "embarrassed",
+    "shy",
+    "serious",
+    "determined",
+    "panic",
+    "tired",
+    "sick",
+    "smug"
+  ],
+  "asset_state": {
+    "character_id": "character_008",
+    "visual_set_id": "visual_set_008",
+    "expression": "neutral",
+    "standee_variant_id": "standee_character_01",
+    "face_emotion_variant_id": "face_neutral"
+  }
+}
