@@ -21,9 +21,9 @@ function statusError(message, statusCode) {
   return error;
 }
 
-function validateCooldownMs(value) {
+function validateCooldownMs(value, statusCode) {
   if (!CONVERSATION_POPUP_COOLDOWN_PRESETS.includes(value)) {
-    throw new Error(`cooldown_ms must be one of the presets: ${CONVERSATION_POPUP_COOLDOWN_PRESETS.join(', ')}`);
+    throw statusError(`cooldown_ms must be one of the presets: ${CONVERSATION_POPUP_COOLDOWN_PRESETS.join(', ')}`, statusCode);
   }
   return value;
 }
@@ -34,13 +34,13 @@ function validateCooldownMs(value) {
 // new shape. cooldown_ms itself is still validated, so a corrupt cooldown value fails fast as before.
 function normalizeStoredShape(config) {
   return {
-    cooldown_ms: validateCooldownMs(config.cooldown_ms)
+    cooldown_ms: validateCooldownMs(config.cooldown_ms, 500)
   };
 }
 
 function validateConversationPopupUpdate(body = {}) {
   return {
-    cooldown_ms: validateCooldownMs(Number(body.cooldown_ms))
+    cooldown_ms: validateCooldownMs(Number(body.cooldown_ms), 400)
   };
 }
 
@@ -103,7 +103,10 @@ export async function handleConversationPopupSettingsApi({ req, res, url, contex
       const saved = await persistConversationPopupSettings(settingsPath, update);
       sendJson(res, saved);
     } catch (error) {
-      sendJson(res, { error: error.message }, error.statusCode ?? 400);
+      // Validation rejects carry an explicit 400; an fs-origin persist failure (EACCES etc.) has no
+      // statusCode and surfaces as a 500 server failure, consistent with the outer createServer catch —
+      // never mislabeled as client input 400.
+      sendJson(res, { error: error.message }, error.statusCode ?? 500);
     }
     return true;
   }

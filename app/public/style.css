@@ -1181,6 +1181,24 @@ body:has(#gathering-screen.active) .layout {
   margin-top: 14px;
 }
 
+/* 非互換（degraded）スロットのカード＝旧バージョンのため読み込めず、削除だけできる。通常カードより沈めた地に、
+   星明かりの hover flare を出さない（読み込めないので「選べる」印象を与えない）。理由行だけ薄い警句色で強調する。 */
+.slot-load-item.slot-load-item-degraded {
+  background: var(--meta-night-1);
+  box-shadow: 0 0 0 1px var(--meta-line), 0 12px 30px var(--meta-shadow);
+}
+
+.slot-load-item.slot-load-item-degraded:hover,
+.slot-load-item.slot-load-item-degraded:focus-within {
+  border-color: var(--meta-line);
+  box-shadow: 0 0 0 1px var(--meta-line), 0 12px 30px var(--meta-shadow);
+}
+
+#slot-load-screen .slot-load-item-summary p.slot-load-item-degraded-reason {
+  color: var(--meta-silver);
+  font-weight: 600;
+}
+
 /* Empty state: a quiet sunken-silver panel when there is no save data to load. */
 .slot-load-list .continuity-empty {
   padding: clamp(18px, 3vw, 28px);

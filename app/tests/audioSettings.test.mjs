@@ -136,6 +136,28 @@ test('audio settings GET fail-fasts on an out-of-range persisted value', async (
   assert.ok(body.error);
 });
 
+test('audio settings PATCH classifies an fs-origin persist failure as 500, not 400', async (t) => {
+  // The stuck-"保存中です" fix requires the backend to distinguish client input (400) from a server-side
+  // persist failure (5xx): an EACCES write to a read-only config dir is a server failure, so the PATCH must
+  // return 500 (consistent with the outer createServer catch's statusCode ?? 500), never a client 400.
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'magic-adv-audio-settings-ro-'));
+  const settingsPath = path.join(dir, 'audio.json');
+  const base = await bootServer(t, settingsPath);
+  await fs.chmod(dir, 0o555);
+  t.after(async () => {
+    await fs.chmod(dir, 0o755).catch(() => {});
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+
+  const { status, body } = await patchAudio(base, { bgm_volume: 0.5 });
+  assert.equal(status, 500, 'an EACCES persist failure is a server failure (500), not a client 400');
+  assert.match(body.error, /EACCES/, 'the fs error reason is surfaced in the response body');
+
+  // A validation failure stays a client 400 (the classification only re-labels fs-origin failures).
+  const rejected = await patchAudio(base, { bgm_volume: 1.5 });
+  assert.equal(rejected.status, 400, 'an out-of-range value is still a client 400');
+});
+
 test('audio settings GET fail-fasts on a persisted file with unknown or missing keys', async (t) => {
   for (const badShape of [
     { bgm_enabled: true, bgm_volume: 1, extra: 1 },

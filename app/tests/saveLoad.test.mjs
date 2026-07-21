@@ -133,7 +133,7 @@ test('createSaveSlot snapshots runtime and character flags without embedding con
   const restoredMpReserve = await readJson(root, 'game_data/play/slots/slot_001/game_data/mp_reserve.json');
   assert.deepEqual(restoredMpReserve, { version: 1, reserves: { character_007: 45 } });
 
-  const slots = await listSaveSlots({ root });
+  const { slots } = await listSaveSlots({ root });
   assert.deepEqual(slots.map((slot) => slot.slot_id), ['slot_001']);
 });
 
@@ -288,18 +288,21 @@ test('save slots persist explicit play_mode and expose it in slot summaries', as
   assert.equal(saved.slot.routing_persona_variant, 'fallen_star');
   assert.equal((await readJson(root, 'game_data/play/slots/slot_routing/meta.json')).play_mode, 'routing');
   assert.equal((await readJson(root, 'game_data/play/slots/slot_routing/meta.json')).routing_persona_variant, 'fallen_star');
-  assert.deepEqual(await listSaveSlots({ root }), [{
-    slot_id: 'slot_routing',
-    label: 'routing slot',
-    created_at: '2026-05-05T06:00:00.000+09:00',
-    updated_at: '2026-05-05T06:00:00.000+09:00',
-    player_note: '',
-    current_location_id: 'herbology_garden',
-    current_screen: 'field',
-    graduation_completed: false,
-    play_mode: 'routing',
-    routing_persona_variant: 'fallen_star'
-  }]);
+  assert.deepEqual(await listSaveSlots({ root }), {
+    slots: [{
+      slot_id: 'slot_routing',
+      label: 'routing slot',
+      created_at: '2026-05-05T06:00:00.000+09:00',
+      updated_at: '2026-05-05T06:00:00.000+09:00',
+      player_note: '',
+      current_location_id: 'herbology_garden',
+      current_screen: 'field',
+      graduation_completed: false,
+      play_mode: 'routing',
+      routing_persona_variant: 'fallen_star'
+    }],
+    incompatible_slots: []
+  });
   await assert.rejects(
     createSaveSlotCore({ root, slotId: 'slot_missing_mode', label: 'missing mode', now: '2026-05-05T06:05:00.000+09:00' }),
     /play_mode/
@@ -310,32 +313,64 @@ test('save slots persist explicit play_mode and expose it in slot summaries', as
   );
 });
 
-test('save slot load and list fail fast when play_mode needs explicit migration', async () => {
+test('listSaveSlots degrades a closed-set-incompatible slot while load still fails fast', async () => {
   const root = await saveFixtureRoot();
+  await createSaveSlot({ root, slotId: 'slot_ok', label: 'ok slot', now: '2026-05-05T05:00:00.000+09:00' });
   await createSaveSlot({ root, slotId: 'slot_legacy', label: 'legacy slot', now: '2026-05-05T06:00:00.000+09:00' });
   const metaPath = path.join(root, 'game_data/play/slots/slot_legacy/meta.json');
-  const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
-  delete meta.play_mode;
-  await fs.writeFile(metaPath, `${JSON.stringify(meta, null, 2)}\n`, 'utf8');
+  const legacyMeta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
 
-  await assert.rejects(
-    listSaveSlots({ root }),
-    /node scripts\/stamp-slot-play-mode\.mjs/
-  );
-  await assert.rejects(
-    loadSaveSlot({ root, slotId: 'slot_legacy' }),
-    /node scripts\/stamp-slot-play-mode\.mjs/
-  );
+  // 1) missing play_mode -> degraded (not a whole-list throw); a normal slot still lists.
+  const missingMeta = { ...legacyMeta };
+  delete missingMeta.play_mode;
+  await fs.writeFile(metaPath, `${JSON.stringify(missingMeta, null, 2)}\n`, 'utf8');
+  const missing = await listSaveSlots({ root });
+  assert.deepEqual(missing.slots.map((slot) => slot.slot_id), ['slot_ok']);
+  assert.equal(missing.incompatible_slots.length, 1);
+  assert.deepEqual(missing.incompatible_slots[0], {
+    slot_id: 'slot_legacy',
+    compatibility: {
+      error_code: 'slot_play_mode_missing',
+      message: missing.incompatible_slots[0].compatibility.message
+    },
+    note: '',
+    updated_at: legacyMeta.updated_at
+  });
+  assert.match(missing.incompatible_slots[0].compatibility.message, /node scripts\/stamp-slot-play-mode\.mjs/);
+  // The degraded entry carries only display metadata; no play_mode-derived field.
+  assert.equal('play_mode' in missing.incompatible_slots[0], false);
+  assert.equal('loadable' in missing.incompatible_slots[0], false);
+  assert.equal('deletable' in missing.incompatible_slots[0], false);
+  await assert.rejects(loadSaveSlot({ root, slotId: 'slot_legacy' }), /node scripts\/stamp-slot-play-mode\.mjs/);
 
-  await fs.writeFile(metaPath, `${JSON.stringify({ ...meta, play_mode: 'banana' }, null, 2)}\n`, 'utf8');
-  await assert.rejects(
-    listSaveSlots({ root }),
-    /node scripts\/stamp-slot-play-mode\.mjs/
-  );
-  await assert.rejects(
-    loadSaveSlot({ root, slotId: 'slot_legacy' }),
-    /node scripts\/stamp-slot-play-mode\.mjs/
-  );
+  // 2) invalid play_mode -> degraded with slot_play_mode_invalid.
+  await fs.writeFile(metaPath, `${JSON.stringify({ ...missingMeta, play_mode: 'banana' }, null, 2)}\n`, 'utf8');
+  const invalid = await listSaveSlots({ root });
+  assert.deepEqual(invalid.slots.map((slot) => slot.slot_id), ['slot_ok']);
+  assert.equal(invalid.incompatible_slots[0].compatibility.error_code, 'slot_play_mode_invalid');
+  await assert.rejects(loadSaveSlot({ root, slotId: 'slot_legacy' }), /node scripts\/stamp-slot-play-mode\.mjs/);
+
+  // 3) routing without variant -> degraded with slot_routing_persona_variant_missing.
+  await fs.writeFile(metaPath, `${JSON.stringify({ ...missingMeta, play_mode: 'routing' }, null, 2)}\n`, 'utf8');
+  const routingMissing = await listSaveSlots({ root });
+  assert.deepEqual(routingMissing.slots.map((slot) => slot.slot_id), ['slot_ok']);
+  assert.equal(routingMissing.incompatible_slots[0].compatibility.error_code, 'slot_routing_persona_variant_missing');
+  await assert.rejects(loadSaveSlot({ root, slotId: 'slot_legacy' }), /node scripts\/stamp-slot-play-mode\.mjs/);
+});
+
+test('listSaveSlots does not fold a malformed-meta slot (a different class) into incompatible_slots', async () => {
+  const root = await saveFixtureRoot();
+  await createSaveSlot({ root, slotId: 'slot_ok', label: 'ok slot', now: '2026-05-05T05:00:00.000+09:00' });
+  // A slot whose meta.json is malformed is not one of the 3 closed compatibility errors: isValidSlot
+  // excludes it from listing entirely (it can neither be summarized nor surfaced as degraded). It must not
+  // appear in slots or in incompatible_slots.
+  const slotsRoot = path.join(root, 'game_data/play/slots');
+  await fs.mkdir(path.join(slotsRoot, 'slot_broken/game_data'), { recursive: true });
+  await fs.writeFile(path.join(slotsRoot, 'slot_broken/game_data/runtime_state.json'), `${JSON.stringify({}, null, 2)}\n`, 'utf8');
+  await fs.writeFile(path.join(slotsRoot, 'slot_broken/meta.json'), '{broken-json\n', 'utf8');
+  const listed = await listSaveSlots({ root });
+  assert.deepEqual(listed.slots.map((slot) => slot.slot_id), ['slot_ok']);
+  assert.deepEqual(listed.incompatible_slots, []);
 });
 
 test('stamp-slot-play-mode stamps one legacy slot and rejects unknown invalid or already-stamped input', async () => {
@@ -396,7 +431,7 @@ test('updateSaveSlotNote stores one trimmed player note per slot without cross-s
   assert.equal(slotOneMeta.player_note, expected);
   assert.equal(slotTwoMeta.player_note ?? '', '');
 
-  const slots = await listSaveSlots({ root });
+  const { slots } = await listSaveSlots({ root });
   assert.equal(slots.find((slot) => slot.slot_id === 'slot_001')?.player_note, expected);
   assert.equal(slots.find((slot) => slot.slot_id === 'slot_001')?.player_note.length, 2000);
   assert.equal(slots.find((slot) => slot.slot_id === 'slot_002')?.player_note ?? '', '');
@@ -411,7 +446,7 @@ test('listSaveSlots exposes graduation_completed from slot runtime state without
   slotOneState.ending_completed = true;
   await fs.writeFile(path.join(root, 'game_data/play/slots/slot_001/game_data/runtime_state.json'), `${JSON.stringify(slotOneState, null, 2)}\n`);
 
-  const slots = await listSaveSlots({ root });
+  const { slots } = await listSaveSlots({ root });
   assert.equal(slots.find((slot) => slot.slot_id === 'slot_001')?.graduation_completed, true);
   assert.equal(slots.find((slot) => slot.slot_id === 'slot_002')?.graduation_completed, false);
   assert.equal(slots.find((slot) => slot.slot_id === 'slot_001')?.player_note ?? '', '');
@@ -431,7 +466,7 @@ test('listSaveSlots ignores orphan slots that have meta.json but no runtime stat
     current_screen: 'field'
   }, null, 2)}\n`);
 
-  const slots = await listSaveSlots({ root });
+  const { slots } = await listSaveSlots({ root });
   assert.deepEqual(slots.map((slot) => slot.slot_id), ['slot_001']);
 });
 
@@ -444,7 +479,7 @@ test('listSaveSlots ignores malformed-meta and invalid-name slot directories ins
   await fs.writeFile(path.join(root, 'game_data/play/slots/slot_002/game_data/runtime_state.json'), `${JSON.stringify({ graduation_completed: false }, null, 2)}\n`, 'utf8');
   await fs.writeFile(path.join(root, 'game_data/play/slots/slot_002/meta.json'), '{broken-json\n', 'utf8');
 
-  const slots = await listSaveSlots({ root });
+  const { slots } = await listSaveSlots({ root });
   assert.deepEqual(slots.map((slot) => slot.slot_id), ['slot_001']);
 });
 

@@ -65,6 +65,7 @@ import { LIBRARY_COLLECTION_REQUEST_PATH, parseLibraryCollectionEntries } from '
 import { parseGraduationPhase2Reentry } from './graduationPhase2ReentryClient.js';
 import { createConversationStage, createStarfieldAmbient, conversationStageWeek, buildConversationStageStars, resolveConversationStageInfoCategoryTitle } from './conversationStage.js';
 import { createLoadingConstellation } from './loadingConstellation.js';
+import { settingsSaveErrorMessage } from './settingsSaveError.js';
 import {
   FRAME_DECORATION_CALIBRATION_TARGETS,
   MAP_PIN_CALIBRATION_TARGETS,
@@ -623,6 +624,12 @@ let slotLoadGraduationPhase2Reentry = null;
 // Conversation end must pick its flow (loop's optimistic detached finalization vs routing's
 // immediate queued dispatch) before the request, so it reads the mode rather than the response.
 let currentPlayMode = null;
+// true when the active save slot is a degraded (incompatible) slot: GET /api/slots reports
+// active_slot_incompatible with active_play_mode / post_content_screen / graduation_phase2_reentry
+// explicitly null. refreshSaveSlots must NOT resolve the play-mode route in that state (the null
+// fields would fail-fast in resolvePlayModeEntryRoute), and the resume ("プレイに戻る")導線 must be
+// disabled — a degraded active slot has no resumable play session, only a deletable degraded card.
+let activeSlotIncompatible = false;
 // Daytime 渡す (会話中の贈与) client state. Deliverable eligibility comes from the server-authoritative
 // `items[].gift_category` annotation on the inventory payload (the same set POST /api/conversation/gift accepts) —
 // the client neither hardcodes ids nor re-composes a catalog. giftGivenConversationId is the last_conversation_id
@@ -632,6 +639,11 @@ let giftGivenConversationId = null;
 let conversationGiftInFlight = false;
 let pendingDeleteSlotId = null;
 const SLOT_LOAD_NOTE_MAX_LENGTH = 2000;
+// The player-facing explanation for a degraded (incompatible) save slot on the load screen. The server's
+// compatibility.message carries a migration CLI command (run node scripts/stamp-slot-play-mode.mjs …) that
+// is developer tooling, not player copy, so the degraded card never surfaces it — it shows this fixed
+// explanation plus a delete affordance instead.
+const SLOT_LOAD_DEGRADED_REASON = '旧バージョンのセーブデータのため読み込めません。削除のみ可能です。';
 let playerInputIsComposing = false;
 let conversationRequestInFlight = false;
 let conversationFinalizationInFlight = false;
@@ -2076,23 +2088,27 @@ async function saveLmStudioSettings() {
     return null;
   }
   setLmStudioSettingsStatus('反映中です。');
-  const response = await fetch('/api/settings/lmstudio', {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
+  // Both success and failure drive the category status to a terminal state: on failure the category panel
+  // shows the concrete reason (server error body / network reject / malformed response) instead of staying
+  // stuck on 反映中です, then the original error is rethrown to reportError so console/global reporting is
+  // unchanged. No silent retry or fallback.
+  try {
+    const saved = await patchJson('/api/settings/lmstudio', {
       connection_mode: connectionMode,
       host: host?.value,
       port: Number(port?.value || 1234),
       model: selectedModel,
       thinking_effort: lmStudioThinkingEffortFromSelectValue(thinkingEffort?.value ?? 'none')
-    })
-  });
-  const text = await response.text();
-  if (!response.ok) throw new Error(`/api/settings/lmstudio: ${response.status} ${text}`);
-  currentLmStudioSettings = text ? JSON.parse(text) : null;
-  renderLmStudioSettings(currentLmStudioSettings);
-  setLmStudioSettingsStatus(`反映しました: ${currentLmStudioSettings?.base_url ?? ''}`);
-  return currentLmStudioSettings;
+    });
+    if (!saved) throw new Error('LM Studio settings save returned no body');
+    currentLmStudioSettings = saved;
+    renderLmStudioSettings(currentLmStudioSettings);
+    setLmStudioSettingsStatus(`反映しました: ${currentLmStudioSettings?.base_url ?? ''}`);
+    return currentLmStudioSettings;
+  } catch (error) {
+    setLmStudioSettingsStatus(settingsSaveErrorMessage(error, 'LM Studio'));
+    throw error;
+  }
 }
 
 function conversationPopupSettingsElements() {
@@ -2123,21 +2139,23 @@ async function loadConversationPopupSettings() {
 async function saveConversationPopupSettings() {
   const { cooldown } = conversationPopupSettingsElements();
   setConversationPopupSettingsStatus('保存中です。');
-  const response = await fetch('/api/settings/conversation-popup', {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
+  // Both success and failure drive the category status to a terminal state: on failure the category panel
+  // shows the concrete reason (server error body / network reject / malformed response) instead of staying
+  // stuck on 保存中です, then the original error is rethrown to reportError so console/global reporting is
+  // unchanged. No silent retry or fallback.
+  try {
+    const saved = await patchJson('/api/settings/conversation-popup', {
       cooldown_ms: Number(cooldown?.value)
-    })
-  });
-  const text = await response.text();
-  if (!response.ok) throw new Error(`/api/settings/conversation-popup: ${response.status} ${text}`);
-  const saved = text ? JSON.parse(text) : null;
-  if (!saved) throw new Error('conversation popup settings save returned no body');
-  applyConversationPopupSettings(saved);
-  renderConversationPopupSettings();
-  setConversationPopupSettingsStatus(`保存しました: クールタイム ${conversationPopupCooldownMs()}ms`);
-  return saved;
+    });
+    if (!saved) throw new Error('conversation popup settings save returned no body');
+    applyConversationPopupSettings(saved);
+    renderConversationPopupSettings();
+    setConversationPopupSettingsStatus(`保存しました: クールタイム ${conversationPopupCooldownMs()}ms`);
+    return saved;
+  } catch (error) {
+    setConversationPopupSettingsStatus(settingsSaveErrorMessage(error, '会話ポップアップ'));
+    throw error;
+  }
 }
 
 function audioSettingsElements() {
@@ -2179,11 +2197,20 @@ async function loadAudioSettings() {
 // controller so the change takes effect on the playing BGM without restarting the source.
 async function saveAudioSettings(update) {
   setAudioSettingsStatus('保存中です。');
-  const saved = await patchJson('/api/settings/audio', update);
-  bgmController.applyAudioSettings(saved);
-  renderAudioSettings(saved);
-  setAudioSettingsStatus(`保存しました: ${describeAudioSettings(saved)}`);
-  return saved;
+  // Both success and failure drive the category status to a terminal state: on failure the category panel
+  // shows the concrete reason (server error body / network reject / malformed response — applyAudioSettings
+  // is strict and throws on a malformed shape) instead of staying stuck on 保存中です, then the original
+  // error is rethrown to reportError so console/global reporting is unchanged. No silent retry or fallback.
+  try {
+    const saved = await patchJson('/api/settings/audio', update);
+    bgmController.applyAudioSettings(saved);
+    renderAudioSettings(saved);
+    setAudioSettingsStatus(`保存しました: ${describeAudioSettings(saved)}`);
+    return saved;
+  } catch (error) {
+    setAudioSettingsStatus(settingsSaveErrorMessage(error, '音声'));
+    throw error;
+  }
 }
 
 function normalizeSlotNoteValue(value) {
@@ -4957,7 +4984,7 @@ function renderField(field) {
 }
 
 function canResumeFromSlotLoad() {
-  return slotLoadCanResumePlay && Boolean(currentActiveSlotId);
+  return slotLoadCanResumePlay && Boolean(currentActiveSlotId) && !activeSlotIncompatible;
 }
 
 function updateSlotLoadResumeButton() {
@@ -4998,69 +5025,127 @@ async function confirmDeleteSlot() {
   await deleteSpecificSlot(slotId);
 }
 
+// A normal (compatible) save slot card: a start ("このデータで始める") button, a 削除 button routed through the
+// shared delete-confirm dialog, the 卒業済み status line, and the per-slot memo editor.
+function renderSlotCard(slot) {
+  const article = document.createElement('article');
+  article.className = 'continuity-record-item slot-load-item';
+
+  const body = document.createElement('div');
+  body.className = 'slot-load-item-body';
+
+  const summary = document.createElement('div');
+  summary.className = 'slot-load-item-summary';
+
+  const title = document.createElement('strong');
+  title.textContent = slot.label || slot.slot_id;
+  const meta = document.createElement('p');
+  meta.textContent = [slot.slot_id, slot.updated_at, slot.current_location_id].filter(Boolean).join(' / ');
+  const graduationStatus = document.createElement('p');
+  graduationStatus.className = 'slot-load-item-status';
+  graduationStatus.textContent = '卒業済み';
+  graduationStatus.hidden = slot.graduation_completed !== true;
+  const actions = document.createElement('div');
+  actions.className = 'dialog-action-row';
+  const load = document.createElement('button');
+  load.type = 'button';
+  load.className = 'academy-map-action-button primary';
+  load.textContent = 'このデータで始める';
+  load.disabled = slot.graduation_completed === true;
+  load.setAttribute('aria-disabled', String(slot.graduation_completed === true));
+  load.addEventListener('click', () => loadSpecificSlot(slot.slot_id).catch(reportError));
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'academy-map-action-button secondary';
+  remove.textContent = '削除';
+  remove.addEventListener('click', () => openDeleteSlotDialog(slot.slot_id));
+  actions.append(load, remove);
+  summary.append(title, meta, graduationStatus, actions);
+
+  body.append(summary, renderSlotNoteEditor(slot));
+  article.append(body);
+  return article;
+}
+
+// A degraded (incompatible) save slot card: rendered from an entry in response.incompatible_slots
+// ({ slot_id, compatibility: { error_code, message }, note, updated_at }). It shows only the safely
+// readable metadata plus a fixed player-facing reason (never the server's migration CLI message), and
+// offers ONLY the shared delete-confirm dialog — no start button and no note editor, because a degraded
+// slot cannot be loaded or its note re-saved (the backend re-throws the same compatibility error on both).
+function renderDegradedSlotCard(entry) {
+  const article = document.createElement('article');
+  article.className = 'continuity-record-item slot-load-item slot-load-item-degraded';
+
+  const body = document.createElement('div');
+  body.className = 'slot-load-item-body';
+
+  const summary = document.createElement('div');
+  summary.className = 'slot-load-item-summary';
+
+  const title = document.createElement('strong');
+  title.textContent = entry.slot_id;
+  const meta = document.createElement('p');
+  meta.textContent = [entry.slot_id, entry.updated_at, entry.note].filter(Boolean).join(' / ');
+  const reason = document.createElement('p');
+  reason.className = 'slot-load-item-status slot-load-item-degraded-reason';
+  reason.textContent = SLOT_LOAD_DEGRADED_REASON;
+  const actions = document.createElement('div');
+  actions.className = 'dialog-action-row';
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.className = 'academy-map-action-button secondary';
+  remove.textContent = '削除';
+  remove.addEventListener('click', () => openDeleteSlotDialog(entry.slot_id));
+  actions.append(remove);
+  summary.append(title, meta, reason, actions);
+
+  body.append(summary);
+  article.append(body);
+  return article;
+}
+
 async function refreshSaveSlots() {
   const response = await getJson('/api/slots');
   const slots = response.slots ?? [];
+  const incompatibleSlots = response.incompatible_slots ?? [];
   currentActiveSlotId = response.active_slot_id ?? null;
-  slotLoadEntryRoute = resolvePlayModeEntryRoute(response, '/api/slots');
-  slotLoadGraduationPhase2Reentry = parseGraduationPhase2Reentry(response, '/api/slots');
-  currentPlayMode = slotLoadEntryRoute.mode;
+  // A degraded active slot reports active_slot_incompatible with the play-mode / phase-2 fields explicitly
+  // null. Resolving the route in that state would fail-fast in resolvePlayModeEntryRoute, so branch on the
+  // flag: keep the load screen open (the API is 200), null the route/phase-2 contract, and leave resume
+  // disabled. A non-degraded active slot keeps resolving the route exactly as before.
+  activeSlotIncompatible = response.active_slot_incompatible === true;
+  if (activeSlotIncompatible) {
+    slotLoadEntryRoute = null;
+    slotLoadGraduationPhase2Reentry = null;
+    currentPlayMode = null;
+  } else {
+    slotLoadEntryRoute = resolvePlayModeEntryRoute(response, '/api/slots');
+    slotLoadGraduationPhase2Reentry = parseGraduationPhase2Reentry(response, '/api/slots');
+    currentPlayMode = slotLoadEntryRoute.mode;
+  }
   updateSlotLoadResumeButton();
 
   const loadButton = document.querySelector('#open-load-screen');
-  if (loadButton) loadButton.disabled = slots.length === 0;
+  // The title load button stays enabled while any degraded card remains, so the player can open the load
+  // screen to delete an incompatible slot even when no compatible slot is left.
+  if (loadButton) loadButton.disabled = slots.length === 0 && incompatibleSlots.length === 0;
 
   const list = document.querySelector('#slot-load-list');
   if (list) {
-    if (!slots.length) {
+    if (!slots.length && !incompatibleSlots.length) {
       const empty = document.createElement('p');
       empty.className = 'continuity-empty';
       empty.textContent = 'まだロードできるセーブデータがありません。';
       list.replaceChildren(empty);
     } else {
-      list.replaceChildren(...slots.map((slot) => {
-        const article = document.createElement('article');
-        article.className = 'continuity-record-item slot-load-item';
-
-        const body = document.createElement('div');
-        body.className = 'slot-load-item-body';
-
-        const summary = document.createElement('div');
-        summary.className = 'slot-load-item-summary';
-
-        const title = document.createElement('strong');
-        title.textContent = slot.label || slot.slot_id;
-        const meta = document.createElement('p');
-        meta.textContent = [slot.slot_id, slot.updated_at, slot.current_location_id].filter(Boolean).join(' / ');
-        const graduationStatus = document.createElement('p');
-        graduationStatus.className = 'slot-load-item-status';
-        graduationStatus.textContent = '卒業済み';
-        graduationStatus.hidden = slot.graduation_completed !== true;
-        const actions = document.createElement('div');
-        actions.className = 'dialog-action-row';
-        const load = document.createElement('button');
-        load.type = 'button';
-        load.className = 'academy-map-action-button primary';
-        load.textContent = 'このデータで始める';
-        load.disabled = slot.graduation_completed === true;
-        load.setAttribute('aria-disabled', String(slot.graduation_completed === true));
-        load.addEventListener('click', () => loadSpecificSlot(slot.slot_id).catch(reportError));
-        const remove = document.createElement('button');
-        remove.type = 'button';
-        remove.className = 'academy-map-action-button secondary';
-        remove.textContent = '削除';
-        remove.addEventListener('click', () => openDeleteSlotDialog(slot.slot_id));
-        actions.append(load, remove);
-        summary.append(title, meta, graduationStatus, actions);
-
-        body.append(summary, renderSlotNoteEditor(slot));
-        article.append(body);
-        return article;
-      }));
+      list.replaceChildren(
+        ...slots.map((slot) => renderSlotCard(slot)),
+        ...incompatibleSlots.map((entry) => renderDegradedSlotCard(entry))
+      );
     }
   }
 
-  return slots;
+  return { slots, incompatibleSlots };
 }
 
 function renderRecordItems(elementId, record) {
@@ -13132,8 +13217,10 @@ async function deleteSpecificSlot(slotId) {
   if (!response.ok) throw new Error(await response.text());
   const result = await response.json();
   writeDebugLog(result);
-  const slots = await refreshSaveSlots();
-  if (!slots.length) showScreen('title');
+  // Return to title only when NOTHING is left to act on — no compatible slot AND no degraded card. While a
+  // degraded slot remains, stay on the load screen so consecutive incompatible deletions complete in the UI.
+  const { slots, incompatibleSlots } = await refreshSaveSlots();
+  if (!slots.length && !incompatibleSlots.length) showScreen('title');
 }
 
 function isLmStudioRuntimeError(error) {

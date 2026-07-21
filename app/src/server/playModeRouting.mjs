@@ -1,5 +1,5 @@
 import { newGameActivePlayMode, resolveActivePlayMode, resolvePostContentScreen } from '../playMode.mjs';
-import { readSaveSlotActivePlayMode, readSaveSlotRuntimeState } from '../saveLoad.mjs';
+import { isDegradedSlotError, readSaveSlotActivePlayMode, readSaveSlotRuntimeState } from '../saveLoad.mjs';
 import { isInFlightGraduationPhase2 } from '../graduationEnding.mjs';
 import { buildRoutingPersonaVisualSummary } from '../routingPersonaVisual.mjs';
 import { ROUTING_PERSONA_CHARACTER_ID } from '../routingPersona.mjs';
@@ -55,6 +55,18 @@ async function resolveGraduationPhase2Reentry({ root, state, activePlayMode }) {
   return reentry;
 }
 
+// The GET /api/slots top-level routing fields for an INCOMPATIBLE active slot: resume is disabled and the
+// play-mode-derived fields are explicitly null (never a fabricated default / silent fallback). The slot
+// still lists in incompatible_slots and stays deletable.
+function incompatibleActiveSlotRouting() {
+  return {
+    active_slot_incompatible: true,
+    active_play_mode: null,
+    post_content_screen: null,
+    graduation_phase2_reentry: null
+  };
+}
+
 export async function resolvePlayModeScreenRouting({ context, loopScreen }) {
   const activePlayMode = await resolveActivePlayMode(resolvePlayModeSettingsPath(context));
   return { ...resolvedScreenRouting({ activePlayMode, loopScreen }), graduation_phase2_reentry: null };
@@ -77,7 +89,22 @@ export async function resolveSlotPlayModeScreenRouting({ root, slotId, loopScree
   };
 }
 
+// The GET /api/slots top-level active-slot routing contract. An absent active slot resolves the sidecar
+// default (compatible). A present active slot is resolved from its persisted play mode; if that slot is
+// degraded (one of the closed compatibility errors), it returns the incompatible contract with the routing
+// fields null and resume disabled, instead of bricking the whole listing. Any non-degraded throw
+// propagates unchanged (fail-fast preserved). The returned object always carries active_slot_incompatible.
 export async function resolveActiveSlotPlayModeScreenRouting({ context, activeSlotId, loopScreen }) {
-  if (!activeSlotId) return await resolvePlayModeScreenRouting({ context, loopScreen });
-  return await resolveSlotPlayModeScreenRouting({ root: context.root, slotId: activeSlotId, loopScreen });
+  if (!activeSlotId) {
+    return { active_slot_incompatible: false, ...await resolvePlayModeScreenRouting({ context, loopScreen }) };
+  }
+  try {
+    return {
+      active_slot_incompatible: false,
+      ...await resolveSlotPlayModeScreenRouting({ root: context.root, slotId: activeSlotId, loopScreen })
+    };
+  } catch (error) {
+    if (!isDegradedSlotError(error)) throw error;
+    return incompatibleActiveSlotRouting();
+  }
 }

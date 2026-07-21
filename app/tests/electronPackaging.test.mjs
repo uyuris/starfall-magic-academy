@@ -32,10 +32,10 @@ test('electron packaging declares a real app icon, app display name, and central
   assert.match(publicHtml, /<h1>STARFALL MAGIC ACADEMY<\/h1>/, 'top-level browser heading should use the app display name');
   assert.match(electronMain, /STARFALL MAGIC ACADEMY Electron runtime listening/, 'Electron smoke log should identify the app display name');
   assert.match(electronMain, /STARFALL MAGIC ACADEMY を起動できません/, 'Electron startup error dialog should identify the app display name');
-  assert.equal(packageJson.build?.icon, 'assets/app-icons/sera-neutral.icns', 'packaging should declare the generated Sera-neutral icns file as the app icon');
+  assert.equal(packageJson.build?.icon, 'assets/app-icons/starfall-emblem.icns', 'packaging should declare the generated Starfall emblem icns file as the app icon');
   assert.equal(packageJson.scripts?.['electron:mac'], 'electron-builder --mac dmg zip', 'package scripts should expose a dedicated macOS packaging command');
   assert.equal(packageJson.scripts?.['electron:win'], 'electron-builder --win nsis --x64', 'package scripts should expose a dedicated Windows packaging command');
-  assert.equal(packageJson.build?.win?.icon, 'assets/app-icons/sera-neutral.ico', 'Windows packaging should declare the generated Sera-neutral ico file as the app icon');
+  assert.equal(packageJson.build?.win?.icon, 'assets/app-icons/starfall-emblem.ico', 'Windows packaging should declare the generated Starfall emblem ico file as the app icon');
   assert.equal(packageJson.build?.mac?.hardenedRuntime, true, 'macOS signing should opt into hardened runtime explicitly');
   assert.equal(packageJson.build?.mac?.gatekeeperAssess, false, 'macOS signing should not rely on local Gatekeeper assessment before notarization');
   assert.equal(packageJson.build?.mac?.strictVerify, false, 'macOS ad-hoc signing should avoid @electron/osx-sign emitting invalid --strict=true; strict verification runs after packaging');

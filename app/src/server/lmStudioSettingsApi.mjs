@@ -52,18 +52,18 @@ function validateLmStudioThinkingEffortUpdate(body = {}) {
   if (body.thinking_effort === 'low' || body.thinking_effort === 'medium' || body.thinking_effort === 'high') {
     return body.thinking_effort;
   }
-  throw new Error('thinking_effort must be null, low, medium, or high');
+  throw statusError('thinking_effort must be null, low, medium, or high', 400);
 }
 
 function validateLmStudioSettingsUpdate(body = {}) {
   const connectionMode = body.connection_mode === 'lan' ? 'lan' : body.connection_mode === 'localhost' ? 'localhost' : null;
-  if (!connectionMode) throw new Error('connection_mode must be localhost or lan');
+  if (!connectionMode) throw statusError('connection_mode must be localhost or lan', 400);
   const port = Number(body.port);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('port must be an integer between 1 and 65535');
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw statusError('port must be an integer between 1 and 65535', 400);
   const host = connectionMode === 'localhost' ? '127.0.0.1' : String(body.host ?? '').trim();
-  if (connectionMode === 'lan' && !host) throw new Error('host is required for lan connection mode');
+  if (connectionMode === 'lan' && !host) throw statusError('host is required for lan connection mode', 400);
   const model = String(body.model ?? '').trim();
-  if (!model) throw new Error('model is required');
+  if (!model) throw statusError('model is required', 400);
   const thinkingEffort = validateLmStudioThinkingEffortUpdate(body);
   return {
     connectionMode,
@@ -77,11 +77,11 @@ function validateLmStudioSettingsUpdate(body = {}) {
 
 function validateLmStudioConnectionInput(body = {}) {
   const connectionMode = body.connection_mode === 'lan' ? 'lan' : body.connection_mode === 'localhost' ? 'localhost' : null;
-  if (!connectionMode) throw new Error('connection_mode must be localhost or lan');
+  if (!connectionMode) throw statusError('connection_mode must be localhost or lan', 400);
   const port = Number(body.port);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('port must be an integer between 1 and 65535');
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw statusError('port must be an integer between 1 and 65535', 400);
   const host = connectionMode === 'localhost' ? '127.0.0.1' : String(body.host ?? '').trim();
-  if (connectionMode === 'lan' && !host) throw new Error('host is required for lan connection mode');
+  if (connectionMode === 'lan' && !host) throw statusError('host is required for lan connection mode', 400);
   return {
     connectionMode,
     host,
@@ -208,7 +208,10 @@ export async function handleLmStudioSettingsApi({ req, res, url, context, sendJs
       await persistLmStudioConfig(context, nextConfig);
       sendJson(res, normalizeLmStudioSettingsShape(context.lmStudioConfig));
     } catch (error) {
-      sendJson(res, { error: error.message }, error.statusCode ?? 400);
+      // Validation rejects carry an explicit 400; an fs-origin persist failure (EACCES etc.) has no
+      // statusCode and surfaces as a 500 server failure, consistent with the outer createServer catch —
+      // never mislabeled as client input 400.
+      sendJson(res, { error: error.message }, error.statusCode ?? 500);
     }
     return true;
   }
@@ -217,7 +220,10 @@ export async function handleLmStudioSettingsApi({ req, res, url, context, sendJs
     try {
       sendJson(res, await fetchLmStudioModelCatalog(body));
     } catch (error) {
-      sendJson(res, { error: error.message }, error.statusCode ?? 400);
+      // Validation rejects carry an explicit 400 and an LM Studio reachability failure carries 502; an
+      // unclassified failure without a statusCode surfaces as a 500 server failure, consistent with the
+      // outer createServer catch.
+      sendJson(res, { error: error.message }, error.statusCode ?? 500);
     }
     return true;
   }

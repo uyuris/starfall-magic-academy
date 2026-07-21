@@ -24,9 +24,13 @@ test('academy room hub replaces the old status hero, merges money into inventory
   assert.match(js, /const screens = \{[\s\S]*'academy-room': document\.querySelector\('#academy-room-screen'\)/, 'browser screen registry should add the academy-room screen');
   assert.match(js, /if \(name === 'academy-room'\) renderAcademyRoomScreen\(\);/, 'showScreen should render the room screen when it becomes active');
   assert.match(js, /let slotLoadCanResumePlay = false;/, 'front-end should track whether the current load-screen entry can resume play');
-  assert.match(js, /async function openLoadScreen\(\{ canResumePlay = false \} = \{\}\) \{[\s\S]*if \(conversationFinalizationInFlight\) \{[\s\S]*showProcessingToast\(\);[\s\S]*return;[\s\S]*\}[\s\S]*slotLoadCanResumePlay = canResumePlay;[\s\S]*await refreshSaveSlots\(\);[\s\S]*showScreen\('slot-load'\);/, 'load screen entry should explicitly store whether play resume is allowed while preserving finalization blocking');
-  assert.match(js, /function canResumeFromSlotLoad\(\) \{[\s\S]*return slotLoadCanResumePlay && Boolean\(currentActiveSlotId\);[\s\S]*\}/, 'resume button enablement should require both an entry context and an active slot');
-  assert.match(js, /async function loadSpecificSlot\(slotId\) \{[\s\S]*if \(conversationFinalizationInFlight\) \{[\s\S]*showProcessingToast\(\);[\s\S]*return;[\s\S]*\}[\s\S]*showScreen\('academy-room'\);/, 'actual slot loading should also refuse to race finalization and land on academy-room after success');
+  const openLoadScreenFn = js.match(/async function openLoadScreen\(\{ canResumePlay = false \} = \{\}\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.notEqual(openLoadScreenFn, '', 'the openLoadScreen function body should be locatable');
+  assert.match(openLoadScreenFn, /if \(conversationFinalizationInFlight\) \{[\s\S]*showProcessingToast\(\);[\s\S]*return;[\s\S]*\}[\s\S]*slotLoadCanResumePlay = canResumePlay;[\s\S]*await refreshSaveSlots\(\);[\s\S]*showScreen\('slot-load'\);/, 'load screen entry should explicitly store whether play resume is allowed while preserving finalization blocking');
+  assert.match(js, /function canResumeFromSlotLoad\(\) \{[\s\S]*return slotLoadCanResumePlay && Boolean\(currentActiveSlotId\) && !activeSlotIncompatible;[\s\S]*\}/, 'resume button enablement should require an entry context, an active slot, and a compatible (non-degraded) active slot');
+  const loadSpecificSlotFn = js.match(/async function loadSpecificSlot\(slotId\) \{[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.notEqual(loadSpecificSlotFn, '', 'the loadSpecificSlot function body should be locatable');
+  assert.match(loadSpecificSlotFn, /if \(conversationFinalizationInFlight\) \{[\s\S]*showProcessingToast\(\);[\s\S]*return;[\s\S]*\}[\s\S]*showScreen\('academy-room'\);/, 'actual slot loading should also refuse to race finalization and land on academy-room after success');
   assert.match(js, /async function endConversation[\s\S]*current_screen: 'academy-room'[\s\S]*let transition = endingConversation[\s\S]*next_screen: 'academy-room'[\s\S]*const loadingReadiness = endingConversation \? finalization : Promise\.resolve\(\)[\s\S]*showAcademyLoadingScreenUntilReady\(\{[\s\S]*readiness: loadingReadiness[\s\S]*nextScreen: transition\.next_screen[\s\S]*copyKey: transition\.loading_copy_key/, 'conversation end should open academy-room after the fixed loading delay while keeping graduation completion on the finalization-awaited title transition');
   assert.match(js, /async function openAcademyRoomTraining\(\)[\s\S]*showAcademyLoadingScreenUntilReady\(\{[\s\S]*nextScreen: 'academy-training'[\s\S]*\}\)/, 'room training action should reuse the academy loading flow before academy-training');
   assert.match(js, /async function openAcademyRoomSkipTraining\(\)[\s\S]*postJson\('\/api\/academy\/week\/start', \{\}\)[\s\S]*postJson\('\/api\/training\/skip', \{\}\)[\s\S]*routeAfterCompletedAcademyTraining\(skipped\.post_content_screen\)/, 'room skip action should start the academy week, skip training without parameter gains, and then reuse the completed-training route with the response post_content_screen');
@@ -237,13 +241,64 @@ test('academy room screen shows player parameters buddy money and a scrollable i
   assert.match(js, /function renderAcademyRoomEnemies\(\)[\s\S]*selectedAcademyEnemyCharacterIds\(\)[\s\S]*#academy-room-enemy-count[\s\S]*#academy-room-enemy-list/, 'academy room enemy list should use the same current-enemy resolver as academy map red pins');
   assert.match(js, /function renderAcademyRoomInventoryItems\(inventory = currentInventory\)[\s\S]*#academy-room-item-count[\s\S]*items\.map[\s\S]*className = 'academy-room-item-row'[\s\S]*item\.stat_effect[\s\S]*use\.textContent = '1個使う';[\s\S]*useInventoryItem\(item\.item_id, 1\)/, 'academy room inventory should render item rows, item count, and a 1個使う button spending one unit for usable items');
   assert.match(js, /function renderAcademyRoomInventoryItems\(inventory = currentInventory\)[\s\S]*useAll\.textContent = '全部使う';[\s\S]*useInventoryItem\(item\.item_id, item\.quantity\)[\s\S]*row\.append\(use, useAll\)/, 'academy room usable items should also carry a 全部使う button that spends the owned quantity in one use');
-  assert.match(css, /#academy-room-screen\.active[\s\S]*display:\s*grid[\s\S]*height:\s*100%[\s\S]*\.academy-room-grid\s*\{[\s\S]*grid-template-columns:\s*minmax\(280px, 0\.9fr\) minmax\(320px, 1fr\) minmax\(360px, 1\.08fr\)[\s\S]*\.academy-room-player-panel,[\s\S]*\.academy-room-relationship-panel,[\s\S]*\.academy-room-inventory-panel[\s\S]*box-sizing:\s*border-box[\s\S]*grid-template-rows:\s*auto minmax\(0, 1fr\)[\s\S]*#academy-room-player-parameters\s*\{[\s\S]*overflow-y:\s*auto[\s\S]*\.academy-room-relationship-list[\s\S]*overflow-y:\s*auto[\s\S]*\.academy-room-inventory-items\s*\{[\s\S]*overflow-y:\s*auto[\s\S]*max-height:\s*none/, 'academy room player, relationship, and item regions should each use border-box internal scrolling inside the height-aware layout');
+  // Same "border-box internal scrolling inside the height-aware layout" contract, checked per-rule (ref-ui-tokens
+  // bounded-window 流儀) rather than one unbounded ordered scan across the shipped CSS. The three panel selectors
+  // share a group rule, which cssRuleBlock cannot extract, so it is matched with a direct anchored regex on the
+  // exact group head (ref-ui-tokens: cssRuleBlock returns '' for grouped selectors).
+  const roomActiveCss = cssRuleBlock(css, '#academy-room-screen.active');
+  assert.notEqual(roomActiveCss, '', 'the #academy-room-screen.active rule should exist');
+  assert.match(roomActiveCss, /display:\s*grid[\s\S]*height:\s*100%/, 'active room screen should be a full-height grid');
+  const roomGridCss = cssRuleBlock(css, '.academy-room-grid');
+  assert.notEqual(roomGridCss, '', 'the .academy-room-grid rule should exist');
+  assert.match(roomGridCss, /grid-template-columns:\s*minmax\(280px, 0\.9fr\) minmax\(320px, 1fr\) minmax\(360px, 1\.08fr\)/, 'room grid should size its three columns');
+  const roomPanelsGroupRule = css.match(/\.academy-room-player-panel,\n\.academy-room-relationship-panel,\n\.academy-room-inventory-panel\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.notEqual(roomPanelsGroupRule, '', 'the shared player/relationship/inventory panel group rule should exist');
+  assert.match(roomPanelsGroupRule, /box-sizing:\s*border-box[\s\S]*grid-template-rows:\s*auto minmax\(0, 1fr\)/, 'the three room panels should be border-box heading+content grids');
+  const roomPlayerParamsCss = cssRuleBlock(css, '#academy-room-player-parameters');
+  assert.notEqual(roomPlayerParamsCss, '', 'the #academy-room-player-parameters rule should exist');
+  assert.match(roomPlayerParamsCss, /overflow-y:\s*auto/, 'the player parameters region should scroll internally');
+  const roomRelationshipListCss = cssRuleBlock(css, '.academy-room-relationship-list');
+  assert.notEqual(roomRelationshipListCss, '', 'the .academy-room-relationship-list rule should exist');
+  assert.match(roomRelationshipListCss, /overflow-y:\s*auto/, 'the relationship list should scroll internally');
+  const roomInventoryItemsCss = cssRuleBlock(css, '.academy-room-inventory-items');
+  assert.notEqual(roomInventoryItemsCss, '', 'the .academy-room-inventory-items rule should exist');
+  assert.match(roomInventoryItemsCss, /overflow-y:\s*auto[\s\S]*max-height:\s*none/, 'the inventory items region should scroll internally with no max-height cap');
   assert.match(css, /\.academy-room-money-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto[\s\S]*align-items:\s*end[\s\S]*gap:\s*10px/, 'academy room money row should become a flat title row instead of a separate inset box');
   assert.match(css, /#academy-room-money\s*\{[\s\S]*justify-self:\s*end[\s\S]*text-align:\s*right[\s\S]*font-size:\s*24px/, 'academy room money amount should be right-aligned text instead of left-aligned content inside an inner card');
   assert.doesNotMatch(css, /\.academy-room-money-block\s*\{/, 'academy room money should no longer keep the old inset money block styling');
   assert.match(css, /\.academy-training-player-parameters\s*\{[\s\S]*min-height:\s*0[\s\S]*overflow:\s*auto/, 'academy room should be able to inherit the same academy-training player-parameter scroll container contract');
   assert.doesNotMatch(css, /#academy-room-player-parameters\s*\{[\s\S]*margin-top:\s*6px|#academy-room-player-parameters \.character-parameter-section\s*\{|#academy-room-player-parameters \.character-parameter-group\s*\{|#academy-room-player-parameters \.character-parameter-item\s*\{/, 'academy room should stop carrying a separate parameter-density override once it reuses the academy-training right-panel mechanism');
-  assert.match(css, /\.academy-room-hero-copy[\s\S]*max-width:[\s\S]*padding:[\s\S]*\.academy-room-action-card\s*\{[\s\S]*align-content:\s*start[\s\S]*\.academy-room-action-header-row\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) auto[\s\S]*align-items:\s*end[\s\S]*gap:\s*18px[\s\S]*\.academy-room-week-row\s*\{[\s\S]*justify-items:\s*end[\s\S]*text-align:\s*right[\s\S]*gap:\s*6px[\s\S]*\.academy-room-action-copy\s*\{[\s\S]*justify-items:\s*start[\s\S]*align-content:\s*end[\s\S]*\.academy-room-action-card \.academy-room-action-copy > span\s*\{[\s\S]*font-size:\s*20px[\s\S]*font-weight:\s*600[\s\S]*letter-spacing:\s*0\.04em[\s\S]*line-height:\s*1\.1[\s\S]*#academy-room-week\s*\{[\s\S]*font-size:\s*24px[\s\S]*letter-spacing:\s*0\.04em[\s\S]*\.academy-room-buddy-card\.is-empty\s*\{[\s\S]*min-height:\s*0[\s\S]*padding:\s*0[\s\S]*border:\s*none[\s\S]*background:\s*none[\s\S]*\.academy-room-buddy-card\.is-empty \.panel-help[\s\S]*white-space:\s*nowrap/, 'academy room action card should keep the current-week summary adjacent to the action copy while preserving the existing hero and empty-buddy layout behavior');
+  // Same "current-week summary adjacent to the action copy, hero + empty-buddy layout preserved" contract, checked
+  // per-rule via cssRuleBlock instead of one unbounded ordered scan across the shipped 550KB CSS (ref-ui-tokens
+  // bounded-window 流儀). Each rule is extracted once and its properties asserted inside its own block; the rules
+  // are independent non-conflicting selectors, so cross-rule source ordering was never the contract.
+  const roomHeroCopyCss = cssRuleBlock(css, '.academy-room-hero-copy');
+  assert.notEqual(roomHeroCopyCss, '', 'the .academy-room-hero-copy rule should exist');
+  assert.match(roomHeroCopyCss, /max-width:[\s\S]*padding:/, 'room hero copy should keep its max-width + padding layout');
+  const roomActionCardCss = cssRuleBlock(css, '.academy-room-action-card');
+  assert.notEqual(roomActionCardCss, '', 'the .academy-room-action-card rule should exist');
+  assert.match(roomActionCardCss, /align-content:\s*start/, 'the action card should top-align its stacked content');
+  const roomActionHeaderRowCss = cssRuleBlock(css, '.academy-room-action-header-row');
+  assert.notEqual(roomActionHeaderRowCss, '', 'the .academy-room-action-header-row rule should exist');
+  assert.match(roomActionHeaderRowCss, /grid-template-columns:\s*minmax\(0, 1fr\) auto[\s\S]*align-items:\s*end[\s\S]*gap:\s*18px/, 'the action header row should reserve action copy left / week summary right');
+  const roomWeekRowCss = cssRuleBlock(css, '.academy-room-week-row');
+  assert.notEqual(roomWeekRowCss, '', 'the .academy-room-week-row rule should exist');
+  assert.match(roomWeekRowCss, /justify-items:\s*end[\s\S]*text-align:\s*right[\s\S]*gap:\s*6px/, 'the current-week summary should right-align its label and week number');
+  const roomActionCopyCss = cssRuleBlock(css, '.academy-room-action-copy');
+  assert.notEqual(roomActionCopyCss, '', 'the .academy-room-action-copy rule should exist');
+  assert.match(roomActionCopyCss, /justify-items:\s*start[\s\S]*align-content:\s*end/, 'the action copy should sit bottom-left inside the header');
+  const roomActionCopySpanCss = cssRuleBlock(css, '.academy-room-action-card .academy-room-action-copy > span');
+  assert.notEqual(roomActionCopySpanCss, '', 'the .academy-room-action-card .academy-room-action-copy > span rule should exist');
+  assert.match(roomActionCopySpanCss, /font-size:\s*20px[\s\S]*font-weight:\s*600[\s\S]*letter-spacing:\s*0\.04em[\s\S]*line-height:\s*1\.1/, 'the Actions label should be enlarged relative to the helper copy');
+  const roomWeekCss = cssRuleBlock(css, '#academy-room-week');
+  assert.notEqual(roomWeekCss, '', 'the #academy-room-week rule should exist');
+  assert.match(roomWeekCss, /font-size:\s*24px[\s\S]*letter-spacing:\s*0\.04em/, 'the week number should be enlarged');
+  const roomEmptyBuddyCss = cssRuleBlock(css, '.academy-room-buddy-card.is-empty');
+  assert.notEqual(roomEmptyBuddyCss, '', 'the .academy-room-buddy-card.is-empty rule should exist');
+  assert.match(roomEmptyBuddyCss, /min-height:\s*0[\s\S]*padding:\s*0[\s\S]*border:\s*none[\s\S]*background:\s*none/, 'the empty buddy card should collapse to no reserved box');
+  const roomEmptyBuddyHelpCss = cssRuleBlock(css, '.academy-room-buddy-card.is-empty .panel-help');
+  assert.notEqual(roomEmptyBuddyHelpCss, '', 'the .academy-room-buddy-card.is-empty .panel-help rule should exist');
+  assert.match(roomEmptyBuddyHelpCss, /white-space:\s*nowrap/, 'the empty buddy help text should stay on one line');
   // Button consumes shared tokens; the dark-gold conversation-session design
   // is preserved in the --btn-secondary-bg token value (single source).
   assert.match(css, /:root\b[\s\S]*--btn-secondary-bg:[\s\S]*rgb\(var\(--c-cream\) \/ 0\.16\)[\s\S]*rgb\(35 49 77 \/ 0\.82\)/, 'shared button token should keep the dark-gold conversation-session fill');

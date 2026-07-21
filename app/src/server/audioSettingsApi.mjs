@@ -142,7 +142,10 @@ export async function handleAudioSettingsApi({ req, res, url, context, sendJson,
       const saved = await persistAudioSettings(settingsPath, { ...current, ...update });
       sendJson(res, saved);
     } catch (error) {
-      sendJson(res, { error: error.message }, error.statusCode ?? 400);
+      // Validation rejects carry an explicit 400 (see validateAudioUpdate); an fs-origin persist failure
+      // (EACCES etc.) has no statusCode and surfaces as a 500 server failure, consistent with the outer
+      // createServer catch — never mislabeled as client input 400.
+      sendJson(res, { error: error.message }, error.statusCode ?? 500);
     }
     return true;
   }

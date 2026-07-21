@@ -149,6 +149,33 @@ async function updateRuntimeStateForSlot(root, slotId, updater) {
   return next;
 }
 
+// The closed set of compatibility errors that make a slot degraded (listable-but-not-loadable) instead of
+// bricking the whole listing. These are the read-normalizer migration errors for a slot whose persisted
+// play_mode / routing variant predates the current write contract. Every other throw — I/O errors, JSON
+// parse errors, unknown invariants — propagates unchanged (no catch-all, fail-fast preserved).
+const DEGRADED_SLOT_ERROR_CODES = Object.freeze([
+  'slot_play_mode_missing',
+  'slot_play_mode_invalid',
+  'slot_routing_persona_variant_missing'
+]);
+
+export function isDegradedSlotError(error) {
+  return DEGRADED_SLOT_ERROR_CODES.includes(error?.errorCode);
+}
+
+// A degraded slot entry: load-incompatible but deletable. Carries only display metadata read directly from
+// meta.json (never a play_mode-dependent derivation) plus the machine-readable compatibility reason. The
+// "load impossible / delete possible" contract is fixed by the entry's presence in incompatible_slots; it is
+// not duplicated as flags on the entry.
+function degradedSlotEntry(slotId, meta, error) {
+  return {
+    slot_id: slotId,
+    compatibility: { error_code: error.errorCode, message: error.message },
+    note: meta.player_note ?? '',
+    updated_at: meta.updated_at ?? null
+  };
+}
+
 function slotSummary(meta) {
   const slotId = meta.slot_id;
   // Slot listing is a pure read: a stale out-of-closed-set variant is surfaced raw (read-tolerant), so
@@ -319,29 +346,43 @@ export async function loadSaveSlot({ root, slotId, postLoadScreen = 'academy-roo
   };
 }
 
+// Per-slot listing that keeps a degraded (compatibility-error) slot as a degraded entry instead of throwing
+// the whole listing. A degraded slot's error is caught only when it is in the closed degraded set; any other
+// throw propagates. Returns `{ slots, incompatible_slots }` with both arrays sorted by created_at/slot_id
+// (degraded entries have no created_at, so they sort by slot_id).
 export async function listSaveSlots({ root }) {
   if (!root) throw new Error('root is required');
   const slots = [];
+  const incompatibleSlots = [];
   for (const slotId of await listValidSlotIds(root)) {
     const meta = await readSlotMeta(root, slotId);
     if (!meta) continue;
-    slots.push(slotSummary({
-      ...meta,
-      graduation_completed: await readGraduationCompletedForSlot(root, slotId)
-    }));
+    try {
+      slots.push(slotSummary({
+        ...meta,
+        graduation_completed: await readGraduationCompletedForSlot(root, slotId)
+      }));
+    } catch (error) {
+      if (!isDegradedSlotError(error)) throw error;
+      incompatibleSlots.push(degradedSlotEntry(slotId, meta, error));
+    }
   }
-  slots.sort((a, b) => {
+  const bySlotSortKey = (list) => list.sort((a, b) => {
     const left = `${a.created_at ?? ''}:${a.slot_id}`;
     const right = `${b.created_at ?? ''}:${b.slot_id}`;
     return left.localeCompare(right);
   });
-  return slots;
+  bySlotSortKey(slots);
+  bySlotSortKey(incompatibleSlots);
+  return { slots, incompatible_slots: incompatibleSlots };
 }
 
 export async function describeSaveSlots({ root }) {
   if (!root) throw new Error('root is required');
+  const { slots, incompatible_slots: incompatibleSlots } = await listSaveSlots({ root });
   return {
-    slots: await listSaveSlots({ root }),
+    slots,
+    incompatible_slots: incompatibleSlots,
     active_slot_id: await readValidActiveSlotId(root)
   };
 }
@@ -378,9 +419,14 @@ export async function deleteSaveSlot({ root, slotId }) {
     await fs.rm(activeSlotFile(root), { force: true });
   }
 
+  // The post-delete listing is built with the same degraded-aware helper, so a delete completes (2xx +
+  // real removal) even when another incompatible slot remains — the strict listing would otherwise 400 the
+  // response after the target was already removed on disk.
+  const { slots, incompatible_slots: incompatibleSlots } = await listSaveSlots({ root });
   return {
     deleted_slot_id: slotId,
     active_slot_id: activeId === slotId ? null : activeId,
-    slots: await listSaveSlots({ root })
+    slots,
+    incompatible_slots: incompatibleSlots
   };
 }

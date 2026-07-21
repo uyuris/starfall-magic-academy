@@ -29,7 +29,7 @@
     "appId": "com.uyuris.magic-academy-adventure-next",
     "productName": "STARFALL MAGIC ACADEMY",
     "asar": true,
-    "icon": "assets/app-icons/sera-neutral.icns",
+    "icon": "assets/app-icons/starfall-emblem.icns",
     "files": [
       "app/**/*",
       "assets/**/*",
@@ -66,7 +66,7 @@
       "sign": "scripts/sign-macos.mjs"
     },
     "win": {
-      "icon": "assets/app-icons/sera-neutral.ico",
+      "icon": "assets/app-icons/starfall-emblem.ico",
       "target": [
         {
           "target": "nsis",

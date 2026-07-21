@@ -43,7 +43,7 @@ import { markGraduationEndingComplete, isGraduationEndingContext } from './gradu
 import { defaultRuntimePaths } from './runtimePaths.mjs';
 import { createStorageApi } from './storage.mjs';
 import { assertValidSlotId, readActiveSlot, readValidActiveSlotId, resolveValidActivePlayRoot } from './playSession.mjs';
-import { readSaveSlotActivePlayMode } from './saveLoad.mjs';
+import { isDegradedSlotError, readSaveSlotActivePlayMode } from './saveLoad.mjs';
 import { recoverPromotingFinalizations, runRoutingReadScopeIfActive, runRoutingReadScopeRequired } from './routingFinalizeQueue.mjs';
 
 const projectRoot = defaultRuntimePaths.projectRoot;
@@ -537,10 +537,23 @@ async function hasActiveRoutingScopeTarget(context) {
   return true;
 }
 
+// The per-request routing read-scope decision for the active slot. Returns the resolved active play mode, or
+// null when there is no active slot, or the incompatible marker when the active slot is degraded (one of the
+// closed compatibility errors). A degraded active slot has no valid routing scope — it is unloadable — so it
+// resolves to the incompatible marker rather than throwing, which would 400 the whole request before the
+// degraded-aware handler (GET /api/slots, DELETE) could produce its 200 listing. Any non-degraded throw
+// propagates (fail-fast preserved).
+const INCOMPATIBLE_ACTIVE_SLOT = Object.freeze({ mode: null, incompatible: true });
+
 async function readActiveSlotPlayMode(context) {
   const slotId = await readValidActiveSlotId(context.root);
   if (!slotId) return null;
-  return await readSaveSlotActivePlayMode({ root: context.root, slotId });
+  try {
+    return await readSaveSlotActivePlayMode({ root: context.root, slotId });
+  } catch (error) {
+    if (isDegradedSlotError(error)) return INCOMPATIBLE_ACTIVE_SLOT;
+    throw error;
+  }
 }
 
 async function resolveRequestActivePlayMode(req, url, context) {
@@ -562,8 +575,12 @@ async function resolveRequestActivePlayMode(req, url, context) {
       targetSlotId: null
     };
   }
+  const activeSlotPlayMode = await readActiveSlotPlayMode(context);
+  // A degraded active slot resolves the request on the non-routing read scope (its incompatible marker is
+  // not routing), so the degraded-aware save-load handler runs. Only a genuinely absent active slot (null)
+  // consults the sidecar default; a present-but-degraded active slot never falls through to the sidecar.
   return {
-    activePlayMode: await readActiveSlotPlayMode(context) ?? await readPlayModeSettings(context.playModeSettingsPath),
+    activePlayMode: activeSlotPlayMode ?? await readPlayModeSettings(context.playModeSettingsPath),
     readBodyOverride: readBody,
     targetSlotId: null
   };

@@ -1264,8 +1264,11 @@ test('loop slot load keeps loop routing when global play mode changes to routing
   assert.equal(loaded.state.current_screen, 'academy-room');
 });
 
-test('slot APIs fail fast when slot play_mode is missing or invalid', async (t) => {
-  const settingsRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'slot-mode-migration-required-'));
+// Plants a normal loop slot and a second slot whose meta is mutated into each of the 3 closed compatibility
+// shapes in turn. The second slot is NOT the active slot, so the active-slot top-level route stays compatible
+// and only the incompatible entry is exercised.
+async function withNormalPlusDegradedSlot(t, { activeSlotIncompatible = false } = {}) {
+  const settingsRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'slot-degraded-list-'));
   t.after(async () => {
     await fs.rm(settingsRoot, { recursive: true, force: true });
   });
@@ -1273,53 +1276,150 @@ test('slot APIs fail fast when slot play_mode is missing or invalid', async (t) 
   await fs.writeFile(settingsPath, `${JSON.stringify({ mode: 'loop' }, null, 2)}\n`, 'utf8');
   const { root, base } = await withServer(t, { playModeSettingsPath: settingsPath });
 
+  const firstStarted = await jsonFetch(`${base}/api/new-game`, { method: 'POST', body: {} });
+  const okSlotId = firstStarted.slot.slot_id;
+  const secondStarted = await jsonFetch(`${base}/api/new-game`, { method: 'POST', body: {} });
+  const degradedSlotId = secondStarted.slot.slot_id;
+  // The second new-game left slot_002 active; make the compatible slot active unless the test explicitly
+  // wants the degraded slot to be the active one.
+  if (!activeSlotIncompatible) {
+    await jsonFetch(`${base}/api/slots/load`, { method: 'POST', body: { slot_id: okSlotId } });
+  }
+  const degradedMetaPath = path.join(root, 'game_data/play/slots', degradedSlotId, 'meta.json');
+  const baseMeta = JSON.parse(await fs.readFile(degradedMetaPath, 'utf8'));
+  const setDegradedShape = async (shape) => {
+    const meta = { ...baseMeta };
+    delete meta.play_mode;
+    delete meta.routing_persona_variant;
+    if (shape.play_mode !== undefined) meta.play_mode = shape.play_mode;
+    await fs.writeFile(degradedMetaPath, `${JSON.stringify(meta, null, 2)}\n`, 'utf8');
+  };
+  return { root, base, okSlotId, degradedSlotId, degradedMetaPath, setDegradedShape };
+}
+
+test('GET /api/slots returns 200 with a degraded entry per closed compatibility shape while a normal slot lists', async (t) => {
+  const { base, okSlotId, degradedSlotId, setDegradedShape } = await withNormalPlusDegradedSlot(t);
+
+  for (const [shape, expectedCode] of [
+    [{}, 'slot_play_mode_missing'],
+    [{ play_mode: 'banana' }, 'slot_play_mode_invalid'],
+    [{ play_mode: 'routing' }, 'slot_routing_persona_variant_missing']
+  ]) {
+    await setDegradedShape(shape);
+    const listed = await jsonFetch(`${base}/api/slots`);
+    assert.deepEqual(listed.slots.map((slot) => slot.slot_id), [okSlotId], `${expectedCode}: normal slot lists`);
+    assert.equal(listed.incompatible_slots.length, 1);
+    const entry = listed.incompatible_slots[0];
+    assert.equal(entry.slot_id, degradedSlotId);
+    assert.equal(entry.compatibility.error_code, expectedCode);
+    assert.match(entry.compatibility.message, /node scripts\/stamp-slot-play-mode\.mjs/);
+    // Degraded entry carries only display metadata, no play_mode-derived field and no duplicated flags.
+    assert.equal('play_mode' in entry, false);
+    assert.equal('loadable' in entry, false);
+    assert.equal('deletable' in entry, false);
+    assert.deepEqual(Object.keys(entry).sort(), ['compatibility', 'note', 'slot_id', 'updated_at']);
+    // Active slot (the compatible one) keeps the normal top-level routing contract.
+    assert.equal(listed.active_slot_incompatible, false);
+    assert.equal(listed.active_slot_id, okSlotId);
+  }
+});
+
+test('GET /api/slots marks an incompatible active slot with null routing fields, staying 200', async (t) => {
+  const { base, degradedSlotId, setDegradedShape } = await withNormalPlusDegradedSlot(t, { activeSlotIncompatible: true });
+  await setDegradedShape({});
+
+  const listed = await jsonFetch(`${base}/api/slots`);
+  assert.equal(listed.active_slot_id, degradedSlotId);
+  assert.equal(listed.active_slot_incompatible, true);
+  assert.equal(listed.active_play_mode, null);
+  assert.equal(listed.post_content_screen, null);
+  assert.equal(listed.graduation_phase2_reentry, null);
+  assert.equal(listed.incompatible_slots.length, 1);
+  assert.equal(listed.incompatible_slots[0].slot_id, degradedSlotId);
+});
+
+test('GET /api/slots keeps the compatible active-slot routing contract unchanged (regression)', async (t) => {
+  const settingsRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'slot-compatible-active-'));
+  t.after(async () => {
+    await fs.rm(settingsRoot, { recursive: true, force: true });
+  });
+  const settingsPath = path.join(settingsRoot, 'play-mode.json');
+  await fs.writeFile(settingsPath, `${JSON.stringify({ mode: 'loop' }, null, 2)}\n`, 'utf8');
+  const { base } = await withServer(t, { playModeSettingsPath: settingsPath });
+
   const started = await jsonFetch(`${base}/api/new-game`, { method: 'POST', body: {} });
-  const slotId = started.slot.slot_id;
-  const metaPath = path.join(root, 'game_data/play/slots', slotId, 'meta.json');
-  const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
-  delete meta.play_mode;
-  // A routing new game persists a variant; drop it too so the later play_mode:'routing' case below exercises
-  // the routing-without-variant fail-fast rather than a fully-valid routing meta.
-  delete meta.routing_persona_variant;
-  await fs.writeFile(metaPath, `${JSON.stringify(meta, null, 2)}\n`, 'utf8');
+  const listed = await jsonFetch(`${base}/api/slots`);
+  assert.deepEqual(listed.slots.map((slot) => slot.slot_id), [started.slot.slot_id]);
+  assert.deepEqual(listed.incompatible_slots, []);
+  assert.equal(listed.active_slot_incompatible, false);
+  assert.deepEqual(listed.active_play_mode, started.active_play_mode);
+  assert.equal(listed.post_content_screen, started.post_content_screen);
+});
 
-  for (const [label, response] of [
-    ['list', await fetch(`${base}/api/slots`)],
-    ['load', await fetch(`${base}/api/slots/load`, {
+test('POST /api/slots/load still fails fast with 400 for each closed compatibility shape', async (t) => {
+  const { base, degradedSlotId, setDegradedShape } = await withNormalPlusDegradedSlot(t);
+
+  for (const shape of [{}, { play_mode: 'banana' }, { play_mode: 'routing' }]) {
+    await setDegradedShape(shape);
+    const response = await fetch(`${base}/api/slots/load`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ slot_id: slotId })
-    })]
-  ]) {
-    assert.equal(response.status, 400, `${label} should reject a slot with missing play_mode`);
+      body: JSON.stringify({ slot_id: degradedSlotId })
+    });
+    assert.equal(response.status, 400, `load of ${JSON.stringify(shape)} should 400`);
     assert.match(await response.text(), /node scripts\/stamp-slot-play-mode\.mjs/);
+  }
+});
+
+test('DELETE removes each of two incompatible slots with 2xx and a degraded-aware listing', async (t) => {
+  const settingsRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'slot-degraded-delete-'));
+  t.after(async () => {
+    await fs.rm(settingsRoot, { recursive: true, force: true });
+  });
+  const settingsPath = path.join(settingsRoot, 'play-mode.json');
+  await fs.writeFile(settingsPath, `${JSON.stringify({ mode: 'loop' }, null, 2)}\n`, 'utf8');
+  const { root, base } = await withServer(t, { playModeSettingsPath: settingsPath });
+
+  const okStarted = await jsonFetch(`${base}/api/new-game`, { method: 'POST', body: {} });
+  const okSlotId = okStarted.slot.slot_id;
+  const aStarted = await jsonFetch(`${base}/api/new-game`, { method: 'POST', body: {} });
+  const bStarted = await jsonFetch(`${base}/api/new-game`, { method: 'POST', body: {} });
+  await jsonFetch(`${base}/api/slots/load`, { method: 'POST', body: { slot_id: okSlotId } });
+  for (const slotId of [aStarted.slot.slot_id, bStarted.slot.slot_id]) {
+    const metaPath = path.join(root, 'game_data/play/slots', slotId, 'meta.json');
+    const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+    delete meta.play_mode;
+    delete meta.routing_persona_variant;
+    await fs.writeFile(metaPath, `${JSON.stringify(meta, null, 2)}\n`, 'utf8');
   }
 
-  await fs.writeFile(metaPath, `${JSON.stringify({ ...meta, play_mode: 'banana' }, null, 2)}\n`, 'utf8');
-  for (const [label, response] of [
-    ['list', await fetch(`${base}/api/slots`)],
-    ['load', await fetch(`${base}/api/slots/load`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ slot_id: slotId })
-    })]
-  ]) {
-    assert.equal(response.status, 400, `${label} should reject a slot with invalid play_mode`);
-    assert.match(await response.text(), /node scripts\/stamp-slot-play-mode\.mjs/);
-  }
+  const firstDeleted = await jsonFetch(`${base}/api/slots/${aStarted.slot.slot_id}`, { method: 'DELETE' });
+  assert.equal(firstDeleted.deleted_slot_id, aStarted.slot.slot_id);
+  assert.equal(firstDeleted.active_slot_id, okSlotId);
+  assert.deepEqual(firstDeleted.incompatible_slots.map((s) => s.slot_id), [bStarted.slot.slot_id]);
+  await assert.rejects(fs.access(path.join(root, 'game_data/play/slots', aStarted.slot.slot_id)), { code: 'ENOENT' });
 
-  await fs.writeFile(metaPath, `${JSON.stringify({ ...meta, play_mode: 'routing' }, null, 2)}\n`, 'utf8');
-  for (const [label, response] of [
-    ['list', await fetch(`${base}/api/slots`)],
-    ['load', await fetch(`${base}/api/slots/load`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ slot_id: slotId })
-    })]
-  ]) {
-    assert.equal(response.status, 400, `${label} should reject a routing slot without routing_persona_variant`);
-    assert.match(await response.text(), /node scripts\/stamp-slot-play-mode\.mjs/);
-  }
+  const secondDeleted = await jsonFetch(`${base}/api/slots/${bStarted.slot.slot_id}`, { method: 'DELETE' });
+  assert.equal(secondDeleted.deleted_slot_id, bStarted.slot.slot_id);
+  assert.deepEqual(secondDeleted.incompatible_slots, []);
+  assert.deepEqual(secondDeleted.slots.map((s) => s.slot_id), [okSlotId]);
+  await assert.rejects(fs.access(path.join(root, 'game_data/play/slots', bStarted.slot.slot_id)), { code: 'ENOENT' });
+});
+
+test('DELETE of the incompatible ACTIVE slot returns 2xx and nulls the active slot', async (t) => {
+  const { root, base, degradedSlotId, setDegradedShape } = await withNormalPlusDegradedSlot(t, { activeSlotIncompatible: true });
+  await setDegradedShape({});
+
+  const deleted = await jsonFetch(`${base}/api/slots/${degradedSlotId}`, { method: 'DELETE' });
+  assert.equal(deleted.deleted_slot_id, degradedSlotId);
+  assert.equal(deleted.active_slot_id, null);
+  await assert.rejects(fs.access(path.join(root, 'game_data/play/slots', degradedSlotId)), { code: 'ENOENT' });
+  await assert.rejects(fs.access(path.join(root, 'game_data/play/active_slot.json')), { code: 'ENOENT' });
+
+  // After the active incompatible slot is gone, the listing resolves the sidecar default (compatible again).
+  const listed = await jsonFetch(`${base}/api/slots`);
+  assert.equal(listed.active_slot_incompatible, false);
+  assert.equal(listed.active_slot_id, null);
 });
 
 test('routing hub start refuses loop mode before any LM gate or opening work', async (t) => {
@@ -6742,8 +6842,9 @@ test('server POST endpoints run conversation, ignore deprecated event files, and
     body: { slot_id: 'slot_api_1', label: 'API smoke slot' }
   });
   assert.equal(saved.slot_id, 'slot_api_1');
-  const slots = await jsonFetch(`${base}/api/save-slots`);
-  assert.deepEqual(slots.map((slot) => slot.slot_id), ['slot_api_1']);
+  const slotsListing = await jsonFetch(`${base}/api/save-slots`);
+  assert.deepEqual(slotsListing.slots.map((slot) => slot.slot_id), ['slot_api_1']);
+  assert.deepEqual(slotsListing.incompatible_slots, []);
 
   await fs.mkdir(path.join(root, 'game_data/events'), { recursive: true });
   await fs.writeFile(

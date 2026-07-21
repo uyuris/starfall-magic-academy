@@ -484,11 +484,16 @@ test('settings screen joins the metaphysical-moonlight meta layer (full-screen n
   assert.match(js, /async function saveLmStudioSettings\(\)/, 'front-end should expose a dedicated LM Studio settings saver');
   assert.match(js, /getJson\('\/api\/settings\/lmstudio'\)/, 'settings screen should fetch the current LM Studio settings from the server');
   assert.match(js, /fetch\('\/api\/settings\/lmstudio\/models', \{[\s\S]*method: 'POST'/, 'settings screen should request model options through the runtime server instead of calling LM Studio directly from the browser');
-  assert.match(js, /fetch\('\/api\/settings\/lmstudio', \{[\s\S]*method: 'PATCH'/, 'settings screen save action should PATCH LM Studio settings');
-  assert.match(js, /body: JSON\.stringify\(\{[\s\S]*connection_mode: connectionMode,[\s\S]*host: host\?\.value,[\s\S]*port: Number\(port\?\.value \|\| 1234\),[\s\S]*model: selectedModel/, 'settings apply action should include the selected model alongside the connection fields');
+  assert.match(js, /patchJson\('\/api\/settings\/lmstudio', \{[\s\S]*connection_mode: connectionMode,[\s\S]*host: host\?\.value,[\s\S]*port: Number\(port\?\.value \|\| 1234\),[\s\S]*model: selectedModel/, 'settings apply action should PATCH LM Studio settings through the shared patchJson (so a non-OK response carries the server error body) with the selected model alongside the connection fields');
   // The apply action requires a model; when none is chosen it surfaces the requirement and declines
   // to PATCH (a visible prompt — not a silent skip).
   assert.match(js, /async function saveLmStudioSettings\(\)\s*\{[\s\S]*const selectedModel = normalizeLmStudioModelValue\(model\?\.value\);\s*if \(!selectedModel\) \{[\s\S]*return null;\s*\}/, 'saveLmStudioSettings should gate on a chosen model and surface the requirement instead of PATCHing an incomplete config');
+  // A failed save must drive the category status to a terminal error (concrete reason) instead of leaving
+  // it stuck on 反映中です, then rethrow to reportError so console/global reporting is unchanged. The
+  // settingsSaveErrorMessage helper is shared with settingsSaveError.test.mjs (the three failure modes are
+  // covered there); here we guard that each save action wires it in its catch and rethrows.
+  assert.match(js, /import \{ settingsSaveErrorMessage \} from '\.\/settingsSaveError\.js'/, 'app.js should import the shared settings-save error surfacing helper');
+  assert.match(js, /async function saveLmStudioSettings\(\)\s*\{[\s\S]*?setLmStudioSettingsStatus\('反映中です。'\);[\s\S]*?try \{[\s\S]*?patchJson\('\/api\/settings\/lmstudio'[\s\S]*?\} catch \(error\) \{\s*setLmStudioSettingsStatus\(settingsSaveErrorMessage\(error, 'LM Studio'\)\);\s*throw error;\s*\}/, 'saveLmStudioSettings should surface a failure as a terminal category error and rethrow to reportError');
   // Master-detail category nav: a fail-fast selector shows exactly one panel, and every settings
   // entry opens on the default category so no empty panel is shown.
   assert.match(js, /const SETTINGS_CATEGORIES = \['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio'\]/, 'front-end should declare the settings categories including the audio (サウンド) category');
@@ -524,7 +529,9 @@ test('settings screen joins the metaphysical-moonlight meta layer (full-screen n
   const titleShellCss = cssRuleBlock(css, '.title-screen-shell');
   assert.match(titleShellCss, /margin:\s*0 0 clamp\(18px, 3\.4vw, 42px\) 0[\s\S]*padding:\s*clamp\(11px, 1\.75vw, 17px\)[\s\S]*border-radius:\s*var\(--radius-frame\)/, 'title shell should keep the existing shell dimensions (now bottom-center) while joining the bigframe radius');
   assert.match(css, /\.title-screen-shell h2\s*\{[\s\S]*font-size:\s*clamp\(21px, 3\.05vw, 42px\)[\s\S]*color:\s*var\(--meta-silver-strong\)[\s\S]*text-shadow:\s*var\(--shadow-title-heading\)/, 'title heading should keep the current retuned real font size while consuming the moonlight silver + shared shadow tokens');
-  assert.match(css, /\.title-action-layout\s*\{[\s\S]*display:\s*flex[\s\S]*align-items:\s*center[\s\S]*gap:\s*10px[\s\S]*margin:\s*14px 0 0/, 'title action layout should provide a shared row for left actions and the right-side settings action');
+  const titleActionLayoutCss = cssRuleBlock(css, '.title-action-layout');
+  assert.notEqual(titleActionLayoutCss, '', 'the .title-action-layout rule should exist');
+  assert.match(titleActionLayoutCss, /display:\s*flex[\s\S]*align-items:\s*center[\s\S]*gap:\s*10px[\s\S]*margin:\s*14px 0 0/, 'title action layout should provide a shared row for left actions and the right-side settings action');
   assert.match(css, /\.title-primary-actions\s*\{[\s\S]*display:\s*flex[\s\S]*gap:\s*10px[\s\S]*flex-wrap:\s*wrap/, 'title primary actions should keep the left-side button group compact');
   assert.match(css, /\.title-settings-action\s*\{[\s\S]*margin-left:\s*auto[\s\S]*display:\s*flex[\s\S]*justify-content:\s*flex-end/, 'title settings action wrapper should push the settings button to the right edge of the panel');
   assert.match(css, /\.title-screen-shell \.title-action-button\s*\{[\s\S]*min-width:\s*124px[\s\S]*font-size:\s*14px/, 'title action buttons should preserve the current direct-dimension sizing');
@@ -598,7 +605,7 @@ test('slot-load screen hides the topbar and uses a viewport-fit internal-scroll 
   assert.match(js, /function openDeleteSlotDialog\(slotId\) \{[\s\S]*pendingDeleteSlotId = slotId;[\s\S]*document\.body\.classList\.add\('interaction-detail-backdrop'\);[\s\S]*dialog\.showModal\(\)/, 'slot delete should open a native shared dialog and remember the pending slot');
   assert.match(js, /function closeDeleteSlotDialog\(\) \{[\s\S]*pendingDeleteSlotId = null;[\s\S]*dialog\.close\(\)/, 'slot delete cancel path should clear pending state and close the dialog');
   assert.match(js, /async function confirmDeleteSlot\(\) \{[\s\S]*if \(!pendingDeleteSlotId\) return;[\s\S]*const slotId = pendingDeleteSlotId;[\s\S]*closeDeleteSlotDialog\(\);[\s\S]*await deleteSpecificSlot\(slotId\);[\s\S]*\}/, 'slot delete confirm should be the only path that forwards the remembered slot into deleteSpecificSlot');
-  assert.match(js, /function canResumeFromSlotLoad\(\) \{[\s\S]*return slotLoadCanResumePlay && Boolean\(currentActiveSlotId\);[\s\S]*\}/, 'slot-load resume availability should require both an active slot and a play-resumable load-screen entry context');
+  assert.match(js, /function canResumeFromSlotLoad\(\) \{[\s\S]*return slotLoadCanResumePlay && Boolean\(currentActiveSlotId\) && !activeSlotIncompatible;[\s\S]*\}/, 'slot-load resume availability should require an active slot, a play-resumable load-screen entry context, and a compatible (non-degraded) active slot');
   assert.match(js, /function updateSlotLoadResumeButton\(\) \{[\s\S]*#slot-load-resume-play[\s\S]*disabled = !canResumeFromSlotLoad\(\)/, 'slot-load should actively synchronize the resume button disabled state');
   assert.match(js, /async function refreshSaveSlots\(\) \{[\s\S]*currentActiveSlotId = response\.active_slot_id \?\? null;[\s\S]*updateSlotLoadResumeButton\(\)/, 'slot refresh should update active-slot knowledge before syncing the resume button');
   assert.match(js, /remove\.addEventListener\('click', \(\) => openDeleteSlotDialog\(slot\.slot_id\)\)/, 'slot card delete button should open the confirmation dialog instead of deleting immediately');
@@ -669,10 +676,14 @@ test('settings screen exposes only the conversation popup cooldown preset (anima
 
   // Persistence follows the existing server-side settings mechanism (GET/PATCH), now a cooldown-only contract.
   assert.match(js, /getJson\('\/api\/settings\/conversation-popup'\)/, 'settings should load the persisted popup preferences from the server on demand');
-  assert.match(js, /fetch\('\/api\/settings\/conversation-popup', \{[\s\S]*method: 'PATCH'/, 'changing a preset should persist it through the server settings endpoint');
+  assert.match(js, /patchJson\('\/api\/settings\/conversation-popup', \{/, 'changing a preset should persist it through the server settings endpoint (via the shared patchJson so a non-OK response carries the server error body)');
   assert.match(js, /async function loadConversationPopupSettings\(\)/, 'browser should centralize loading the persisted popup preferences');
   assert.match(js, /async function saveConversationPopupSettings\(\)/, 'browser should centralize persisting the popup preferences');
-  assert.match(js, /body: JSON\.stringify\(\{\s*\n\s*cooldown_ms: Number\(cooldown\?\.value\)\s*\n\s*\}\)/, 'saving the popup settings should PATCH only cooldown_ms');
+  assert.match(js, /patchJson\('\/api\/settings\/conversation-popup', \{\s*\n\s*cooldown_ms: Number\(cooldown\?\.value\)\s*\n\s*\}\)/, 'saving the popup settings should PATCH only cooldown_ms');
+  // A failed save must drive the category status to a terminal error (concrete reason) instead of leaving
+  // it stuck on 保存中です, then rethrow to reportError. The three failure modes are covered in
+  // settingsSaveError.test.mjs; here we guard the catch wiring + rethrow.
+  assert.match(js, /async function saveConversationPopupSettings\(\)\s*\{[\s\S]*?setConversationPopupSettingsStatus\('保存中です。'\);[\s\S]*?try \{[\s\S]*?patchJson\('\/api\/settings\/conversation-popup'[\s\S]*?\} catch \(error\) \{\s*setConversationPopupSettingsStatus\(settingsSaveErrorMessage\(error, '会話ポップアップ'\)\);\s*throw error;\s*\}/, 'saveConversationPopupSettings should surface a failure as a terminal category error and rethrow to reportError');
   assert.match(js, /function applyConversationPopupSettings\(settings\)\s*\{[\s\S]*?conversationPopupSettings\.cooldown_ms = cooldownMs;[\s\S]*?\n\}/, 'applied settings store only the cooldown');
   assert.doesNotMatch(js, /animation_ms|academy_conversation_screen|conversationPopupAnimationMs|applyConversationPopupAnimation|function academyConversationLandingScreen/, 'the animation preference + academy landing preference are removed from the browser script');
   // The chat-bubble pop-in is a fixed 220ms declared once in CSS; nothing overrides the CSS variable from JS.
@@ -703,6 +714,11 @@ test('settings screen adds a サウンド (audio) category: BGM on/off + volume,
   // Loaders / savers mirror the other categories.
   assert.match(js, /async function loadAudioSettings\(\) \{[\s\S]*getJson\('\/api\/settings\/audio'\)[\s\S]*bgmController\.applyAudioSettings\(settings\);[\s\S]*renderAudioSettings\(settings\);/, 'loadAudioSettings GETs the disk values and applies them to the controller + controls');
   assert.match(js, /async function saveAudioSettings\(update\) \{[\s\S]*patchJson\('\/api\/settings\/audio', update\)[\s\S]*bgmController\.applyAudioSettings\(saved\);/, 'saveAudioSettings PATCHes the changed field and applies the persisted response to the controller');
+  // A failed save must drive the category status to a terminal error (concrete reason) instead of leaving
+  // it stuck on 保存中です, then rethrow to reportError. applyAudioSettings is strict and throws on a
+  // malformed success body, so that failure mode also lands in the catch. The three failure modes are
+  // covered in settingsSaveError.test.mjs; here we guard the catch wiring + rethrow.
+  assert.match(js, /async function saveAudioSettings\(update\) \{[\s\S]*?setAudioSettingsStatus\('保存中です。'\);[\s\S]*?try \{[\s\S]*?patchJson\('\/api\/settings\/audio', update\)[\s\S]*?\} catch \(error\) \{\s*setAudioSettingsStatus\(settingsSaveErrorMessage\(error, '音声'\)\);\s*throw error;\s*\}/, 'saveAudioSettings should surface a failure as a terminal category error and rethrow to reportError');
   // openSettingsScreen loads the audio settings on every entry (entry-independent display).
   assert.match(js, /function openSettingsScreen\(\)\s*\{[\s\S]*loadAudioSettings\(\)\.catch\(reportError\)[\s\S]*renderRoutingFinalizePanel\(\);/, 'opening the settings screen should load the audio settings regardless of entry');
   // On-change apply (no save button): toggle → bgm_enabled, slider → bgm_volume; failures go to reportError.
@@ -742,4 +758,62 @@ test('slot-load cards render a dedicated per-slot memo column and preserve slot-
 
   assert.match(saveLoad, /player_note:\s*meta\.player_note \?\? ''[\s\S]*graduation_completed:\s*meta\.graduation_completed === true/, 'slot summaries should preserve player notes while exposing graduation_completed');
   assert.match(saveLoad, /const slotNoteRoutePattern = \^\\\/api\\\/slots\\\/\[\^\/\]\+\\\/note\$\|slotNoteRoutePattern\.test\(url\.pathname\)|updateSaveSlotNote/, 'save-load API should expose a dedicated slot-note update route and handler');
+});
+
+// task incompatible-slot-degraded-ui-frontend — the load screen consumes the backend degraded contract
+// (GET /api/slots 200 + incompatible_slots + active_slot_incompatible). Incompatible slots render as
+// degraded cards: a fixed player-facing reason (no migration CLI text), safely readable metadata, and the
+// shared delete-confirm dialog ONLY — no start button and no note editor. (Source-regex UI test; the live
+// title→ロード→degraded card→delete flow is the Electron harness app/tests/manual/slotLoadDegradedRender.mjs.)
+test('slot-load renders incompatible slots as delete-only degraded cards from the backend degraded contract', async () => {
+  const js = await readFile(path.join(root, 'app.js'), 'utf8');
+  const css = await readFile(`${root}/style.css`, 'utf8');
+  const fn = (name) => {
+    const match = js.match(new RegExp(`\\n(?:async )?function ${name}\\([\\s\\S]*?\\n\\}`));
+    if (!match) throw new Error(`function not found in app.js: ${name}`);
+    return match[0];
+  };
+
+  // The degraded reason shown to the player is a fixed explanation, NOT the server compatibility.message
+  // (which embeds the developer migration CLI command). It never mentions the migration script.
+  assert.match(js, /const SLOT_LOAD_DEGRADED_REASON = '旧バージョンのセーブデータのため読み込めません。削除のみ可能です。';/, 'the degraded reason should be a fixed player-facing explanation constant');
+  // The degraded card renders the fixed reason constant, never the server compatibility.message (which embeds
+  // the migration CLI command). Scope the CLI-absence check to the card renderer — app.js legitimately names the
+  // command once in the constant's explaining comment.
+  assert.doesNotMatch(fn('renderDegradedSlotCard'), /stamp-slot-play-mode|compatibility\.message|entry\.compatibility/, 'the degraded card must not render the server compatibility.message / migration CLI text');
+
+  // refreshSaveSlots reads BOTH lists and branches the route resolution on active_slot_incompatible so the
+  // null play-mode / phase-2 fields of a degraded active slot never reach the fail-fast route resolver.
+  const refresh = fn('refreshSaveSlots');
+  assert.match(refresh, /const incompatibleSlots = response\.incompatible_slots \?\? \[\];/, 'refreshSaveSlots should read the incompatible_slots list from the contract');
+  assert.match(refresh, /activeSlotIncompatible = response\.active_slot_incompatible === true;/, 'refreshSaveSlots should track the active_slot_incompatible flag');
+  assert.match(refresh, /if \(activeSlotIncompatible\) \{[\s\S]*slotLoadEntryRoute = null;[\s\S]*slotLoadGraduationPhase2Reentry = null;[\s\S]*currentPlayMode = null;[\s\S]*\} else \{[\s\S]*slotLoadEntryRoute = resolvePlayModeEntryRoute\(response, '\/api\/slots'\);/, 'a degraded active slot should null the route/phase-2 contract instead of resolving them (avoiding the fail-fast on null fields)');
+  // The load screen stays reachable while a degraded card remains (so it can be deleted), even with no
+  // compatible slot left; the empty state only appears when BOTH lists are empty.
+  assert.match(refresh, /if \(loadButton\) loadButton\.disabled = slots\.length === 0 && incompatibleSlots\.length === 0;/, 'the title load button should stay enabled while any degraded card remains');
+  assert.match(refresh, /if \(!slots\.length && !incompatibleSlots\.length\) \{[\s\S]*continuity-empty/, 'the empty state should only render when there are neither compatible nor degraded slots');
+  assert.match(refresh, /\.\.\.slots\.map\(\(slot\) => renderSlotCard\(slot\)\),\s*\n\s*\.\.\.incompatibleSlots\.map\(\(entry\) => renderDegradedSlotCard\(entry\)\)/, 'the list should render normal cards then degraded cards');
+  assert.match(refresh, /return \{ slots, incompatibleSlots \};/, 'refreshSaveSlots should return both lists so callers can decide the empty→title transition');
+
+  // The degraded card offers delete only — no start button, no note editor — routed through the same
+  // confirmation dialog as normal cards.
+  const degraded = fn('renderDegradedSlotCard');
+  assert.match(degraded, /article\.className = 'continuity-record-item slot-load-item slot-load-item-degraded';/, 'the degraded card should carry its distinguishing class');
+  assert.match(degraded, /reason\.textContent = SLOT_LOAD_DEGRADED_REASON;/, 'the degraded card should show the fixed player-facing reason');
+  assert.match(degraded, /remove\.addEventListener\('click', \(\) => openDeleteSlotDialog\(entry\.slot_id\)\)/, 'the degraded delete button should open the shared confirmation dialog');
+  assert.doesNotMatch(degraded, /loadSpecificSlot|このデータで始める/, 'the degraded card must not offer a load / start button');
+  assert.doesNotMatch(degraded, /renderSlotNoteEditor|saveSlotNote/, 'the degraded card must not offer a note editor');
+
+  // Delete stays on the load screen while any degraded card remains; title only on a fully empty listing.
+  assert.match(fn('deleteSpecificSlot'), /const \{ slots, incompatibleSlots \} = await refreshSaveSlots\(\);\s*\n\s*if \(!slots\.length && !incompatibleSlots\.length\) showScreen\('title'\);/, 'delete should return to title only when neither a compatible nor a degraded slot remains');
+
+  // resume ("プレイに戻る") is disabled for a degraded active slot (no resumable play session).
+  assert.match(js, /let activeSlotIncompatible = false;/, 'the active-slot incompatibility flag should be module state');
+  assert.match(fn('canResumeFromSlotLoad'), /return slotLoadCanResumePlay && Boolean\(currentActiveSlotId\) && !activeSlotIncompatible;/, 'resume availability should require the active slot not be incompatible');
+
+  // Degraded card chrome: sunken night ground, no starlight resume-flare on hover/focus (it is not selectable).
+  const degradedCss = cssRuleBlock(css, '.slot-load-item.slot-load-item-degraded');
+  assert.match(degradedCss, /background:\s*var\(--meta-night-1\)/, 'the degraded card should sit on a sunken night ground token');
+  assert.match(css, /\.slot-load-item\.slot-load-item-degraded:hover,\n\.slot-load-item\.slot-load-item-degraded:focus-within \{[\s\S]*border-color:\s*var\(--meta-line\)/, 'the degraded card should not flare a starlight selectable border on hover/focus');
+  assert.match(css, /#slot-load-screen \.slot-load-item-summary p\.slot-load-item-degraded-reason \{[\s\S]*color:\s*var\(--meta-silver\)/, 'the degraded reason line should read as moonlight silver');
 });
