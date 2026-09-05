@@ -276,8 +276,16 @@ export function buildCharacterPrompt({ profile, scene, memories = [], skills = [
     finalInstruction = `${profile.display_name}として、彼我の能力値を参照した上で、数値と言動が矛盾しないよう注意しつつ、現在の場面に自然に続く感情を次から1つだけ選択する。選択肢: ${faceExpressionChoicesText}。返答本文はまだ書かない。JSONのexpressionだけを返す。`;
   } else if (turnType === 'conversation_continuation_judgment') {
     finalInstruction = `${profile.display_name}として、この発言を行ったプレイヤーとの会話を継続したいと思うか。回答はtrueもしくはfalseのみを返す。継続したい場合はtrue。継続したくない場合はfalse。`;
+  } else if (turnType === 'lounge_continuation_judgment') {
+    finalInstruction = [
+      `この記録を読み、${profile.display_name}が自分の今の発話を終えたあとも、この談話の場に残っていたいと思っているかを判定する。`,
+      `${profile.display_name}が自分だけこの場から退出したいと思っていればfalse、残って談話を続けたいと思っていればtrueと判定する。`,
+      '出力はtrueもしくはfalseの1語だけとする。発話、地の文、括弧書きの振る舞い、理由、補足、ラベル、JSON、Markdownコードブロックは一切出力しない。'
+    ].join('\n');
   } else if (turnType === 'conversation_cutoff_reply') {
     finalInstruction = `${profile.display_name}として、この会話を切り上げる。現在の場面に自然に続く、会話を終了させるための発言だけを書く。発話は一度に1〜3文程度にする。発言内容に鉤括弧はつけない。振る舞いなどには丸括弧をつける。`;
+  } else if (turnType === 'lounge_departure_reply') {
+    finalInstruction = `${profile.display_name}として、この談話の場から自分だけが退出する。他の参加者はこの場に残り、談話そのものは続く。残る相手に短く別れを告げ、自分がこの場を離れる形の発話だけを書く。通常発話の後ろに続く発言として自然にする。談話全体を終わらせる呼びかけや、全員を巻き込んで解散する提案はしない。発話は一度に1〜3文程度にする。発言内容に鉤括弧はつけない。振る舞いなどには丸括弧をつける。`;
   } else if (turnType === 'gift_reaction') {
     const itemName = String(giftItemName ?? '').trim();
     if (!itemName) throw new Error('giftItemName is required for gift_reaction');
@@ -364,6 +372,8 @@ export function buildCharacterPrompt({ profile, scene, memories = [], skills = [
 
   const turnLine = turnType === 'stage_move_destination_selection' || turnType === 'routing_destination_selection' || turnType === 'graduation_guide_selection' || turnType === 'errand_achievement_judgment' || turnType === 'study_circle_achievement_judgment'
     ? '以上が会話内容である。'
+    : turnType === 'lounge_continuation_judgment'
+    ? '以上が談話の記録である。'
     : isOpeningTurn
     ? 'プレイヤーはまだ発言していない。現在の場面・記憶だけをもとに、会話開始時の最初の発言を生成する。'
     : isBetweenTurns
@@ -378,7 +388,7 @@ export function buildCharacterPrompt({ profile, scene, memories = [], skills = [
     promptWithAdditionalStatus,
     '',
     turnLine,
-    turnType === 'conversation_cutoff_reply' || turnType === 'stage_move_cutoff_reply' || turnType === 'routing_transition_reply' || turnType === 'errand_wrap_up_reply' || turnType === 'study_circle_wrap_up_reply' ? `先ほど自分が生成した発言: ${generatedAssistantText}` : null,
+    turnType === 'conversation_cutoff_reply' || turnType === 'stage_move_cutoff_reply' || turnType === 'routing_transition_reply' || turnType === 'errand_wrap_up_reply' || turnType === 'study_circle_wrap_up_reply' || turnType === 'lounge_departure_reply' ? `先ほど自分が生成した発言: ${generatedAssistantText}` : null,
     '',
     finalInstruction
   ].filter((line) => line !== null).join('\n');

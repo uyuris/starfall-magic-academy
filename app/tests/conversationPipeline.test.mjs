@@ -5315,3 +5315,76 @@ test('a study circle turn requires a studyCircleAchievementProvider, and an empt
     /study circle wrap-up reply is required/
   );
 });
+
+// Pointer-set / pointer-clear pins for the common finalizer's atomic-write boundary. A field 1:1 finalization is
+// an eligible source_type and writes the pointer with its own conversation identity + participant. A routing hub
+// finalization clears the pointer to null even when a prior eligible finalization set one. Both writes occur at
+// the sole terminal state write, after the concurrent-state merges and the second finalStateTransform pass.
+test('finalizeConversation writes the unconsumed_routing_conversation pointer for a field 1:1 source_type', async () => {
+  const root = await fixtureRoot();
+  const opened = await runConversationOpening({
+    root,
+    id: 'conv_pointer_field_001',
+    characterId: 'lina',
+    now: '2026-07-24T06:00:00.000Z',
+    chatProvider: async () => '今日の場面から始めましょう。'
+  });
+  assert.equal(opened.conversation.source_type, 'field');
+  await finalizeConversation({
+    root,
+    conversationId: 'conv_pointer_field_001',
+    characterId: 'lina',
+    now: '2026-07-24T06:01:00.000Z',
+    skillNecessityProvider: async () => ({ necessary: false, raw_answer: 'false' })
+  });
+  const state = await readJson(root, 'game_data/runtime_state.json');
+  const pointer = state.unconsumed_routing_conversation;
+  assert.ok(pointer, 'the pointer is set for a field 1:1 source_type');
+  assert.equal(pointer.conversation_id, 'conv_pointer_field_001');
+  assert.equal(pointer.kind, '1_to_1');
+  assert.deepEqual(pointer.participants, [{ character_id: 'lina', character_name: opened.conversation.character_name }]);
+  assert.equal(pointer.summary_source.kind, 'validator');
+  assert.equal(pointer.summary_source.validator_log_path, 'game_data/logs/validator/conv_pointer_field_001.json');
+  assert.equal(pointer.terminal_signal_at, '2026-07-24T06:01:00.000Z');
+});
+
+test('finalizeConversation clears the unconsumed_routing_conversation pointer for a routing_hub source_type', async () => {
+  const root = await fixtureRoot();
+  // Seed the pointer as if a prior eligible finalization had set it. elapsed_weeks is required for the routing
+  // hub prompt build to succeed downstream.
+  const seededState = await readJson(root, 'game_data/runtime_state.json');
+  await fs.writeFile(
+    path.join(root, 'game_data/runtime_state.json'),
+    `${JSON.stringify({
+      ...seededState,
+      elapsed_weeks: 3,
+      unconsumed_routing_conversation: {
+        conversation_id: 'conv_prior_eligible_001',
+        kind: '1_to_1',
+        participants: [{ character_id: 'character_001', character_name: 'セラ・アストルーペ' }],
+        summary_source: { kind: 'validator', validator_log_path: 'game_data/logs/validator/conv_prior_eligible_001.json' },
+        terminal_signal_at: '2026-07-24T05:00:00.000Z'
+      }
+    }, null, 2)}\n`,
+    'utf8'
+  );
+  // Start a routing hub conversation and finalize it. The hub finalizer clears the pointer even though the
+  // prior pointer targeted a different (eligible) conversation.
+  await runConversationOpening({
+    root,
+    id: 'conv_pointer_hub_001',
+    characterId: 'lina',
+    now: '2026-07-24T06:00:00.000Z',
+    routingHubContext: routingHubContext(),
+    chatProvider: async () => 'こんばんは。今週の行き先を決めましょう。'
+  });
+  await finalizeConversation({
+    root,
+    conversationId: 'conv_pointer_hub_001',
+    characterId: 'lina',
+    now: '2026-07-24T06:01:00.000Z',
+    skillNecessityProvider: async () => ({ necessary: false, raw_answer: 'false' })
+  });
+  const state = await readJson(root, 'game_data/runtime_state.json');
+  assert.equal(state.unconsumed_routing_conversation, null, 'the hub finalizer clears the pointer');
+});

@@ -17,6 +17,39 @@ function routingState(overrides = {}) {
   };
 }
 
+// Build a strict 1:1 unconsumed_routing_conversation pointer for a routing state fixture. Mirrors the shape the
+// common finalizer writes at atomic promotion, so the hub reader has an eligible unconsumed target to resolve.
+function oneToOnePointer({ conversationId, characterId, characterName, terminalSignalAt = '2026-05-05T06:00:00.000+09:00' }) {
+  return {
+    conversation_id: conversationId,
+    kind: '1_to_1',
+    participants: [{ character_id: characterId, character_name: characterName }],
+    summary_source: {
+      kind: 'validator',
+      validator_log_path: `game_data/logs/validator/${conversationId}.json`
+    },
+    terminal_signal_at: terminalSignalAt
+  };
+}
+
+// Build a strict lounge unconsumed_routing_conversation pointer for a routing state fixture. The pointer carries
+// every participant's validator log path in participant order — the hub reader indexes into it to resolve each
+// participant's accepted memory (or an explicit null when their validator's accepted_memory is empty).
+function loungePointer({ conversationId, participants, terminalSignalAt = '2026-05-05T06:00:00.000+09:00' }) {
+  return {
+    conversation_id: conversationId,
+    kind: 'lounge',
+    participants: participants.map((entry) => ({ character_id: entry.character_id, character_name: entry.character_name })),
+    summary_source: {
+      kind: 'lounge_participant_validator',
+      validator_log_paths: participants.map((entry) => (
+        `game_data/logs/validator/${conversationId}_${entry.character_id}.json`
+      ))
+    },
+    terminal_signal_at: terminalSignalAt
+  };
+}
+
 function withoutProperty(object, propertyName) {
   const copy = { ...object };
   delete copy[propertyName];
@@ -79,15 +112,15 @@ function dungeonRecord({ companionCharacterId = null } = {}) {
   };
 }
 
-test('buildRoutingHubContextSnapshot captures the last non-routing conversation accepted memory', async () => {
+test('buildRoutingHubContextSnapshot resolves an unconsumed 1:1 pointer to the participant\'s accepted memory', async () => {
   const root = await fixtureRoot('routing-hub-context-memory-', {
-    runtimeState: routingState({ last_conversation_id: 'conv_recent_memory_001' })
-  });
-  await writeJson(root, 'game_data/logs/conversations/conv_recent_memory_001.json', {
-    id: 'conv_recent_memory_001',
-    character_id: 'character_001',
-    character_name: 'セラ・アストルーペ',
-    messages: [{ role: 'assistant', content: 'また観測しましょう。' }]
+    runtimeState: routingState({
+      unconsumed_routing_conversation: oneToOnePointer({
+        conversationId: 'conv_recent_memory_001',
+        characterId: 'character_001',
+        characterName: 'セラ・アストルーペ'
+      })
+    })
   });
   await writeJson(root, 'game_data/logs/validator/conv_recent_memory_001.json', {
     accepted_memory: [{ text: '主人公は星図の読み方を少し覚えた。' }]
@@ -110,6 +143,134 @@ test('buildRoutingHubContextSnapshot captures the last non-routing conversation 
     character_name: 'セラ・アストルーペ',
     memory_text: '主人公は星図の読み方を少し覚えた。'
   });
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test('buildRoutingHubContextSnapshot resolves an unconsumed lounge pointer to per-participant accepted memory (all three non-empty)', async () => {
+  const participants = [
+    { character_id: 'character_001', character_name: 'セラ・アストルーペ' },
+    { character_id: 'character_002', character_name: 'ミラ' },
+    { character_id: 'character_003', character_name: 'ロシェル' }
+  ];
+  const root = await fixtureRoot('routing-hub-context-lounge-', {
+    runtimeState: routingState({
+      unconsumed_routing_conversation: loungePointer({
+        conversationId: 'conv_lounge_001',
+        participants
+      })
+    })
+  });
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_001_character_001.json', {
+    accepted_memory: [{ text: 'セラは主人公と星図の印を確かめた。' }]
+  });
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_001_character_002.json', {
+    accepted_memory: [{ text: 'ミラは主人公との茶葉の話を覚えている。' }]
+  });
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_001_character_003.json', {
+    accepted_memory: [{ text: 'ロシェルは主人公の低い口笛の話を覚えている。' }]
+  });
+  const state = await readJson(root, 'game_data/runtime_state.json');
+
+  const context = await buildRoutingHubContextSnapshot({ root, state, personaVariant: 'fallen_star' });
+
+  assert.deepEqual(context.recent_conversation_context, {
+    kind: 'lounge_conversation',
+    conversation_id: 'conv_lounge_001',
+    participants,
+    memories: [
+      { character_id: 'character_001', character_name: 'セラ・アストルーペ', memory_text: 'セラは主人公と星図の印を確かめた。' },
+      { character_id: 'character_002', character_name: 'ミラ', memory_text: 'ミラは主人公との茶葉の話を覚えている。' },
+      { character_id: 'character_003', character_name: 'ロシェル', memory_text: 'ロシェルは主人公の低い口笛の話を覚えている。' }
+    ]
+  });
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test('buildRoutingHubContextSnapshot resolves a lounge pointer with a mix of memory-present and empty accepted_memory participants', async () => {
+  const participants = [
+    { character_id: 'character_001', character_name: 'セラ・アストルーペ' },
+    { character_id: 'character_002', character_name: 'ミラ' },
+    { character_id: 'character_003', character_name: 'ロシェル' }
+  ];
+  const root = await fixtureRoot('routing-hub-context-lounge-mixed-', {
+    runtimeState: routingState({
+      unconsumed_routing_conversation: loungePointer({
+        conversationId: 'conv_lounge_mixed_001',
+        participants
+      })
+    })
+  });
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_mixed_001_character_001.json', {
+    accepted_memory: [{ text: 'セラは主人公と星図の印を確かめた。' }]
+  });
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_mixed_001_character_002.json', {
+    accepted_memory: []
+  });
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_mixed_001_character_003.json', {
+    accepted_memory: []
+  });
+  const state = await readJson(root, 'game_data/runtime_state.json');
+
+  const context = await buildRoutingHubContextSnapshot({ root, state, personaVariant: 'fallen_star' });
+
+  assert.deepEqual(context.recent_conversation_context, {
+    kind: 'lounge_conversation',
+    conversation_id: 'conv_lounge_mixed_001',
+    participants,
+    memories: [
+      { character_id: 'character_001', character_name: 'セラ・アストルーペ', memory_text: 'セラは主人公と星図の印を確かめた。' },
+      { character_id: 'character_002', character_name: 'ミラ', memory_text: null },
+      { character_id: 'character_003', character_name: 'ロシェル', memory_text: null }
+    ]
+  });
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test('buildRoutingHubContextSnapshot fails fast when a lounge participant validator log is missing (corrupt pointer)', async () => {
+  const participants = [
+    { character_id: 'character_001', character_name: 'セラ・アストルーペ' },
+    { character_id: 'character_002', character_name: 'ミラ' },
+    { character_id: 'character_003', character_name: 'ロシェル' }
+  ];
+  const root = await fixtureRoot('routing-hub-context-lounge-corrupt-', {
+    runtimeState: routingState({
+      unconsumed_routing_conversation: loungePointer({
+        conversationId: 'conv_lounge_corrupt_001',
+        participants
+      })
+    })
+  });
+  // Only two of the three validator logs are on disk — the finalizer's atomic promotion should never leave this
+  // state, so the reader fails fast rather than silently nulling the missing participant's memory.
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_corrupt_001_character_001.json', {
+    accepted_memory: [{ text: 'セラは主人公と星図の印を確かめた。' }]
+  });
+  await writeJson(root, 'game_data/logs/validator/conv_lounge_corrupt_001_character_003.json', {
+    accepted_memory: []
+  });
+  const state = await readJson(root, 'game_data/runtime_state.json');
+
+  await assert.rejects(
+    buildRoutingHubContextSnapshot({ root, state, personaVariant: 'fallen_star' }),
+    /validator log is missing for lounge pointer-targeted participant.*character_002/
+  );
+  await fs.rm(root, { recursive: true, force: true });
+});
+
+test('buildRoutingHubContextSnapshot fails fast when the unconsumed_routing_conversation field is missing (pre-migration slot)', async () => {
+  const preMigrationState = routingState();
+  delete preMigrationState.unconsumed_routing_conversation;
+  const root = await fixtureRoot('routing-hub-context-pre-migration-', {
+    runtimeState: preMigrationState
+  });
+  await assert.rejects(
+    buildRoutingHubContextSnapshot({
+      root,
+      state: await readJson(root, 'game_data/runtime_state.json'),
+      personaVariant: 'fallen_star'
+    }),
+    /runtime_state\.unconsumed_routing_conversation is required/
+  );
   await fs.rm(root, { recursive: true, force: true });
 });
 
@@ -154,15 +315,32 @@ test('buildRoutingHubContextSnapshot derives study-circle mechanics from loaded 
   await fs.rm(root, { recursive: true, force: true });
 });
 
-test('buildRoutingHubContextSnapshot distinguishes no memory, no new conversation, unfinished opening, and corrupt recent conversation state', async () => {
-  const noMemoryRoot = await fixtureRoot('routing-hub-context-no-memory-', {
-    runtimeState: routingState({ last_conversation_id: 'conv_recent_no_memory_001' })
+test('buildRoutingHubContextSnapshot distinguishes null pointer, empty accepted_memory, and a corrupt (missing validator) 1:1 pointer', async () => {
+  // Null pointer: after a hub finalization consumes the previous pointer OR at the very first hub entry, the
+  // recent-conversation slot reports 'no_new_conversation'. Distinct from a hub-only conversation log record —
+  // the pointer alone drives this now.
+  const noPointerRoot = await fixtureRoot('routing-hub-context-null-pointer-', {
+    runtimeState: routingState()
   });
-  await writeJson(noMemoryRoot, 'game_data/logs/conversations/conv_recent_no_memory_001.json', {
-    id: 'conv_recent_no_memory_001',
-    character_id: 'character_002',
-    character_name: 'ミラ',
-    messages: []
+  const noPointerContext = await buildRoutingHubContextSnapshot({
+    root: noPointerRoot,
+    state: await readJson(noPointerRoot, 'game_data/runtime_state.json'),
+    personaVariant: 'fallen_star'
+  });
+  assert.equal(noPointerContext.recent_conversation_context.kind, 'no_new_conversation');
+  assert.equal(noPointerContext.recent_conversation_context.conversation_id, null);
+
+  // Empty accepted_memory: the finalizer wrote a validator log but its accepted_memory is empty (a legitimate
+  // finalized-with-no-memory outcome). The hub reports conversation_without_memory with the pointer's
+  // participant identity.
+  const noMemoryRoot = await fixtureRoot('routing-hub-context-no-memory-', {
+    runtimeState: routingState({
+      unconsumed_routing_conversation: oneToOnePointer({
+        conversationId: 'conv_recent_no_memory_001',
+        characterId: 'character_002',
+        characterName: 'ミラ'
+      })
+    })
   });
   await writeJson(noMemoryRoot, 'game_data/logs/validator/conv_recent_no_memory_001.json', {
     accepted_memory: []
@@ -172,94 +350,37 @@ test('buildRoutingHubContextSnapshot distinguishes no memory, no new conversatio
     state: await readJson(noMemoryRoot, 'game_data/runtime_state.json'),
     personaVariant: 'fallen_star'
   });
-  assert.equal(noMemoryContext.recent_conversation_context.kind, 'conversation_without_memory');
-
-  const routingLogRoot = await fixtureRoot('routing-hub-context-routing-log-', {
-    runtimeState: routingState({ last_conversation_id: 'conv_prior_hub_001' })
-  });
-  await writeJson(routingLogRoot, 'game_data/logs/conversations/conv_prior_hub_001.json', {
-    id: 'conv_prior_hub_001',
-    character_id: 'lina',
-    character_name: 'ルミ',
-    routing_hub: { persona_variant: 'fallen_star' },
-    messages: []
-  });
-  const routingLogContext = await buildRoutingHubContextSnapshot({
-    root: routingLogRoot,
-    state: await readJson(routingLogRoot, 'game_data/runtime_state.json'),
-    personaVariant: 'fallen_star'
-  });
-  assert.equal(routingLogContext.recent_conversation_context.kind, 'no_new_conversation');
-
-  const danglingRoot = await fixtureRoot('routing-hub-context-dangling-', {
-    runtimeState: routingState({ last_conversation_id: 'conv_missing_recent_001' })
-  });
-  await assert.rejects(
-    buildRoutingHubContextSnapshot({
-      root: danglingRoot,
-      state: await readJson(danglingRoot, 'game_data/runtime_state.json'),
-      personaVariant: 'fallen_star'
-    }),
-    /last conversation log is missing/
-  );
-
-  // slot_009 shape: a non-routing opening that was never finalized — no validator log and no finalization
-  // marker. This is a legitimate runtime state, not corruption: the hub reports conversation_without_memory.
-  const unfinishedOpeningRoot = await fixtureRoot('routing-hub-context-unfinished-opening-', {
-    runtimeState: routingState({ last_conversation_id: 'conv_unfinished_opening_001' })
-  });
-  await writeJson(unfinishedOpeningRoot, 'game_data/logs/conversations/conv_unfinished_opening_001.json', {
-    id: 'conv_unfinished_opening_001',
-    character_id: 'character_001',
-    character_name: 'セラ・アストルーペ',
-    source_type: 'field',
-    location_id: 'courtyard_fountain',
-    time_slot: 'after_school',
-    messages: [{ role: 'assistant', content: 'こんにちは。' }]
-  });
-  const unfinishedOpeningContext = await buildRoutingHubContextSnapshot({
-    root: unfinishedOpeningRoot,
-    state: await readJson(unfinishedOpeningRoot, 'game_data/runtime_state.json'),
-    personaVariant: 'fallen_star'
-  });
-  assert.deepEqual(unfinishedOpeningContext.recent_conversation_context, {
+  assert.deepEqual(noMemoryContext.recent_conversation_context, {
     kind: 'conversation_without_memory',
-    conversation_id: 'conv_unfinished_opening_001',
-    character_id: 'character_001',
-    character_name: 'セラ・アストルーペ',
+    conversation_id: 'conv_recent_no_memory_001',
+    character_id: 'character_002',
+    character_name: 'ミラ',
     memory_text: null
   });
 
-  // Corrupt: a finalization marker present but its validator log lost. The marker proves the conversation was
-  // finalized, so the missing validator is genuine corruption and still fails fast.
-  const corruptFinalizedRoot = await fixtureRoot('routing-hub-context-corrupt-finalized-', {
-    runtimeState: routingState({ last_conversation_id: 'conv_corrupt_finalized_001' })
-  });
-  await writeJson(corruptFinalizedRoot, 'game_data/logs/conversations/conv_corrupt_finalized_001.json', {
-    id: 'conv_corrupt_finalized_001',
-    character_id: 'character_001',
-    character_name: 'セラ・アストルーペ',
-    messages: []
-  });
-  await writeJson(corruptFinalizedRoot, 'game_data/logs/finalization/conv_corrupt_finalized_001.json', {
-    conversation_id: 'conv_corrupt_finalized_001',
-    work_record_id: 'wr_conv_corrupt_finalized_001',
-    finalized_at: '2026-05-05T06:00:00.000+09:00'
+  // Corrupt: a pointer set with no validator log. The finalizer writes the validator log inside the same atomic
+  // promotion as the pointer, so a pointer targeting a missing validator is genuine corruption — fail fast.
+  const corruptRoot = await fixtureRoot('routing-hub-context-corrupt-pointer-', {
+    runtimeState: routingState({
+      unconsumed_routing_conversation: oneToOnePointer({
+        conversationId: 'conv_corrupt_pointer_001',
+        characterId: 'character_001',
+        characterName: 'セラ・アストルーペ'
+      })
+    })
   });
   await assert.rejects(
     buildRoutingHubContextSnapshot({
-      root: corruptFinalizedRoot,
-      state: await readJson(corruptFinalizedRoot, 'game_data/runtime_state.json'),
+      root: corruptRoot,
+      state: await readJson(corruptRoot, 'game_data/runtime_state.json'),
       personaVariant: 'fallen_star'
     }),
-    /validator log is missing/
+    /validator log is missing for pointer-targeted conversation/
   );
 
+  await fs.rm(noPointerRoot, { recursive: true, force: true });
   await fs.rm(noMemoryRoot, { recursive: true, force: true });
-  await fs.rm(routingLogRoot, { recursive: true, force: true });
-  await fs.rm(danglingRoot, { recursive: true, force: true });
-  await fs.rm(unfinishedOpeningRoot, { recursive: true, force: true });
-  await fs.rm(corruptFinalizedRoot, { recursive: true, force: true });
+  await fs.rm(corruptRoot, { recursive: true, force: true });
 });
 
 test('buildRoutingHubContextSnapshot resolves relationship names and fresh content results', async () => {

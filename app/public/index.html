@@ -163,6 +163,7 @@
               <button id="settings-category-conversation-popup" type="button" class="settings-category-tab" data-settings-category="conversation-popup" aria-controls="settings-panel-conversation-popup" aria-pressed="false">セリフの出かた</button>
               <button id="settings-category-conversation-finalize" type="button" class="settings-category-tab" data-settings-category="conversation-finalize" aria-controls="settings-panel-conversation-finalize" aria-pressed="false">会話後処理</button>
               <button id="settings-category-audio" type="button" class="settings-category-tab" data-settings-category="audio" aria-controls="settings-panel-audio" aria-pressed="false">サウンド</button>
+              <button id="settings-category-save-data-repair" type="button" class="settings-category-tab" data-settings-category="save-data-repair" aria-controls="settings-panel-save-data-repair" aria-pressed="false">セーブデータ修正</button>
             </nav>
             <div class="settings-category-panels">
             <section id="settings-panel-lmstudio" class="settings-card settings-category-panel" data-settings-category="lmstudio" aria-labelledby="lmstudio-settings-title">
@@ -282,6 +283,27 @@
                 </div>
                 <p class="settings-model-status">BGMのオン/オフと音量はすぐに反映されます（再生中の曲は止まりません）。</p>
               </form>
+            </section>
+            <section id="settings-panel-save-data-repair" class="settings-card settings-category-panel" data-settings-category="save-data-repair" aria-labelledby="save-data-repair-settings-title" hidden>
+              <div class="panel-title-row settings-card-heading">
+                <div>
+                  <p class="eyebrow">セーブデータ修正</p>
+                  <h3 id="save-data-repair-settings-title">既存セーブデータへの修正</h3>
+                </div>
+                <p id="save-data-repair-settings-status" class="settings-inline-status" aria-live="polite">既存のセーブデータへ後付けが必要な修正をここから実行できます。何度実行しても副作用ありません。</p>
+              </div>
+              <ul id="save-data-repair-entries" class="save-data-repair-entries">
+                <li class="save-data-repair-entry" data-save-data-repair-entry="unconsumed-routing-conversation-pointer">
+                  <div class="save-data-repair-entry-copy">
+                    <h4 class="save-data-repair-entry-title">案内人注入寿命の設定を追加</h4>
+                    <p class="save-data-repair-entry-description">案内人が hub 会話で参照する記憶を 1 回消費で忘れる形にするために、既存セーブデータへ設定を追加します。何度実行しても副作用ありません。</p>
+                  </div>
+                  <div class="save-data-repair-entry-actions">
+                    <button id="save-data-repair-unconsumed-routing-conversation-pointer-button" type="button" class="academy-map-action-button">実行する</button>
+                    <p id="save-data-repair-unconsumed-routing-conversation-pointer-result" class="save-data-repair-entry-result" aria-live="polite"></p>
+                  </div>
+                </li>
+              </ul>
             </section>
             </div>
           </div>

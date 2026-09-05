@@ -248,29 +248,51 @@ async function main() {
   check('LOADING: the #academy-loading-constellation overlay is laid out over the starfield and armed in ANIMATED mode, reset to zero traced segments (dataset.constellation === animated, revealed === 0)',
     !!loading.constellation && loading.constellation.mode === 'animated' && Number(loading.constellation.revealed) === 0 && loading.constellation.w > 0 && loading.constellation.h > 0,
     loading.constellation);
-  // Sky-band placement probe: compute the deterministic figure for the REAL laid-out overlay canvas dimensions and
-  // confirm every node falls inside the upper sky band, so the traced silver lines cannot reach the bridge/foreground.
+  // Sky-band placement probe: for every catalog pattern, in every slot of both 2-slot and 3-slot layouts, place
+  // it into the REAL laid-out overlay canvas and confirm every node falls inside the upper sky band and its
+  // horizontal slot bounds. The figures API layers 2 or 3 authored patterns per session; this probe covers all
+  // of them so the traced silver lines cannot reach the bridge/foreground or bleed across slot boundaries.
   const skyBand = await js(win, `(async () => {
     const mod = await import('/loadingConstellation.js');
     const con = document.querySelector('#academy-loading-constellation');
     const w = con.width, h = con.height;
-    const nodes = mod.buildLoadingConstellationNodes(w, h, 14);
-    const ys = nodes.map((n) => n.y);
-    const maxY = Math.max(...ys), minY = Math.min(...ys);
-    return { w, h, band: mod.LOADING_CONSTELLATION_SKY_BAND, minY, maxY, minYFrac: minY / h, maxYFrac: maxY / h };
+    const band = mod.LOADING_CONSTELLATION_SKY_BAND;
+    const perSlot = [];
+    for (const slotCount of [2, 3]) {
+      for (let slotIndex = 0; slotIndex < slotCount; slotIndex += 1) {
+        for (const pattern of mod.LOADING_CONSTELLATION_PATTERNS) {
+          const placed = mod.placePatternNodes(pattern, { canvasWidth: w, canvasHeight: h, slotIndex, slotCount });
+          const ys = placed.map((n) => n.y);
+          const xs = placed.map((n) => n.x);
+          perSlot.push({ id: pattern.id, slotCount, slotIndex,
+            minYFrac: Math.min(...ys) / h, maxYFrac: Math.max(...ys) / h,
+            minX: Math.min(...xs), maxX: Math.max(...xs),
+            slotLo: slotIndex * (w / slotCount), slotHi: (slotIndex + 1) * (w / slotCount) });
+        }
+      }
+    }
+    return { w, h, band, perSlot };
   })()`);
-  log('constellation_sky_band_probe', skyBand);
-  check('LOADING: every constellation node computed for the real laid-out overlay canvas sits within the upper sky band (top <= y fraction <= bottom)',
-    !!skyBand && skyBand.maxYFrac <= skyBand.band.bottom + 1e-9 && skyBand.minYFrac >= skyBand.band.top - 1e-9,
-    skyBand);
+  const skyBandOk = !!skyBand && skyBand.perSlot.every((p) =>
+    p.maxYFrac <= skyBand.band.bottom + 1e-6 && p.minYFrac >= skyBand.band.top - 1e-6 &&
+    p.minX >= p.slotLo - 1e-6 && p.maxX <= p.slotHi + 1e-6);
+  log('constellation_sky_band_probe', { w: skyBand?.w, h: skyBand?.h, band: skyBand?.band, samples: skyBand?.perSlot?.length, firstFail: skyBand?.perSlot?.find((p) => !(p.maxYFrac <= skyBand.band.bottom + 1e-6 && p.minYFrac >= skyBand.band.top - 1e-6 && p.minX >= p.slotLo - 1e-6 && p.maxX <= p.slotHi + 1e-6)) });
+  check('LOADING: every catalog pattern placed into every slot (2- and 3-figure layouts) sits within the upper sky band and its horizontal slot bounds on the real laid-out overlay canvas',
+    skyBandOk,
+    { samples: skyBand?.perSlot?.length });
   // Render evidence: the live app advances the figure only on real progress events, which this harness does not
-  // emit, so drive a fresh instance bound to the same overlay canvas to the full figure. This is screenshot-only
-  // (it does not touch app state) so the saved night-loading shot shows the traced lines confined to the sky.
+  // emit, so drive a fresh instance bound to the same overlay canvas until every figure of the session is fully
+  // traced. This is screenshot-only (it does not touch app state) so the saved night-loading shot shows the
+  // traced lines confined to the sky. A deterministic seeded random keeps the shot reproducible.
   await js(win, `(async () => {
     const mod = await import('/loadingConstellation.js');
-    const c = mod.createLoadingConstellation({ canvasSelector: '#academy-loading-constellation', lineColorRgb: '198, 212, 255', nodeColorRgb: '224, 232, 255', nodeCount: 14 });
+    let i = 0;
+    const seq = [0.9, 0.3, 0.6, 0.1, 0.4, 0.8, 0.2, 0.5, 0.9, 0.05, 0.42, 0.66, 0.7, 0.1];
+    const random = () => { const v = seq[i % seq.length]; i += 1; return v; };
+    const c = mod.createLoadingConstellation({ canvasSelector: '#academy-loading-constellation', lineColorRgb: '198, 212, 255', nodeColorRgb: '224, 232, 255', random });
     c.start();
-    for (let i = 0; i < 13; i += 1) c.notifyProgress();
+    // Fire enough progress events to fill the session (the largest possible 3-figure session tops out well below 30).
+    for (let n = 0; n < 30; n += 1) c.notifyProgress();
     return true;
   })()`);
   await sleep(650); // let the newest segment's grow animation complete before capturing

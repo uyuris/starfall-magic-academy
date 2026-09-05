@@ -12,11 +12,16 @@
 // real layout, the task's acceptance path:
 //   1. ENTRY: title #start-new-game -> enterRoutingHub() -> lands on the dedicated #routing-hub-screen
 //      with ルミ's 迎え opening rendered in the hub's own chat stream (NOT academy-conversation-session).
-//   1.4 SCROLL-FOLLOW: drive several REAL continuation turns (the stub decides no destination so the player
-//      stays on the hub) and assert the newest ルミ reply stays pinned to the bottom and fully visible after
-//      each settles — i.e. the 送信しています… status line shrinking the stream between the player's optimistic
-//      render and ルミの応答 render no longer flips the at-bottom gate to false. NEGATIVE CONTROL: with the
-//      setRoutingHubStatus re-pin reverted, these checks FAIL (newest reply stranded below the fold).
+//   1.4 SCROLL-FOLLOW + FOCUS-RESTORE: drive several REAL continuation turns (the stub decides no destination
+//      so the player stays on the hub) and assert (a) the newest ルミ reply stays pinned to the bottom and
+//      fully visible after each settles — i.e. the 送信しています… status line shrinking the stream between the
+//      player's optimistic render and ルミの応答 render no longer flips the at-bottom gate to false; (b)
+//      keyboard focus is restored to #routing-hub-input after every non-terminal turn settles
+//      (document.activeElement === #routing-hub-input AND the input is not disabled — the lounge-style
+//      re-enable→focus seam that keeps the hub keyboard-only). NEGATIVE CONTROLs: with the
+//      setRoutingHubStatus re-pin reverted, (a) FAILS (newest reply stranded below the fold); with
+//      focusRoutingHubInputIfContinuing() removed from runRoutingHubConversation's finally, (b) FAILS
+//      (activeElement stays on the previously-focused element / <body>).
 //   2. SHELL: 6 category buttons (self/buddy/enemy/inventory/money/diary), week counter, ルミ standee loaded; a settled screenshot.
 //   3. INFO DRAWER: each category (self/buddy/enemy/inventory/money) opens the [hidden]-toggled drawer
 //      with body content in the running UI, marks its rail button selected, and closes (clearing it). The
@@ -25,7 +30,9 @@
 //   4. CONVERSATION CONTINUATION + DESTINATION DECISION + TRANSITION: type a turn and send; the decided
 //      turn reveals the send-off in the hub stream (continuation), fires ② (player-spoke) and, on the
 //      routing_draining signal, ③ (dispatch climax) + the drain loading screen, then transitions to the
-//      content screen (academy-training).
+//      content screen (academy-training). FOCUS-RESTORE (terminal-transition half): after the dispatch
+//      lands on the content screen, keyboard focus is NOT on #routing-hub-input (the 3-condition helper
+//      gate no-ops — the terminal transition does not steal focus from the destination screen).
 //   5. RESTORE: the routing hub re-opens cleanly via enterRoutingHub — the same entry function the
 //      content-return 復帰 (navigateToPostContentScreen('interaction')) reuses. (The hub is left only via
 //      a decided destination; ending it with no decision correctly fail-fasts.)
@@ -624,13 +631,17 @@ async function main() {
       const lastRowRect = lastRow.getBoundingClientRect();
       const bottomGap = stream.scrollHeight - stream.scrollTop - stream.clientHeight;
       const statusEl = document.querySelector('#routing-hub-status');
+      const input = document.querySelector('#routing-hub-input');
       return {
         rowCount: rows.length,
         scrollTop: Math.round(stream.scrollTop), scrollHeight: stream.scrollHeight, clientHeight: stream.clientHeight,
         bottomGap: Math.round(bottomGap), atBottom: bottomGap <= 24,
         lastRowVisible: lastRowRect.bottom <= streamRect.bottom + 2,
         overflowing: stream.scrollHeight > stream.clientHeight + 1,
-        statusHidden: !!statusEl?.hidden, statusText: (statusEl?.textContent || '').trim()
+        statusHidden: !!statusEl?.hidden, statusText: (statusEl?.textContent || '').trim(),
+        activeElementId: document.activeElement?.id ?? null,
+        inputIsActive: !!input && document.activeElement === input,
+        inputDisabled: !!input && input.disabled
       };
     })()`);
     followTurns += 1;
@@ -644,6 +655,16 @@ async function main() {
   const followAllStuck = followMeasurements.length > 0 && followMeasurements.every((m) => m.atBottom && m.lastRowVisible);
   check('SCROLL-FOLLOW: after every continuation turn settles, the newest ルミ reply is pinned to the bottom and fully visible (no status-line shrink now that the in-progress text is gone)',
     followTurns === 3 && followAllStuck && followOverflowed, { followTurns, followOverflowed, measurements: followMeasurements });
+  // FOCUS-RESTORE (task routing-hub-textbox-refocus-implementation): after every non-terminal continuation
+  // turn settles, keyboard focus is restored to #routing-hub-input so the player can continue typing without
+  // a mouse click. Pins the behavioral contract in real Blink: document.activeElement === #routing-hub-input,
+  // AND the input is not disabled (the finally re-enables controls BEFORE calling focus). NEGATIVE CONTROL:
+  // removing the focusRoutingHubInputIfContinuing() call from runRoutingHubConversation's finally leaves
+  // document.activeElement as the previously-focused (now re-enabled) element or <body>, so this check FAILS
+  // — proving the harness discriminates the fix.
+  check('FOCUS-RESTORE: after every non-terminal continuation turn settles, keyboard focus is on #routing-hub-input (re-enabled AND focused — lounge-style re-enable→focus seam)',
+    followTurns === 3 && followMeasurements.every((m) => m.inputIsActive && m.inputDisabled === false),
+    { followTurns, focusMeasurements: followMeasurements.map((m) => ({ activeElementId: m.activeElementId, inputIsActive: m.inputIsActive, inputDisabled: m.inputDisabled })) });
 
   // ── 1.5) LAYOUT / WIDTH / VERTICAL-FIT / SCROLL-FOLLOW (task acceptance 1-4) ──
   // Inject a tall history with one very long unbroken run, measure real layout, then restore the true
@@ -1039,6 +1060,24 @@ async function main() {
   //    routeAfterCompletedAcademyTraining('interaction') returns to the hub via enterRoutingHub — the real
   //    post-content 復帰 route (NOT a fresh new game). Drive the training option cards until the hub returns.
   const onTraining = await js(win, `document.querySelector('#academy-training-screen')?.classList.contains('active')`);
+  // FOCUS-RESTORE terminal-transition (task routing-hub-textbox-refocus-implementation): the dispatch left the
+  // hub screen (academy-training is active now), so the finally-time focus helper is a no-op — keyboard focus
+  // is NOT on #routing-hub-input, which would steal focus from the destination content screen. Pins the
+  // "terminal transitions do not focus the input" half of the acceptance behavior in real Blink. NEGATIVE
+  // CONTROL: dropping the isRoutingHubScreenActive() / isRoutingHubActive() gates from the helper (making the
+  // focus() call unconditional in the finally) makes this assertion FAIL because the input would be focused
+  // even though the hub screen is no longer active — proving the harness discriminates the gates.
+  const terminalFocus = await js(win, `(() => {
+    const input = document.querySelector('#routing-hub-input');
+    return {
+      activeElementId: document.activeElement?.id ?? null,
+      inputIsActive: !!input && document.activeElement === input,
+      hubActive: !!document.querySelector('#routing-hub-screen')?.classList.contains('active')
+    };
+  })()`);
+  check('FOCUS-RESTORE (terminal transition): after a dispatch leaves the routing hub screen, keyboard focus is NOT on #routing-hub-input (the 3-condition helper gate no-ops on the terminal transition and does not steal focus from the destination content screen)',
+    onTraining && terminalFocus.hubActive === false && terminalFocus.inputIsActive === false,
+    { onTraining, terminalFocus });
   let returnedToHub = false;
   let trainingActions = 0;
   for (let i = 0; i < 16 && !returnedToHub; i += 1) {

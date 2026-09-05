@@ -15,8 +15,10 @@ import { projectRoot } from './testPaths.mjs';
 import { writeRuntimePathsManifest } from '../src/runtimeSlotBootstrap.mjs';
 import {
   handleLoungeApi,
-  canHandleLoungeApiRoute
+  canHandleLoungeApiRoute,
+  createLoungeCompletionHelper
 } from '../src/server/loungeApi.mjs';
+import { createStorageApi } from '../src/storage.mjs';
 import { routingDestinations } from '../src/routingDestinations.mjs';
 import { resolveRoutingDestinationDispatch } from '../src/routingDispatch.mjs';
 import { routingDestinationsForState } from '../src/routingDestinationSelection.mjs';
@@ -35,8 +37,10 @@ function lmUnconfiguredError() {
 
 // Deterministic turn providers (chat streams two deltas, emotion is fixed). The chatProvider closes over the
 // onChatDelta the handler passes into resolveRuntimeProviders, mirroring how createLmStudioProviders bakes the
-// stream callback into the chat provider in production.
-function turnProviders({ onChatDelta } = {}) {
+// stream callback into the chat provider in production. The v2 group-turn seam also runs a per-speaker
+// continuation judgment (default: `true` — stay) after the normal utterance, and only calls the cutoff provider
+// when a test opts a speaker into departure by pinning `continuationAnswer: 'false'`.
+function turnProviders({ onChatDelta, continuationAnswer = 'true', departureText = 'それじゃあ、また明日。' } = {}) {
   return {
     chatProvider: async () => {
       if (onChatDelta) {
@@ -46,6 +50,8 @@ function turnProviders({ onChatDelta } = {}) {
       return 'やあ、よく来たね。';
     },
     emotionProvider: async () => ({ expression: 'joy' }),
+    conversationContinuationProvider: async () => continuationAnswer,
+    conversationCutoffProvider: async () => departureText,
     characterSpeechConstraints: []
   };
 }
@@ -358,6 +364,89 @@ test('the utterance SSE fixes the whole event order emotion < first delta < comp
   assert.deepEqual(resultEmotion, { expression: 'joy', face_emotion_variant_id: 'face_joy' });
 });
 
+test('the utterance route passes the two new v2 provider seams into the group turn (provider injection contract)', async (t) => {
+  const { playRoot } = await slotLoungeRoot(t);
+  const { conversation } = await enter(playRoot);
+  let sawContinuation = false;
+  let sawCutoff = false;
+  await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/utterance/stream',
+    playRoot,
+    body: { id: conversation.id, round_number: conversation.cursor.round_number, next_speaker_index: conversation.cursor.next_speaker_index },
+    resolveRuntimeProviders: async ({ onChatDelta } = {}) => ({
+      chatProvider: async () => { if (onChatDelta) onChatDelta('x'); return 'x'; },
+      emotionProvider: async () => ({ expression: 'joy' }),
+      conversationContinuationProvider: async () => { sawContinuation = true; return 'true'; },
+      conversationCutoffProvider: async () => { sawCutoff = true; return 'unused'; },
+      characterSpeechConstraints: []
+    })
+  });
+  assert.equal(sawContinuation, true, 'the continuation provider ran (post-utterance judgment fires every turn)');
+  assert.equal(sawCutoff, false, 'the cutoff provider did NOT run when the speaker chose to stay');
+});
+
+test('a continue turn fires exactly one assistant_complete (v2 SSE count contract for the stay branch)', async (t) => {
+  const { playRoot } = await slotLoungeRoot(t);
+  const { conversation } = await enter(playRoot);
+  const { sseEvents } = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/utterance/stream',
+    playRoot,
+    body: { id: conversation.id, round_number: conversation.cursor.round_number, next_speaker_index: conversation.cursor.next_speaker_index }
+  });
+  const names = sseEvents.map((event) => event.event);
+  assert.equal(names.filter((n) => n === 'assistant_complete').length, 1, 'a continue turn fires assistant_complete exactly once');
+});
+
+test('the utterance route runs the departure branch when the continuation judgment is false (record carries 2 assistant messages + exited lifecycle)', async (t) => {
+  const { playRoot, slotGameData } = await slotLoungeRoot(t);
+  const { conversation } = await enter(playRoot);
+  const result = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/utterance/stream',
+    playRoot,
+    body: { id: conversation.id, round_number: conversation.cursor.round_number, next_speaker_index: conversation.cursor.next_speaker_index },
+    resolveRuntimeProviders: async (args) => turnProviders({ ...args, continuationAnswer: 'false', departureText: 'それじゃあ、部屋に戻る。' })
+  });
+  // The SSE terminal `result` still fires exactly once for Stage 1 (multi-`assistant_complete` payload lands in a
+  // later stage); what this test pins is the record-level v2 contract: 2 assistant messages + exited lifecycle
+  // for the speaker + cursor advanced by one, all persisted atomically.
+  const record = JSON.parse(await fs.readFile(path.join(slotGameData, `logs/lounge/${conversation.id}.json`), 'utf8'));
+  assert.equal(record.messages.length, 2, 'both the normal utterance and the departure utterance were appended');
+  assert.equal(record.messages[0].character_id, conversation.next_speaker.character_id);
+  assert.equal(record.messages[1].character_id, conversation.next_speaker.character_id, 'the departure utterance carries the same speaker identity');
+  assert.equal(record.messages[0].expression, record.messages[1].expression, 'both messages carry the same emotion');
+  const exitedEntry = record.participant_lifecycle.find((entry) => entry.character_id === conversation.next_speaker.character_id);
+  assert.equal(exitedEntry.status, 'exited');
+  assert.equal(exitedEntry.exited_after_message_count, 2);
+  assert.equal(record.cursor.next_speaker_index, 1, 'the cursor advanced by one slot');
+  // The other two entries remain active.
+  const active = record.participant_lifecycle.filter((entry) => entry.status === 'active');
+  assert.equal(active.length, 2);
+  // The final SSE `result` still reflects the advanced cursor.
+  const resultEvent = result.sseEvents.find((event) => event.event === 'result').data;
+  assert.equal(resultEvent.conversation.cursor.next_speaker_index, 1);
+});
+
+test('the utterance route surfaces a malformed continuation judgment as an SSE error (fail-fast, no record write)', async (t) => {
+  const { playRoot, slotGameData } = await slotLoungeRoot(t);
+  const { conversation } = await enter(playRoot);
+  const { sseEvents } = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/utterance/stream',
+    playRoot,
+    body: { id: conversation.id, round_number: conversation.cursor.round_number, next_speaker_index: conversation.cursor.next_speaker_index },
+    resolveRuntimeProviders: async (args) => turnProviders({ ...args, continuationAnswer: 'maybe' })
+  });
+  const errorEvent = sseEvents.find((event) => event.event === 'error');
+  assert.ok(errorEvent, 'a malformed judgment surfaces as an SSE error');
+  assert.equal(errorEvent.data.error_code, 'INVALID_LLM_LOUNGE_CONTINUATION_OUTPUT');
+  // No half-appended turn was persisted: the record still has an empty transcript.
+  const record = JSON.parse(await fs.readFile(path.join(slotGameData, `logs/lounge/${conversation.id}.json`), 'utf8'));
+  assert.equal(record.messages.length, 0, 'the malformed-judgment turn wrote nothing to the record');
+});
+
 test('a cursor mismatch fails fast 409 before opening the SSE stream', async (t) => {
   const { playRoot } = await slotLoungeRoot(t);
   const { conversation } = await enter(playRoot);
@@ -493,4 +582,255 @@ test('end on a conversation that is not active fails fast 409', async (t) => {
   });
   assert.equal(jsonCalls[0].status, 409);
   assert.equal(jsonCalls[0].value.error_code, 'LOUNGE_CONVERSATION_MISMATCH');
+});
+
+// ---- Stage 2 v2 auto-completion contract ----
+
+// Drives three consecutive utterance turns where every NPC departs. After the third departure every participant
+// is exited, so the utterance-stream auto attach must fire the shared completion helper. Returns the last SSE
+// stream's events, the final on-disk state, and each conversation view along the way.
+async function utterAllDepart(playRoot, initialConversation) {
+  let conversation = initialConversation;
+  const turnSseByIndex = [];
+  const jsonCallsByIndex = [];
+  for (let i = 0; i < 3; i += 1) {
+    const call = await callHandler({
+      method: 'POST',
+      pathname: '/api/lounge/utterance/stream',
+      playRoot,
+      body: { id: conversation.id, round_number: conversation.cursor.round_number, next_speaker_index: conversation.cursor.next_speaker_index },
+      resolveRuntimeProviders: async (args) => turnProviders({ ...args, continuationAnswer: 'false', departureText: `退出発話${i + 1}` })
+    });
+    turnSseByIndex.push(call.sseEvents);
+    jsonCallsByIndex.push(call.jsonCalls);
+    const resultEvent = call.sseEvents.find((event) => event.event === 'result');
+    if (resultEvent?.data?.conversation) conversation = resultEvent.data.conversation;
+  }
+  return { conversation, turnSseByIndex, jsonCallsByIndex };
+}
+
+test('the utterance route auto-completes when the last participant departs (helper shared with /end, terminal result carries the completion payload)', async (t) => {
+  const { playRoot, slotGameData } = await slotLoungeRoot(t, { elapsedWeeks: 4 });
+  const { conversation } = await enter(playRoot);
+  const { turnSseByIndex } = await utterAllDepart(playRoot, conversation);
+
+  // The first two departure turns do NOT trigger auto-completion — someone remains active — so no
+  // lounge_draining / lounge_finalization_progress / completion fields appear.
+  for (let i = 0; i < 2; i += 1) {
+    const names = turnSseByIndex[i].map((event) => event.event);
+    assert.ok(!names.includes('lounge_draining'), `turn ${i + 1} does not drain`);
+    assert.ok(!names.includes('lounge_finalization_progress'), `turn ${i + 1} does not emit finalization progress`);
+    const result = turnSseByIndex[i].find((event) => event.event === 'result').data;
+    assert.equal(result.finalization_status, undefined, `turn ${i + 1} carries no completion payload`);
+  }
+
+  // Third turn: the last active NPC departs. The SSE fires TWO assistant_complete events (normal + depart), the
+  // drain signal after them, one or more finalization_progress events, and merges the completion payload into
+  // the terminal `result`.
+  const lastEvents = turnSseByIndex[2];
+  const names = lastEvents.map((event) => event.event);
+  const completeIndices = names.reduce((acc, name, idx) => (name === 'assistant_complete' ? [...acc, idx] : acc), []);
+  assert.equal(completeIndices.length, 2, 'depart turn fires two assistant_complete events (normal + depart)');
+  const drainingAt = names.indexOf('lounge_draining');
+  assert.ok(drainingAt > completeIndices[1], 'lounge_draining follows the departure assistant_complete');
+  const firstProgressAt = names.indexOf('lounge_finalization_progress');
+  assert.ok(firstProgressAt > drainingAt, 'finalization_progress follows lounge_draining');
+  const resultAt = names.indexOf('result');
+  assert.equal(resultAt, names.length - 1, 'result is the terminal event');
+  assert.ok(names.filter((name) => name === 'assistant_emotion').length === 1, 'only one assistant_emotion is sent even on a departure turn');
+
+  const terminal = lastEvents.find((event) => event.event === 'result').data;
+  assert.equal(terminal.finalization_status, 'completed');
+  assert.equal(terminal.transition.next_screen, 'interaction');
+  assert.equal(terminal.post_content_screen, 'interaction');
+  assert.equal(terminal.state.current_screen, 'interaction');
+  assert.ok(terminal.lounge_result, 'the completion payload carries the lounge content result detail');
+  assert.equal(terminal.lounge_result.participants.length, 3);
+
+  // The on-disk state matches: active pointer cleared, content result written, screen = interaction — same
+  // shape a manual /end write leaves behind (helper is shared).
+  const state = JSON.parse(await fs.readFile(path.join(slotGameData, 'runtime_state.json'), 'utf8'));
+  assert.equal(state.current_screen, 'interaction');
+  assert.equal(readActiveRoutingLounge(state), null, 'auto attach cleared the active lounge pointer');
+  assert.equal(state.last_routing_content_result.kind, 'lounge');
+  assert.equal(state.last_routing_content_result.detail.participants.length, 3);
+});
+
+test('the auto attach and the manual /end produce field-equivalent completion payloads across every non-conversation-id field (helper is shared)', async (t) => {
+  // Auto path: run three departures on one slot; capture the terminal `result` payload.
+  const auto = await slotLoungeRoot(t, { elapsedWeeks: 4 });
+  const autoEnter = await enter(auto.playRoot);
+  const autoRun = await utterAllDepart(auto.playRoot, autoEnter.conversation);
+  const autoTerminal = autoRun.turnSseByIndex[2].find((event) => event.event === 'result').data;
+
+  // Manual path: on a separate slot, run three continuing turns then /end. Capture the JSON body.
+  const manual = await slotLoungeRoot(t, { elapsedWeeks: 4 });
+  let { conversation } = await enter(manual.playRoot);
+  for (let i = 0; i < 3; i += 1) {
+    const result = await utter(manual.playRoot, conversation);
+    conversation = result.conversation;
+  }
+  const { jsonCalls: manualJson } = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/end',
+    playRoot: manual.playRoot,
+    body: { id: conversation.id }
+  });
+  const manualBody = manualJson[0].value;
+
+  // The completion payload shape is defined at the helper's return: the auto path merges the payload into the
+  // SSE terminal `result` (which also carries speaker/emotion/content/conversation) and the manual path
+  // returns the payload directly as its JSON body. Assert every helper-owned field agrees across paths, then
+  // list the auto-only extras (the utterance-level speaker/emotion/content/conversation the terminal `result`
+  // carries alongside the merged completion) explicitly so the divergence is documented, not silent.
+  const HELPER_FIELDS = ['finalization_status', 'transition', 'post_content_screen'];
+  for (const field of HELPER_FIELDS) {
+    assert.deepEqual(autoTerminal[field], manualBody[field], `${field} agrees across auto and manual`);
+  }
+  // Content result: two conversation ids seat the same three participants (week seed), so the detail
+  // participants list agrees; conversation-id-derived fields (id, timestamps) differ per run and are not
+  // compared here.
+  assert.deepEqual(autoTerminal.lounge_result.participants, manualBody.lounge_result.participants);
+
+  // The `state` field is helper-owned but nearly every field inside it derives from the promoted conversation
+  // (unconsumed_routing_conversation pointer, last_routing_content_result), so pin only the invariants both
+  // completions must land on: current_screen and the active-lounge-pointer clear.
+  assert.equal(autoTerminal.state.current_screen, manualBody.state.current_screen);
+  assert.equal(autoTerminal.state.current_screen, 'interaction');
+  assert.equal(readActiveRoutingLounge(autoTerminal.state), null);
+  assert.equal(readActiveRoutingLounge(manualBody.state), null);
+
+  // Documented divergence: the terminal SSE result carries per-utterance keys (speaker/emotion/content/
+  // conversation) that the manual JSON body does not — because manual /end does not run an utterance turn.
+  const autoOnlyKeys = Object.keys(autoTerminal).filter((k) => !(k in manualBody));
+  assert.deepEqual(autoOnlyKeys.sort(), ['content', 'conversation', 'emotion', 'speaker']);
+  // Nothing in the manual body is absent from the auto terminal (the auto path is the manual body superset).
+  const manualOnlyKeys = Object.keys(manualBody).filter((k) => !(k in autoTerminal));
+  assert.deepEqual(manualOnlyKeys, []);
+});
+
+test('post-promote failure: a second promote of the same conversation id fails fast (finalizer already-finalized reject; SSE surfaces error, no retry silently re-finalizes)', async (t) => {
+  const { playRoot, slotGameData } = await slotLoungeRoot(t, { elapsedWeeks: 4 });
+  let { conversation } = await enter(playRoot);
+  for (let i = 0; i < 3; i += 1) {
+    const result = await utter(playRoot, conversation);
+    conversation = result.conversation;
+  }
+  // First manual /end succeeds and promotes atomically: the group marker + validator logs + discarded transcript
+  // land on disk.
+  const first = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/end',
+    playRoot,
+    body: { id: conversation.id }
+  });
+  assert.equal(first.jsonCalls[0].status, 200);
+  assert.equal(first.jsonCalls[0].value.finalization_status, 'completed');
+  const markerPath = path.join(slotGameData, `logs/finalization/${conversation.id}.json`);
+  assert.ok(await fs.access(markerPath).then(() => true).catch(() => false), 'the group marker landed on the first end');
+  // Restore the active-lounge pointer (which the first /end cleared) so the second /end reaches the finalizer
+  // path with a "still active" gate — this simulates a second promote attempt that got past the request-time
+  // pointer clear (e.g. a stale client retry that races the pointer write). The finalizer's own
+  // already-finalized reject is the last line of defense, and it fires here.
+  const state = JSON.parse(await fs.readFile(path.join(slotGameData, 'runtime_state.json'), 'utf8'));
+  state.routing_active_lounge = { conversation_id: conversation.id, week: 4, started_at: '2026-07-18T00:00:00.000Z' };
+  await fs.writeFile(path.join(slotGameData, 'runtime_state.json'), `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  const second = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/end',
+    playRoot,
+    body: { id: conversation.id }
+  });
+  // The second /end propagates the finalizer's `already finalized` throw. sendLoungeError only converts
+  // errors whose statusCode is 400/404/409/503; any other error re-throws out of the handler.
+  assert.ok(second.threw, 'the second /end fails fast (the finalizer\'s already-finalized reject surfaces)');
+  assert.ok(/already finalized/i.test(String(second.threw?.message ?? '')), 'the error message names the already-finalized state');
+});
+
+test('the shared completion helper fail-fasts on a second call from the same instance (per-request one-shot guard)', async (t) => {
+  const { playRoot } = await slotLoungeRoot(t, { elapsedWeeks: 4 });
+  let { conversation } = await enter(playRoot);
+  // Drive the utterance turns manually with `continuationAnswer: 'true'` (no departure) so the record ends
+  // with three assistant lines and no auto attach; then the helper is invoked directly (out-of-band from any
+  // HTTP handler) exactly like the auto path and manual `/end` handler do it — the first call promotes, the
+  // second call throws before reaching the finalizer's own already-finalized guard.
+  for (let i = 0; i < 3; i += 1) {
+    const result = await utter(playRoot, conversation);
+    conversation = result.conversation;
+  }
+  const storage = createStorageApi({ root: playRoot });
+  const state = await storage.readJson('game_data/runtime_state.json');
+  const active = readActiveRoutingLounge(state);
+  const helper = createLoungeCompletionHelper();
+  const first = await helper({
+    root: playRoot,
+    storage,
+    active,
+    resolveLoungeFinalizationProviders: async () => finalizationProviders(),
+    postContentScreen: 'interaction',
+    now: '2026-07-18T00:00:00.000Z'
+  });
+  assert.equal(first.finalization_status, 'completed');
+  await assert.rejects(
+    helper({
+      root: playRoot,
+      storage,
+      active,
+      resolveLoungeFinalizationProviders: async () => finalizationProviders(),
+      postContentScreen: 'interaction',
+      now: '2026-07-18T00:00:01.000Z'
+    }),
+    /cannot promote twice/
+  );
+});
+
+test('an auto attach failure (finalization providers unconfigured) surfaces as SSE error and does NOT promote the record', async (t) => {
+  const { playRoot, slotGameData } = await slotLoungeRoot(t, { elapsedWeeks: 4 });
+  const { conversation } = await enter(playRoot);
+  // Two turns depart cleanly (utterAllDepart uses the default finalization providers).
+  const firstTwo = [];
+  let running = conversation;
+  for (let i = 0; i < 2; i += 1) {
+    const call = await callHandler({
+      method: 'POST',
+      pathname: '/api/lounge/utterance/stream',
+      playRoot,
+      body: { id: running.id, round_number: running.cursor.round_number, next_speaker_index: running.cursor.next_speaker_index },
+      resolveRuntimeProviders: async (args) => turnProviders({ ...args, continuationAnswer: 'false', departureText: `退出${i + 1}` })
+    });
+    firstTwo.push(call);
+    running = call.sseEvents.find((event) => event.event === 'result').data.conversation;
+  }
+  // Third depart: swap the finalization provider resolver to throw a synthetic pre-promote error.
+  const badResolver = async () => { throw new Error('finalization provider synthetic failure'); };
+  const call = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/utterance/stream',
+    playRoot,
+    body: { id: running.id, round_number: running.cursor.round_number, next_speaker_index: running.cursor.next_speaker_index },
+    resolveRuntimeProviders: async (args) => turnProviders({ ...args, continuationAnswer: 'false', departureText: '退出3' }),
+    resolveLoungeFinalizationProviders: badResolver
+  });
+  const names = call.sseEvents.map((event) => event.event);
+  const errorAt = names.indexOf('error');
+  const resultAt = names.indexOf('result');
+  assert.ok(errorAt >= 0, 'the failed auto attach surfaces as an SSE error event');
+  assert.equal(resultAt, -1, 'the terminal result event is NOT sent on failure (SSE terminates with error)');
+  // The record has NOT been promoted: the transcript still carries the exited participants' messages, and no
+  // group finalization marker landed. The next retry / manual /end can still complete the conversation.
+  const record = JSON.parse(await fs.readFile(path.join(slotGameData, `logs/lounge/${running.id}.json`), 'utf8'));
+  assert.ok(record.messages.length >= 6, 'the transcript survived the failed auto attach (6 assistant messages: 3× normal + 3× depart)');
+  const markerExists = await fs.access(path.join(slotGameData, `logs/finalization/${running.id}.json`))
+    .then(() => true)
+    .catch(() => false);
+  assert.equal(markerExists, false, 'no group finalization marker landed on pre-promote failure');
+  // A manual /end still works because the record is still active — recovery via retry.
+  const { jsonCalls: recovery } = await callHandler({
+    method: 'POST',
+    pathname: '/api/lounge/end',
+    playRoot,
+    body: { id: running.id }
+  });
+  assert.equal(recovery[0].status, 200);
+  assert.equal(recovery[0].value.finalization_status, 'completed');
 });

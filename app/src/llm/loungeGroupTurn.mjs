@@ -13,6 +13,7 @@ import { loadWorldSettings } from '../worldSettings.mjs';
 import { buildCharacterPrompt } from './promptBuilder.mjs';
 import { buildConversationActorContextSnapshot } from './conversationActorContext.mjs';
 import { normalizeEmotionChoice } from './conversationPipeline.mjs';
+import { parseLoungeContinuationChoice } from './lmStudioClient.mjs';
 import { selectLoungeParticipants } from './loungeParticipants.mjs';
 import { resolveLoungeScene } from './loungeScene.mjs';
 import {
@@ -20,7 +21,7 @@ import {
   validateLoungeGroupRecord,
   currentLoungeSpeaker,
   loungeActorContextFor,
-  appendLoungeAssistantMessage,
+  applyLoungeAssistantTurn,
   appendLoungePlayerMessage
 } from './loungeGroupRecord.mjs';
 
@@ -118,18 +119,51 @@ export async function startLoungeGroupConversation({ root, authoringRoot = root,
   return record;
 }
 
-// Generates the current NPC speaker's single utterance and appends it to the record. Assembles the full 昼会話
-// prompt for that speaker (persona / actor context / speech constraints / authored scene / speaker-named history /
-// 無改変 final instruction), selects an emotion via the injected emotion provider, generates the utterance via the
-// injected chat provider, then appends + persists + advances the cursor. Throws when it is the player's turn (no NPC
-// utterance to generate). The two providers are the LM seam: their shape matches the 1:1 pipeline's
-// ({ prompt, profile, playerInput, ... }). The optional `onEmotion` callback fires with the normalized emotion
-// BEFORE the chat provider starts (mirroring the 1:1 pipeline's onEmotion seam) so the SSE layer can notify the
-// chosen face ahead of the first chat delta; the same emotion is what gets persisted and returned.
-export async function runLoungeGroupTurn({ root, authoringRoot = root, id, chatProvider, emotionProvider, characterSpeechConstraints = [], onEmotion }) {
+// Generates the current NPC speaker's single utterance and, per the v2 group turn contract, immediately after the
+// normal utterance runs a strict per-speaker continuation-希望 judgment. When the judgment is `true`, the turn is
+// exactly the v1 single-utterance turn: one assistant message appended, cursor advanced by one speaker slot. When
+// the judgment is `false`, the same current speaker generates one additional departure utterance in the same round,
+// both messages are appended atomically as separate assistant lines carrying the same speaker identity and the same
+// emotion, and the current speaker's participant lifecycle entry transitions from active to exited with its
+// `exited_after_message_count` boundary; the cursor then advances one slot and fast-forwards over any inactive
+// suffix. All record state changes (both messages, lifecycle update, cursor advance) are one atomic transition and
+// a single persist at the end of the turn — a malformed judgment output or a departure-generation failure throws
+// before persist, so no half-appended turn is ever written.
+//
+// The prompt for the normal utterance (`buildCharacterPrompt(promptArgs)`) is byte-equivalent to v1: neither the
+// judgment nor the departure-reply prompt modifies the shared history the normal utterance sees.
+//
+// LM seam:
+//  - `chatProvider` — normal utterance (streamed 1-shot as in v1)
+//  - `emotionProvider` — the same emotion selection as v1, reused for both normal and departure messages
+//  - `conversationContinuationProvider` — the reflection-text continuation-judgment provider (fail-closed strict
+//    boolean, `parseLoungeContinuationChoice`); the runtime bundle already includes it
+//  - `conversationCutoffProvider` — the non-streamed chat provider for the departure utterance (no `onChatDelta`,
+//    so the departure tokens never mix into the normal utterance's SSE delta buffer)
+//
+// SSE callback seam:
+//  - `onEmotion(emotion)` — fires BEFORE `chatProvider` starts (v1 seam, unchanged)
+//  - `onAssistantComplete({ content, emotion })` — fires once for every assistant message the turn appends. For a
+//    continue turn it fires once (for the normal utterance, when `chatProvider` returns). For a departure turn it
+//    fires twice: once for the normal utterance, then once for the departure utterance. The SSE layer uses this to
+//    send one `assistant_complete` per appended message.
+export async function runLoungeGroupTurn({
+  root,
+  authoringRoot = root,
+  id,
+  chatProvider,
+  emotionProvider,
+  conversationContinuationProvider,
+  conversationCutoffProvider,
+  characterSpeechConstraints = [],
+  onEmotion,
+  onAssistantComplete
+}) {
   if (!root) throw new Error('root is required');
   if (typeof chatProvider !== 'function') throw new Error('chatProvider is required');
   if (typeof emotionProvider !== 'function') throw new Error('emotionProvider is required');
+  if (typeof conversationContinuationProvider !== 'function') throw new Error('conversationContinuationProvider is required');
+  if (typeof conversationCutoffProvider !== 'function') throw new Error('conversationCutoffProvider is required');
   const record = await readLoungeGroupRecord({ root, id });
   const speaker = currentLoungeSpeaker(record);
   if (!speaker) throw new Error('lounge turn: the player speaks next, there is no NPC utterance to generate');
@@ -155,10 +189,70 @@ export async function runLoungeGroupTurn({ root, authoringRoot = root, id, chatP
   onEmotion?.(emotion);
   const prompt = buildCharacterPrompt(promptArgs);
   const content = await chatProvider({ prompt, profile, playerInput: null, emotion });
+  onAssistantComplete?.({ content, emotion });
 
-  const nextRecord = appendLoungeAssistantMessage(record, { characterId: speaker.character_id, content, emotion });
+  // The provisional history the judgment and departure reply see: v1 history + the current speaker's just-generated
+  // normal utterance. Rendered with the shared speaker-named renderer via `loungePromptHistory`, so the two extra
+  // prompts see the same「話者名: 本文」form the normal utterance uses.
+  const provisionalMessages = [
+    ...record.messages,
+    { role: 'assistant', character_id: speaker.character_id, character_name: speaker.character_name, content, expression: emotion.expression, face_emotion_variant_id: emotion.face_emotion_variant_id }
+  ];
+  const provisionalHistory = loungePromptHistory(provisionalMessages);
+  const provisionalPromptArgs = { ...promptArgs, currentConversation: provisionalHistory };
+
+  const continuationPrompt = buildCharacterPrompt({ ...provisionalPromptArgs, turnType: 'lounge_continuation_judgment' });
+  const continuationModelResponse = await conversationContinuationProvider({
+    prompt: continuationPrompt,
+    profile,
+    playerInput: null,
+    generatedAssistantText: content,
+    currentConversation: provisionalHistory
+  });
+  const continueParticipation = parseLoungeContinuationChoice(continuationModelResponse);
+
+  let departureContent = null;
+  let departurePrompt = null;
+  if (!continueParticipation) {
+    departurePrompt = buildCharacterPrompt({
+      ...provisionalPromptArgs,
+      turnType: 'lounge_departure_reply',
+      generatedAssistantText: content
+    });
+    const rawDeparture = await conversationCutoffProvider({
+      prompt: departurePrompt,
+      profile,
+      playerInput: null,
+      emotion,
+      generatedAssistantText: content,
+      currentConversation: provisionalHistory
+    });
+    departureContent = String(rawDeparture ?? '').trim();
+    if (!departureContent) throw new Error('lounge departure reply is required');
+    onAssistantComplete?.({ content: departureContent, emotion });
+  }
+
+  const nextRecord = applyLoungeAssistantTurn(record, {
+    characterId: speaker.character_id,
+    content,
+    emotion,
+    departure: departureContent === null ? null : { content: departureContent, emotion }
+  });
   await writeLoungeGroupRecord({ root, record: nextRecord });
-  return { record: nextRecord, speaker, emotion, prompt, emotionPrompt, content };
+  return {
+    record: nextRecord,
+    speaker,
+    emotion,
+    prompt,
+    emotionPrompt,
+    content,
+    continuation: {
+      prompt: continuationPrompt,
+      model_response: String(continuationModelResponse ?? '').trim(),
+      continued: continueParticipation
+    },
+    departure: departureContent === null ? null : { prompt: departurePrompt, content: departureContent, emotion }
+  };
 }
 
 // Appends the player's round-closing utterance to the persisted record and opens the next round. The persisted

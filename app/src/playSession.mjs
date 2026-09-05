@@ -109,6 +109,10 @@ function freshRuntimeState({ currentLocationId = 'herbology_garden', disabledSta
     visited_locations: [currentLocationId],
     active_character_ids: [],
     last_conversation_id: null,
+    // The top-level unconsumed_routing_conversation pointer: null in a fresh save. An eligible finalization
+    // (field 1:1 / lounge / errand / study_circle / dungeon / homunculus) writes it inside atomic promotion,
+    // and the hub finalization clears it back to null — the routing hub reads only this pointer.
+    unconsumed_routing_conversation: null,
     characters: {},
     pending_interaction_context: null,
     training_actions_used: 0,

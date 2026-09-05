@@ -452,7 +452,7 @@ const titleStarfield = createStarfieldAmbient({ canvasSelector: '#title-starfiel
 const academyLoadingStarfield = createStarfieldAmbient({ canvasSelector: '#academy-loading-starfield', starColorRgb: '207, 218, 255', starCount: 64 });
 // Progress-driven constellation over the loading starfield: advanced only by notifyAcademyLoadingProgress() at
 // observed event points, reset each time the loader shows (started/stopped by showScreen alongside the starfield).
-const academyLoadingConstellation = createLoadingConstellation({ canvasSelector: '#academy-loading-constellation', lineColorRgb: '198, 212, 255', nodeColorRgb: '224, 232, 255', nodeCount: 14 });
+const academyLoadingConstellation = createLoadingConstellation({ canvasSelector: '#academy-loading-constellation', lineColorRgb: '198, 212, 255', nodeColorRgb: '224, 232, 255', random: Math.random });
 const slotLoadStarfield = createStarfieldAmbient({ canvasSelector: '#slot-load-starfield', starColorRgb: '207, 218, 255', starCount: 72 });
 const settingsStarfield = createStarfieldAmbient({ canvasSelector: '#settings-starfield', starColorRgb: '207, 218, 255', starCount: 72 });
 let currentTrainingProgress = { actions_used: 0, actions_limit: TRAINING_ACTION_LIMIT, remaining_actions: TRAINING_ACTION_LIMIT, completed: false, next_day: trainingWeekdays[0] };
@@ -787,6 +787,30 @@ function isActiveStudyCircleConversation() {
 // there if the dispatch then fails.
 function isAcademyLoadingScreenActive() {
   return screens['academy-loading'].classList.contains('active');
+}
+
+// True while the routing hub screen is the active screen. Used by the routing hub turn's completion
+// focus contract: after controls have been re-enabled, focus is restored to `#routing-hub-input` only
+// when the hub conversation is still active AND the routing hub screen remains active. Terminal transitions
+// (dispatch, graduation selection, auto-end, settings redirect) leave the hub screen, so the contract is a
+// no-op there and does not steal focus from the destination screen (mirrors the lounge's explicit
+// runLoungePlayerTurn seam).
+function isRoutingHubScreenActive() {
+  return screens['routing-hub'].classList.contains('active');
+}
+
+// Restore keyboard focus to `#routing-hub-input` when a non-terminal routing hub turn has finished and
+// the player is expected to type the next utterance. Gated on 3 conditions (all required, no silent
+// fallback): the routing hub screen is active, the routing hub conversation is still active, and the
+// input element is present and not disabled. Any terminal transition leaves the hub screen or clears
+// the hub conversation id, so this call is a no-op there — mirrors the lounge's runLoungePlayerTurn
+// re-enable→focus pattern.
+function focusRoutingHubInputIfContinuing() {
+  if (!isRoutingHubScreenActive()) return;
+  if (!isRoutingHubActive()) return;
+  const input = document.querySelector('#routing-hub-input');
+  if (!input || input.disabled) return;
+  input.focus();
 }
 
 // A conversation is the routing hub iff it carries the backend routing_hub marker AND the routing
@@ -1781,7 +1805,7 @@ async function routeAfterCompletedAcademyTraining(postContentScreen) {
 
 // The settings screen is a master-detail category nav: a category list plus only the selected
 // category's panel. These are the categories, in nav order; the first is the default shown on open.
-const SETTINGS_CATEGORIES = ['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio'];
+const SETTINGS_CATEGORIES = ['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio', 'save-data-repair'];
 const DEFAULT_SETTINGS_CATEGORY = 'lmstudio';
 
 // Show exactly the chosen category's panel and mark its nav tab active. Unknown categories fail-fast
@@ -1814,6 +1838,77 @@ function openSettingsScreen() {
   loadConversationPopupSettings().catch(reportError);
   loadAudioSettings().catch(reportError);
   renderRoutingFinalizePanel();
+  resetSaveDataRepairResults();
+}
+
+// セーブデータ修正カテゴリ: 個別 migration ボタンの UI 側配線。単一同時実行ガードで押下即 disable、応答後に再 enable。
+// endpoint も同型のガードを持つので、複数タブ同時押下や curl 併走でも二重実行にはならない。
+const SAVE_DATA_REPAIR_UNCONSUMED_POINTER_ENDPOINT = '/api/settings/save-data-repair/unconsumed-routing-conversation-pointer';
+
+function saveDataRepairEntryElements(entryKey) {
+  const button = document.querySelector(`#save-data-repair-${entryKey}-button`);
+  const result = document.querySelector(`#save-data-repair-${entryKey}-result`);
+  return { button, result };
+}
+
+function setSaveDataRepairEntryResult(entryKey, { message, tone }) {
+  const { result } = saveDataRepairEntryElements(entryKey);
+  if (!result) return;
+  result.textContent = message;
+  result.classList.toggle('is-error', tone === 'error');
+}
+
+function resetSaveDataRepairResults() {
+  for (const result of document.querySelectorAll('.save-data-repair-entry-result')) {
+    result.textContent = '';
+    result.classList.remove('is-error');
+  }
+}
+
+function formatSaveDataRepairSuccessMessage(result) {
+  if (!result || typeof result !== 'object') throw new Error('save data repair result is missing');
+  const added = Number(result.added);
+  const skipped = Number(result.skipped_already_present);
+  if (!Number.isInteger(added) || !Number.isInteger(skipped)) {
+    throw new Error(`save data repair result has non-integer counts: ${JSON.stringify(result)}`);
+  }
+  return `${added} slot に設定を追加しました（既に持っていた ${skipped} slot は変更なし）。`;
+}
+
+async function runSaveDataRepairMigration(entryKey, endpoint) {
+  const { button } = saveDataRepairEntryElements(entryKey);
+  if (!button || button.disabled) return;
+  button.disabled = true;
+  setSaveDataRepairEntryResult(entryKey, { message: '実行中…', tone: 'info' });
+  try {
+    const payload = await postJson(endpoint);
+    if (!payload || payload.status !== 'ok') {
+      throw new Error(`unexpected response from ${endpoint}: ${JSON.stringify(payload)}`);
+    }
+    setSaveDataRepairEntryResult(entryKey, {
+      message: formatSaveDataRepairSuccessMessage(payload.result),
+      tone: 'info'
+    });
+  } catch (error) {
+    setSaveDataRepairEntryResult(entryKey, {
+      message: `失敗しました: ${error?.message ?? String(error)}`,
+      tone: 'error'
+    });
+  } finally {
+    button.disabled = false;
+  }
+}
+
+{
+  const button = document.querySelector('#save-data-repair-unconsumed-routing-conversation-pointer-button');
+  if (button) {
+    button.addEventListener('click', () => {
+      runSaveDataRepairMigration(
+        'unconsumed-routing-conversation-pointer',
+        SAVE_DATA_REPAIR_UNCONSUMED_POINTER_ENDPOINT
+      );
+    });
+  }
 }
 
 for (const tab of tabs) {
@@ -6580,6 +6675,12 @@ async function runRoutingHubConversation() {
     conversationRequestInFlight = false;
     routingHubStage.setControlsDisabled(false);
     routingHubStage.setResponding(false);
+    // Non-terminal turn refocus: after re-enabling controls, restore keyboard focus to `#routing-hub-input`
+    // so the next utterance can be typed without a mouse click (mirrors the lounge's runLoungePlayerTurn
+    // re-enable→focus seam). The helper's 3-condition gate (hub screen active + hub conversation active +
+    // input present + not disabled) makes this a no-op for every terminal exit (dispatch, graduation
+    // selection, auto-end, settings redirect), so it never steals focus from the destination screen.
+    focusRoutingHubInputIfContinuing();
   }
 }
 
@@ -19190,9 +19291,12 @@ function reportLoungeScreenError(error) {
 
 // Consumer-owned SSE reader for one NPC utterance. Frames events exactly like the shared / auction stream helper
 // (event:/data: over \n\n blocks) but understands the lounge event列: status → assistant_emotion →
-// assistant_delta* → assistant_complete → result ({ speaker, emotion, content, conversation }). The emotion always
-// arrives before the first delta so the turn's face is fixed before any bubble reveals. onStreamStart fires once on
-// the first token so the entry loading cover can release on the first utterance's first stream.
+// assistant_delta* → assistant_complete (one for a continue turn, two for a depart turn — Stage 2 契約) →
+// [lounge_draining → lounge_finalization_progress* on all-exited] → result. The emotion always arrives before the
+// first delta so the turn's face is fixed before any bubble reveals. onStreamStart fires once on the first token so
+// the entry loading cover can release on the first utterance's first stream. The lounge_draining /
+// lounge_finalization_progress events are progress signals only — the terminal `result` carries the completion
+// payload the auto path validates and hands off to the hub return (runLoungeAutoCompletion).
 async function readLoungeUtteranceSse(body, { onDelta, onComplete, onEmotion, onStreamStart = null }) {
   const endpoint = '/api/lounge/utterance/stream';
   const response = await fetch(endpoint, {
@@ -19222,6 +19326,8 @@ async function readLoungeUtteranceSse(body, { onDelta, onComplete, onEmotion, on
     if (event === 'assistant_delta') { notifyStreamStarted(); noteLoadingDelta(); onDelta(data.delta ?? ''); }
     if (event === 'assistant_emotion') { onEmotion?.({ expression: data.expression, face_emotion_variant_id: data.face_emotion_variant_id }); }
     if (event === 'assistant_complete') { notifyStreamStarted(); notifyAcademyLoadingProgress(); onComplete(data.content ?? ''); }
+    if (event === 'lounge_draining') { notifyAcademyLoadingProgress(); }
+    if (event === 'lounge_finalization_progress') { notifyAcademyLoadingProgress(); }
     if (event === 'result') { finalResult = data; notifyAcademyLoadingProgress(); }
     if (event === 'error') throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data?.error ?? '' });
   };
@@ -19241,20 +19347,43 @@ async function readLoungeUtteranceSse(body, { onDelta, onComplete, onEmotion, on
 // Streams one NPC utterance, revealing completed 吹き出し単位 through the shared reveal queue as they arrive, then
 // adopts the server-authoritative conversation view (each message keeps its own speaker identity + final emotion).
 // On failure the reveal is cancelled and the pre-utterance history is restored (no half-revealed bubble left).
+//
+// v2 契約 (Stage 3): 1 utterance が複数 assistant_message を carry する（continue turn = 1・depart turn = 2）。
+// 各 assistant_complete が 1 メッセージの終端を表す — SSE order 契約により delta stream は complete より前に流れ切っ
+// ているので、complete 到達時点で該当メッセージ本文は確定している。complete ごとに (a) 現在の in-progress メッセー
+// ジを reveal に flush し (b) committed 配列に確定 message として積み (c) fullText/segCount を次のメッセージ用に
+// reset する。turn 終端は SSE `result` の到達で判定する（complete 数の推測に依存しない）。immutable turnEmotion は 1
+// utterance に 1 回・最初の delta より前に確定し、その 1 emotion を継続 message にも退出 message にも spread する。
 async function revealLoungeUtterance({ speaker, id, cursor, onStreamStart = null }) {
   const base = [...loungeStage.surface.getHistory()];
   const reveal = loungeStage.createTurnReveal(base);
+  // Committed assistant messages accumulated within this ONE utterance. Each assistant_complete pushes a message
+  // here; the next message's reveal segments are built from base + committed + the in-progress buffer so newly
+  // enqueued rows only include the tail belonging to the new message (segCount counts fresh segments within the
+  // current in-progress message alone — it is reset on each complete).
+  const committed = [];
   let fullText = '';
   let segCount = 0;
-  // The turn's emotion is confirmed once, by the first assistant_emotion event (which the server now sends BEFORE
-  // any assistant_delta), and stays immutable for the whole utterance. Every assistant segment — including a
-  // 括弧分割 that yields two face rows — is built from this single emotion, so both faces match. Assistant content
-  // that arrives before the emotion is confirmed is a protocol violation: fail fast, never revealing a stand-in face.
+  // The turn's emotion is confirmed once, by the first assistant_emotion event (which the server sends BEFORE any
+  // assistant_delta and BEFORE any assistant_complete), and stays immutable for the whole utterance. Every assistant
+  // segment — including a 括弧分割 that yields two face rows — is built from this single emotion, so both faces
+  // match; the depart turn's two assistant messages also share this one emotion. Assistant content that arrives
+  // before the emotion is confirmed is a protocol violation: fail fast, never revealing a stand-in face.
   let turnEmotion = null;
   const enqueueFrom = (text) => {
     if (!text.trim()) return;
     if (!turnEmotion) throw new Error('lounge utterance stream sent assistant content before assistant_emotion (protocol violation)');
-    const segments = displayMessages([loungeMessage(speaker, text, turnEmotion)]).filter((segment) => (segment.content ?? '').trim());
+    // Segments for the CURRENT in-progress message. Prior committed messages already have their segments in the
+    // reveal queue, so slice them off before slicing off segments already revealed in this in-progress message.
+    // The prefix length is measured in SEGMENTS (not messages): displayMessages performs 括弧分割 that can split
+    // one message into multiple face rows, so `committed.length` (a message count) would leave stale trailing
+    // committed segments on the head of the in-progress list and re-enqueue the previous message's tail face
+    // when the next complete arrives. The correct prefix is the segment count committed messages produce on
+    // their own — computed here by running displayMessages over `committed` alone and filtering the same way.
+    const committedSegments = displayMessages(committed).filter((segment) => (segment.content ?? '').trim());
+    const segments = displayMessages([...committed, loungeMessage(speaker, text, turnEmotion)])
+      .filter((segment) => (segment.content ?? '').trim())
+      .slice(committedSegments.length);
     const fresh = segments.slice(segCount);
     segCount += fresh.length;
     reveal.enqueue(fresh);
@@ -19270,7 +19399,17 @@ async function revealLoungeUtterance({ speaker, id, cursor, onStreamStart = null
           turnEmotion = chosen;
         },
         onDelta: (delta) => { fullText += delta; enqueueFrom(completedAssistantPrefix(fullText)); },
-        onComplete: (content) => { fullText = content || fullText; enqueueFrom(fullText); }
+        onComplete: (content) => {
+          // A complete finalizes the CURRENT assistant message. Flush its final text (backend guarantees the delta
+          // stream for this message has ended by now — SSE order 契約 pinned in Stage 2), then commit the message and
+          // reset the in-progress buffer so the NEXT complete starts a fresh segment. The turn's emotion is reused —
+          // the depart turn's two messages carry the same face by construction.
+          fullText = content || fullText;
+          enqueueFrom(fullText);
+          committed.push(loungeMessage(speaker, fullText, turnEmotion));
+          fullText = '';
+          segCount = 0;
+        }
       }
     );
     await reveal.drain();
@@ -19305,6 +19444,13 @@ function runLoungePlayerTurn() {
 // server advances the cursor per request (next_speaker becomes null once all of the round's NPCs have spoken →
 // the player's turn; a player turn advances to the next round's first NPC). NPC responses keep the input closed
 // (shared setControlsDisabled); the loop returns when the player ends the talk.
+//
+// v2 契約 (Stage 3): terminal utterance が「全員退出 auto completion」を carry している場合、backend は SSE の
+// terminal `result` に `finalization_status:'completed'` と手動 `/end` と等価な `state` / `transition.next_screen`
+// / `post_content_screen` / `lounge_result` を merge する（Stage 2 で pin）。この場合は player input を開かず、
+// `runLoungeAutoCompletion(result)` に handoff して routing hub へ帰す（明示退出ボタン導線は並存）。terminal
+// result の `finalization_status` フィールドが未定義なら通常の round loop（次 NPC or player turn）を続ける — strict
+// check（フィールドの存在を明示的に見る）で決め、silent fallback にしない。
 async function runLoungeConversation({ onFirstStreamStart = null } = {}) {
   let firstStreamPending = Boolean(onFirstStreamStart);
   while (true) {
@@ -19318,12 +19464,115 @@ async function runLoungeConversation({ onFirstStreamStart = null } = {}) {
         cursor: loungeConversation.cursor,
         onStreamStart
       });
+      // Auto completion detection: the terminal `result` event carries `finalization_status` ONLY when the backend
+      // ran the shared completion helper (Stage 2). Strict presence check — silent fallback (推測) にしない: the
+      // field's absence means "continue the round"; its presence means "hand off to the hub return".
+      if ('finalization_status' in result) {
+        await runLoungeAutoCompletion(result);
+        return;
+      }
+      // No auto completion this turn — the reveal committed, the round advances.
       loungeConversation = result.conversation;
     }
     loungeStage.setResponding(false);
     const outcome = await runLoungePlayerTurn();
     if (outcome.ended) return;
     loungeConversation = outcome.conversation;
+  }
+}
+
+// Strict-validate the completed-finalization payload (no default-value fallback for state / next_screen /
+// post_content_screen). Split out from promoteLoungeCompletion so callers can validate BEFORE raising any loading
+// cover (a malformed payload throws straight into the caller's un-strand branch instead of wasting a full drain
+// cover cycle on state that is about to be rejected).
+function assertLoungeCompletion(completion) {
+  if (completion.finalization_status !== 'completed') {
+    throw new Error(`lounge completion: unexpected finalization_status ${JSON.stringify(completion.finalization_status)}`);
+  }
+  if (completion.transition?.next_screen !== 'interaction') {
+    throw new Error(`lounge completion: unexpected transition.next_screen ${JSON.stringify(completion.transition?.next_screen)}`);
+  }
+  if (completion.post_content_screen !== 'interaction') {
+    throw new Error(`lounge completion: unexpected post_content_screen ${JSON.stringify(completion.post_content_screen)}`);
+  }
+  if (!completion.state || typeof completion.state !== 'object') {
+    throw new Error(`lounge completion is missing post-finalize state (got ${JSON.stringify(completion.state)})`);
+  }
+}
+
+// Shared post-promote hub-return helper: assumes the payload has already passed assertLoungeCompletion (both
+// callers validate FIRST so a malformed payload rejects without wasting a loading-cover cycle), then adopts the
+// post-finalize state, stops the ambient, and hands off through the shared content return. Callers: exitLounge
+// (after endRequest resolves), runLoungeAutoCompletion (after the terminal utterance result arrives). Keeping the
+// adopt + handoff in ONE place is how the frontend has a SINGLE hub-return path for lounge completion, per Stage
+// 3 acceptance (auto and manual paths share the same helper — no duplicated completion path).
+async function promoteLoungeCompletion(completion) {
+  assertLoungeCompletion(completion);
+  currentRuntimeState = completion.state;
+  loungeStage.stopAmbient();
+  await returnToRoutingHubFromContent(completion.post_content_screen);
+}
+
+// Auto completion handoff: reached when a terminal utterance SSE `result` carries the same completion fields the
+// explicit `/api/lounge/end` returns (Stage 2 backend merge). Raises the shared drain loading cover (the backend
+// has already promoted by the time this terminal result arrives — the completion payload IS the proof of promote,
+// so readiness is pre-resolved), then delegates to promoteLoungeCompletion for the strict-validate + adopt + hub
+// return. The loader → loader re-show inside returnToRoutingHubFromContent keeps the cover continuous through the
+// handoff (M-2026-07-06-001).
+//
+// Failure branches: this path is entered ONLY after the backend has already promoted the atomic finalization, so a
+// validation throw here is post-promote — un-strand to the routing hub via the shared loading-covered hub return
+// with the cause on the hub status (same discipline as exitLounge's post-promote branch). A pre-promote failure
+// surfaces as an SSE `error` event inside readLoungeUtteranceSse, which throws up through revealLoungeUtterance /
+// runLoungeConversation / runLoungeSession and is un-stranded to the lounge chrome for retry (matches Stage 2 SSE
+// error contract: pre-promote = retry-able, the record was not promoted).
+//
+// Race guard with the explicit exit button: sets routingContentReturnInFlight (the same single-flight guard
+// exitLounge uses) so a concurrent 退出 press does not double-start the hub return. The auto path never opens the
+// player turn (the round loop returns immediately after this handoff), so loungePlayerResolve is null throughout —
+// asserted so a future refactor that opens the player turn first fails loud instead of stranding a resolver.
+async function runLoungeAutoCompletion(result) {
+  if (routingContentReturnInFlight) {
+    // An explicit 退出 press already grabbed the hub-return slot in the same round boundary. Fail loud rather than
+    // silently dropping the auto completion — this should not happen: the auto path is entered while the input is
+    // still closed (NPCs are still speaking / streaming), so 退出 cannot be pressed at that moment.
+    throw new Error('lounge auto completion: routing content return is already in flight (race with explicit exit)');
+  }
+  if (loungePlayerResolve) {
+    throw new Error('lounge auto completion: player turn resolver is unexpectedly held (should never be opened on the auto path)');
+  }
+  routingContentReturnInFlight = true;
+  try {
+    // Validate BEFORE raising the drain cover: a malformed payload throws straight into the post-promote un-strand
+    // branch below without wasting a full drain-cover cycle on state that is about to be rejected (review Finding
+    // 3 / Minor). The auto path is entered ONLY after the backend has already promoted (the completion payload
+    // IS the proof of promote), so a validation throw here is still post-promote un-strand semantics.
+    assertLoungeCompletion(result);
+    // Raise the drain loading cover (the backend already promoted, so readiness is pre-resolved — the cover holds
+    // only for its minimum-display window before handing off to the hub return, matching exitLounge's shape:
+    // readiness → nextScreen:null → shared content return keeps the loader up through the hub start).
+    await showAcademyLoadingScreenUntilReady({
+      readiness: Promise.resolve(),
+      nextScreen: null,
+      refreshBeforeNextScreen: false,
+      loadingCopy: ROUTING_EXIT_DRAIN_LOADING_COPY
+    });
+    await promoteLoungeCompletion(result);
+  } catch (error) {
+    if (settingsRedirectErrorMessage(error) != null) {
+      // The shared loader helper (reportLoadingError) already redirected to the settings screen for an LM-config
+      // error — do not overwrite that screen.
+      reportLoungeScreenError(error);
+    } else {
+      // Post-promote failure: the backend already promoted the record before sending the terminal result, so we
+      // cannot go back to the lounge (the finalizer would reject a re-finalization). Un-strand to the routing hub
+      // with the cause on the hub status through the shared loading-covered hub return (matches exitLounge's
+      // post-promote un-strand).
+      await returnToRoutingHubThroughLoadingScreen();
+      routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+    }
+  } finally {
+    routingContentReturnInFlight = false;
   }
 }
 
@@ -19442,28 +19691,77 @@ async function submitLoungePlayerTurn() {
   }
 }
 
-// 退出: the player's explicit end (offered only at a round boundary, when the input is open). Runs the aggregate
-// finalization + content result server-side, then returns to the routing hub through the shared loading-covered
-// content return (guarded by routingContentReturnInFlight).
+// 退出: the player's explicit end (offered only at a round boundary, when the input is open). Mirrors the 1:1
+// routing end (endRoutingConversation): the /api/lounge/end request — which drains the 3-participant aggregate
+// finalization server-side — is the loading-screen readiness so the whole finalization is covered by the shared
+// academy-loading interstitial (M-2026-07-06-001) instead of stranding the player on the lounge screen while the
+// longest post-processing block runs. Once the loader is up we await the end result, strict-validate the
+// completed-finalization contract (no default-value fallback for state / next_screen / post_content_screen), release
+// the suspended round loop, and hand off to the shared content-return which keeps the loader up through the hub
+// start (showScreen preserves the running starfield/constellation across a loader → loader re-show, so the
+// continuous cover survives the handoff). Error un-strand splits on where the failure landed:
+//   pre-atomic-promote (endRequest reject: HTTP 4xx/5xx, LM config, participant failure): the group finalizer
+//   discarded staging, so restore the lounge screen + ambient + player-turn resolver + controls for retry;
+//   post-atomic-promote (validation throw after endRequest resolves, hub-start failure): the marker is written and
+//   the finalizer would reject a re-finalization, so un-strand to the routing hub with the cause on the hub status
+//   instead of re-showing the lounge. A settings-redirect error (LM unset) is owned by the shared loader helper /
+//   returnToRoutingHubThroughLoadingScreen and is skipped here.
 async function exitLounge() {
   if (!loungePlayerResolve) { showProcessingToast(); return; } // only endable at a round boundary (player turn)
   if (loungeActionInFlight) { showProcessingToast(); return; }
   if (routingContentReturnInFlight) { showProcessingToast(); return; }
   routingContentReturnInFlight = true;
   loungeStage.setControlsDisabled(true);
+  const endRequest = postJson('/api/lounge/end', { id: loungeConversation.id });
+  let endResolved = false;
   try {
-    const result = await postJson('/api/lounge/end', { id: loungeConversation.id });
-    currentRuntimeState = result.state ?? currentRuntimeState;
-    loungeStage.stopAmbient();
-    // Release the suspended round loop cleanly; the content return below owns the navigation.
+    // Hold the loading screen up while the drain-backed end request runs (readiness = endRequest, nextScreen: null),
+    // so the ~3-participant finalization is covered from the moment the player pressed 退出.
+    await showAcademyLoadingScreenUntilReady({
+      readiness: endRequest,
+      nextScreen: null,
+      refreshBeforeNextScreen: false,
+      loadingCopy: ROUTING_EXIT_DRAIN_LOADING_COPY
+    });
+    const result = await endRequest;
+    endResolved = true;
+    // Release the suspended round loop cleanly; the shared completion helper below owns the navigation. Doing this
+    // BEFORE the strict validation matches the pre-refactor sequence (the round loop is released as soon as the
+    // response is captured), and the auto path never reaches here — it enters runLoungeAutoCompletion instead.
     const resolve = loungePlayerResolve;
     loungePlayerResolve = null;
     if (resolve) resolve({ ended: true });
-    await returnToRoutingHubFromContent(result.post_content_screen);
+    // Strict validation + adopt + hub return: delegated to the shared completion helper so the frontend has a
+    // SINGLE hub-return path for lounge completion (both explicit 退出 and auto-exit go through
+    // promoteLoungeCompletion — no duplicated completion path per Stage 3 acceptance).
+    await promoteLoungeCompletion(result);
   } catch (error) {
-    // A failed end leaves the player on the lounge: re-open the input so the round can be resumed / retried.
-    if (loungePlayerResolve) loungeStage.setControlsDisabled(false);
-    reportLoungeScreenError(error);
+    if (settingsRedirectErrorMessage(error) != null) {
+      // The shared loader helper (reportLoadingError) already redirected to the settings screen for an LM-config
+      // error — do not overwrite that screen.
+      reportLoungeScreenError(error);
+    } else if (!endResolved) {
+      // Pre-atomic-promote failure: the group finalizer discarded its staging workspace, so nothing has been
+      // written. Restore the lounge screen + ambient + player-turn state so the round can be resumed / retried.
+      // showScreen('academy-lounge') runs the enter path guarded by loungeFlowInFlight — but that guard is only set
+      // inside runLoungeSession, and the exit path never entered it, so showScreen would spuriously restart the
+      // session. Instead re-show the lounge screen and repaint the chrome directly, matching the successful-entry
+      // hand-off (renderLoungeScreenChrome starts the ambient + repaints the week/moon topbar). The suspended
+      // player-turn resolver is still held, so re-enabling the controls re-opens the round.
+      if (isAcademyLoadingScreenActive()) {
+        showScreen('academy-lounge');
+        renderLoungeScreenChrome();
+      }
+      if (loungePlayerResolve) loungeStage.setControlsDisabled(false);
+      reportLoungeScreenError(error);
+    } else {
+      // Post-atomic-promote failure: the marker was written and the finalizer would reject a re-finalization, so
+      // we cannot go back to the lounge. Un-strand to the routing hub with the cause on the hub status through the
+      // shared loading-covered hub return (the loader is still up from the loading-covered end; the shared helper
+      // handles a still-active loader by showing routing-hub with the error on its status line).
+      await returnToRoutingHubThroughLoadingScreen();
+      routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+    }
   } finally {
     routingContentReturnInFlight = false;
   }

@@ -21,7 +21,7 @@ import {
   readLoungeGroupRecord,
   appendLoungePlayerTurn
 } from '../llm/loungeGroupTurn.mjs';
-import { currentLoungeSpeaker } from '../llm/loungeGroupRecord.mjs';
+import { currentLoungeSpeaker, loungeAllParticipantsExited } from '../llm/loungeGroupRecord.mjs';
 import { finalizeLoungeGroupConversationAtomic } from '../llm/loungeGroupFinalize.mjs';
 import {
   ROUTING_ACTIVE_LOUNGE_STATE_KEY,
@@ -180,14 +180,94 @@ export function canHandleLoungeApiRoute(method, pathname) {
   return ROUTES.has(`${method} ${pathname}`);
 }
 
+// v2 shared completion helper: promotes a lounge conversation to its terminal state and returns the completion
+// payload — the exact shape both the manual `/api/lounge/end` handler and the utterance-stream auto-attach send
+// back. It never reads HTTP body or SSE state directly. Steps:
+//   (a) resolveLoungeFinalizationProviders — the finalization LM boundary (unconfigured LM → 503 as before).
+//   (b) finalizeLoungeGroupConversationAtomic — three-participant staging transaction, promotes atomically.
+//   (c) buildLoungeContentResult — the routing content result carrying the three participants for the hub.
+//   (d) active pointer clear + current_screen: 'interaction' + last_routing_content_result write — the single
+//       post-promote state write, spreading over the state the finalizer promoted so the unconsumed-routing
+//       -conversation pointer set inside the staging transaction is preserved.
+//   (e) return the completion payload the SSE terminal `result` / manual `/end` JSON body carries.
+//
+// Idempotency: the helper is one-shot per instance. A second call from the same instance throws a fail-fast
+// error rather than promoting twice. Callers construct one instance per HTTP request; the utterance-stream
+// route uses its instance from its own auto-attach path only, so a hypothetical retry inside the same stream
+// surfaces immediately (rather than racing the finalizer's own `already finalized` reject inside the atomic
+// promotion). The manual `/end` handler and the utterance-stream route are separate HTTP requests, so the
+// underlying `finalizeLoungeGroupConversationAtomic` `already finalized` guard is the single source of truth
+// for the cross-request "second promote of the same conversation" case (this helper does not attempt to
+// coordinate across requests).
+export function createLoungeCompletionHelper() {
+  let consumed = false;
+  return async ({
+    root,
+    storage,
+    active,
+    resolveLoungeFinalizationProviders,
+    postContentScreen,
+    now
+  }) => {
+    if (consumed) {
+      throw new Error('lounge completion helper cannot promote twice from the same instance (per-request one-shot guard)');
+    }
+    consumed = true;
+    if (typeof resolveLoungeFinalizationProviders !== 'function') throw new Error('resolveLoungeFinalizationProviders is required');
+    const finalizationProviders = await resolveLoungeFinalizationProviders();
+    const finalization = await finalizeLoungeGroupConversationAtomic({
+      root,
+      conversationId: active.conversation_id,
+      now,
+      ...finalizationProviders
+    });
+    const contentResult = buildLoungeContentResult({
+      week: finalization.record.week,
+      now,
+      participants: finalization.record.participants
+    });
+    const { [ROUTING_ACTIVE_LOUNGE_STATE_KEY]: _clearedActiveLounge, ...promotedState } = finalization.state;
+    const nextState = {
+      ...promotedState,
+      current_screen: 'interaction',
+      [ROUTING_CONTENT_RESULT_STATE_KEY]: contentResult
+    };
+    await storage.writeJson('game_data/runtime_state.json', nextState);
+    return {
+      finalization_status: 'completed',
+      lounge_result: contentResult.detail,
+      transition: { next_screen: 'interaction' },
+      post_content_screen: postContentScreen,
+      state: nextState
+    };
+  };
+}
+
 // Streams one NPC utterance over SSE: opens the stream, notifies the chosen emotion FIRST (from the turn's
-// onEmotion seam, which fires before the chat provider), then forwards each chat delta as assistant_delta, the
-// completed content, and a result carrying the speaker identity and the advanced conversation view. The
-// emotion-before-delta order lets the client fix the turn's face before the first bubble reveals, so a 括弧分割
-// utterance renders every face row with the same emotion. There is NO post-generation assistant_emotion send. The
-// LM config + the cursor were already validated as JSON before the stream opened, so an in-stream error here is a
-// generation failure only.
-async function runLoungeUtteranceStream({ res, openSse, sendSseEvent, generate }) {
+// onEmotion seam, which fires before the chat provider), then forwards each chat delta as assistant_delta, each
+// appended assistant message's completion (one for a continue turn, two for a departure turn — the normal
+// utterance then the departure utterance), and — when the departure exits the last active participant — attaches
+// the shared completion helper and merges its payload into the terminal `result`.
+//
+// Event order:
+//   continue turn: status → assistant_emotion → assistant_delta* → assistant_complete → result
+//   depart turn:   status → assistant_emotion → assistant_delta* → assistant_complete → assistant_complete
+//                  [→ lounge_draining → lounge_finalization_progress* → (merged completion in result)] → result
+//
+// The departure utterance is generated by `conversationCutoffProvider` which does not receive an onChatDelta
+// callback (upstream contract), so the departure tokens never mix into the normal utterance's delta buffer. Both
+// assistant messages carry the same immutable emotion (the emotion is decided once at the turn's start and
+// reused for the departure), so only ONE `assistant_emotion` event is sent per turn.
+//
+// Auto attach: after the turn returns, if every participant has now exited, the shared completion helper is
+// invoked with transition_source:'auto'. The `lounge_draining` signal lets the client raise its loading cover
+// AFTER the departure utterance has streamed but BEFORE the atomic finalize runs; `lounge_finalization_progress`
+// mirrors the drain-in-turn progress signal errand/study-circle emit. A helper failure (pre-promote throw or
+// idempotent-guard reject) is surfaced as the SSE `error` event; the record is not promoted, so a retry or a
+// manual `/end` can still complete it. Once the helper returns, the completion payload's `state` / `transition`
+// / `post_content_screen` / `finalization_status` fields are merged into the terminal `result` — the same shape
+// the manual `/api/lounge/end` JSON response carries.
+async function runLoungeUtteranceStream({ res, openSse, sendSseEvent, generate, attachCompletion }) {
   openSse(res);
   try {
     sendSseEvent(res, 'status', { phase: 'chat_started' });
@@ -196,10 +276,10 @@ async function runLoungeUtteranceStream({ res, openSse, sendSseEvent, generate }
         expression: emotion.expression,
         face_emotion_variant_id: emotion.face_emotion_variant_id
       }),
-      onDelta: (delta) => sendSseEvent(res, 'assistant_delta', { delta })
+      onDelta: (delta) => sendSseEvent(res, 'assistant_delta', { delta }),
+      onAssistantComplete: ({ content }) => sendSseEvent(res, 'assistant_complete', { content })
     });
-    sendSseEvent(res, 'assistant_complete', { content: result.content });
-    sendSseEvent(res, 'result', {
+    const terminalResult = {
       speaker: { character_id: result.speaker.character_id, character_name: result.speaker.character_name },
       emotion: {
         expression: result.emotion.expression,
@@ -207,7 +287,16 @@ async function runLoungeUtteranceStream({ res, openSse, sendSseEvent, generate }
       },
       content: result.content,
       conversation: loungeConversationView(result.record)
-    });
+    };
+    if (loungeAllParticipantsExited(result.record) && typeof attachCompletion === 'function') {
+      sendSseEvent(res, 'lounge_draining', {});
+      sendSseEvent(res, 'lounge_finalization_progress', { phase: 'starting' });
+      const completion = await attachCompletion();
+      sendSseEvent(res, 'lounge_finalization_progress', { phase: 'promoted' });
+      sendSseEvent(res, 'result', { ...terminalResult, ...completion });
+    } else {
+      sendSseEvent(res, 'result', terminalResult);
+    }
   } catch (error) {
     sendSseEvent(res, 'error', loungeErrorPayload(error));
   } finally {
@@ -252,11 +341,12 @@ export async function handleLoungeApi({
     } catch (error) {
       return sendLoungeError(res, sendJson, error);
     }
+    const completeAuto = createLoungeCompletionHelper();
     return runLoungeUtteranceStream({
       res,
       openSse,
       sendSseEvent,
-      generate: async ({ onEmotion, onDelta }) => {
+      generate: async ({ onEmotion, onDelta, onAssistantComplete }) => {
         const providers = await resolveRuntimeProviders({ requestedProvider, context, onChatDelta: onDelta });
         return runLoungeGroupTurn({
           root,
@@ -264,8 +354,24 @@ export async function handleLoungeApi({
           id: record.id,
           chatProvider: providers.chatProvider,
           emotionProvider: providers.emotionProvider,
+          conversationContinuationProvider: providers.conversationContinuationProvider,
+          conversationCutoffProvider: providers.conversationCutoffProvider,
           characterSpeechConstraints: providers.characterSpeechConstraints,
-          onEmotion
+          onEmotion,
+          onAssistantComplete
+        });
+      },
+      attachCompletion: async () => {
+        const state = await storage.readJson('game_data/runtime_state.json');
+        const active = assertActiveLoungeMatches(state, record.id);
+        const now = new Date().toISOString();
+        return completeAuto({
+          root,
+          storage,
+          active,
+          resolveLoungeFinalizationProviders,
+          postContentScreen: 'interaction',
+          now
         });
       }
     });
@@ -319,40 +425,19 @@ export async function handleLoungeApi({
   if (req.method === 'POST' && url.pathname === '/api/lounge/end') {
     const body = await readBody(req);
     try {
-      if (typeof resolveLoungeFinalizationProviders !== 'function') throw new Error('resolveLoungeFinalizationProviders is required');
       const state = await storage.readJson('game_data/runtime_state.json');
       const active = assertActiveLoungeMatches(state, body.id);
       const now = new Date().toISOString();
-      // Resolve the finalization providers (config resolution → 503 if unconfigured) before the atomic finalize.
-      const finalizationProviders = await resolveLoungeFinalizationProviders();
-      const finalization = await finalizeLoungeGroupConversationAtomic({
+      const complete = createLoungeCompletionHelper();
+      const payload = await complete({
         root,
-        conversationId: active.conversation_id,
-        now,
-        ...finalizationProviders
+        storage,
+        active,
+        resolveLoungeFinalizationProviders,
+        postContentScreen: 'interaction',
+        now
       });
-      // Content result + interaction screen + active-pointer clear as the authoritative post-finalize write. The
-      // aggregate finalization already promoted (transcript discarded, three participants finalized); this records
-      // WHO the player talked with for the next hub entry and returns to the routing interaction screen.
-      const contentResult = buildLoungeContentResult({
-        week: finalization.record.week,
-        now,
-        participants: finalization.record.participants
-      });
-      const { [ROUTING_ACTIVE_LOUNGE_STATE_KEY]: _clearedActiveLounge, ...promotedState } = finalization.state;
-      const nextState = {
-        ...promotedState,
-        current_screen: 'interaction',
-        [ROUTING_CONTENT_RESULT_STATE_KEY]: contentResult
-      };
-      await storage.writeJson('game_data/runtime_state.json', nextState);
-      return sendJson(res, {
-        finalization_status: 'completed',
-        lounge_result: contentResult.detail,
-        transition: { next_screen: 'interaction' },
-        post_content_screen: 'interaction',
-        state: nextState
-      });
+      return sendJson(res, payload);
     } catch (error) {
       return sendLoungeError(res, sendJson, error);
     }

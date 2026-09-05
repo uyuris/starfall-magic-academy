@@ -78,8 +78,8 @@ pnpm-debug.log*
 
 # Build outputs
 dist/
-build/
-out/
+/build/
+/out/
 target/
 .build/
 DerivedData/
@@ -110,12 +110,20 @@ worktrees/
 !.agents/queue/reopens/.gitkeep
 .agents/queue/cancels/*
 !.agents/queue/cancels/.gitkeep
+.agents/queue/lead_drafts/*
+!.agents/queue/lead_drafts/.gitkeep
 .agents/queue/lead_handoffs/*
 !.agents/queue/lead_handoffs/.gitkeep
+.agents/queue/worker_handoffs/*
+!.agents/queue/worker_handoffs/.gitkeep
 .agents/queue/state/*
 !.agents/queue/state/.gitkeep
 !.agents/queue/state/wakeups/
+.agents/queue/state/wakeups/*
 !.agents/queue/state/wakeups/.gitkeep
+!.agents/queue/state/propagation/
+.agents/queue/state/propagation/*
+!.agents/queue/state/propagation/.gitkeep
 .agents/queue/memory_proposals/*
 !.agents/queue/memory_proposals/.gitkeep
 .agents/queue/tasks/*

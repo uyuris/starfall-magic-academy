@@ -6,7 +6,7 @@ import { loadAlchemyDefinitions } from './alchemyDefinitions.mjs';
 import { loadStudyCircleDefinitions } from './studyCircleDefinitions.mjs';
 import { STUDY_CIRCLE_WEEKLY_OFFER_COUNT } from './routingStudyCircle.mjs';
 import { ARENA_BRACKET_UNIT_COUNT } from './arena/arenaTournament.mjs';
-import { normalizeRoutingHubContext } from './routingMetaContext.mjs';
+import { normalizeRoutingHubContext, readUnconsumedRoutingConversationPointer } from './routingMetaContext.mjs';
 import { readRoutingContentResult, requireRoutingContentWeek } from './routingContentResult.mjs';
 import { loadStarCradleCatalog } from './starCradleCatalog.mjs';
 import { buildStarCradleView } from './starCradleOperations.mjs';
@@ -15,17 +15,8 @@ import { createStorageApi } from './storage.mjs';
 
 const PLAYER_PARAMETERS_PATH = 'game_data/runtime/player_parameters.json';
 
-const CONVERSATION_ID_PATTERN = /^conv_[A-Za-z0-9_-]+$/;
-
 function storageFor(root) {
   return createStorageApi({ root });
-}
-
-function normalizeConversationId(value, label) {
-  if (value == null || value === '') return null;
-  const normalized = String(value).trim();
-  if (!CONVERSATION_ID_PATTERN.test(normalized)) throw new Error(`${label} must be a valid conversation id`);
-  return normalized;
 }
 
 function requireNonEmptyString(value, label) {
@@ -47,15 +38,9 @@ async function selectableCharacterSummary({ root, authoringRoot, characterId }) 
   };
 }
 
-async function readConversationStrict({ storage, conversationId }) {
-  const conversation = await storage.readJsonIfExists(`game_data/logs/conversations/${conversationId}.json`);
-  if (!conversation) throw new Error(`last conversation log is missing: ${conversationId}`);
-  return conversation;
-}
-
 async function buildRecentConversationContext({ storage, state }) {
-  const conversationId = normalizeConversationId(state.last_conversation_id, 'runtime_state.last_conversation_id');
-  if (!conversationId) {
+  const pointer = readUnconsumedRoutingConversationPointer(state);
+  if (pointer === null) {
     return {
       kind: 'no_new_conversation',
       conversation_id: null,
@@ -64,59 +49,92 @@ async function buildRecentConversationContext({ storage, state }) {
       memory_text: null
     };
   }
-
-  const conversation = await readConversationStrict({ storage, conversationId });
-  if (Object.prototype.hasOwnProperty.call(conversation, 'routing_hub')) {
-    return {
-      kind: 'no_new_conversation',
-      conversation_id: conversationId,
-      character_id: null,
-      character_name: null,
-      memory_text: null
-    };
-  }
-
-  const characterId = requireNonEmptyString(conversation.character_id, `conversation ${conversationId} character_id`);
-  const characterName = requireNonEmptyString(conversation.character_name, `conversation ${conversationId} character_name`);
-  const validator = await storage.readJsonIfExists(`game_data/logs/validator/${conversationId}.json`);
-  if (!validator) {
-    // No validator log. Finalization writes the validator unconditionally, then an explicit finalization
-    // marker, so the two absences are told apart by that marker: no marker → an opening that was started but
-    // never finalized (a legitimate runtime state — the conversation happened but produced no memory), a
-    // present marker → a finalized conversation whose validator log was lost (corrupt → fail-fast).
-    const finalizationMarker = await storage.readJsonIfExists(`game_data/logs/finalization/${conversationId}.json`);
-    if (finalizationMarker) {
-      throw new Error(`validator log is missing for finalized conversation: ${conversationId}`);
+  if (pointer.kind === 'lounge') {
+    // Every lounge participant carries its own validator log (participant-scoped `logs/validator/<conv>_<pid>.json`).
+    // The pointer's `validator_log_paths` are the participants' logs in participant order, so index-aligned reads
+    // preserve the identity binding without a secondary lookup. Three cases per participant, symmetric with the 1:1
+    // branch above: validator with `accepted_memory[0].text` → the memory text verbatim; validator with an empty
+    // `accepted_memory` → explicit null (`conversation_without_memory` counterpart, rendered as the "新しい記憶なし"
+    // fallback line); missing validator log → fail fast (the finalizer writes all three validator logs inside the
+    // same atomic promotion as the pointer, so a pointer targeting a missing validator is genuine corruption).
+    if (pointer.summary_source.validator_log_paths.length !== pointer.participants.length) {
+      throw new Error(
+        `unconsumed_routing_conversation lounge pointer participant/validator count mismatch for conversation: ${pointer.conversation_id}`
+      );
+    }
+    const memories = [];
+    for (const [index, participant] of pointer.participants.entries()) {
+      const validatorLogPath = pointer.summary_source.validator_log_paths[index];
+      const validator = await storage.readJsonIfExists(validatorLogPath);
+      if (!validator) {
+        throw new Error(
+          `validator log is missing for lounge pointer-targeted participant: ${pointer.conversation_id} / ${participant.character_id}`
+        );
+      }
+      if (!Array.isArray(validator.accepted_memory)) {
+        throw new Error(
+          `validator accepted_memory must be an array for lounge participant: ${pointer.conversation_id} / ${participant.character_id}`
+        );
+      }
+      if (validator.accepted_memory.length === 0) {
+        memories.push({
+          character_id: participant.character_id,
+          character_name: participant.character_name,
+          memory_text: null
+        });
+        continue;
+      }
+      const memoryText = requireNonEmptyString(
+        validator.accepted_memory[0]?.text,
+        `validator accepted_memory[0].text for lounge participant ${pointer.conversation_id} / ${participant.character_id}`
+      );
+      memories.push({
+        character_id: participant.character_id,
+        character_name: participant.character_name,
+        memory_text: memoryText
+      });
     }
     return {
-      kind: 'conversation_without_memory',
-      conversation_id: conversationId,
-      character_id: characterId,
-      character_name: characterName,
-      memory_text: null
+      kind: 'lounge_conversation',
+      conversation_id: pointer.conversation_id,
+      participants: pointer.participants.map((participant) => ({
+        character_id: participant.character_id,
+        character_name: participant.character_name
+      })),
+      memories
     };
   }
+  // A 1:1 pointer reads its participant identity directly from the pointer (populated by the finalizer's atomic
+  // promotion) and its recent memory from the pointer's summary_source. Finalization writes the validator log
+  // unconditionally BEFORE the state pointer is written in the same atomic promotion, so the validator log MUST
+  // exist when a pointer targets it. Missing validator here is corruption, not an unfinalized-opening case.
+  const [participant] = pointer.participants;
+  if (!participant) throw new Error(`unconsumed_routing_conversation.participants is empty for 1:1 pointer: ${pointer.conversation_id}`);
+  const validator = await storage.readJsonIfExists(pointer.summary_source.validator_log_path);
+  if (!validator) {
+    throw new Error(`validator log is missing for pointer-targeted conversation: ${pointer.conversation_id}`);
+  }
   if (!Array.isArray(validator.accepted_memory)) {
-    throw new Error(`validator accepted_memory must be an array for conversation: ${conversationId}`);
+    throw new Error(`validator accepted_memory must be an array for conversation: ${pointer.conversation_id}`);
   }
   if (validator.accepted_memory.length === 0) {
     return {
       kind: 'conversation_without_memory',
-      conversation_id: conversationId,
-      character_id: characterId,
-      character_name: characterName,
+      conversation_id: pointer.conversation_id,
+      character_id: participant.character_id,
+      character_name: participant.character_name,
       memory_text: null
     };
   }
   const memoryText = requireNonEmptyString(
     validator.accepted_memory[0]?.text,
-    `validator accepted_memory[0].text for conversation ${conversationId}`
+    `validator accepted_memory[0].text for conversation ${pointer.conversation_id}`
   );
   return {
     kind: 'conversation_memory',
-    conversation_id: conversationId,
-    character_id: characterId,
-    character_name: characterName,
+    conversation_id: pointer.conversation_id,
+    character_id: participant.character_id,
+    character_name: participant.character_name,
     memory_text: memoryText
   };
 }

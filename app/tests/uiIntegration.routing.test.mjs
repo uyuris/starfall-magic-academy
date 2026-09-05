@@ -625,6 +625,38 @@ test('routing hub chat shows no in-progress status text — only the error banne
   assert.match(endFn, /routingHubStage\.setStatus\(errorDisplayMessage\(error\), \{ tone: 'error' \}\)/, 'the routing-end defense line still shows the error cause on the hub status (tone:error)');
 });
 
+test('a completed routing hub turn returns keyboard focus to #routing-hub-input, and terminal transitions do not (app.js)', async () => {
+  const js = await readFile(path.join(root, 'app.js'), 'utf8');
+
+  // The 3-condition focus gate lives in one helper: hub screen active AND hub conversation active AND the
+  // input element is present and not disabled. Any terminal transition (dispatch, graduation selection,
+  // auto-end, settings redirect, loading residual) fails one of these gates, so the helper is a no-op there
+  // and never steals focus from the destination screen. Mirrors the lounge's runLoungePlayerTurn seam of
+  // re-enabling controls and then calling input.focus().
+  assert.match(js, /function isRoutingHubScreenActive\(\)\s*\{\s*\n\s*return screens\['routing-hub'\]\.classList\.contains\('active'\);\s*\n\s*\}/, 'isRoutingHubScreenActive derives active-ness from the same screens map + active class the other screen-active predicates use (single source of truth)');
+  const focusHelperFn = js.match(/function focusRoutingHubInputIfContinuing\(\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.notEqual(focusHelperFn, '', 'focusRoutingHubInputIfContinuing helper should exist');
+  assert.match(focusHelperFn, /if \(!isRoutingHubScreenActive\(\)\) return;/, 'the focus helper no-ops when the routing hub screen is not the active screen (terminal navigation guard)');
+  assert.match(focusHelperFn, /if \(!isRoutingHubActive\(\)\) return;/, 'the focus helper no-ops when the routing hub conversation is no longer active (dispatch / graduation / auto-end cleared the hub id)');
+  assert.match(focusHelperFn, /const input = document\.querySelector\('#routing-hub-input'\);/, 'the focus helper reads the routing-hub input element');
+  assert.match(focusHelperFn, /if \(!input \|\| input\.disabled\) return;/, 'the focus helper no-ops when the input is missing or still disabled (contract is re-enable-THEN-focus, not race-focus a disabled control)');
+  assert.match(focusHelperFn, /input\.focus\(\);/, 'the focus helper restores keyboard focus to the routing-hub input when all three gates pass');
+
+  // The call site is the routing hub turn's finally, AFTER setControlsDisabled(false) so the input is
+  // no longer .disabled by the time the helper reads it. It is inside the finally (not on the happy path)
+  // so a failed send that restored the hub also refocuses; the 3-condition gate makes it a no-op on every
+  // terminal branch (dispatch / graduation / auto-end / settings-redirect).
+  const sendFn = js.match(/async function runRoutingHubConversation\(\)[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.notEqual(sendFn, '', 'runRoutingHubConversation should exist');
+  assert.match(sendFn, /\} finally \{[\s\S]*?routingHubStage\.setControlsDisabled\(false\);[\s\S]*?routingHubStage\.setResponding\(false\);[\s\S]*?focusRoutingHubInputIfContinuing\(\);[\s\S]*?\n  \}/, 'the routing hub turn calls focusRoutingHubInputIfContinuing in its finally AFTER setControlsDisabled(false) — the input is no longer disabled when the helper reads it');
+
+  // No unconditional focus() call bypasses the 3-condition gate: the routing hub send / turn path must not
+  // call `.focus()` directly on the input outside the guarded helper (which would risk stealing focus from
+  // a destination screen on a terminal turn).
+  const unguardedFocusMatches = sendFn.match(/\.focus\(\)/g) ?? [];
+  assert.equal(unguardedFocusMatches.length, 0, 'runRoutingHubConversation calls .focus() only through focusRoutingHubInputIfContinuing (no unguarded .focus() that would steal focus from a terminal destination screen)');
+});
+
 test('a failed routing hub decision turn shows the cause on the hub error banner, not the conversation-session status (app.js)', async () => {
   const js = await readFile(path.join(root, 'app.js'), 'utf8');
   const sendFn = js.match(/async function runRoutingHubConversation\(\)[\s\S]*?\n\}/)?.[0] ?? '';

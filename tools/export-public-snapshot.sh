@@ -19,7 +19,10 @@ EXCLUDES=(
   ".envrc"
   "AGENTS.md"
   "CLAUDE.md"
+  "LEAD.md"
+  "LEAD_CORE.md"
   "Makefile"
+  "WORKER.md"
   "mk"
   "work"
 )

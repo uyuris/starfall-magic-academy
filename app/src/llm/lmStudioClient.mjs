@@ -580,6 +580,25 @@ function parseBooleanOnlyAnswer(text) {
   return String(text ?? '').trim().toLowerCase() === 'true';
 }
 
+// The 談話室 (lounge) per-participant continuation judgment is a strict boolean true/false: true means the current
+// speaker wants to remain in the group conversation after their utterance, false means they want to leave the room
+// while the other participants stay. Any other output ('', 'maybe', JSON, whitespace-only, ...) is invalid and
+// fails fast with a structured error carrying INVALID_LLM_LOUNGE_CONTINUATION_OUTPUT, thrown before the turn is
+// persisted, so the record never carries a half-appended turn from a malformed judgment. Unlike
+// `parseBooleanOnlyAnswer` this does not silently round non-'true' output to false — a lounge participant must not
+// be rounded into exiting the room by a malformed LM response.
+export function parseLoungeContinuationChoice(choice) {
+  if (typeof choice === 'boolean') return choice;
+  const text = String(choice ?? '').trim().toLowerCase();
+  if (text === 'true') return true;
+  if (text === 'false') return false;
+  const error = new Error(`lounge continuation judgment must be true or false, got ${JSON.stringify(String(choice ?? '').trim())}`);
+  error.code = 'INVALID_LLM_LOUNGE_CONTINUATION_OUTPUT';
+  error.errorCode = 'INVALID_LLM_LOUNGE_CONTINUATION_OUTPUT';
+  error.statusCode = 503;
+  throw error;
+}
+
 function parseSkillNecessityAnswer(text) {
   const rawAnswer = String(text ?? '').trim();
   const normalized = rawAnswer.toLowerCase();

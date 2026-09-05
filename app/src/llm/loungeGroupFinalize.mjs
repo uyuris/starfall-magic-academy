@@ -27,6 +27,7 @@ import { validateConversationRecordUpdates } from './validator.mjs';
 import { applyCharacterAffinityDelta, parseAffinityDeltaAnswer } from '../affinityState.mjs';
 import { runAtomicFinalizationWithStaging, runOutsideRoutingReadScope } from '../routingFinalizeQueue.mjs';
 import { validateLoungeGroupRecord } from './loungeGroupRecord.mjs';
+import { applyUnconsumedRoutingConversationPointerToState, LOUNGE_SOURCE_TYPE } from '../routingMetaContext.mjs';
 import {
   normalizeMemoryRecordForSave,
   renderWorkRecordMarkdown,
@@ -383,12 +384,38 @@ export async function runLoungeGroupFinalization({
 
   const participantResults = [];
   for (const participant of record.participants) {
-    const result = await finalizeLoungeParticipant({ storage, root, record, participant, state, now, weekSnapshot, providers });
+    // v2 participant-scoped transcript projection: each participant's three-piece + affinity generation only sees
+    // the transcript slice the participant was present for. active → the full transcript; exited → messages
+    // truncated at the participant's own `exited_after_message_count` boundary (which includes their departure
+    // utterance). The participant lifecycle entry MUST exist — its absence is a schema-shape bug in a validated
+    // record and throws rather than silently defaulting to the full transcript.
+    const lifecycleEntry = record.participant_lifecycle.find((entry) => entry.character_id === participant.character_id);
+    if (!lifecycleEntry) {
+      throw new Error(`lounge finalization: participant_lifecycle entry missing for ${participant.character_id}`);
+    }
+    const projectedMessages = lifecycleEntry.status === 'exited'
+      ? record.messages.slice(0, lifecycleEntry.exited_after_message_count)
+      : record.messages;
+    const projectedRecord = { ...record, messages: projectedMessages };
+    const result = await finalizeLoungeParticipant({ storage, root, record: projectedRecord, participant, state, now, weekSnapshot, providers });
     state = result.state;
     participantResults.push(result);
   }
 
-  const nextState = finalStateTransform(state);
+  // Unconsumed routing-conversation pointer set: the lounge group finalization writes its pointer in the SAME
+  // atomic promotion as the group marker + per-participant validators. Applying it inside finalStateTransform
+  // (before the sole state write here) keeps the pointer in the atomic mirror; the outer loungeApi post-promote
+  // state write is a spread that preserves it. Applying it in the outer API instead would open a window where
+  // participants are promoted but the pointer is not — exactly the seam §5 warns against.
+  const nextState = finalStateTransform(applyUnconsumedRoutingConversationPointerToState({
+    state,
+    conversation: { id: normalizedConversationId, source_type: LOUNGE_SOURCE_TYPE },
+    participants: record.participants.map((participant) => ({
+      character_id: participant.character_id,
+      character_name: participant.character_name
+    })),
+    terminalSignalAt: now
+  }));
   await storage.writeJson('game_data/runtime_state.json', nextState);
 
   // One group finalization marker for the whole talk (never one per participant): the per-participant validator
@@ -405,7 +432,16 @@ export async function runLoungeGroupFinalization({
   // One transcript discard for the whole talk: the shared transcript is the finalization input, so it is dropped
   // exactly once after all three participants have consumed it. The record keeps its participants/scene/cursor
   // (a valid empty-message record) so the raw utterances are gone but the group's structure remains inspectable.
-  const discardedRecord = validateLoungeGroupRecord({ ...record, messages: [] });
+  // The participant lifecycle is reset to all-active because `exited_after_message_count` is only well-formed in
+  // the range `1..messages.length` (the write-boundary invariant); with the transcript emptied there is no
+  // valid boundary to keep, and the terminal finalization marker / per-participant validator logs are the
+  // authoritative record of who was present. The alternative — carrying a stale boundary past discard — would
+  // silently break the record schema on read.
+  const discardedLifecycle = record.participants.map((participant) => ({
+    character_id: participant.character_id,
+    status: 'active'
+  }));
+  const discardedRecord = validateLoungeGroupRecord({ ...record, messages: [], participant_lifecycle: discardedLifecycle });
   await storage.writeJson(loungeRecordPath(normalizedConversationId), discardedRecord);
 
   return {

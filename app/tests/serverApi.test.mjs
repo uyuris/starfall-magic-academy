@@ -1742,7 +1742,7 @@ test('routing hub start fails fast when the opening event is seeded but its defi
   assert.equal(lm.requests.length, 0, 'the failure happens before any opening chat request');
 });
 
-test('routing hub start captures recent conversation memory before startInteractionSession clears state', async (t) => {
+test('routing hub start resolves an unconsumed 1:1 pointer to accepted memory before startInteractionSession clears state', async (t) => {
   const settingsPath = await writeRoutingModeSettings(t, 'routing-hub-recent-memory-');
   const lm = await withRoutingLmStub(t);
   const { root, base } = await withServer(t, {
@@ -1753,13 +1753,16 @@ test('routing hub start captures recent conversation memory before startInteract
   await writeJson(root, 'game_data/runtime_state.json', {
     ...state,
     elapsed_weeks: 2,
-    last_conversation_id: 'conv_recent_memory_hub_start_001'
-  });
-  await writeJson(root, 'game_data/logs/conversations/conv_recent_memory_hub_start_001.json', {
-    id: 'conv_recent_memory_hub_start_001',
-    character_id: 'character_001',
-    character_name: 'セラ・アストルーペ',
-    messages: []
+    unconsumed_routing_conversation: {
+      conversation_id: 'conv_recent_memory_hub_start_001',
+      kind: '1_to_1',
+      participants: [{ character_id: 'character_001', character_name: 'セラ・アストルーペ' }],
+      summary_source: {
+        kind: 'validator',
+        validator_log_path: 'game_data/logs/validator/conv_recent_memory_hub_start_001.json'
+      },
+      terminal_signal_at: '2026-07-24T05:00:00.000Z'
+    }
   });
   await writeJson(root, 'game_data/logs/validator/conv_recent_memory_hub_start_001.json', {
     accepted_memory: [{ text: '主人公は星図の読み方を少し覚えた。' }]
@@ -1786,17 +1789,24 @@ test('routing hub start captures recent conversation memory before startInteract
   assert.match(prompt, /行き先の確認・催促から入らない/);
 });
 
-test('routing hub start explicitly renders recent conversation without accepted memory and prior hub conversations as no new memory', async (t) => {
+test('routing hub start explicitly renders unconsumed pointer variants (1:1 with/without memory, lounge, null)', async (t) => {
   const scenarios = [
     {
-      name: 'non-routing conversation without accepted memory',
-      conversationId: 'conv_recent_no_memory_hub_start_001',
-      seed: async (root) => {
-        await writeJson(root, 'game_data/logs/conversations/conv_recent_no_memory_hub_start_001.json', {
-          id: 'conv_recent_no_memory_hub_start_001',
-          character_id: 'character_002',
-          character_name: 'ミラ',
-          messages: []
+      name: '1:1 pointer with empty accepted_memory renders conversation_without_memory',
+      seed: async (root, state) => {
+        await writeJson(root, 'game_data/runtime_state.json', {
+          ...state,
+          elapsed_weeks: 2,
+          unconsumed_routing_conversation: {
+            conversation_id: 'conv_recent_no_memory_hub_start_001',
+            kind: '1_to_1',
+            participants: [{ character_id: 'character_002', character_name: 'ミラ' }],
+            summary_source: {
+              kind: 'validator',
+              validator_log_path: 'game_data/logs/validator/conv_recent_no_memory_hub_start_001.json'
+            },
+            terminal_signal_at: '2026-07-24T05:00:00.000Z'
+          }
         });
         await writeJson(root, 'game_data/logs/validator/conv_recent_no_memory_hub_start_001.json', {
           accepted_memory: []
@@ -1806,32 +1816,104 @@ test('routing hub start explicitly renders recent conversation without accepted 
       promptPattern: /その会話で新しい記憶は生まれていない/
     },
     {
-      name: 'unfinished non-routing opening without validator or finalization marker',
-      conversationId: 'conv_unfinished_opening_hub_start_001',
-      seed: async (root) => {
-        await writeJson(root, 'game_data/logs/conversations/conv_unfinished_opening_hub_start_001.json', {
-          id: 'conv_unfinished_opening_hub_start_001',
-          character_id: 'character_002',
-          character_name: 'ミラ',
-          source_type: 'field',
-          location_id: 'courtyard_fountain',
-          time_slot: 'after_school',
-          messages: [{ role: 'assistant', content: 'やあ、少し話さない?' }]
+      name: 'lounge pointer renders lounge_conversation with per-participant accepted memory text (all three present)',
+      seed: async (root, state) => {
+        await writeJson(root, 'game_data/runtime_state.json', {
+          ...state,
+          elapsed_weeks: 2,
+          unconsumed_routing_conversation: {
+            conversation_id: 'conv_lounge_hub_start_001',
+            kind: 'lounge',
+            participants: [
+              { character_id: 'character_001', character_name: 'セラ・アストルーペ' },
+              { character_id: 'character_002', character_name: 'ミラ' },
+              { character_id: 'character_003', character_name: 'ロシェル' }
+            ],
+            summary_source: {
+              kind: 'lounge_participant_validator',
+              validator_log_paths: [
+                'game_data/logs/validator/conv_lounge_hub_start_001_character_001.json',
+                'game_data/logs/validator/conv_lounge_hub_start_001_character_002.json',
+                'game_data/logs/validator/conv_lounge_hub_start_001_character_003.json'
+              ]
+            },
+            terminal_signal_at: '2026-07-24T05:00:00.000Z'
+          }
+        });
+        await writeJson(root, 'game_data/logs/validator/conv_lounge_hub_start_001_character_001.json', {
+          accepted_memory: [{ text: 'セラは主人公と星図の印を確かめた。' }]
+        });
+        await writeJson(root, 'game_data/logs/validator/conv_lounge_hub_start_001_character_002.json', {
+          accepted_memory: [{ text: 'ミラは主人公と茶葉の話をした。' }]
+        });
+        await writeJson(root, 'game_data/logs/validator/conv_lounge_hub_start_001_character_003.json', {
+          accepted_memory: [{ text: 'ロシェルは主人公の低い口笛の話を覚えている。' }]
         });
       },
-      kind: 'conversation_without_memory',
-      promptPattern: /その会話で新しい記憶は生まれていない/
+      kind: 'lounge_conversation',
+      promptPattern: /談話室での複数人談話/,
+      // Additional per-participant memory text assertions: every one of the three participants' accepted memory
+      // text must reach the final hub prompt verbatim (the 1:1 parity acceptance for lounge).
+      extraPromptPatterns: [
+        /セラは主人公と星図の印を確かめた。/,
+        /ミラは主人公と茶葉の話をした。/,
+        /ロシェルは主人公の低い口笛の話を覚えている。/
+      ]
     },
     {
-      name: 'prior routing hub conversation',
-      conversationId: 'conv_prior_routing_hub_start_001',
-      seed: async (root) => {
-        await writeJson(root, 'game_data/logs/conversations/conv_prior_routing_hub_start_001.json', {
-          id: 'conv_prior_routing_hub_start_001',
-          character_id: 'lina',
-          character_name: 'ルミ',
-          routing_hub: routingHubContextFixture('fallen_star'),
-          messages: []
+      name: 'lounge pointer with mixed empty accepted_memory renders per-participant memory + the missing-memory fallback in the final hub prompt',
+      seed: async (root, state) => {
+        await writeJson(root, 'game_data/runtime_state.json', {
+          ...state,
+          elapsed_weeks: 2,
+          unconsumed_routing_conversation: {
+            conversation_id: 'conv_lounge_hub_start_mixed_001',
+            kind: 'lounge',
+            participants: [
+              { character_id: 'character_001', character_name: 'セラ・アストルーペ' },
+              { character_id: 'character_002', character_name: 'ミラ' },
+              { character_id: 'character_003', character_name: 'ロシェル' }
+            ],
+            summary_source: {
+              kind: 'lounge_participant_validator',
+              validator_log_paths: [
+                'game_data/logs/validator/conv_lounge_hub_start_mixed_001_character_001.json',
+                'game_data/logs/validator/conv_lounge_hub_start_mixed_001_character_002.json',
+                'game_data/logs/validator/conv_lounge_hub_start_mixed_001_character_003.json'
+              ]
+            },
+            terminal_signal_at: '2026-07-24T05:00:00.000Z'
+          }
+        });
+        await writeJson(root, 'game_data/logs/validator/conv_lounge_hub_start_mixed_001_character_001.json', {
+          accepted_memory: [{ text: 'セラは主人公と星図の印を確かめた。' }]
+        });
+        await writeJson(root, 'game_data/logs/validator/conv_lounge_hub_start_mixed_001_character_002.json', {
+          accepted_memory: []
+        });
+        await writeJson(root, 'game_data/logs/validator/conv_lounge_hub_start_mixed_001_character_003.json', {
+          accepted_memory: [{ text: 'ロシェルは主人公の低い口笛の話を覚えている。' }]
+        });
+      },
+      kind: 'lounge_conversation',
+      promptPattern: /談話室での複数人談話/,
+      // End-to-end acceptance for the mixed case: an empty-memory participant's line renders the explicit
+      // "新しい記憶なし" fallback string in the final hub prompt (both in the meta info block and the opening
+      // guidance block), while co-participants' verbatim memory text still reaches the prompt.
+      extraPromptPatterns: [
+        /セラは主人公と星図の印を確かめた。/,
+        /ロシェルは主人公の低い口笛の話を覚えている。/,
+        /ミラ（character_002）と主人公の談話室での会話でルミが覗ける一番新しい記憶: 新しい記憶なし/,
+        /ミラ（character_002）に残った記憶「新しい記憶なし」/
+      ]
+    },
+    {
+      name: 'null pointer after a prior hub consumption renders no_new_conversation',
+      seed: async (root, state) => {
+        await writeJson(root, 'game_data/runtime_state.json', {
+          ...state,
+          elapsed_weeks: 2,
+          unconsumed_routing_conversation: null
         });
       },
       kind: 'no_new_conversation',
@@ -1848,12 +1930,7 @@ test('routing hub start explicitly renders recent conversation without accepted 
         lmStudioConfig: { base_url: lm.baseUrl, chat_model: 'chat-model', reflection_model: 'reflection-model', timeout_ms: 5000, stream: false }
       });
       const state = await readJson(root, 'game_data/runtime_state.json');
-      await writeJson(root, 'game_data/runtime_state.json', {
-        ...state,
-        elapsed_weeks: 2,
-        last_conversation_id: scenario.conversationId
-      });
-      await scenario.seed(root);
+      await scenario.seed(root, state);
 
       const started = await jsonFetch(`${base}/api/routing/hub/start`, {
         method: 'POST',
@@ -1861,49 +1938,46 @@ test('routing hub start explicitly renders recent conversation without accepted 
       });
 
       assert.equal(started.conversation.routing_hub.recent_conversation_context.kind, scenario.kind);
-      assert.match(lm.requests[0].body.messages[0].content, scenario.promptPattern);
+      const promptContent = lm.requests[0].body.messages[0].content;
+      assert.match(promptContent, scenario.promptPattern);
+      for (const pattern of scenario.extraPromptPatterns ?? []) {
+        assert.match(promptContent, pattern);
+      }
     });
   }
 });
 
-test('routing hub start fails fast on corrupt recent conversation context before any LM request', async (t) => {
+test('routing hub start fails fast on corrupt hub context before any LM request', async (t) => {
   const scenarios = [
     {
-      name: 'dangling last conversation id',
-      conversationId: 'conv_missing_recent_hub_start_001',
-      seed: async () => {},
-      message: /last conversation log is missing/
-    },
-    {
-      name: 'finalization marker present but validator missing for non-routing conversation',
-      conversationId: 'conv_missing_validator_hub_start_001',
-      seed: async (root) => {
-        await writeJson(root, 'game_data/logs/conversations/conv_missing_validator_hub_start_001.json', {
-          id: 'conv_missing_validator_hub_start_001',
-          character_id: 'character_001',
-          character_name: 'セラ・アストルーペ',
-          messages: []
-        });
-        await writeJson(root, 'game_data/logs/finalization/conv_missing_validator_hub_start_001.json', {
+      name: 'pointer targeting a missing validator log',
+      mutateState: (state) => ({
+        ...state,
+        elapsed_weeks: 2,
+        unconsumed_routing_conversation: {
           conversation_id: 'conv_missing_validator_hub_start_001',
-          work_record_id: 'wr_conv_missing_validator_hub_start_001',
-          finalized_at: '2026-05-05T06:00:00.000+09:00'
-        });
-      },
-      message: /validator log is missing/
+          kind: '1_to_1',
+          participants: [{ character_id: 'character_001', character_name: 'セラ・アストルーペ' }],
+          summary_source: {
+            kind: 'validator',
+            validator_log_path: 'game_data/logs/validator/conv_missing_validator_hub_start_001.json'
+          },
+          terminal_signal_at: '2026-07-24T05:00:00.000Z'
+        }
+      }),
+      seed: async () => {},
+      message: /validator log is missing for pointer-targeted conversation/
     },
     {
       name: 'unknown buddy id',
-      conversationId: null,
-      mutateState: (state) => ({ ...state, current_buddy_character_id: 'character_999' }),
+      mutateState: (state) => ({ ...state, elapsed_weeks: 2, current_buddy_character_id: 'character_999' }),
       seed: async () => {},
       message: /unknown selectable character/
     },
     {
       name: 'missing current buddy field',
-      conversationId: null,
       mutateState: (state) => {
-        const next = { ...state };
+        const next = { ...state, elapsed_weeks: 2 };
         delete next.current_buddy_character_id;
         return next;
       },
@@ -1912,9 +1986,8 @@ test('routing hub start fails fast on corrupt recent conversation context before
     },
     {
       name: 'missing current enemy field',
-      conversationId: null,
       mutateState: (state) => {
-        const next = { ...state };
+        const next = { ...state, elapsed_weeks: 2 };
         delete next.current_enemy_character_ids;
         return next;
       },
@@ -1923,8 +1996,7 @@ test('routing hub start fails fast on corrupt recent conversation context before
     },
     {
       name: 'blank current enemy entry',
-      conversationId: null,
-      mutateState: (state) => ({ ...state, current_enemy_character_ids: [''] }),
+      mutateState: (state) => ({ ...state, elapsed_weeks: 2, current_enemy_character_ids: [''] }),
       seed: async () => {},
       message: /runtime_state.current_enemy_character_ids\[0\] is required/
     }
@@ -1939,10 +2011,7 @@ test('routing hub start fails fast on corrupt recent conversation context before
         lmStudioConfig: { base_url: lm.baseUrl, chat_model: 'chat-model', reflection_model: 'reflection-model', timeout_ms: 5000, stream: false }
       });
       const state = await readJson(root, 'game_data/runtime_state.json');
-      const nextState = scenario.mutateState
-        ? scenario.mutateState({ ...state, elapsed_weeks: 2 })
-        : { ...state, elapsed_weeks: 2, last_conversation_id: scenario.conversationId };
-      await writeJson(root, 'game_data/runtime_state.json', nextState);
+      await writeJson(root, 'game_data/runtime_state.json', scenario.mutateState(state));
       await scenario.seed(root);
 
       const response = await fetch(`${base}/api/routing/hub/start`, {

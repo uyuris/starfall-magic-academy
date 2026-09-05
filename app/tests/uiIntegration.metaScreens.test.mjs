@@ -273,7 +273,8 @@ test('loading screen traces a progress-driven constellation over its starfield, 
   assert.match(html, /<canvas id="academy-loading-starfield"[^>]*><\/canvas>\s*<canvas id="academy-loading-constellation"[^>]*><\/canvas>/, 'the constellation canvas should layer over the starfield inside the loading backdrop');
   assert.match(css, /\.academy-loading-constellation\s*\{[\s\S]*position:\s*absolute[\s\S]*pointer-events:\s*none/, 'the constellation canvas should sit full-bleed and inert over the backdrop');
   assert.match(js, /import \{ createLoadingConstellation \} from '\.\/loadingConstellation\.js'/, 'app.js should import the constellation module');
-  assert.match(js, /const academyLoadingConstellation = createLoadingConstellation\(\{ canvasSelector: '#academy-loading-constellation'/, 'the loading consumer should instantiate the constellation over its own canvas');
+  assert.match(js, /const academyLoadingConstellation = createLoadingConstellation\(\{ canvasSelector: '#academy-loading-constellation'[^)]*random: Math\.random \}\)/, 'the loading consumer should instantiate the constellation with an explicit random injection (no Math.random fallback inside the module)');
+  assert.doesNotMatch(js, /createLoadingConstellation\(\{[^)]*nodeCount:/, 'the old scalar nodeCount API is gone (destructive replacement, no alias)');
   // Continuous-loader line preservation: showScreen captures whether the loader was ALREADY active before its
   // class toggle, and only starts (resets) the constellation/starfield on a true non-loader → loader entry. A
   // loader → loader re-show (a back-to-back handoff such as achievement drain → hub return) leaves the constellation
@@ -496,7 +497,7 @@ test('settings screen joins the metaphysical-moonlight meta layer (full-screen n
   assert.match(js, /async function saveLmStudioSettings\(\)\s*\{[\s\S]*?setLmStudioSettingsStatus\('反映中です。'\);[\s\S]*?try \{[\s\S]*?patchJson\('\/api\/settings\/lmstudio'[\s\S]*?\} catch \(error\) \{\s*setLmStudioSettingsStatus\(settingsSaveErrorMessage\(error, 'LM Studio'\)\);\s*throw error;\s*\}/, 'saveLmStudioSettings should surface a failure as a terminal category error and rethrow to reportError');
   // Master-detail category nav: a fail-fast selector shows exactly one panel, and every settings
   // entry opens on the default category so no empty panel is shown.
-  assert.match(js, /const SETTINGS_CATEGORIES = \['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio'\]/, 'front-end should declare the settings categories including the audio (サウンド) category');
+  assert.match(js, /const SETTINGS_CATEGORIES = \['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio', 'save-data-repair'\]/, 'front-end should declare the settings categories including the audio (サウンド) category alongside the save-data-repair category');
   assert.match(js, /const DEFAULT_SETTINGS_CATEGORY = 'lmstudio'/, 'LM Studio should be the default settings category');
   assert.match(js, /function selectSettingsCategory\(category\)\s*\{[\s\S]*if \(!SETTINGS_CATEGORIES\.includes\(category\)\) \{[\s\S]*throw new Error\(`unknown settings category: \$\{category\}`\)[\s\S]*panel\.hidden = panel\.dataset\.settingsCategory !== category[\s\S]*\}/, 'selectSettingsCategory should fail-fast on an unknown category and toggle panels by the hidden attribute');
   assert.match(js, /function openSettingsScreen\(\)\s*\{[\s\S]*selectSettingsCategory\(DEFAULT_SETTINGS_CATEGORY\)/, 'opening the settings screen should select the default category so no empty panel is shown');
@@ -709,7 +710,7 @@ test('settings screen adds a サウンド (audio) category: BGM on/off + volume,
   assert.match(audioPanel, /<input id="audio-bgm-volume" type="range" min="0" max="1" step="0\.01" \/>/, 'the audio panel has a 0..1 master-volume slider');
 
   // The category is a member of the closed category set, so selectSettingsCategory('audio') is a valid selection.
-  assert.match(js, /const SETTINGS_CATEGORIES = \['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio'\]/, 'audio should be a member of the closed settings category set');
+  assert.match(js, /const SETTINGS_CATEGORIES = \['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio', 'save-data-repair'\]/, 'audio should sit in the closed settings category set alongside the save-data-repair category');
 
   // Loaders / savers mirror the other categories.
   assert.match(js, /async function loadAudioSettings\(\) \{[\s\S]*getJson\('\/api\/settings\/audio'\)[\s\S]*bgmController\.applyAudioSettings\(settings\);[\s\S]*renderAudioSettings\(settings\);/, 'loadAudioSettings GETs the disk values and applies them to the controller + controls');

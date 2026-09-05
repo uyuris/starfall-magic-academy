@@ -53,13 +53,217 @@ export const INJECTED_SCENE_SOURCE_TYPES = Object.freeze(new Set([
   HOMUNCULUS_SOURCE_TYPE,
   LOUNGE_SOURCE_TYPE
 ]));
+// The closed set of finalized conversation source_types that write the top-level unconsumed_routing_conversation
+// pointer. field 1:1 + lounge + errand + study_circle + dungeon + homunculus finalizations set the pointer at
+// their atomic promotion; hub (routing_hub), event, graduation, new_game, loop opening and every other
+// source_type NEVER touch the pointer. The set is the fail-fast judgment basis for both set and clear: a helper
+// call for a source_type outside this set throws instead of silently degrading.
+export const ELIGIBLE_HUB_POINTER_SOURCE_TYPES = Object.freeze(new Set([
+  'field',
+  LOUNGE_SOURCE_TYPE,
+  ERRAND_SOURCE_TYPE,
+  STUDY_CIRCLE_SOURCE_TYPE,
+  DUNGEON_SOURCE_TYPE,
+  HOMUNCULUS_SOURCE_TYPE
+]));
+// The closed vocabulary for the top-level unconsumed_routing_conversation.kind. '1_to_1' covers every eligible
+// single-actor source_type (field/errand/study_circle/dungeon/homunculus). 'lounge' covers the three-participant
+// group finalization.
+export const UNCONSUMED_ROUTING_CONVERSATION_KINDS = Object.freeze(['1_to_1', 'lounge']);
+// The state key for the top-level unconsumed_routing_conversation pointer. Set by an eligible finalizer's
+// atomic promotion and cleared by the hub finalizer's atomic promotion; kept null in fresh state and canonical seed.
+export const UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY = 'unconsumed_routing_conversation';
 const CONVERSATION_ID_PATTERN = /^conv_[A-Za-z0-9_-]+$/;
 const RECENT_CONVERSATION_CONTEXT_KINDS = Object.freeze([
   'no_new_conversation',
   'conversation_memory',
-  'conversation_without_memory'
+  'conversation_without_memory',
+  'lounge_conversation'
 ]);
+const LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT = 3;
+const UNCONSUMED_ROUTING_CONVERSATION_SUMMARY_SOURCE_KINDS = Object.freeze(['validator', 'lounge_participant_validator']);
+const LOUNGE_MISSING_MEMORY_TEXT = '新しい記憶なし';
 const ROUTING_OPENING_SMALLTALK_COMMON_GUIDANCE = '行き先の確認・催促から入らない。世間話から入る。世間話がひと段落してから、主人公の様子に合わせて自然に次の行き先の話題へ移る。';
+
+function requiredStringSimple(value, label) {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) throw new Error(`${label} is required`);
+  return normalized;
+}
+
+// The closed shape of the top-level unconsumed_routing_conversation pointer object. Called by both the
+// finalizer set path (validating the value it is about to write) and any reader that resolves it back to a
+// hub-context recent-conversation entry. Fields are strict: unknown top-level keys, wrong kind vocab, and
+// participant-count / participant-shape mismatches all throw.
+export function validateUnconsumedRoutingConversationPointer(value) {
+  if (value === null) return null;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('unconsumed_routing_conversation must be null or an object');
+  }
+  const allowedKeys = new Set(['conversation_id', 'kind', 'participants', 'summary_source', 'terminal_signal_at']);
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) throw new Error(`unconsumed_routing_conversation has an unexpected key: ${key}`);
+  }
+  for (const key of allowedKeys) {
+    if (!hasOwn(value, key)) throw new Error(`unconsumed_routing_conversation.${key} is required`);
+  }
+  const conversationId = normalizeNullableConversationId(value.conversation_id, 'unconsumed_routing_conversation.conversation_id');
+  if (!conversationId) throw new Error('unconsumed_routing_conversation.conversation_id is required');
+  const kind = requiredStringSimple(value.kind, 'unconsumed_routing_conversation.kind');
+  if (!UNCONSUMED_ROUTING_CONVERSATION_KINDS.includes(kind)) {
+    throw new Error(`unconsumed_routing_conversation.kind must be one of: ${UNCONSUMED_ROUTING_CONVERSATION_KINDS.join(', ')}`);
+  }
+  if (!Array.isArray(value.participants)) {
+    throw new Error('unconsumed_routing_conversation.participants must be an array');
+  }
+  const expectedParticipantCount = kind === 'lounge' ? LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT : 1;
+  if (value.participants.length !== expectedParticipantCount) {
+    throw new Error(`unconsumed_routing_conversation.participants must be exactly ${expectedParticipantCount} entries for kind ${kind}`);
+  }
+  const seenParticipantIds = new Set();
+  const participants = value.participants.map((entry, index) => {
+    const participant = normalizeRecentConversationContextParticipant(entry, `unconsumed_routing_conversation.participants[${index}]`);
+    if (seenParticipantIds.has(participant.character_id)) {
+      throw new Error(`unconsumed_routing_conversation.participants has a duplicate character_id: ${participant.character_id}`);
+    }
+    seenParticipantIds.add(participant.character_id);
+    return participant;
+  });
+  if (!value.summary_source || typeof value.summary_source !== 'object' || Array.isArray(value.summary_source)) {
+    throw new Error('unconsumed_routing_conversation.summary_source must be an object');
+  }
+  const summarySourceKeys = new Set(Object.keys(value.summary_source));
+  const summarySourceKind = requiredStringSimple(value.summary_source.kind, 'unconsumed_routing_conversation.summary_source.kind');
+  if (!UNCONSUMED_ROUTING_CONVERSATION_SUMMARY_SOURCE_KINDS.includes(summarySourceKind)) {
+    throw new Error(`unconsumed_routing_conversation.summary_source.kind must be one of: ${UNCONSUMED_ROUTING_CONVERSATION_SUMMARY_SOURCE_KINDS.join(', ')}`);
+  }
+  const expectedSummarySourceKind = kind === 'lounge' ? 'lounge_participant_validator' : 'validator';
+  if (summarySourceKind !== expectedSummarySourceKind) {
+    throw new Error(`unconsumed_routing_conversation.summary_source.kind must be ${expectedSummarySourceKind} for kind ${kind}`);
+  }
+  if (kind === 'lounge') {
+    if (!Array.isArray(value.summary_source.validator_log_paths)) {
+      throw new Error('unconsumed_routing_conversation.summary_source.validator_log_paths must be an array');
+    }
+    if (value.summary_source.validator_log_paths.length !== LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT) {
+      throw new Error(`unconsumed_routing_conversation.summary_source.validator_log_paths must be exactly ${LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT} entries`);
+    }
+    const validatorLogPaths = value.summary_source.validator_log_paths.map((entry, index) => (
+      requiredStringSimple(entry, `unconsumed_routing_conversation.summary_source.validator_log_paths[${index}]`)
+    ));
+    const expectedLoungeKeyCount = 2;
+    if (
+      summarySourceKeys.size !== expectedLoungeKeyCount
+      || !summarySourceKeys.has('kind')
+      || !summarySourceKeys.has('validator_log_paths')
+    ) {
+      throw new Error(`unconsumed_routing_conversation.summary_source has unexpected keys: ${[...summarySourceKeys].join(', ')}`);
+    }
+    const terminalSignalAt = requiredStringSimple(value.terminal_signal_at, 'unconsumed_routing_conversation.terminal_signal_at');
+    return {
+      conversation_id: conversationId,
+      kind,
+      participants,
+      summary_source: { kind: summarySourceKind, validator_log_paths: validatorLogPaths },
+      terminal_signal_at: terminalSignalAt
+    };
+  }
+  const validatorLogPath = requiredStringSimple(value.summary_source.validator_log_path, 'unconsumed_routing_conversation.summary_source.validator_log_path');
+  const expectedKeyCount = 2;
+  if (summarySourceKeys.size !== expectedKeyCount || !summarySourceKeys.has('kind') || !summarySourceKeys.has('validator_log_path')) {
+    throw new Error(`unconsumed_routing_conversation.summary_source has unexpected keys: ${[...summarySourceKeys].join(', ')}`);
+  }
+  const terminalSignalAt = requiredStringSimple(value.terminal_signal_at, 'unconsumed_routing_conversation.terminal_signal_at');
+  return {
+    conversation_id: conversationId,
+    kind,
+    participants,
+    summary_source: { kind: summarySourceKind, validator_log_path: validatorLogPath },
+    terminal_signal_at: terminalSignalAt
+  };
+}
+
+// The pure state transform that writes the pointer inside an atomic finalization promotion. For an eligible
+// source_type it derives the closed pointer shape from the finalized conversation, deterministically overwriting
+// any prior unconsumed value (single slot, never queued). For the routing hub source_type it writes explicit null,
+// consuming any prior pointer. Every other source_type (event / graduation / new_game / loop opening / ...) is
+// rejected — the transform never silently degrades to a no-op, because the eligible set IS the fail-fast basis
+// for both set and clear.
+export function applyUnconsumedRoutingConversationPointerToState({ state, conversation, participants = null, terminalSignalAt }) {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) {
+    throw new Error('applyUnconsumedRoutingConversationPointerToState requires a runtime state object');
+  }
+  if (!conversation || typeof conversation !== 'object') {
+    throw new Error('applyUnconsumedRoutingConversationPointerToState requires the finalized conversation record');
+  }
+  const conversationId = requiredStringSimple(conversation.id, 'conversation.id');
+  const sourceType = requiredStringSimple(conversation.source_type, 'conversation.source_type');
+  if (sourceType === ROUTING_HUB_SOURCE_TYPE) {
+    return { ...state, [UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY]: null };
+  }
+  if (!ELIGIBLE_HUB_POINTER_SOURCE_TYPES.has(sourceType)) {
+    throw new Error(`unconsumed_routing_conversation pointer is not defined for source_type: ${sourceType}`);
+  }
+  const normalizedTerminalSignalAt = requiredStringSimple(terminalSignalAt, 'terminalSignalAt');
+  const pointer = sourceType === LOUNGE_SOURCE_TYPE
+    ? (() => {
+      const loungeParticipants = (Array.isArray(participants) ? participants : []).map((entry, index) => (
+        normalizeRecentConversationContextParticipant(entry, `unconsumed_routing_conversation.participants[${index}]`)
+      ));
+      return {
+        conversation_id: conversationId,
+        kind: 'lounge',
+        participants: loungeParticipants,
+        summary_source: {
+          kind: 'lounge_participant_validator',
+          validator_log_paths: loungeParticipants.map((participant) => (
+            `game_data/logs/validator/${conversationId}_${participant.character_id}.json`
+          ))
+        },
+        terminal_signal_at: normalizedTerminalSignalAt
+      };
+    })()
+    : {
+      conversation_id: conversationId,
+      kind: '1_to_1',
+      participants: [{
+        character_id: requiredStringSimple(conversation.character_id, 'conversation.character_id'),
+        character_name: requiredStringSimple(conversation.character_name, 'conversation.character_name')
+      }],
+      summary_source: {
+        kind: 'validator',
+        validator_log_path: `game_data/logs/validator/${conversationId}.json`
+      },
+      terminal_signal_at: normalizedTerminalSignalAt
+    };
+  return {
+    ...state,
+    [UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY]: validateUnconsumedRoutingConversationPointer(pointer)
+  };
+}
+
+// The clear-side companion of the set transform: writes explicit null regardless of the current value, so a hub
+// finalization consumes any prior eligible pointer. Kept as a distinct entry point (never inferred from a hub
+// conversation record) so the hub's clear boundary is explicit in the finalizer.
+export function clearUnconsumedRoutingConversationPointerInState(state) {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) {
+    throw new Error('clearUnconsumedRoutingConversationPointerInState requires a runtime state object');
+  }
+  return { ...state, [UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY]: null };
+}
+
+// Strict read of the top-level pointer for the hub snapshot. An undefined field is a pre-migration slot and
+// fails fast (the migration script populates every slot with explicit null); a value present is validated
+// against the closed schema.
+export function readUnconsumedRoutingConversationPointer(state) {
+  if (!state || typeof state !== 'object' || Array.isArray(state)) {
+    throw new Error('readUnconsumedRoutingConversationPointer requires a runtime state object');
+  }
+  if (!hasOwn(state, UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY)) {
+    throw new Error(`runtime_state.${UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY} is required; run node scripts/add-unconsumed-routing-conversation-pointer.mjs --apply on this slot`);
+  }
+  return validateUnconsumedRoutingConversationPointer(state[UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY]);
+}
 
 function assertRuntimeState(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) {
@@ -118,16 +322,113 @@ function normalizeNullableCharacterSummary(value, label) {
   };
 }
 
+function normalizeRecentConversationContextParticipant(value, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  const extraKeys = Object.keys(value).filter((key) => key !== 'character_id' && key !== 'character_name');
+  if (extraKeys.length) throw new Error(`${label} has unexpected key: ${extraKeys[0]}`);
+  return {
+    character_id: normalizeRequiredString(value.character_id, `${label}.character_id`),
+    character_name: normalizeRequiredString(value.character_name, `${label}.character_name`)
+  };
+}
+
+// One participant's memory entry inside a lounge_conversation recent-conversation snapshot. Participant identity is
+// pinned to the participants[index] entry so a memories[] element cannot silently drift into another participant's
+// slot. memory_text carries the accepted memory verbatim, or explicit null when the participant's validator log
+// exists with an empty accepted_memory array (the lounge counterpart of the 1:1 conversation_without_memory kind).
+function normalizeRecentConversationContextMemory(value, participant, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  const allowedKeys = new Set(['character_id', 'character_name', 'memory_text']);
+  for (const key of Object.keys(value)) {
+    if (!allowedKeys.has(key)) throw new Error(`${label} has unexpected key: ${key}`);
+  }
+  for (const key of allowedKeys) {
+    if (!hasOwn(value, key)) throw new Error(`${label}.${key} is required`);
+  }
+  const characterId = normalizeRequiredString(value.character_id, `${label}.character_id`);
+  const characterName = normalizeRequiredString(value.character_name, `${label}.character_name`);
+  if (characterId !== participant.character_id) {
+    throw new Error(`${label}.character_id must match participants[].character_id: ${participant.character_id}`);
+  }
+  if (characterName !== participant.character_name) {
+    throw new Error(`${label}.character_name must match participants[].character_name: ${participant.character_name}`);
+  }
+  const memoryText = value.memory_text === null
+    ? null
+    : normalizeRequiredString(value.memory_text, `${label}.memory_text`);
+  return { character_id: characterId, character_name: characterName, memory_text: memoryText };
+}
+
+// Closed 4-kind schema:
+// - no_new_conversation: no unconsumed pointer (or the hub owns it).
+// - conversation_memory / conversation_without_memory: an eligible 1:1 finalization (field / errand /
+//   study_circle / dungeon / homunculus).
+// - lounge_conversation: an eligible lounge group finalization (three participants).
+// Each kind carries only its own fields — a field belonging to another kind is rejected, so the four kinds are
+// disjoint and the reader never confuses one for another.
 function normalizeRecentConversationContext(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('routingHubContext.recent_conversation_context must be an object');
   }
-  for (const key of ['kind', 'conversation_id', 'character_id', 'character_name', 'memory_text']) {
-    if (!hasOwn(value, key)) throw new Error(`routingHubContext.recent_conversation_context.${key} is required`);
-  }
+  if (!hasOwn(value, 'kind')) throw new Error('routingHubContext.recent_conversation_context.kind is required');
   const kind = normalizeRequiredString(value.kind, 'routingHubContext.recent_conversation_context.kind');
   if (!RECENT_CONVERSATION_CONTEXT_KINDS.includes(kind)) {
     throw new Error(`routingHubContext.recent_conversation_context.kind must be one of: ${RECENT_CONVERSATION_CONTEXT_KINDS.join(', ')}`);
+  }
+  if (kind === 'lounge_conversation') {
+    for (const key of ['kind', 'conversation_id', 'participants', 'memories']) {
+      if (!hasOwn(value, key)) throw new Error(`routingHubContext.recent_conversation_context.${key} is required`);
+    }
+    const extraKeys = Object.keys(value).filter((key) => (
+      key !== 'kind' && key !== 'conversation_id' && key !== 'participants' && key !== 'memories'
+    ));
+    if (extraKeys.length) {
+      throw new Error(`routingHubContext.recent_conversation_context has unexpected key for lounge_conversation: ${extraKeys[0]}`);
+    }
+    const conversationId = normalizeNullableConversationId(
+      value.conversation_id,
+      'routingHubContext.recent_conversation_context.conversation_id'
+    );
+    if (!conversationId) throw new Error('routingHubContext.recent_conversation_context.conversation_id is required');
+    if (!Array.isArray(value.participants) || value.participants.length !== LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT) {
+      throw new Error(`routingHubContext.recent_conversation_context.participants must be exactly ${LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT} entries`);
+    }
+    const seen = new Set();
+    const participants = value.participants.map((entry, index) => {
+      const participant = normalizeRecentConversationContextParticipant(
+        entry,
+        `routingHubContext.recent_conversation_context.participants[${index}]`
+      );
+      if (seen.has(participant.character_id)) {
+        throw new Error(`routingHubContext.recent_conversation_context.participants has a duplicate character_id: ${participant.character_id}`);
+      }
+      seen.add(participant.character_id);
+      return participant;
+    });
+    if (!Array.isArray(value.memories) || value.memories.length !== LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT) {
+      throw new Error(`routingHubContext.recent_conversation_context.memories must be exactly ${LOUNGE_RECENT_CONVERSATION_PARTICIPANT_COUNT} entries`);
+    }
+    const memories = value.memories.map((entry, index) => (
+      normalizeRecentConversationContextMemory(
+        entry,
+        participants[index],
+        `routingHubContext.recent_conversation_context.memories[${index}]`
+      )
+    ));
+    return { kind, conversation_id: conversationId, participants, memories };
+  }
+  for (const key of ['kind', 'conversation_id', 'character_id', 'character_name', 'memory_text']) {
+    if (!hasOwn(value, key)) throw new Error(`routingHubContext.recent_conversation_context.${key} is required`);
+  }
+  const extraKeys = Object.keys(value).filter((key) => (
+    key !== 'kind' && key !== 'conversation_id' && key !== 'character_id' && key !== 'character_name' && key !== 'memory_text'
+  ));
+  if (extraKeys.length) {
+    throw new Error(`routingHubContext.recent_conversation_context has unexpected key for ${kind}: ${extraKeys[0]}`);
   }
   const conversationId = normalizeNullableConversationId(
     value.conversation_id,
@@ -401,6 +702,17 @@ function renderRecentConversationContext(context, personaName) {
   if (context.kind === 'no_new_conversation') {
     return [`- 直近の行き先での会話: 新しい会話はなく、${personaName}が覗ける新しい記憶はない。`];
   }
+  if (context.kind === 'lounge_conversation') {
+    const roster = context.participants.map((participant) => `${participant.character_name}（${participant.character_id}）`).join('・');
+    const memoryLines = context.memories.map((memory) => {
+      const memoryText = memory.memory_text === null ? LOUNGE_MISSING_MEMORY_TEXT : memory.memory_text;
+      return `  - ${memory.character_name}（${memory.character_id}）と主人公の談話室での会話で${personaName}が覗ける一番新しい記憶: ${memoryText}`;
+    });
+    return [
+      `- 直近の行き先での会話: ${roster}と主人公の談話室での複数人談話。`,
+      ...memoryLines
+    ];
+  }
   const head = `- 直近の行き先での会話: ${context.character_name}（${context.character_id}）との会話。`;
   if (context.kind === 'conversation_without_memory') {
     return [head, '  - その会話で新しい記憶は生まれていない。'];
@@ -624,6 +936,13 @@ export function buildRoutingOpeningSmalltalkGuidance(routingHubContext) {
     topicGuidance = `直近会話で残った記憶「${recent.memory_text}」を話題の起点として、その話題から自然に世間話を切り出す。`;
   } else if (recent.kind === 'conversation_without_memory') {
     topicGuidance = `直近に${recent.character_name}（${recent.character_id}）との会話があった事実に軽く触れつつ、様子を伺う世間話から入る。新しい記憶は生まれていないため、記憶を捏造しない。`;
+  } else if (recent.kind === 'lounge_conversation') {
+    const roster = recent.participants.map((participant) => `${participant.character_name}（${participant.character_id}）`).join('・');
+    const memoryClauses = recent.memories.map((memory) => {
+      const memoryText = memory.memory_text === null ? LOUNGE_MISSING_MEMORY_TEXT : memory.memory_text;
+      return `${memory.character_name}（${memory.character_id}）に残った記憶「${memoryText}」`;
+    }).join('、');
+    topicGuidance = `直近に${roster}との談話室での複数人談話があり、参加者それぞれに新しい記憶が残っている（${memoryClauses}）。この3人分の記憶を並列に話題の起点として、その場の様子を伺う世間話から自然に切り出す。特定の一人分の記憶に偏らず、また記憶本文を捏造しない。`;
   } else if (recent.kind === 'no_new_conversation' && normalizedRoutingHubContext.content_result_context !== null) {
     topicGuidance = `${contentResultTopicText(normalizedRoutingHubContext.content_result_context)}を話題の起点として、自然に世間話を切り出す。`;
   } else if (recent.kind === 'no_new_conversation') {

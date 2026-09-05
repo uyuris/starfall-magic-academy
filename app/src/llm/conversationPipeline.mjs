@@ -11,9 +11,12 @@ import { buildContinuityPromptContext, mergeWorkRecordsById } from './continuity
 import { faceExpressionChoicesText, faceExpressionSet } from '../faceExpressions.mjs';
 import { buildDungeonCompanionPromptTailContext } from '../dungeon/dungeonEngine.mjs';
 import {
+  applyUnconsumedRoutingConversationPointerToState,
   buildRoutingOpeningSmalltalkGuidance,
   buildRoutingPromptSceneFields,
+  clearUnconsumedRoutingConversationPointerInState,
   conversationFinalizationStageFields,
+  ELIGIBLE_HUB_POINTER_SOURCE_TYPES,
   INJECTED_SCENE_SOURCE_TYPES,
   normalizeRoutingHubContext,
   ROUTING_HUB_SOURCE_TYPE
@@ -2877,6 +2880,20 @@ export async function finalizeConversation({
   nextState = mergeConcurrentInteractionState(nextState, latestState, conversation.id);
   if (typeof finalStateTransform === 'function') {
     nextState = finalStateTransform(nextState);
+  }
+  // Unconsumed routing-conversation pointer transform: applied ONCE at the terminal state, after every
+  // concurrent-state merge and the second finalStateTransform, before the sole terminal write. The routing hub
+  // consumes any prior pointer here (clears to null); an eligible finalization (field/errand/study_circle/
+  // dungeon/homunculus) overwrites the single slot with its own identity — never accumulating, never inferred.
+  // event/graduation/new_game and every other source_type keep the pointer untouched.
+  if (conversation.source_type === ROUTING_HUB_SOURCE_TYPE) {
+    nextState = clearUnconsumedRoutingConversationPointerInState(nextState);
+  } else if (ELIGIBLE_HUB_POINTER_SOURCE_TYPES.has(conversation.source_type)) {
+    nextState = applyUnconsumedRoutingConversationPointerToState({
+      state: nextState,
+      conversation,
+      terminalSignalAt: now
+    });
   }
   await writeJson(root, 'game_data/runtime_state.json', nextState);
   if (validator.accepted_work_record) {

@@ -19,6 +19,7 @@ import { canHandleAtelierApiRoute, handleAtelierApi } from './server/atelierApi.
 import { canHandleStarCradleApiRoute, handleStarCradleApi } from './server/starCradleApi.mjs';
 import { canHandleConversationPopupSettingsRoute, handleConversationPopupSettingsApi } from './server/conversationPopupSettingsApi.mjs';
 import { canHandleAudioSettingsRoute, handleAudioSettingsApi } from './server/audioSettingsApi.mjs';
+import { canHandleSaveDataRepairRoute, handleSaveDataRepairApi } from './server/saveDataRepairApi.mjs';
 import { canHandleFlagDebugRoute, handleFlagDebugApi } from './server/flagDebugApi.mjs';
 import { canHandleDeleteFlagsRoute, handleDeleteFlagsApi } from './server/deleteFlagsApi.mjs';
 import { canHandleAuthoringApiRoute, handleAuthoringApi } from './server/authoringApi.mjs';
@@ -340,6 +341,10 @@ async function routeApi(req, res, url, context, { routingRequest = false, readBo
     await handleAudioSettingsApi({ req, res, url, context, sendJson, readBody: readBodyOverride });
     return;
   }
+  if (canHandleSaveDataRepairRoute(req.method, url.pathname)) {
+    await handleSaveDataRepairApi({ req, res, url, context, sendJson });
+    return;
+  }
   if (canHandleFlagDebugRoute(req.method, url.pathname)) {
     await handleFlagDebugApi({ req, res, url, context, sendJson, readBody: readBodyOverride });
     return;
@@ -650,6 +655,7 @@ export function createServer(options = {}) {
     playModeSettingsPath: path.resolve(options.playModeSettingsPath ?? process.env.MAGIC_ACADEMY_PLAY_MODE_SETTINGS ?? path.join(path.dirname(resolvedLmStudioConfigPath), 'play-mode.json')),
     conversationPopupSettingsPath: path.resolve(options.conversationPopupSettingsPath ?? process.env.MAGIC_ACADEMY_CONV_POPUP_SETTINGS ?? path.join(path.dirname(resolvedLmStudioConfigPath), 'conversation-popup.json')),
     audioSettingsPath: path.resolve(options.audioSettingsPath ?? process.env.MAGIC_ACADEMY_AUDIO_SETTINGS ?? path.join(path.dirname(resolvedLmStudioConfigPath), 'audio.json')),
+    saveDataRepairRunnerForTest: options.saveDataRepairRunnerForTest ?? null,
     activeRootRestorePromise: null
   };
   if (!context.activeRoot) {

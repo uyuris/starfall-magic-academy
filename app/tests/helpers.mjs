@@ -26,6 +26,7 @@ export const baselineRuntimeState = {
   visited_locations: ['herbology_garden'],
   active_character_ids: ['lina'],
   last_conversation_id: null,
+  unconsumed_routing_conversation: null,
   current_buddy_character_id: null,
   current_enemy_character_ids: [],
   characters: {

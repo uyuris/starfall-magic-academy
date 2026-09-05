@@ -1010,6 +1010,75 @@ body:has(#gathering-screen.active) .layout {
   accent-color: var(--meta-starlight);
 }
 
+/* セーブデータ修正カテゴリ: 個別 migration エントリのリスト。将来 migration が増えたら同じ形で並ぶ。
+   全ての色は #settings-screen スコープの --meta-* トークン経由（literal 色 pin なし）。 */
+.save-data-repair-entries {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.save-data-repair-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 18px;
+  border: 1px solid var(--meta-line);
+  border-radius: var(--radius-panel-compact);
+  background: var(--meta-panel-strong);
+}
+
+@media (max-width: 640px) {
+  .save-data-repair-entry {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.save-data-repair-entry-copy {
+  display: grid;
+  gap: 6px;
+}
+
+#settings-screen .save-data-repair-entry-title {
+  margin: 0;
+  color: var(--meta-silver-strong);
+  font-size: 1rem;
+}
+
+.save-data-repair-entry-description {
+  margin: 0;
+  color: var(--meta-silver);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.save-data-repair-entry-actions {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  align-content: start;
+  min-width: 0;
+}
+
+.save-data-repair-entry-result {
+  margin: 0;
+  color: var(--meta-silver);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  min-height: 1.2em;
+  text-align: right;
+}
+
+/* Error tone stays inside the --meta-* palette: bold weight + strong silver call out the failure without
+   pulling a literal hex or a non-meta danger token into the settings scope. */
+.save-data-repair-entry-result.is-error {
+  color: var(--meta-silver-strong);
+  font-weight: 700;
+}
+
 /* ── セーブデータ選択画面（#slot-load-screen）＝形而上の月夜（メタ層） ─────────────────────────────────
    タイトル/ロードと同族の meta-moonlight 層。画面全体が月夜地（背景アート＋scrim）で、その上に控えめな銀の
    見出しと「記憶のカード」（スロット）が直接載る（背景の上に大ウィンドウを置く shell 外殻は無い）。CSS は
