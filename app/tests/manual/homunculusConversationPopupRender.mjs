@@ -16,7 +16,7 @@
 //   4. READ-ONLY: opening + closing the popup fires NO fetch (no turn/end/record), leaves the chat stream byte-equal,
 //      and leaves the conversation usable (send not disabled). Close via button AND backdrop both dismiss it.
 //   5. The roster (selectable) name-click path is untouched (asserted by conversationDayScreenRender.mjs).
-// Per ref-camera, the harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
+// The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';

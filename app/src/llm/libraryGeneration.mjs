@@ -1,7 +1,7 @@
 // 大書庫 (library) LLM generation: the only place the library talks to the language model.
 //
-// Four generation surfaces, all built from the reviewed prompt discipline in
-// ref-llm-pipeline.md (實測 gemma-4-31b, task library-genprompt-reqd-t3-implementation):
+// Four generation surfaces, all built from the reviewed prompt discipline
+// (實測 gemma-4-31b, task library-genprompt-reqd-t3-implementation):
 //   - Fragment body (periphery / generated books): buildLibraryFragmentPrompt — the author-voice
 //     template. The model is the book's writer narrating the page's own subject directly; the digest
 //     verbs (「〜が描き出されている」…) are named as forbidden so the page never describes the book from

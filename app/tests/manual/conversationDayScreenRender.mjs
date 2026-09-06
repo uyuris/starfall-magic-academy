@@ -21,7 +21,7 @@
 //   4. LANDING: drive the REAL academy-map → companion → start flow; a new academy-map character conversation
 //      lands on the dedicated #conversation-day-screen (the fixed production entry — legacy is saved phase-2
 //      re-entry only, not a landing choice).
-// Per ref-camera, the harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
+// The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -113,7 +113,7 @@ async function startStubLm() {
     // generic else), which they would otherwise false-match through the embedded player input. affinity delta is
     // a strict integer -10..10 (a non-integer answer throws `affinity delta answer must be an integer`) and MP
     // reserve a strict integer 0..100; money is 0-fallback but is answered here too so END touches EVERY
-    // finalization judgment with a valid answer. (ref-camera.md: an END-driven render harness LM stub answers
+    // finalization judgment with a valid answer. (An END-driven render harness LM stub answers
     // every finalization LLM judgment, affinity branch before the generic transcript branches.)
     else if (prompt.includes('好感度の変化量を判定する')) content = '0'; // affinity delta → neutral (integer -10..10)
     else if (prompt.includes('MP温存ライン')) content = '30'; // MP reserve line → neutral (integer 0..100)

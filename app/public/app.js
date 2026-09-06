@@ -122,10 +122,10 @@ const screens = {
 // ============================================================================
 // 画面別 BGM（screen music）。音声の owner はこの1セクションだけ。pure config（track catalog /
 // screen map）＋ 単一 AudioContext の controller ＋ showScreen / 星の揺り籠 overlay からの状態同期
-// 1関数で構成する。設計正本 = .agents/docs/design/bgm-screen-music-brief.md（画面→曲の確定閉写像）。
+// 1関数で構成する。画面→曲の確定閉写像。
 // ============================================================================
 
-// track id → 配信 URL。テイク差し替えは同梱側 scripts/convert-bgm.mjs の対応表が担い、この URL は不変。
+// track id → 配信 URL。テイク差し替えでもこの URL は不変。
 const BGM_TRACK_CATALOG = Object.freeze({
   base: '/canonical/bgm/base.ogg',
   'v1-moonlit': '/canonical/bgm/v1-moonlit.ogg',
@@ -18129,7 +18129,7 @@ function applyFrameDecorationCalibrationOverride() {
 
 // ===== 競売場 (auction) screen =====
 // A conversation-day-family content screen (its own screen-scoped --auction-* token layer) driven entirely from
-// the frontend across the auction's per-utterance HTTP surface (spec auction.md「HTTP surface」). The persisted
+// the frontend across the auction's per-utterance HTTP surface. The persisted
 // granularity is the LOT: the slot advances only at resolve. A lot's in-progress bidding (current price / standing
 // highest bidder / who has dropped / turn cursor) is held HERE and re-validated server-side against the
 // authoritative slot each request; a reload restarts the current lot's bidding from the top. The chat reuses the
@@ -18871,7 +18871,7 @@ async function resolveAuctionConsignmentLot() {
       body: { prior_utterances: auctionMasterUtterances.slice() }
     }));
     // An awarded consignment always credits the player: payout.money is the contract-guaranteed authoritative
-    // post-credit balance (auction.md HTTP surface). A missing / non-integer payout.money is a broken upstream
+    // post-credit balance. A missing / non-integer payout.money is a broken upstream
     // contract, not a display default — fail fast rather than silently leaving stale money on screen.
     if (!result.payout || !Number.isInteger(result.payout.money)) {
       throw new Error('auction consignment awarded resolve is missing an authoritative payout.money');
@@ -18921,7 +18921,7 @@ async function runAuctionConsignmentLot({ onOpeningStreamStart = null } = {}) {
 function renderAuctionConsignmentOptions(options) {
   const list = document.querySelector('#academy-auction-consignment-options');
   const empty = document.querySelector('#academy-auction-consignment-empty');
-  // The options contract (auction.md HTTP surface) always carries all three arrays. A missing array is a broken
+  // The options contract always carries all three arrays. A missing array is a broken
   // upstream shape, not an empty-list default — fail fast rather than silently rendering nothing.
   if (!Array.isArray(options.equipment) || !Array.isArray(options.items) || !Array.isArray(options.caged)) {
     throw new Error('auction consignment options must carry equipment, items, and caged arrays');
@@ -18935,7 +18935,7 @@ function renderAuctionConsignmentOptions(options) {
     button.type = 'button';
     button.className = 'academy-auction-consignment-option';
     button.dataset.kind = entry.kind;
-    // Source shape by kind (auction.md 出品側): 所持品 is keyed by item_id, an equipment instance and a caged
+    // Source shape by kind (出品側): 所持品 is keyed by item_id, an equipment instance and a caged
     // creature both by instance_id. Keying off item vs. instance folds star_cradle_creature in without a caged
     // branch; an unknown kind is caught by the backend's closed-vocab submit gate, not silently mis-shaped here.
     const source = entry.kind === 'item'
@@ -19002,7 +19002,7 @@ async function runAuctionConsignmentPhaseAfterPicker() {
 // ----- entry / resume / closed view -----
 
 // Clears every prior-visit view residue before an auction entry decides closed vs live. The auction is
-// lot-granular and never persists in-lot progress (spec frontend/auction.md), so a reload / re-entry restarts the
+// lot-granular and never persists in-lot progress, so a reload / re-entry restarts the
 // current lot's bidding from the top — no prior-visit chat, bid history, or board/bid-bar state is ever valid on
 // screen. renderStream([]) is required over surface.setHistory([]): setHistory only swaps the model array, leaving
 // the prior visit's message rows in the DOM; renderStream repaints the (now empty) stream. renderAuctionHistory

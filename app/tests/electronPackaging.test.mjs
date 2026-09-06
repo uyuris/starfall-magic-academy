@@ -74,6 +74,6 @@ test('electron packaging bundles canonical BGM assets but excludes the source WA
     'the assets/original exclusion must follow the assets include so electron-builder subtracts the originals'
   );
 
-  // The adopted takes are Ogg Opus files served from the canonical tree; the source WAVs stay under assets/original.
+  // The adopted takes are Ogg Opus files served from the canonical tree.
   await access(path.join(projectRoot, 'assets/canonical/bgm/v1-moonlit.ogg'));
 });

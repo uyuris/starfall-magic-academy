@@ -130,8 +130,8 @@ test('shop inventory column splits into 所持品／装備 tabs; the 装備 tab 
   assert.match(js, /function selectShopInventoryTab\(tab\)[\s\S]*SHOP_INVENTORY_TABS\.includes\(tab\)[\s\S]*throw new Error\(`shop inventory tab is not a known value[\s\S]*\.shop-inventory-tab'\)[\s\S]*classList\.toggle\('active', active\)[\s\S]*\.shop-inventory-pane'\)[\s\S]*pane\.hidden = pane\.dataset\.shopInventoryPane !== tab/, 'the tab switch toggles the active tab + visible pane and fail-fasts on an unknown tab');
   assert.match(js, /for \(const tab of document\.querySelectorAll\('\.shop-inventory-tab'\)\) \{\s*tab\.addEventListener\('click', \(\) => \{\s*try \{ selectShopInventoryTab\(tab\.dataset\.shopInventoryTab\); \} catch \(error\) \{ reportError\(error\); \}/, 'both inventory tabs are wired to the tab switch');
 
-  // The inactive pane is hidden by a scoped [hidden] guard over the author display:grid (ref-ui-tokens [hidden]
-  // gotcha), and the 装備 list scrolls internally like the other trade lists — all token-only (no literal colors).
+  // The inactive pane is hidden by a scoped [hidden] guard over the author display:grid, and the 装備 list
+  // scrolls internally like the other trade lists — all token-only (no literal colors).
   assert.match(css, /\.shop-inventory-pane\[hidden\]\s*\{\s*display:\s*none;\s*\}/, 'the inactive inventory pane is hidden by the scoped [hidden] guard');
   assert.match(css, /#shop-equipment-items\s*\{[\s\S]*overflow-y:\s*auto/, 'the equipment list scrolls internally');
   const shopSection = css.match(/\/\* ── 購買画面「深夜の学院」層[\s\S]*?(?=\/\* ── 採取画面（#gathering-screen 専用）)/)?.[0] ?? '';

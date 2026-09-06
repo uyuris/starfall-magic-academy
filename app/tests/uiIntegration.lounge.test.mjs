@@ -124,7 +124,7 @@ test('the lounge streams NPC utterances per-utterance and honours the server cur
 // The face-emotion-order contract: emotion is confirmed before any bubble reveals and is immutable for the turn, so
 // every assistant segment of one utterance — including a 括弧分割 that yields two face rows — is built from the SAME
 // emotion. There is no neutral fallback anywhere on the reveal path; content before a confirmed emotion fails fast.
-// (jsdom cannot render app.js's live shell — see ref-camera.md / the settings-screen test precedent — so the
+// (jsdom cannot render app.js's live shell — see the settings-screen test precedent — so the
 // two-face-row visual is pinned here structurally: a single immutable turnEmotion feeds every segment, and
 // displayMessages spreads that emotion onto each split assistant row.)
 test('one utterance builds every reveal segment from a single immutable, confirmed emotion (no neutral fallback, fail-fast) (app.js)', async () => {
@@ -330,7 +330,7 @@ test('the clicked speaker popup resolves off the clicked row data-character-id (
 // ── behavioral fake-SSE harnesses (v2 contract) ─────────────────────────────
 // The lounge functions read module-level state (loungeStage, loungeConversation, routingContentReturnInFlight,
 // loungePlayerResolve, currentRuntimeState, …) and use browser globals. Because jsdom cannot render the full app.js
-// shell (see ref-camera.md / assistantSseReveal.test.mjs precedent), we extract the target function source via the
+// shell (see assistantSseReveal.test.mjs precedent), we extract the target function source via the
 // same appFunction() helper, then compile it with new Function(...) with every dependency injected as a free
 // parameter — the assistantSseReveal.test.mjs pattern. This lets us drive real behavior with a fake SSE reader:
 // depart-turn 2-message reveal (including 括弧分割 in message 1), continue-turn 1-message reveal, and terminal-

@@ -8,7 +8,7 @@ import { runtimePublicReferenceRoot } from './testPaths.mjs';
 // title/academy-map 設定 button). Each entry inlining its own "open + reflect saved settings" wiring once
 // caused a section to be reflected from one entry but not the other, so every entry routes through a single
 // openSettingsScreen() opener that reflects all settings sections. These source-text checks guard that
-// structural invariant (jsdom cannot render the live shell — see .agents/docs/reference/ref-camera.md — so
+// structural invariant (jsdom cannot render the live shell — so
 // the real two-entry visual is a manual check noted in the report).
 
 function functionBody(js, name) {

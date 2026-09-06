@@ -50,8 +50,8 @@
 // FAIL — the arrival never renders; reverting startErrand's daytime landing back to the v1 session makes step 2
 // FAIL (the daytime screen never activates and the stage frame never shows the 依頼主 standee); reverting the
 // loading-covered start back to an in-place await (drop showAcademyLoadingScreenUntilReady) makes the SELECT →
-// LOADING check FAIL — the arrival stays frozen and #academy-loading-screen never activates. Per ref-camera
-// the harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
+// LOADING check FAIL — the arrival stays frozen and #academy-loading-screen never activates. The
+// harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';

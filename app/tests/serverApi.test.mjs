@@ -2134,46 +2134,40 @@ async function seedConversationForRoutingEnd({ slotRoot, conversationId, charact
   });
 }
 
-test('routing conversation end dispatches decided hub destinations and drains the finalization on exit', async (t) => {
+// 変更ごとの lane が踏む代表 1 destination。dispatch は atomic finalize を選ぶので「全 slot copy ＋
+// 全 mutable-tree mirror」が1組だけ走る。6 destination すべての総なめは
+// app/tests/serverApiRoutingSweep.test.mjs（週1の全量網でだけ走る持ち場）が持つ。
+test('routing conversation end dispatches a decided hub destination and drains the finalization on exit', async (t) => {
   const settingsPath = await writeRoutingModeSettings(t, 'routing-dispatch-mode-');
   const missingLmConfigPath = path.join(await fs.mkdtemp(path.join(os.tmpdir(), 'routing-dispatch-missing-lm-')), 'missing-lmstudio.json');
   const { root, base } = await withServer(t, { playModeSettingsPath: settingsPath, lmStudioConfigPath: missingLmConfigPath });
   const started = await jsonFetch(`${base}/api/new-game`, { method: 'POST', body: {} });
   const slotRoot = path.join(root, 'game_data/play/slots', started.slot.slot_id);
-  const destinations = [
-    ['academy-map', 'academy-map'],
-    ['training', 'academy-training'],
-    ['dungeon', 'academy-dungeon'],
-    ['errand', 'academy-errand'],
-    ['alchemy', 'academy-alchemy'],
-    ['study_circle', 'academy-study-circle']
-  ];
+  const [destinationId, expectedScreen] = ['training', 'academy-training'];
 
-  for (const [index, [destinationId, expectedScreen]] of destinations.entries()) {
-    const conversationId = `conv_routing_dispatch_${destinationId.replace('-', '_')}_001`;
-    await seedConversationForRoutingEnd({ slotRoot, conversationId, characterId: 'lina', routingDestinationId: destinationId });
+  const conversationId = `conv_routing_dispatch_${destinationId.replace('-', '_')}_001`;
+  await seedConversationForRoutingEnd({ slotRoot, conversationId, characterId: 'lina', routingDestinationId: destinationId });
 
-    // Drain-on-exit needs a provider to finalize; the mock provider drains without an LM Studio config.
-    const ending = await jsonFetch(`${base}/api/conversation/end`, {
-      method: 'POST',
-      body: { character_id: 'lina', conversation_id: conversationId, provider: 'mock' }
-    });
+  // Drain-on-exit needs a provider to finalize; the mock provider drains without an LM Studio config.
+  const ending = await jsonFetch(`${base}/api/conversation/end`, {
+    method: 'POST',
+    body: { character_id: 'lina', conversation_id: conversationId, provider: 'mock' }
+  });
 
-    assert.equal(ending.finalization_status, 'drained');
-    assert.equal(Object.hasOwn(ending, 'pending_finalization'), false, 'a drained dispatch response must not carry a singular pending_finalization field');
-    assert.equal(ending.routing_dispatch.destination_id, destinationId);
-    assert.equal(ending.week_progression.status, 'applied');
-    assert.equal(ending.week_progression.idempotency_key, `${conversationId}:${destinationId}`);
-    assert.equal(ending.state.current_screen, expectedScreen);
-    assert.equal(ending.transition.next_screen, expectedScreen);
-    assert.equal(ending.state.current_interaction_character_id, null);
-    assert.equal(ending.state.pending_interaction_context, null);
-    assert.equal(ending.state.elapsed_weeks, index + 1, 'routing dispatch must increment exactly one week per decided destination');
-    // The exit drained the whole queue, so this dispatch conversation's job is gone and it is finalized.
-    assert.equal(ending.state.pending_finalizations.find((job) => job.conversation_id === conversationId), undefined, 'the dispatch drains the finalization on exit (no residual pending job)');
-    const conversation = await readJson(slotRoot, `game_data/logs/conversations/${conversationId}.json`);
-    assert.equal(conversation.discarded_after_work_record_id, `wr_${conversationId}`, 'the drained dispatch conversation is finalized on exit');
-  }
+  assert.equal(ending.finalization_status, 'drained');
+  assert.equal(Object.hasOwn(ending, 'pending_finalization'), false, 'a drained dispatch response must not carry a singular pending_finalization field');
+  assert.equal(ending.routing_dispatch.destination_id, destinationId);
+  assert.equal(ending.week_progression.status, 'applied');
+  assert.equal(ending.week_progression.idempotency_key, `${conversationId}:${destinationId}`);
+  assert.equal(ending.state.current_screen, expectedScreen);
+  assert.equal(ending.transition.next_screen, expectedScreen);
+  assert.equal(ending.state.current_interaction_character_id, null);
+  assert.equal(ending.state.pending_interaction_context, null);
+  assert.equal(ending.state.elapsed_weeks, 1, 'routing dispatch must increment exactly one week per decided destination');
+  // The exit drained the whole queue, so this dispatch conversation's job is gone and it is finalized.
+  assert.equal(ending.state.pending_finalizations.find((job) => job.conversation_id === conversationId), undefined, 'the dispatch drains the finalization on exit (no residual pending job)');
+  const conversation = await readJson(slotRoot, `game_data/logs/conversations/${conversationId}.json`);
+  assert.equal(conversation.discarded_after_work_record_id, `wr_${conversationId}`, 'the drained dispatch conversation is finalized on exit');
 });
 
 function academyStageVariants(fieldLocation) {

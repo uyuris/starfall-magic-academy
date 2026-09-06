@@ -1,7 +1,6 @@
 // 闘技会 (arena) LLM flavor generation: the only place the arena session talks to the language model.
 //
-// Two generation surfaces, built verbatim from the reviewed 実測 prompt templates in the arena LLM flavor
-// investigation (docs/reports/arena-llm-flavor-investigation.md §3 口上 / §4 実況一文):
+// Two generation surfaces, built verbatim from the reviewed 実測 prompt templates:
 //   - Match intro (buildArenaIntroPrompt): a 場内アナウンス風の地の文 (固有 persona を立てない・§2 で確定) that
 //     announces the start of a match the player actually sees (a player match or a spectator-replayable auto
 //     match). The two 散らし levers of the intro are: the 陳腐語禁止 constraint line (always) and the visit's

@@ -98,39 +98,6 @@ CMakeCache.txt
 # Agent-team runtime. Keep the skeleton in Git, but not live traffic.
 worktrees/
 .claude/settings.local.json
-.agents/queue/inbox/*
-!.agents/queue/inbox/.gitkeep
-.agents/queue/reports/*
-!.agents/queue/reports/.gitkeep
-.agents/queue/reviews/*
-!.agents/queue/reviews/.gitkeep
-.agents/queue/integrations/*
-!.agents/queue/integrations/.gitkeep
-.agents/queue/reopens/*
-!.agents/queue/reopens/.gitkeep
-.agents/queue/cancels/*
-!.agents/queue/cancels/.gitkeep
-.agents/queue/lead_drafts/*
-!.agents/queue/lead_drafts/.gitkeep
-.agents/queue/lead_handoffs/*
-!.agents/queue/lead_handoffs/.gitkeep
-.agents/queue/worker_handoffs/*
-!.agents/queue/worker_handoffs/.gitkeep
-.agents/queue/state/*
-!.agents/queue/state/.gitkeep
-!.agents/queue/state/wakeups/
-.agents/queue/state/wakeups/*
-!.agents/queue/state/wakeups/.gitkeep
-!.agents/queue/state/propagation/
-.agents/queue/state/propagation/*
-!.agents/queue/state/propagation/.gitkeep
-.agents/queue/memory_proposals/*
-!.agents/queue/memory_proposals/.gitkeep
-.agents/queue/tasks/*
-!.agents/queue/tasks/.gitkeep
-!.agents/queue/tasks/TEMPLATE.md
-!.agents/queue/tasks/TEMPLATE_INVESTIGATION.md
-.agents/investigations/
 # <<< fleet-owned block <<<
 
 # project: build/ は Starfall では ignore しない（fleet block の build/ を打ち消す）

@@ -13,7 +13,7 @@
 //   2. GIFT FLOW: confirm → POST /api/conversation/gift → the hand-over 地の文 + the partner reaction reveal in
 //      the stream, and the effect toasts (好感度 before→after).
 //   3. 1会話1回 GATE: reopening the drawer shows the 渡す affordance disabled for the rest of the conversation.
-// Per ref-camera, the harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
+// The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';

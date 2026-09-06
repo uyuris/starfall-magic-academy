@@ -512,7 +512,7 @@ test('settings screen joins the metaphysical-moonlight meta layer (full-screen n
   // mode toggles, and model / thinking-effort selections each drive saveLmStudioSettings.
   // The window is bounded ({0,120}) so an unrelated 'submit' listener elsewhere in app.js (e.g. the library
   // search form) does not span forward to a distant saveLmStudioSettings and false-positive; a real LM Studio
-  // submit→save regression calls it within a handler body, well inside this window (ref-ui-tokens: greedy
+  // submit→save regression calls it within a handler body, well inside this window (greedy
   // unbounded negative snapshots misfire on new screens; the on-change positive asserts below carry the intent).
   assert.doesNotMatch(js, /addEventListener\('submit'[\s\S]{0,120}saveLmStudioSettings/, 'the LM Studio form should no longer save on submit — there is no save button');
   assert.match(js, /for \(const input of \[document\.querySelector\('#lmstudio-host'\), document\.querySelector\('#lmstudio-port'\)\]\) \{[\s\S]*input\.addEventListener\('change', \(\) => saveLmStudioSettings\(\)\.catch\(reportError\)\)[\s\S]*input\.addEventListener\('keydown'[\s\S]*input\.blur\(\)/, 'host/port edits should apply on change (blur/Enter) with no save button');

@@ -48,7 +48,7 @@ export const AUCTION_CAGED_CREATURE_BANDS = Object.freeze(['C', 'B']);
 // of a catalog item. A domain-owned tunable — not env-configurable.
 export const AUCTION_CREATURE_LOT_CHANCE = 0.25;
 
-// Per-category authored counts (the catalog is transcribed from auction-catalog-draft.md; a drifted count
+// Per-category authored counts (a drifted count
 // fails the loader). weapon_amulet 12 / treasure 10 / being 15 / flavor 15 = 52.
 const AUCTION_CATEGORY_COUNTS = Object.freeze({ weapon_amulet: 12, treasure: 10, being: 15, flavor: 15 });
 const AUCTION_ITEM_COUNT = Object.values(AUCTION_CATEGORY_COUNTS).reduce((sum, count) => sum + count, 0);

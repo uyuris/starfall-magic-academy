@@ -74,7 +74,7 @@ test('the 19 authored core lore books carry text and the catalog gates match the
     assert.doesNotMatch(book.text, /注記/);
     assert.doesNotMatch(book.text, /^- (分類|ゲート|開示):/m);
   }
-  // Gate table (design/library-catalog-draft.md「中核本（19冊）」): only these are gated.
+  // Gate table (中核本 19冊): only these are gated.
   assert.equal(bookByTitle(books, '星降りの理').gate ?? null, null);
   assert.deepEqual(bookByTitle(books, '地脈考 — 大地に沁みた光').gate, { kind: 'magic', key: 'earth', min: 50 });
   assert.deepEqual(bookByTitle(books, '月の文字盤の空間について').gate, { kind: 'magic_any', min: 80 });
@@ -132,54 +132,6 @@ test('the periphery shelf is exactly the 20 closed-set categories, 25 books each
     if (orderInCatalog[orderInCatalog.length - 1] !== book.category) orderInCatalog.push(book.category);
   }
   assert.deepEqual(orderInCatalog, [...LIBRARY_PERIPHERY_CATEGORIES]);
-});
-
-test('every authored title/text/skeleton is verbatim from the Lead-authored design drafts (0 mismatch)', async () => {
-  const books = await loadLibraryCatalog({ root: projectRoot });
-  const catalogDraft = await fs.readFile(path.join(projectRoot, '.agents/docs/design/library-catalog-draft.md'), 'utf8');
-  const coreDraft = await fs.readFile(path.join(projectRoot, '.agents/docs/design/library-core-texts-draft.md'), 'utf8');
-  const peripheryDraft = await fs.readFile(path.join(projectRoot, '.agents/docs/design/library-periphery-skeletons-draft.md'), 'utf8');
-
-  // Core lore: each authored body appears verbatim (contiguously) in the core-texts draft.
-  const lore = books.filter((book) => book.layer === 'core' && !book.knowledge_ref);
-  for (const book of lore) {
-    assert.ok(coreDraft.includes(book.text), `core text verbatim in draft: ${book.title}`);
-  }
-  // Periphery: each skeleton sits verbatim directly under its ### 『title』 heading in the skeleton draft.
-  const periphery = books.filter((book) => book.layer === 'periphery');
-  for (const book of periphery) {
-    assert.ok(peripheryDraft.includes(`### 『${book.title}』\n${book.skeleton}\n`), `skeleton verbatim in draft: ${book.title}`);
-  }
-  // Titles: every core/periphery title is a 『』 entry in the title 正本 (catalog draft).
-  for (const book of [...lore, ...periphery]) {
-    assert.ok(catalogDraft.includes(`『${book.title}』`), `title present in catalog draft: ${book.title}`);
-  }
-});
-
-test('the JSON entry order matches the draft order (core No.1–19 and periphery per-category 記載順)', async () => {
-  const books = await loadLibraryCatalog({ root: projectRoot });
-  const coreDraft = await fs.readFile(path.join(projectRoot, '.agents/docs/design/library-core-texts-draft.md'), 'utf8');
-  const peripheryDraft = await fs.readFile(path.join(projectRoot, '.agents/docs/design/library-periphery-skeletons-draft.md'), 'utf8');
-
-  // Core lore titles, in JSON order, equal the core-texts draft ## N. [禁書]『title』 sequence (No.1–19).
-  const coreOrderFromDraft = [...coreDraft.matchAll(/^## \d+\. (?:禁書)?『(.+)』\s*$/gm)].map((m) => m[1]);
-  assert.equal(coreOrderFromDraft.length, 19);
-  const coreOrderFromJson = books.filter((book) => book.layer === 'core' && !book.knowledge_ref).map((book) => book.title);
-  assert.deepEqual(coreOrderFromJson, coreOrderFromDraft);
-
-  // Periphery (category, title) pairs, in JSON order, equal the skeleton draft's full ## / ### sequence.
-  const peripheryOrderFromDraft = [];
-  let draftCategory = null;
-  for (const line of peripheryDraft.split('\n')) {
-    if (line.startsWith('## ')) { draftCategory = line.slice(3).trim(); continue; }
-    const heading = line.match(/^### 『(.+)』\s*$/);
-    if (heading && draftCategory) peripheryOrderFromDraft.push(`${draftCategory}／${heading[1]}`);
-  }
-  assert.equal(peripheryOrderFromDraft.length, 500);
-  const peripheryOrderFromJson = books
-    .filter((book) => book.layer === 'periphery')
-    .map((book) => `${book.category}／${book.title}`);
-  assert.deepEqual(peripheryOrderFromJson, peripheryOrderFromDraft);
 });
 
 test('the backbone flag follows the mechanical rule (星図・天文誌 or 星降り/残光/月夜 in title/skeleton)', async () => {

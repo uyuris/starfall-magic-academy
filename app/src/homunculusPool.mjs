@@ -1,8 +1,7 @@
 // The homunculus face pool: the 50 pre-authored faces (hp_001..hp_050) the atelier binds to a newly
 // synthesized child. This module is the RUNTIME source of the pool ledger — the per-lane appearance tags
-// used to present the closed-set selection candidates to the model. The design ledger lives at
-// .agents/docs/design/homunculus-pool-ledger-draft.md; this transcribes its per-lane tags (no persona /
-// name / history — a lane is appearance only). The faces are authored visual sets under
+// used to present the closed-set selection candidates to the model. The tags carry no persona /
+// name / history — a lane is appearance only. The faces are authored visual sets under
 // assets/canonical/character_visual_sets/hp_*, a区画 separate from the roster (characterCount 契約 に触れない).
 //
 // A face_id doubles as the actor's visual_set_id. Selection is a strict closed set over the pool MINUS the

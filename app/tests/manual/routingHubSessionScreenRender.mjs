@@ -101,7 +101,7 @@ function routingTurnLmResponder({ body, prompt, requestIndex }) {
   // `affinity delta answer must be an integer from -10 to 10`. These MUST come before the generic
   // transcript-matching branches below (`requestIndex === 0` / `includes(CONTINUE_INPUT)` / the freeform
   // else), which the finalization prompts would otherwise false-match through the embedded transcript.
-  // (ref-camera.md: an END-driven render harness LM stub must answer every finalization LLM judgment; the
+  // (An END-driven render harness LM stub must answer every finalization LLM judgment; the
   // affinity delta branch goes before the generic transcript branches.)
   if (prompt.includes('好感度の変化量を判定する')) return '0'; // affinity delta → neutral (contract: integer -10..10)
   if (prompt.includes('MP温存ライン')) return '30'; // mp reserve line judgment → neutral (contract: integer 0..100)

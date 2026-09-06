@@ -35,7 +35,7 @@
 // NEGATIVE CONTROL (documented in the task report): reverting the wiring (remove the screens['academy-study-circle']
 // registry entry / the showScreen refreshStudyCircleScreen hook, or the #academy-study-circle-screen section) makes
 // step 1 FAIL — the arrival never renders; removing the study_circle dispatch mirror entry makes step 5 FAIL (the
-// decided hub turn throws unknown destination_id). Per ref-camera the harness is fire-and-forget (no top-level
+// decided hub turn throws unknown destination_id). The harness is fire-and-forget (no top-level
 // await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';

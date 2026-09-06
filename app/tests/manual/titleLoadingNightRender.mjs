@@ -37,7 +37,7 @@
 // 0-edge negative reproduction flipped positive by the call-site wiring.
 //
 // Two screenshots (the night title; the night loading screen) are saved for うゆりす's visual confirmation.
-// Per ref-camera, the harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
+// The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';

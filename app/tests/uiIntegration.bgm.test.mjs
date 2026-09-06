@@ -14,7 +14,7 @@ const root = runtimePublicReferenceRoot;
 const readFile = readUiSource;
 const appJsPath = path.join(root, 'app.js');
 
-// The brief's confirmed screen→track closed map (.agents/docs/design/bgm-screen-music-brief.md, 28 real screen
+// The brief's confirmed screen→track closed map (28 real screen
 // ids). 22 screens carry a track; the remaining 6 (debug / legacy) are silent and MUST NOT appear in the map.
 const EXPECTED_SCREEN_TRACKS = {
   title: 'v4-title',
@@ -43,7 +43,7 @@ const EXPECTED_SCREEN_TRACKS = {
 
 const SILENT_SCREENS = ['world', 'field', 'training', 'event', 'inventory', 'debug'];
 
-// All 18 bundled track ids (matches scripts/convert-bgm.mjs / assets/canonical/bgm/*.ogg).
+// All 18 bundled track ids (matches assets/canonical/bgm/*.ogg).
 const EXPECTED_TRACK_IDS = [
   'base', 'v1-moonlit', 'v2-daytime', 'v3-tense', 'v4-title', 'v5-loading', 'v6-cradle', 'v7-shop',
   'v8-gathering', 'v9-training', 'v10-arena', 'v11-alchemy', 'v12-workshop', 'v13-study', 'v14-library',

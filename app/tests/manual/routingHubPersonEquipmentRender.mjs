@@ -21,7 +21,7 @@
 //      to the buddy. Screenshot.
 //   6. 持ち物 panel: the 装備 section lists ONLY the un-equipped instances (the player-equipped weapon and the
 //      buddy-equipped amulet are excluded). Screenshot.
-// Per ref-camera, the harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
+// The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
 import os from 'node:os';

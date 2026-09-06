@@ -18,7 +18,6 @@ For the current packaged player release, the GitHub Release notes are the player
 - `data/seeds/` — seed runtime data used to bootstrap play
 - `data/mutable/` — ignored local mutable runtime/play state created while running locally
 - `assets/` — tracked canonical runtime images/BGM, app icons, provenance/reuse documentation, and optional original generation inputs that are excluded from packages
-- `.agents/docs/` — project documentation hub: requirements, architecture, specs, design briefs, reports, runbooks, and top-level `ref-*.md` references; indexed by `.agents/docs/REFERENCE.md`
 - `tools/` — support scripts for import or asset workflows
 
 ## Current project posture

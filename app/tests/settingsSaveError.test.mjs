@@ -6,7 +6,7 @@ import { settingsSaveErrorReason, settingsSaveErrorMessage } from '../public/set
 // category save that fails must reach a terminal error state carrying the concrete reason instead of
 // staying stuck on its saving text. The helper formats that terminal message from the rejection across
 // the three failure modes: PATCH non-OK response, fetch reject (network), and a malformed success body.
-// jsdom cannot render the live settings shell (see .agents/docs/ref-camera.md), so the save actions'
+// jsdom cannot render the live settings shell, so the save actions'
 // use of this helper is guarded by source-text checks in uiIntegration.metaScreens.test.mjs; here the
 // pure reason/formatting is verified directly.
 

@@ -19,7 +19,7 @@
 // PASS criterion per board: with the board scrolled to top, moving the real pointer over the top-row card lifts it,
 // and the lifted card's ring top (cardTop - 3) stays at or below the board clip top (not clipped). Before the padding
 // fix the ring top sat ~5px above the clip edge (clipped); after it clears. A hovered screenshot per board is written
-// to tmp for the visual before/after evidence. Per ref-camera the harness is fire-and-forget (no top-level await
+// to tmp for the visual before/after evidence. The harness is fire-and-forget (no top-level await
 // main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';

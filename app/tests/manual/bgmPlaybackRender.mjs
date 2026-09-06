@@ -11,7 +11,7 @@
 // instance, and records uncaught window errors. The controller lives in a module closure (app.js is a
 // type=module), so transitions are driven through the REAL UI — the [data-screen] top-bar buttons call the real
 // showScreen(), and start-new-game drives the real routing entry (its LM-dependent hub-start is doubled, exactly
-// like titleLoadingNightRender.mjs). Per ref-camera, the harness is fire-and-forget (no top-level await main()).
+// like titleLoadingNightRender.mjs). The harness is fire-and-forget (no top-level await main()).
 //
 // Checks:
 //   A. Electron autoplay: the AudioContext is 'running' with no user gesture and the boot title screen fetched

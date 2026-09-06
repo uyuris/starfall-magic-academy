@@ -241,10 +241,10 @@ test('academy room screen shows player parameters buddy money and a scrollable i
   assert.match(js, /function renderAcademyRoomEnemies\(\)[\s\S]*selectedAcademyEnemyCharacterIds\(\)[\s\S]*#academy-room-enemy-count[\s\S]*#academy-room-enemy-list/, 'academy room enemy list should use the same current-enemy resolver as academy map red pins');
   assert.match(js, /function renderAcademyRoomInventoryItems\(inventory = currentInventory\)[\s\S]*#academy-room-item-count[\s\S]*items\.map[\s\S]*className = 'academy-room-item-row'[\s\S]*item\.stat_effect[\s\S]*use\.textContent = '1個使う';[\s\S]*useInventoryItem\(item\.item_id, 1\)/, 'academy room inventory should render item rows, item count, and a 1個使う button spending one unit for usable items');
   assert.match(js, /function renderAcademyRoomInventoryItems\(inventory = currentInventory\)[\s\S]*useAll\.textContent = '全部使う';[\s\S]*useInventoryItem\(item\.item_id, item\.quantity\)[\s\S]*row\.append\(use, useAll\)/, 'academy room usable items should also carry a 全部使う button that spends the owned quantity in one use');
-  // Same "border-box internal scrolling inside the height-aware layout" contract, checked per-rule (ref-ui-tokens
-  // bounded-window 流儀) rather than one unbounded ordered scan across the shipped CSS. The three panel selectors
+  // Same "border-box internal scrolling inside the height-aware layout" contract, checked per-rule (bounded-window
+  // 流儀) rather than one unbounded ordered scan across the shipped CSS. The three panel selectors
   // share a group rule, which cssRuleBlock cannot extract, so it is matched with a direct anchored regex on the
-  // exact group head (ref-ui-tokens: cssRuleBlock returns '' for grouped selectors).
+  // exact group head (cssRuleBlock returns '' for grouped selectors).
   const roomActiveCss = cssRuleBlock(css, '#academy-room-screen.active');
   assert.notEqual(roomActiveCss, '', 'the #academy-room-screen.active rule should exist');
   assert.match(roomActiveCss, /display:\s*grid[\s\S]*height:\s*100%/, 'active room screen should be a full-height grid');
@@ -269,8 +269,8 @@ test('academy room screen shows player parameters buddy money and a scrollable i
   assert.match(css, /\.academy-training-player-parameters\s*\{[\s\S]*min-height:\s*0[\s\S]*overflow:\s*auto/, 'academy room should be able to inherit the same academy-training player-parameter scroll container contract');
   assert.doesNotMatch(css, /#academy-room-player-parameters\s*\{[\s\S]*margin-top:\s*6px|#academy-room-player-parameters \.character-parameter-section\s*\{|#academy-room-player-parameters \.character-parameter-group\s*\{|#academy-room-player-parameters \.character-parameter-item\s*\{/, 'academy room should stop carrying a separate parameter-density override once it reuses the academy-training right-panel mechanism');
   // Same "current-week summary adjacent to the action copy, hero + empty-buddy layout preserved" contract, checked
-  // per-rule via cssRuleBlock instead of one unbounded ordered scan across the shipped 550KB CSS (ref-ui-tokens
-  // bounded-window 流儀). Each rule is extracted once and its properties asserted inside its own block; the rules
+  // per-rule via cssRuleBlock instead of one unbounded ordered scan across the shipped 550KB CSS (bounded-window
+  // 流儀). Each rule is extracted once and its properties asserted inside its own block; the rules
   // are independent non-conflicting selectors, so cross-rule source ordering was never the contract.
   const roomHeroCopyCss = cssRuleBlock(css, '.academy-room-hero-copy');
   assert.notEqual(roomHeroCopyCss, '', 'the .academy-room-hero-copy rule should exist');

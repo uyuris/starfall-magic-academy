@@ -32,7 +32,7 @@
 // NEGATIVE CONTROL (documented in the task report): reverting the wiring (remove the screens['academy-alchemy']
 // registry entry / the showScreen refreshAlchemyScreen hook, or the #academy-alchemy-screen section) makes step 1
 // FAIL — the arrival never renders; removing the ROUTING_DISPATCH_SCREENS alchemy entry makes step 6 FAIL (the
-// dispatch validation throws instead of landing on the arrival). Per ref-camera the harness is fire-and-forget
+// dispatch validation throws instead of landing on the arrival). The harness is fire-and-forget
 // (no top-level await main(); whenReady would deadlock), and the deterministic LM stub answers every prompt the
 // hub dispatch drain/finalization touches (好感度 delta 整数 / MP温存ライン 整数 included).
 import { app, BrowserWindow } from 'electron';
@@ -71,7 +71,7 @@ function check(name, pass, detail = {}) {
 
 // Deterministic routing LM stub. The alchemy craft is LM-free, so the stub only answers the routing legs: the hub
 // opening / re-opening welcome, the hub destination judgment (→ alchemy), the send-off utterance, and the drain /
-// finalization judgments the hub turn touches (好感度 delta 整数 / MP温存ライン 整数 included per ref-camera —
+// finalization judgments the hub turn touches (好感度 delta 整数 / MP温存ライン 整数 included —
 // a missing branch would make the product-side fail-fast turn into an SSE error before dispatch).
 async function startStubLm() {
   const requests = [];

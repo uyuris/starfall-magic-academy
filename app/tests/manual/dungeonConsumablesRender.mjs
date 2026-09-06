@@ -17,7 +17,7 @@
 //   4. ALLY:  a heal chip opens the self/companion pick (the companion button disabled in the solo run);
 //             choosing 主人公 spends the item.
 //   5. REVIVE:the revive chip is disabled with the 対象なし note (no downed companion in a solo run).
-// Per ref-camera the harness is fire-and-forget (no top-level await main(); whenReady would deadlock) and the
+// The harness is fire-and-forget (no top-level await main(); whenReady would deadlock) and the
 // board pointer interactions are dispatched in-page (a hidden window's synthetic events reach the delegated
 // listeners because they are real DOM dispatches, not OS input).
 import { app, BrowserWindow } from 'electron';

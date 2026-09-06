@@ -32,7 +32,7 @@
 // The slot-load and resume entries drive the real load screen (#slot-load-list button / #slot-load-resume-play)
 // using the slot the new-game entry created. Two screenshots (routing frame corners; the landed hub) are saved
 // for うゆりす's visual confirmation.
-// Per ref-camera, the harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
+// The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
 import os from 'node:os';

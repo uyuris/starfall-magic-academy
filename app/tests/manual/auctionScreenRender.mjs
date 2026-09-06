@@ -13,7 +13,7 @@
 // bidders pass and the bid bar activates for the player's turn → the player raises and wins → the hammer 宣言
 // reveals → the next lot → after the third lot the closed view shows the week's results + the ハブへ戻る affordance.
 // The board (name / current / highest / min-increment / progress / history) and the numeric bid bar are measured
-// against real layout. Per ref-camera, the harness is fire-and-forget (no top-level await main(); whenReady
+// against real layout. The harness is fire-and-forget (no top-level await main(); whenReady
 // would deadlock) and drives real pointer clicks through the DOM.
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';

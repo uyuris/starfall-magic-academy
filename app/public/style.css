@@ -2108,7 +2108,7 @@ body:has(#shop-screen.active) {
 
 /* 売却カラムの「所持品／装備」タブ。所持品パネル内で表示を交替させる（所持品＝数量台帳・装備＝一点物 surface）。
    選択タブだけがそのパネルを表示し、非選択パネルは [hidden]。author の display:grid が UA の [hidden] を origin で
-   上書きするため、.shop-inventory-pane[hidden]{display:none} ガードで確実に隠す（ref-ui-tokens の [hidden] gotcha）。
+   上書きするため、.shop-inventory-pane[hidden]{display:none} ガードで確実に隠す。
    タブチップは深夜銀スキンで、消費は --shop-night-* トークンのみ（literal 色 pin なし・test-by-token）。 */
 .shop-inventory-tabs {
   display: flex;

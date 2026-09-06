@@ -20,7 +20,7 @@
 // Capture before/after by running once on the base design and once on the restyle with distinct prefixes.
 //
 // NEGATIVE CONTROL (documented in the task report): reverting the stage-image markup / the token layer makes the
-// stage-image + corner checks FAIL; breaking the option wiring makes the action leg FAIL. Per ref-camera the
+// stage-image + corner checks FAIL; breaking the option wiring makes the action leg FAIL. The
 // harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';

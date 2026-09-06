@@ -27,7 +27,7 @@
 //      grows. This is the app.js/dungeonCamera.js-unchanged proof (the same client code still drives the board).
 //
 // Screenshots are written to ${DN_SHOT_PREFIX}{-entry,-play,-result}.png. Capture before/after by running once on
-// the base design and once on the restyle with distinct prefixes. Per ref-camera the harness is fire-and-forget
+// the base design and once on the restyle with distinct prefixes. The harness is fire-and-forget
 // (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
