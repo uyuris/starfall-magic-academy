@@ -1,45 +1,22 @@
-# Assets Surface
+# 素材について
 
-Canonical asset sources are separated from the authored public shell and from provenance archives.
+このディレクトリには、ゲームが使う絵と音と、それらの出所と扱いの説明があります。
 
-## Runtime surface
+## 置き場所
 
-`/generated/*` remains only as a compatibility route and resolves from canonical-backed asset classes:
+- `canonical/` — ゲームが実際に使う素材です。タイトル・ロード・各場面の背景、生徒たちの絵、画面の部品、BGM、奏楽堂の楽器の音源などが、場面ごとのディレクトリに分かれています。ゲームのサーバーはここを `/canonical/` の下で配ります。
+- `app-icons/` — デスクトップ版のアプリのアイコンです。
+- `mapping/` — 素材の制作のときの置き場所と、いまの置き場所との対応表です。
 
-- `assets/canonical/backgrounds`
-- `assets/canonical/title`
-- `assets/canonical/load`
-- `assets/canonical/ui/card_images`
-- `assets/canonical/character_visual_sets`
+## 出所
 
-The live runtime image surface is:
+絵は、Codex を通して OpenAI の画像生成で作り、このゲームのために選んで整えたものです。BGM は `stabilityai/stable-audio-3-small-music` で生成しています。
 
-- `/canonical/*` for direct canonical reads
-- `/generated/*` for compatibility reads backed by canonical asset classes
+奏楽堂の演奏に使う音源（FluidR3Mono SoundFont）だけは、このプロジェクトが作ったものではなく、MIT ライセンスで公開されている第三者の音源です。この音源の扱いは、同じ場所にある `canonical/concert_hall/LICENSE.txt` に従います。
 
-Character visual sets live under:
+制作を続けるために、リポには素材の元の置き場所の記録や対応表、ハッシュなどを残しています。これらは素材の再利用を認めるものではなく、生成の経緯やプロンプトをすべて公開するという約束でもありません。
 
-- `assets/canonical/character_visual_sets`
-
-## Retired runtime routes
-
-Retired legacy routes that should not be revived on the live runtime surface:
-
-- `/source-assets/*`
-- `/source-sheet-assets/*`
-- `/source-sheet-crops/*`
-- `/v5-assets/*`
-- `/v5-additional-assets/*`
-
-Do not keep duplicated generated PNG mirrors under `app/public/imported_runtime_staging/`, `imports/snapshots/runtime-staging/`, or `assets/runtime_exports/`.
-
-Do not keep duplicate `character_visual_sets` mirrors under `assets/source_archives/imported_generations/` or `imports/snapshots/runtime-staging/`; provenance belongs in manifests and origin maps, not duplicate runtime trees.
-
-## Provenance note
-
-The shipped image assets currently committed to this repository were generated through Codex-driven workflows using OpenAI image generation, then curated and organized for this project's runtime surfaces.
-
-The repository may keep internal source-path references, manifests, hashes, and identity notes for production continuity, but those references are not a public reuse grant and should not be read as a promise that the full generation history or prompt/session logs are published in-repo.
+素材の扱いを定めた次の節は、権利にかかわる文言なので、英語の原文のまま置いています。
 
 ## Reuse boundary
 

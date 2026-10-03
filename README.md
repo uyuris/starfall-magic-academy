@@ -1,206 +1,100 @@
 # STARFALL MAGIC ACADEMY
 
-STARFALL MAGIC ACADEMY is a local-first playable magic-academy adventure project with structured character continuity and LM Studio-backed conversations, built on two execution surfaces:
+This game is playable in Japanese only, and this document is written in Japanese.
+このゲームは日本語専用です。
 
-- a Node-powered browser runtime served from `app/public/`
-- an Electron desktop wrapper over the same game/runtime surfaces
+![星灯魔法学院のタイトル画面の夜空](assets/canonical/title/title_night.jpg)
 
-This repository is **public-facing development work**, not a polished store-ready release. The goal of the current repo state is that an outside reader can understand what the project is, run the local code/test surfaces, and see the current architectural direction without having to know the private migration history.
+星灯魔法学院は、魔力の流れが地脈として集まる丘の上に建つ全寮制の魔法学院です。プレイヤーはここに通う生徒のひとりになって、卒業までの五十週を学院で過ごします。学院には百七十人あまりの生徒がいて、ひとりひとりが自分の人柄と話し方を持っています。その台詞は、手元で動かすローカルの LLM がその場で書きます。決められた選択肢から返事を選ぶのではなく、話したいことを自分の言葉で打ち込めば、相手はその人らしく応えてくれます。交わした会話は相手の記憶として残って次に会ったときの話に混ざり、会話のたびに相手の気持ちも少しずつ動いていきます。
 
-For the current packaged player release, the GitHub Release notes are the player-facing canonical copy. For a Japanese player-facing setup guide, see [`USER_README.ja.md`](USER_README.ja.md).
+## 学院での一週間
 
-## What is here
+週のはじまりは、学院の外側にある月夜の空間です。そこには案内人の少女がいて、プレイヤーと自由に話しながら、その週をどこで過ごすかを一緒に決めてくれます。案内人は十人いて、新しく始めるたびにそのうちのひとりがランダムに選ばれます。月夜の空間に浮かぶ天球儀からは「星の揺り籠」という小さな箱庭が開けて、植物の種や生き物の卵を育て、餌をやり、名前を付けて収穫できます。こちらは週を使わず、いつでも開けます。
 
-- `app/` — local runtime server, browser shell, local config surface, and tests
-- `electron/` — Electron desktop entrypoint
-- `content/` — canonical authored character/content surfaces
-- `data/definitions/` — canonical gameplay/world definitions
-- `data/seeds/` — seed runtime data used to bootstrap play
-- `data/mutable/` — ignored local mutable runtime/play state created while running locally
-- `assets/` — tracked canonical runtime images/BGM, app icons, provenance/reuse documentation, and optional original generation inputs that are excluded from packages
-- `tools/` — support scripts for import or asset workflows
+案内人との話で決まる行き先は、次のとおりです。
 
-## Current project posture
+- **学院マップ** — 学院の中の場所を選び、そこにいる生徒と話します。購買での買い物や採取、学院の外の山林で生き物に出会うのもここからです。
+- **鍛錬** — 六つの行動で一週間の鍛錬を組み、魔法の習熟度と基礎能力を鍛えます。
+- **ダンジョン** — 自動生成のダンジョンをターン制で探索して戦い、素材を持ち帰ります。同行者を連れて入れます。
+- **依頼** — 学内外の小さな依頼を一件受け、依頼主と話して報酬を得ます。
+- **調合** — 錬金術実習室で素材とお金を使って調合し、能力を上げる品や霊薬、売り物を作ります。
+- **研究会** — その週の研究テーマを選び、主催の生徒と話して能力を伸ばします。
+- **工房** — ダンジョンで集めた属性素材とお金で、武器や護符を作ります。
+- **大書庫** — 読みたいテーマを伝えて本を探して読み、世界の伝承の断片を収蔵庫に残します。
+- **闘技会** — 週替わりの十六枠のトーナメントに、ひとり・ふたり・バディー観戦のいずれかで臨み、賞金と素材を狙います。
+- **競売場** — 宵の競売で、その週の三品を司会のもとで他の客と競り合います。手持ちの品を出品することもできます。
+- **談話室** — 寮の談話室で、居合わせた学友三人と輪になって語らいます。
+- **奏楽堂** — 楽師に気分や情景を言葉で伝えると、一曲作ってその場で演奏してくれます。曲は収蔵棚に残り、何度でも聴き直せます。
+- **星見の窓** — 学院全体を見下ろして、生徒たちが歩き回り、出会って言葉を交わすのを眺めます。場所に一行書き込むと、誰かがそこへ足を向けることがあります。
+- **錬成室** — 重い素材と大金を使って自分だけのホムンクルスを錬成し、会いに行って話します。魔法の習熟度のどれかが一定に届くと、行き先に加わります。
 
-This repo currently aims to be a **local development/runtime repository with runnable code surfaces**.
+このほかに、週を進めずにタイトルへ戻る「区切りをつける」があります。
 
-That means:
+生徒の台詞は、その人の人物像と学院の設定と、いまいる舞台をもとに書かれます。会話を終えると、LLM がその会話を振り返って、相手からプレイヤーへの気持ち（好感度）を動かし、相手が覚えておく記憶を残します。会話の中で約束が成り立てば相手はバディーになり、敵対すればエネミーになります。会話の途中で贈り物を渡すこともできます。そうして週を重ねて五十週目を迎えると、案内人が思い出の多い生徒を何人か挙げてくれて、そこから選んだ相手と卒業の時を過ごします。
 
-- the browser and Electron code surfaces are real and runnable,
-- tests and storage contracts are maintained in-repo,
-- LM Studio-backed conversation features are part of the intended experience,
-- some developer-facing authoring and debug routes still exist because this repo is also the active implementation surface.
+## 遊ぶのに要るもの
 
-This does **not** mean:
+- git
+- Node.js と npm（確かめた環境は Node.js v24 です）
+- LM Studio と、Gemma 4 31B を動かせる GPU（作者は VRAM 24GB の GPU で遊んでいます）
 
-- the project is a finished commercial release,
-- every local API is meant as a public server surface,
-- assets are implicitly granted for third-party reuse.
+LM Studio とつながっていなくてもゲームのサーバーは起動して、タイトル画面と設定画面までは開けます。生徒との会話をはじめ、ゲームを先へ進めるには LM Studio が要ります。
 
-## Requirements
-
-- Node.js with native `fetch` support (Node 18+ recommended)
-- npm
-- LM Studio for normal gameplay/conversation progression
-- a local model/environment that can run the configured LM Studio target; the current game premise is Gemma 4 31B-family local LLM conversation
-- for the documented 24GB VRAM setup, `lmstudio-community` Gemma 4 31B `q4_k_m`, a 64,000 context window, evaluation batch size 2,048, 4bit KV cache quantization, Max Concurrent Predictions `1`, and Unified KV Cache disabled
-- optional: Electron, through the packaged npm scripts below
-
-The recommended packaged-play setup is to run the macOS build on a Mac and connect it to LM Studio's OpenAI-compatible API on the same local network. Windows play and same-machine `localhost` LM Studio can work, but they are less exercised for the current preview.
-
-Install dependencies:
+## 始め方
 
 ```bash
+git clone https://github.com/uyuris/starfall-magic-academy.git
+cd starfall-magic-academy
 npm install
-```
-
-## Quick start: browser runtime
-
-Start the local server:
-
-```bash
 npm start
 ```
 
-The runtime starts on localhost by default:
+ブラウザで `http://127.0.0.1:4173/` を開くと、タイトル画面が出ます。ポートと待ち受けのアドレスは、環境変数の `PORT` と `HOST` で変えられます。
 
-- default URL: `http://127.0.0.1:4173`
-- `PORT` and `HOST` override the port and bind address
+最初に、タイトル画面の「設定」から「接続設定」を開いて、LM Studio の接続先ホストとポートを入れ、「モデル一覧を取得」を押してモデルを選びます。保存のボタンは無く、入力を確定したときやモデルを選んだときに、その場で反映されます。そのあと「最初から始める」を押すと、月夜の空間で案内人との会話が始まります。手順の細かいところと困ったときの確かめ方は、[USER_README.ja.md](USER_README.ja.md) にまとめてあります。
 
-`scripts/serve-starfall.mjs` starts the same server for a process supervisor: it requires `SERVE_PORT` and `SERVE_HOST`, stays in the foreground, and on SIGTERM finishes in-flight writes before exiting.
+## LM Studio の設定
 
-Both play the repository's saves under `data/mutable/`, and only one server may use them at a time. While one runs, starting the other exits non-zero with the running server's pid and kind on the last stderr line. A mark left by a server that is no longer running is taken over on the next start. The Electron runtime keeps its saves under its own user data directory and is not part of this.
+作者が VRAM 24GB の GPU で使っている設定です。
 
-On a fresh clone, the server should still start **without** `app/config/lmstudio.json`.
-In that state, you can open the browser shell and settings surface, but normal gameplay/conversation progression requires LM Studio to be configured and running.
+| 項目 | 設定 |
+|---|---|
+| モデル | Gemma 4 31B の QAT 版（LM Studio の一覧での名前は `google/gemma-4-31b-qat`） |
+| コンテキストサイズ | 48000 |
+| MTP | 有効（デコーディング用に Q4 のモデルを使う） |
+| 評価バッチサイズ | 2048 |
+| KV Cache Quantization | 4bit |
+| Max Concurrent Predictions | 1 |
+| Unified KV Cache | 無効 |
+| API | LM Studio の Local Server（OpenAI 互換の API） |
 
-All canonical runtime assets currently used by the browser/Electron build are tracked in Git and packageable from a fresh clone. Original generation inputs and session logs are not part of the runtime contract; see `assets/README.md` for provenance and reuse boundaries.
+VRAM にもっと余裕があれば、ここまで切り詰めずに済むはずで、とくに KV キャッシュの量子化は使わないほうが性能の面で有利とされています。ただ、24GB より大きい環境での設定は、作者の手元では確かめていません。
 
-## Quick start: Electron runtime
+## リポの中身
 
-Run the desktop wrapper:
+ゲームは Node.js のサーバーとブラウザの画面でできています。同じゲームを Electron で包んだデスクトップ版の起動口（`npm run electron`）もあり、そちらのセーブは OS のユーザーデータの場所に別に置かれます。
 
-```bash
-npm run electron
-```
+- `app/` — ゲームのサーバー、ブラウザの画面、設定、テスト
+- `electron/` — デスクトップ版の入口
+- `content/` — 生徒たちの人物像など、書かれた中身
+- `data/definitions/` — ゲームと世界の定義
+- `data/seeds/` — 新しく始めるときの初期データ
+- `data/mutable/` — 遊んでいるあいだにできるセーブなど（git では追いません）
+- `assets/` — 絵、BGM、アイコンと、素材の出所と扱いの説明
+- `scripts/`・`tools/` — 起動や素材まわりの補助スクリプト
 
-Development variant with devtools enabled:
+ブラウザで遊ぶときのセーブは `data/mutable/` に置かれ、同時に使えるサーバーはひとつだけです。LM Studio の接続設定は `app/config/lmstudio.json` に保存されます（設定例は `app/config/lmstudio.example.json`）。
 
-```bash
-npm run electron:dev
-```
-
-Packaging scripts:
-
-```bash
-npm run electron:dist
-npm run electron:mac
-npm run electron:win
-npm run electron:pack
-```
-
-## LM Studio setup
-
-Normal gameplay/conversation progression requires an OpenAI-compatible LM Studio endpoint.
-The player-facing setup guidance is documented in [`USER_README.ja.md`](USER_README.ja.md). In short, the game is designed around Gemma 4 31B-family local LLM conversation. On the author's 24GB VRAM environment, that target requires careful LM Studio settings: `lmstudio-community` Gemma 4 31B `q4_k_m`, context size 64,000, evaluation batch size 2,048, 4bit KV cache quantization, Max Concurrent Predictions `1`, and Unified KV Cache disabled. Larger-VRAM environments may use less restrictive settings, but they are not locally verified by the author.
-
-Committed example config:
-
-- `app/config/lmstudio.example.json`
-
-Ignored local config path actually used at runtime:
-
-- `app/config/lmstudio.json`
-
-Default example values point at same-machine LM Studio:
-
-- `http://127.0.0.1:1234/v1`
-
-If LM Studio runs on another machine on the same local network, configure the game to use that machine's LAN address instead of `127.0.0.1`.
-
-### Behavior when LM Studio is not configured
-
-- `npm start` still starts the local server
-- the browser shell still loads
-- the LM Studio settings surface remains available
-- conversation/opening flows return a structured config-required error until settings are saved
-- normal gameplay/conversation progression should be treated as unavailable until LM Studio is configured and running
-
-This is intentional: missing LM Studio should not prevent the local server/settings surface from opening, but it is a **runtime requirement for the intended game experience**.
-
-## Development and verification commands
-
-Syntax / static sanity check:
+手を入れたあとの確認には、次を使います。
 
 ```bash
-npm run check
+npm run check   # 構文の確認
+npm test        # テスト
+node scripts/smoke.mjs   # サーバーが起動して GET / が 200 を返すかの確認（LM Studio なしで通ります）
 ```
 
-Main test suite:
+## ライセンスと素材
 
-```bash
-npm test
-```
+このリポにはオープンソースのライセンスを付けていません（UNLICENSED / All Rights Reserved）。読むことや話題にすることはかまいませんが、コードと素材の複製・再配布・改変したものの公開・再利用には、作者の許可が要ります。素材の出所と扱いは [assets/README.md](assets/README.md)、ライセンスの全文は [LICENSE](LICENSE) にあります。
 
-### Change gates
-
-The required checks after any code change:
-
-```bash
-npm run check   # syntax/static sanity
-npm test        # main test suite
-```
-
-A quick boot check is `node scripts/smoke.mjs`, which starts the server and
-verifies `GET /` returns HTTP 200; it passes without LM Studio configured.
-
-The development workspace additionally wraps these gates in an internal
-agent-team harness; that harness is development tooling and is not part of this
-repository's public snapshot.
-
-## Runtime surface boundaries
-
-This repo exposes multiple kinds of local surfaces. They are not all the same thing.
-
-### 1. Player-facing runtime surface
-
-The ordinary browser/Electron play flow is the main user-facing surface.
-This includes the core map, interaction, training, inventory, save/load, and conversation flows.
-
-### 2. Authoring surface
-
-Some routes allow editing world or character-authored data from the local runtime.
-These are development-time conveniences for the active repo workflow, not a claim that the project is a multi-user hosted authoring service.
-
-### 3. Debug / control surface
-
-Some local debug routes exist for flags, relationship state, progression, and inspection.
-These are for development and verification. They should be treated as local tooling surfaces, not as a hardened public API contract.
-
-## Storage model
-
-The current architecture separates:
-
-- authored content under `content/`
-- canonical definitions under `data/definitions/`
-- seed bootstrap data under `data/seeds/`
-- mutable runtime/play state under `data/mutable/`
-
-Legacy `game_data/...` compatibility still exists in places, but the direction of the repo is **split authored/definitions/mutable surfaces**, not a return to one giant mutable tree.
-
-## License and reuse
-
-- Code/package license stance: see `LICENSE`
-- Asset-specific reuse boundary: see `assets/README.md`
-
-The current repo stance is conservative: visibility of the repository does **not** mean unrestricted reuse of project assets.
-
-## Known limitations / honesty notes
-
-- LM Studio-backed conversation/game progression requires local configuration and a sufficiently capable LM Studio environment before the game works as intended
-- the current game premise is Gemma 4 31B-family local LLM conversation; the documented 24GB VRAM setup uses `lmstudio-community` Gemma 4 31B `q4_k_m`, context size 64,000, evaluation batch size 2,048, 4bit KV cache quantization, Max Concurrent Predictions `1`, and Unified KV Cache disabled
-- larger-VRAM LM Studio settings may be relaxed, and disabling KV cache quantization may be preferable for performance, but this is not locally verified by the author
-- the recommended packaged-play path is macOS on Mac connected to LM Studio over the local network; Windows and same-machine `localhost` play are less exercised for the current preview
-- the current canonical runtime asset set is committed, while upstream generation history may still be incomplete; asset reuse remains prohibited unless separately licensed
-- this is still an active development repository, so some developer-facing routes remain present in the local runtime
-- packaging exists, but “publicly visible repo” should not be confused with “final distribution-ready release”
+ゲームはまだ作っている途中で、セーブデータの形式などは今後変わることがあります。
