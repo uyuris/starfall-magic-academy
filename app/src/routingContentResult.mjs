@@ -26,7 +26,7 @@ import { isHomunculusFaceId } from './homunculusSurface.mjs';
 export const ROUTING_CONTENT_RESULT_STATE_KEY = 'last_routing_content_result';
 export const ROUTING_TRAINING_WEEK_ACCUMULATOR_STATE_KEY = 'routing_training_week_accumulator';
 
-const CONTENT_KINDS = Object.freeze(['training', 'dungeon', 'errand', 'alchemy', 'study_circle', 'workshop', 'library', 'homunculus', 'arena', 'auction', 'lounge']);
+const CONTENT_KINDS = Object.freeze(['training', 'dungeon', 'errand', 'alchemy', 'study_circle', 'workshop', 'library', 'homunculus', 'arena', 'auction', 'lounge', 'concert_hall', 'overlook']);
 // The layer vocabulary shared by library collection entries and library content-result books:
 // core / periphery are catalog books (book_id present), generated is a catalog-external book (book_id null).
 const LIBRARY_BOOK_LAYERS = Object.freeze(['core', 'periphery', 'generated']);
@@ -46,6 +46,12 @@ const LIBRARY_TRIGGER = 'library_reading_committed';
 const ARENA_TRIGGER = 'arena_tournament_concluded';
 const AUCTION_TRIGGER = 'auction_concluded';
 const LOUNGE_TRIGGER = 'lounge_concluded';
+const CONCERT_HALL_TRIGGER = 'concert_hall_piece_composed';
+const OVERLOOK_TRIGGER = 'overlook_concluded';
+// The 星見の窓 content result: the focused talks the player watched to their close (who, how it closed, what the
+// first speaker wished) and the children a written line set moving (who, the line, the wish it gave them). The
+// outcome vocabulary is the closing half of the overlook outcome judgment.
+const OVERLOOK_WATCHED_OUTCOMES = Object.freeze(['果たされた', '断られた', '別の決着']);
 // The 談話室 content result summarizes one week's group talk: the three学友 who sat in the round (identity only).
 // The raw transcript is discarded at finalization, so the hub only recalls WHO the player talked with, not what
 // was said. The vocabulary is a fixed three-participant set so a corrupt persisted detail fails fast.
@@ -479,6 +485,35 @@ function validateLibraryDetail(detail) {
   detail.books.forEach((book, index) => copyLibraryBook(book, `routing library content result books[${index}]`));
 }
 
+// One composed piece in a 奏楽堂 content result: identity only (entry_id / 題 / 方向 label — the score and
+// narration live in the pieces surface).
+function copyConcertHallPiece(piece, label) {
+  if (!piece || typeof piece !== 'object' || Array.isArray(piece)) {
+    throw new Error(`${label} must be an object`);
+  }
+  assertExactKeys(piece, new Set(['entry_id', 'title', 'direction_label']), label);
+  if (typeof piece.entry_id !== 'string' || !piece.entry_id) throw new Error(`${label} requires a non-empty entry_id`);
+  if (typeof piece.title !== 'string' || !piece.title) throw new Error(`${label} requires a non-empty title`);
+  if (typeof piece.direction_label !== 'string' || !piece.direction_label) throw new Error(`${label} requires a non-empty direction_label`);
+  return { entry_id: piece.entry_id, title: piece.title, direction_label: piece.direction_label };
+}
+
+function validateConcertHallDetail(detail) {
+  assertExactKeys(detail, new Set(['outcome', 'pieces']), 'routing concert hall content result detail');
+  if (detail.outcome !== 'completed') {
+    throw new Error("routing concert hall content result outcome must be 'completed'");
+  }
+  if (!Array.isArray(detail.pieces) || detail.pieces.length === 0) {
+    throw new Error('routing concert hall content result requires a non-empty pieces array');
+  }
+  const seen = new Set();
+  detail.pieces.forEach((piece, index) => {
+    const copied = copyConcertHallPiece(piece, `routing concert hall content result pieces[${index}]`);
+    if (seen.has(copied.entry_id)) throw new Error(`routing concert hall content result pieces must not repeat entry_id: ${copied.entry_id}`);
+    seen.add(copied.entry_id);
+  });
+}
+
 // The 錬成室 detail: identity (homunculus_id / display_name / face_id) for every trigger, plus an epitaph
 // ONLY for the farewell trigger (the nameplate line). The trigger selects the closed key set; a key mismatch
 // inside a trigger, a malformed id/face, or an empty string fails fast.
@@ -666,6 +701,42 @@ function validateLoungeDetail(detail) {
   }
 }
 
+function validateOverlookChild(child, label) {
+  if (!child || typeof child !== 'object' || Array.isArray(child)) throw new Error(`${label} must be an object`);
+  assertExactKeys(child, new Set(['character_id', 'character_name']), label);
+  if (typeof child.character_id !== 'string' || !child.character_id) throw new Error(`${label} requires a non-empty character_id`);
+  if (typeof child.character_name !== 'string' || !child.character_name) throw new Error(`${label} requires a non-empty character_name`);
+}
+
+function requireOverlookLine(value, label) {
+  if (typeof value !== 'string' || !value) throw new Error(`${label} must be a non-empty string`);
+}
+
+function validateOverlookDetail(detail) {
+  assertExactKeys(detail, new Set(['watched_conversations', 'writing_movers']), 'routing overlook content result detail');
+  if (!Array.isArray(detail.watched_conversations)) throw new Error('routing overlook content result watched_conversations must be an array');
+  detail.watched_conversations.forEach((watched, index) => {
+    const label = `routing overlook content result watched_conversations[${index}]`;
+    if (!watched || typeof watched !== 'object' || Array.isArray(watched)) throw new Error(`${label} must be an object`);
+    assertExactKeys(watched, new Set(['initiator', 'partner', 'outcome', 'wish_line']), label);
+    validateOverlookChild(watched.initiator, `${label}.initiator`);
+    validateOverlookChild(watched.partner, `${label}.partner`);
+    if (!OVERLOOK_WATCHED_OUTCOMES.includes(watched.outcome)) {
+      throw new Error(`${label}.outcome must be one of: ${OVERLOOK_WATCHED_OUTCOMES.join(', ')}`);
+    }
+    requireOverlookLine(watched.wish_line, `${label}.wish_line`);
+  });
+  if (!Array.isArray(detail.writing_movers)) throw new Error('routing overlook content result writing_movers must be an array');
+  detail.writing_movers.forEach((mover, index) => {
+    const label = `routing overlook content result writing_movers[${index}]`;
+    if (!mover || typeof mover !== 'object' || Array.isArray(mover)) throw new Error(`${label} must be an object`);
+    assertExactKeys(mover, new Set(['character_id', 'character_name', 'writing_text', 'wish_line']), label);
+    validateOverlookChild({ character_id: mover.character_id, character_name: mover.character_name }, label);
+    requireOverlookLine(mover.writing_text, `${label}.writing_text`);
+    requireOverlookLine(mover.wish_line, `${label}.wish_line`);
+  });
+}
+
 export function validateRoutingContentResult(record) {
   if (!record || typeof record !== 'object' || Array.isArray(record)) {
     throw new Error('routing content result must be a non-null object');
@@ -770,6 +841,22 @@ export function validateRoutingContentResult(record) {
       throw new Error(`routing lounge content result trigger must be '${LOUNGE_TRIGGER}'`);
     }
     validateLoungeDetail(record.detail);
+  } else if (record.kind === 'concert_hall') {
+    if (record.destination_id !== 'concert_hall') {
+      throw new Error("routing concert hall content result destination_id must be 'concert_hall'");
+    }
+    if (record.trigger !== CONCERT_HALL_TRIGGER) {
+      throw new Error(`routing concert hall content result trigger must be '${CONCERT_HALL_TRIGGER}'`);
+    }
+    validateConcertHallDetail(record.detail);
+  } else if (record.kind === 'overlook') {
+    if (record.destination_id !== 'overlook') {
+      throw new Error("routing overlook content result destination_id must be 'overlook'");
+    }
+    if (record.trigger !== OVERLOOK_TRIGGER) {
+      throw new Error(`routing overlook content result trigger must be '${OVERLOOK_TRIGGER}'`);
+    }
+    validateOverlookDetail(record.detail);
   }
   return record;
 }
@@ -1122,5 +1209,70 @@ export function buildHomunculusContentResult({ week, now, action, homunculusId, 
     recorded_at: assertRecordedAt(now),
     trigger: actionSpec.trigger,
     detail
+  });
+}
+
+// Builds a 奏楽堂 content result from one composed piece (identity only: entry_id / 題 / 方向 label — the
+// score and narration are persisted in the pieces surface). Writing the record onto runtime_state is the
+// feature owner's commit step.
+export function buildConcertHallContentResult({ week, now, piece }) {
+  return validateRoutingContentResult({
+    kind: 'concert_hall',
+    destination_id: 'concert_hall',
+    week: assertNonNegativeIntegerWeek(week),
+    recorded_at: assertRecordedAt(now),
+    trigger: CONCERT_HALL_TRIGGER,
+    detail: {
+      outcome: 'completed',
+      pieces: [copyConcertHallPiece(piece, 'routing concert hall content result pieces[0]')]
+    }
+  });
+}
+
+// Folds one composed piece into the routing content-result slot. Within the same concert-hall week the
+// new piece APPENDS to the existing concert-hall record's pieces; any other current slot (a different
+// week, or a non-concert-hall kind) is destructively replaced by a fresh record. Pure.
+export function mergeConcertHallContentResult({ existing, week, now, piece }) {
+  const fresh = buildConcertHallContentResult({ week, now, piece });
+  const sameWeek = existing !== null && existing !== undefined
+    && existing.kind === 'concert_hall' && existing.week === week;
+  if (!sameWeek) return fresh;
+  return validateRoutingContentResult({
+    ...fresh,
+    detail: {
+      outcome: 'completed',
+      pieces: [
+        ...existing.detail.pieces.map((piece, index) => copyConcertHallPiece(piece, `routing concert hall content result pieces[${index}]`)),
+        ...fresh.detail.pieces
+      ]
+    }
+  });
+}
+
+// Builds a 星見の窓 content result at exit: the watched talks and the children a written line moved. Writing the
+// record onto runtime_state is the overlook exit's job.
+export function buildOverlookContentResult({ week, now, watchedConversations, writingMovers }) {
+  if (!Array.isArray(watchedConversations)) throw new Error('routing overlook content result requires watchedConversations');
+  if (!Array.isArray(writingMovers)) throw new Error('routing overlook content result requires writingMovers');
+  return validateRoutingContentResult({
+    kind: 'overlook',
+    destination_id: 'overlook',
+    week: assertNonNegativeIntegerWeek(week),
+    recorded_at: assertRecordedAt(now),
+    trigger: OVERLOOK_TRIGGER,
+    detail: {
+      watched_conversations: watchedConversations.map((watched) => ({
+        initiator: { character_id: watched.initiator.character_id, character_name: watched.initiator.character_name },
+        partner: { character_id: watched.partner.character_id, character_name: watched.partner.character_name },
+        outcome: watched.outcome,
+        wish_line: watched.wish_line
+      })),
+      writing_movers: writingMovers.map((mover) => ({
+        character_id: mover.character_id,
+        character_name: mover.character_name,
+        writing_text: mover.writing_text,
+        wish_line: mover.wish_line
+      }))
+    }
   });
 }

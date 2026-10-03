@@ -7,8 +7,11 @@
 //   1. drawWeeklyStudyCircleSkeletons fixes the deterministic skeleton — three distinct
 //      themes, a type drawn from each theme, a unique host each, and a band-rolled per-
 //      parameter reward (no LLM).
-//   2. per offer, sequentially, the host's memory materials are read and the offer text
-//      (title / situation / motivation) is generated and gated.
+//   2. per offer, the host's memory materials are read and the offer text
+//      (title / situation / motivation) is generated and gated. The three offers are
+//      mutually independent, so they run as one bundle through `runIndependentBundle`
+//      (bundle concurrency bound in llm/llmConcurrency.mjs); retry stays per offer, and
+//      the results are assembled in skeleton order regardless of completion order.
 //   3. only once ALL three pass the gate is the slot written in one commit.
 //
 // Any generation or gate failure throws with NOTHING persisted — no partial slot, no
@@ -21,6 +24,7 @@ import {
   STUDY_CIRCLE_GENERATION_FAILED_ERROR_CODE
 } from './llm/studyCircleOffer.mjs';
 import { generateGatedOfferTextWithRetry } from './llm/offerGenerationRetry.mjs';
+import { runIndependentBundle } from './llm/llmConcurrency.mjs';
 import {
   ROUTING_WEEKLY_STUDY_CIRCLE_OFFERS_STATE_KEY,
   drawWeeklyStudyCircleSkeletons,
@@ -68,8 +72,8 @@ export async function buildOrLoadWeeklyStudyCircleOffers({
 
   const { skeletons } = drawWeeklyStudyCircleSkeletons({ state, catalog, definitions });
 
-  const offers = [];
-  for (const skeleton of skeletons) {
+  // One bundle item = one offer (structured → chat, retried as a unit); results land in skeleton order.
+  const offers = await runIndependentBundle(skeletons, { run: async (skeleton) => {
     const memories = await memoriesFor(skeleton.host_character_id);
     // The persona (name / standing / character description / speaking basis) drives both the
     // character-fit skeleton and the own-voice appeal. The offer/appeal prompt builders are the
@@ -87,7 +91,7 @@ export async function buildOrLoadWeeklyStudyCircleOffers({
       validate: validateStudyCircleOfferText,
       generationErrorCode: STUDY_CIRCLE_GENERATION_FAILED_ERROR_CODE
     });
-    offers.push({
+    return {
       study_circle_id: skeleton.study_circle_id,
       type_id: skeleton.type_id,
       theme_id: skeleton.theme_id,
@@ -101,8 +105,8 @@ export async function buildOrLoadWeeklyStudyCircleOffers({
       venue: skeleton.venue,
       host_character_id: skeleton.host_character_id,
       host_display_name: skeleton.host_display_name
-    });
-  }
+    };
+  } });
 
   const persisted = validateWeeklyStudyCircleOffers({ week, offers });
 

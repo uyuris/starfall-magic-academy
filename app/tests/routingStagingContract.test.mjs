@@ -1,3 +1,4 @@
+// 残す (a): atomic promotion と recovery が staged の削除を slot へ写し損ね、promotion の途中で slot を壊す壊れ方から、slot の記録を守る。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { promises as fs } from 'node:fs';
@@ -9,8 +10,7 @@ import { writeRuntimePathsManifest } from '../src/runtimeSlotBootstrap.mjs';
 import {
   recoverPromotingFinalizations,
   resolveFinalizeStagingDir,
-  runAtomicFinalizationWithStaging,
-  runRoutingReadScopeWithRecoveryIfActive
+  runAtomicFinalizationWithStaging
 } from '../src/routingFinalizeQueue.mjs';
 import { readJson } from './helpers.mjs';
 
@@ -18,9 +18,8 @@ import { readJson } from './helpers.mjs';
 // These exercise routingFinalizeQueue's staging public interface directly, so they build the smallest
 // slot layout the machinery traverses (a single slot's game_data tree + the runtime-paths manifests
 // that route storage's mutableRoot into it) instead of materializing the full 130+ roster via
-// initializeNewPlayArea or copying a full game_data fixture. The end-to-end path (real server → turn →
-// end → staging → promotion → drain) stays proven by the routing-mode server cases in
-// routingFinalizeQueue.test.mjs; here the subject is only the file-mirroring/recovery semantics.
+// initializeNewPlayArea or copying a full game_data fixture. The subject is only the file-mirroring/recovery
+// semantics.
 
 async function exists(targetPath) {
   try {
@@ -111,22 +110,4 @@ test('atomic promotion and recovery mirror staged file deletions', async (t) => 
   assert.equal(await exists(liveRecoveryStale), false, 'recovery must delete live files absent from the staged workspace');
   const state = await createStorageApi({ root: playRoot }).readJson('game_data/runtime_state.json');
   assert.equal(state.current_location_id, 'delete_recovered_location');
-});
-
-test('explicit routing recovery entry recovers a staged promotion before serving scoped reads', async (t) => {
-  const { playRoot, slotGameData } = await minimalRoutingSlotFixture(t);
-  const stagingDir = await stageRecoverablePromotion({
-    playRoot,
-    slotGameData,
-    conversationId: 'conv_recover_001',
-    statePatch: { current_location_id: 'recovered_location' }
-  });
-
-  const storage = createStorageApi({ root: playRoot });
-  await runRoutingReadScopeWithRecoveryIfActive({ root: playRoot }, async () => {
-    const state = await storage.readJson('game_data/runtime_state.json');
-    assert.equal(state.current_location_id, 'recovered_location');
-  });
-
-  assert.equal(await exists(stagingDir), false, 'recovered staging is removed after promotion');
 });

@@ -18,6 +18,7 @@
 
 import { callLmStudioChat } from './lmStudioClient.mjs';
 import { ARENA_OUTCOMES } from '../arena/arenaTournament.mjs';
+import { WORLD_CANON_GUARD_CLAUSE } from './worldCanonGuard.mjs';
 
 // A generation failure is surfaced as a structured 503 (the errand / study / library / 錬成室 / auction contract).
 // An empty / over-cap output is the model producing unusable output, so it shares this status.
@@ -46,8 +47,9 @@ function requireNonEmptyString(value, label) {
 // The 語り形 role line shared by both surfaces (§2/§3/§4: 場内アナウンスの地の文・固有 persona なし).
 const ARENA_ANNOUNCE_ROLE = 'あなたは魔法学院の闘技会の場内アナウンスの地の文を綴る。';
 
-// The 世界整合ガード行 (§7-4: the anachronism guard that doubles as the 世界語彙 seed — always present).
-const ARENA_WORLD_GUARD_LINE = '- 実在の地名・人名・歴史、現代語・外来語、現代の器具や単位を混ぜない（この世界は星の残光と地脈の魔法が息づく古い学院世界である）。';
+// The 世界整合ガード行 (§7-4: the anachronism guard — always present — followed by the shared canon guard,
+// which binds the announcement to this world's cosmology without seeding its nouns into every 口上).
+const ARENA_WORLD_GUARD_LINE = `- 実在の地名・人名・歴史、現代語・外来語、現代の器具や単位を混ぜない。${WORLD_CANON_GUARD_CLAUSE}`;
 
 // ----- 試合前口上 (§3・pure) -----
 

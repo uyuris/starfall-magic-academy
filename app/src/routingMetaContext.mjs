@@ -252,16 +252,27 @@ export function clearUnconsumedRoutingConversationPointerInState(state) {
   return { ...state, [UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY]: null };
 }
 
-// Strict read of the top-level pointer for the hub snapshot. An undefined field is a pre-migration slot and
-// fails fast (the migration script populates every slot with explicit null); a value present is validated
-// against the closed schema.
-export function readUnconsumedRoutingConversationPointer(state) {
+// A save whose runtime_state has no top-level pointer field predates the pointer and cannot be loaded; the
+// save listing surfaces it as an incompatible slot under this error_code.
+export const ROUTING_CONVERSATION_POINTER_MISSING_ERROR_CODE = 'slot_routing_conversation_pointer_missing';
+
+export function assertUnconsumedRoutingConversationPointerPresent(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) {
-    throw new Error('readUnconsumedRoutingConversationPointer requires a runtime state object');
+    throw new Error('assertUnconsumedRoutingConversationPointerPresent requires a runtime state object');
   }
   if (!hasOwn(state, UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY)) {
-    throw new Error(`runtime_state.${UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY} is required; run node scripts/add-unconsumed-routing-conversation-pointer.mjs --apply on this slot`);
+    const error = new Error(`runtime_state.${UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY} is missing: this save predates it and cannot be loaded`);
+    error.code = ROUTING_CONVERSATION_POINTER_MISSING_ERROR_CODE;
+    error.errorCode = ROUTING_CONVERSATION_POINTER_MISSING_ERROR_CODE;
+    error.statusCode = 400;
+    throw error;
   }
+}
+
+// Strict read of the top-level pointer for the hub snapshot. An absent field fails fast as a pre-pointer save;
+// a value present is validated against the closed schema.
+export function readUnconsumedRoutingConversationPointer(state) {
+  assertUnconsumedRoutingConversationPointerPresent(state);
   return validateUnconsumedRoutingConversationPointer(state[UNCONSUMED_ROUTING_CONVERSATION_STATE_KEY]);
 }
 
@@ -697,7 +708,7 @@ function renderParameterDeltaMap(map) {
   return parts.length ? parts.join('、') : '増減なし';
 }
 
-function renderRecentConversationContext(context, personaName) {
+export function renderRecentConversationContext(context, personaName) {
   if (!context) return [];
   if (context.kind === 'no_new_conversation') {
     return [`- 直近の行き先での会話: 新しい会話はなく、${personaName}が覗ける新しい記憶はない。`];
@@ -765,7 +776,7 @@ function renderWorkshopItemSummary(detail) {
   return `${kindLabel}・属性${elementLabel}・階級T${detail.tier}・出来栄え${qualityLabel}`;
 }
 
-function renderContentResultContext(context) {
+export function renderContentResultContext(context) {
   if (!context) return [];
   const { record } = context;
   if (record.kind === 'training') {
@@ -843,6 +854,23 @@ function renderContentResultContext(context) {
     const names = record.detail.participants.map((participant) => participant.character_name).join('・');
     return [
       `- 直近コンテンツ結果: 談話室で${names}と車座になって語らった。`
+    ];
+  }
+  if (record.kind === 'concert_hall') {
+    const titles = record.detail.pieces.map((piece) => `〈${piece.title}〉（${piece.direction_label}）`).join('、');
+    return [
+      `- 直近コンテンツ結果: 先週は奏楽堂で楽師に曲を作ってもらい、${titles}を奏でた。`
+    ];
+  }
+  if (record.kind === 'overlook') {
+    const watched = record.detail.watched_conversations.length
+      ? record.detail.watched_conversations.map((entry) => `${entry.initiator.character_name}と${entry.partner.character_name}（${entry.initiator.character_name}の「${entry.wish_line}」は${entry.outcome}）`).join('、')
+      : 'なし';
+    const movers = record.detail.writing_movers.length
+      ? record.detail.writing_movers.map((mover) => `${mover.character_name}（書き込み「${mover.writing_text}」を見て「${mover.wish_line}」）`).join('、')
+      : 'なし';
+    return [
+      `- 直近コンテンツ結果: 先週は星見の窓から学院の生徒たちを眺めた。見届けた会話: ${watched}。書き込みで動いた子: ${movers}。`
     ];
   }
   if (record.kind === 'dungeon') {

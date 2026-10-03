@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { createStorageApi } from './storage.mjs';
+import { createStorageApi, writeJsonFileAtomic } from './storage.mjs';
 import { runtimePathsManifestFilename } from './runtimePaths.mjs';
 import { validateRoutingPersonaVariant } from './playMode.mjs';
 import { isInFlightGraduationPhase2 } from './graduationEnding.mjs';
@@ -22,14 +22,11 @@ import {
   writeSlotMeta
 } from './playSession.mjs';
 import { resolveSlotFinalizeStagingRoot } from './routingFinalizeQueue.mjs';
+import { readFootprintSummary } from './llm/footprintSummary.mjs';
+import { ROUTING_CONVERSATION_POINTER_MISSING_ERROR_CODE, assertUnconsumedRoutingConversationPointerPresent } from './routingMetaContext.mjs';
 
 async function readJson(fullPath) {
   return JSON.parse(await fs.readFile(fullPath, 'utf8'));
-}
-
-async function writeJson(fullPath, value) {
-  await fs.mkdir(path.dirname(fullPath), { recursive: true });
-  await fs.writeFile(fullPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
 async function pathExists(targetPath) {
@@ -113,9 +110,9 @@ async function cloneCanonicalGameDataToSlotRoot(root, targetRoot) {
   await resetSlotGameDataRoot(targetRoot);
   await writeRuntimePathsManifest({ root: targetRoot, sourceRoot: root, mutableRoot: targetGameDataRoot });
 
-  for (const relativePath of ['game_data/runtime_state.json', 'game_data/player_inventory.json', 'game_data/player_equipment.json', 'game_data/library_collection.json', 'game_data/homunculi.json', 'game_data/star_cradle.json', 'game_data/star_cradle_creatures.json', 'game_data/gathering_stock.json', 'game_data/mp_reserve.json', 'game_data/runtime/player_parameters.json']) {
+  for (const relativePath of ['game_data/runtime_state.json', 'game_data/player_inventory.json', 'game_data/player_equipment.json', 'game_data/library_collection.json', 'game_data/concert_hall_pieces.json', 'game_data/homunculi.json', 'game_data/star_cradle.json', 'game_data/star_cradle_creatures.json', 'game_data/gathering_stock.json', 'game_data/mp_reserve.json', 'game_data/runtime/player_parameters.json']) {
     const value = await storage.readJsonIfExists(relativePath);
-    if (value != null) await writeJson(path.join(targetRoot, relativePath), value);
+    if (value != null) await writeJsonFileAtomic(path.join(targetRoot, relativePath), value);
   }
 
   const logsSource = path.join(storage.paths.mutableRoot, 'logs');
@@ -132,31 +129,36 @@ async function readRuntimeStateForSlot(root, slotId) {
 
 // Read a slot's runtime_state for entry-contract resolution (the load/slots screen routing reads it to decide
 // whether the slot is mid graduation phase 2). Validates the slot id and existence with the same fail-fast the
-// other slot-scoped reads use; never returns a default state.
+// other slot-scoped reads use; never returns a default state. A state without the routing conversation pointer
+// throws the degraded pointer-missing error, so load rejects the slot and an active one resolves incompatible.
 export async function readSaveSlotRuntimeState({ root, slotId }) {
   if (!root) throw new Error('root is required');
   if (!slotId) throw new Error('slotId is required');
   const normalizedSlotId = assertValidSlotId(slotId);
   if (!(await isValidSlot(root, normalizedSlotId))) throw invalidSlotError(normalizedSlotId);
-  return await readRuntimeStateForSlot(root, normalizedSlotId);
+  const state = await readRuntimeStateForSlot(root, normalizedSlotId);
+  assertUnconsumedRoutingConversationPointerPresent(state);
+  return state;
 }
 
 async function updateRuntimeStateForSlot(root, slotId, updater) {
   const statePath = path.join(resolveSlotProjectRoot(root, slotId), 'game_data/runtime_state.json');
   const current = await readJson(statePath);
   const next = updater(current);
-  await writeJson(statePath, next);
+  await writeJsonFileAtomic(statePath, next);
   return next;
 }
 
 // The closed set of compatibility errors that make a slot degraded (listable-but-not-loadable) instead of
-// bricking the whole listing. These are the read-normalizer migration errors for a slot whose persisted
-// play_mode / routing variant predates the current write contract. Every other throw — I/O errors, JSON
-// parse errors, unknown invariants — propagates unchanged (no catch-all, fail-fast preserved).
+// bricking the whole listing: the read-normalizer errors for a slot whose persisted play_mode / routing variant
+// does not meet the current write contract, and a runtime_state that predates the routing conversation pointer.
+// Every other throw — I/O errors, JSON parse errors, unknown invariants — propagates unchanged (no catch-all,
+// fail-fast preserved).
 const DEGRADED_SLOT_ERROR_CODES = Object.freeze([
   'slot_play_mode_missing',
   'slot_play_mode_invalid',
-  'slot_routing_persona_variant_missing'
+  'slot_routing_persona_variant_missing',
+  ROUTING_CONVERSATION_POINTER_MISSING_ERROR_CODE
 ]);
 
 export function isDegradedSlotError(error) {
@@ -358,10 +360,14 @@ export async function listSaveSlots({ root }) {
     const meta = await readSlotMeta(root, slotId);
     if (!meta) continue;
     try {
-      slots.push(slotSummary({
-        ...meta,
-        graduation_completed: await readGraduationCompletedForSlot(root, slotId)
-      }));
+      const summary = slotSummary(meta);
+      const state = await readRuntimeStateForSlot(root, slotId).catch(() => null);
+      if (state) assertUnconsumedRoutingConversationPointerPresent(state);
+      slots.push({
+        ...summary,
+        graduation_completed: state?.ending_completed === true,
+        footprint_summary: state ? readFootprintSummary(state) : null
+      });
     } catch (error) {
       if (!isDegradedSlotError(error)) throw error;
       incompatibleSlots.push(degradedSlotEntry(slotId, meta, error));

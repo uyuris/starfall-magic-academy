@@ -16,6 +16,20 @@ function pathExists(fullPath) {
   return fs.access(fullPath).then(() => true).catch(() => false);
 }
 
+// JSON is written to a sibling temp file and renamed over the target, so a process stopped mid-write
+// leaves the target holding either its previous bytes or the new bytes — never an empty or partial file.
+export async function writeJsonFileAtomic(fullPath, value) {
+  await fs.mkdir(path.dirname(fullPath), { recursive: true });
+  const tempPath = path.join(path.dirname(fullPath), `.${path.basename(fullPath)}.${process.pid}.${randomUUID()}.tmp`);
+  try {
+    await fs.writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+    await fs.rename(tempPath, fullPath);
+  } catch (error) {
+    await fs.rm(tempPath, { force: true });
+    throw error;
+  }
+}
+
 function defaultFlagsFor(characterId) {
   return { character_id: characterId, flags: {} };
 }
@@ -184,7 +198,7 @@ async function resolveLegacyReadPath(paths, relativePath) {
     if (await pathExists(configCandidate)) return configCandidate;
     return resolveWithinBase(paths.definitionsRoot, rest);
   }
-  if (rest === 'runtime_state.json' || rest === 'player_inventory.json' || rest === 'player_equipment.json' || rest === 'library_collection.json' || rest === 'homunculi.json' || rest === 'star_cradle.json' || rest === 'star_cradle_creatures.json' || rest === 'gathering_stock.json' || rest === 'mp_reserve.json' || rest === path.join('runtime', 'player_parameters.json')) {
+  if (rest === 'runtime_state.json' || rest === 'player_inventory.json' || rest === 'player_equipment.json' || rest === 'library_collection.json' || rest === 'concert_hall_pieces.json' || rest === 'homunculi.json' || rest === 'star_cradle.json' || rest === 'star_cradle_creatures.json' || rest === 'gathering_stock.json' || rest === 'mp_reserve.json' || rest === path.join('runtime', 'player_parameters.json')) {
     const mutableCandidate = resolveWithinBase(paths.mutableRoot, rest);
     if (await pathExists(mutableCandidate)) return mutableCandidate;
     return resolveWithinBase(paths.seedsRoot, rest);
@@ -238,7 +252,7 @@ function resolveLegacyWritePath(paths, relativePath) {
   if (rest === path.join('world', 'settings.json')) {
     return resolveWithinBase(paths.configRoot, path.join('world', 'settings.json'));
   }
-  if (rest === 'runtime_state.json' || rest === 'player_inventory.json' || rest === 'player_equipment.json' || rest === 'library_collection.json' || rest === 'homunculi.json' || rest === 'star_cradle.json' || rest === 'star_cradle_creatures.json' || rest === 'gathering_stock.json' || rest === 'mp_reserve.json' || rest === path.join('runtime', 'player_parameters.json')) {
+  if (rest === 'runtime_state.json' || rest === 'player_inventory.json' || rest === 'player_equipment.json' || rest === 'library_collection.json' || rest === 'concert_hall_pieces.json' || rest === 'homunculi.json' || rest === 'star_cradle.json' || rest === 'star_cradle_creatures.json' || rest === 'gathering_stock.json' || rest === 'mp_reserve.json' || rest === path.join('runtime', 'player_parameters.json')) {
     return resolveWithinBase(paths.mutableRoot, rest);
   }
   if (rest.startsWith(`logs${path.sep}`)) {
@@ -306,17 +320,7 @@ export function createStorageApi(options = {}) {
   }
 
   async function writeJson(relativePath, value) {
-    const fullPath = resolveLegacyWritePath(resolvedPaths, relativePath);
-    await fs.mkdir(path.dirname(fullPath), { recursive: true });
-    await fs.writeFile(fullPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-  }
-
-  async function writeJsonAtomic(relativePath, value) {
-    const fullPath = resolveLegacyWritePath(resolvedPaths, relativePath);
-    await fs.mkdir(path.dirname(fullPath), { recursive: true });
-    const tempPath = path.join(path.dirname(fullPath), `.${path.basename(fullPath)}.${process.pid}.${randomUUID()}.tmp`);
-    await fs.writeFile(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-    await fs.rename(tempPath, fullPath);
+    await writeJsonFileAtomic(resolveLegacyWritePath(resolvedPaths, relativePath), value);
   }
 
   async function readCharacter(characterId) {
@@ -391,7 +395,6 @@ export function createStorageApi(options = {}) {
     readJson,
     readJsonIfExists,
     writeJson,
-    writeJsonAtomic,
     readCharacter,
     listJson,
     listMarkdownRecords
@@ -402,7 +405,6 @@ export const defaultStorageApi = createStorageApi();
 export const readJson = defaultStorageApi.readJson;
 export const readJsonIfExists = defaultStorageApi.readJsonIfExists;
 export const writeJson = defaultStorageApi.writeJson;
-export const writeJsonAtomic = defaultStorageApi.writeJsonAtomic;
 export const readCharacter = defaultStorageApi.readCharacter;
 export const listJson = defaultStorageApi.listJson;
 export const listMarkdownRecords = defaultStorageApi.listMarkdownRecords;

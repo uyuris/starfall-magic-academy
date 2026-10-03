@@ -1,5 +1,6 @@
 import http from 'node:http';
 import path from 'node:path';
+import { finished } from 'node:stream/promises';
 import { buildCharacterPrompt } from './llm/promptBuilder.mjs';
 import { editConversationUserMessage, finalizeConversation, finalizeConversationAtomic, getContinuityRecordStatus, pendingRecalledWorkRecordIds, resetContinuityRecords, runConversationOpening, runConversationTurn, selectRelevantWorkRecords, startInteractionSession } from './llm/conversationPipeline.mjs';
 import { resolveCharacterSpeechConstraints } from './llm/characterSpeechConstraints.mjs';
@@ -7,7 +8,7 @@ import { createLmStudioProviders, createLoungeFinalizationProviders, loadLmStudi
 import { listSelectableCharacters, ensureSelectableCharacterStorage, updateCharacterProfileText } from './characterCatalog.mjs';
 import { loadWorldSettings } from './worldSettings.mjs';
 import { canHandleSaveLoadApiRoute, handleSaveLoadApi, isSaveSlotLoadRoute } from './server/saveLoadApi.mjs';
-import { canHandleLmStudioSettingsRoute, handleLmStudioSettingsApi, ensureLmStudioConversationConfig } from './server/lmStudioSettingsApi.mjs';
+import { canHandleLmStudioSettingsRoute, handleLmStudioSettingsApi, ensureLmStudioConversationConfig, errorResponsePayload } from './server/lmStudioSettingsApi.mjs';
 import { canHandlePlayModeSettingsRoute, handlePlayModeSettingsApi, readPlayModeSettings } from './server/playModeSettingsApi.mjs';
 import { canHandleRoutingHubRoute, handleRoutingHubApi } from './server/routingHubApi.mjs';
 import { canHandleErrandApiRoute, handleErrandApi } from './server/errandApi.mjs';
@@ -15,11 +16,11 @@ import { canHandleAlchemyApiRoute, handleAlchemyApi } from './server/alchemyApi.
 import { canHandleStudyCircleApiRoute, handleStudyCircleApi } from './server/studyCircleApi.mjs';
 import { canHandleWorkshopApiRoute, handleWorkshopApi } from './server/workshopApi.mjs';
 import { canHandleLibraryApiRoute, handleLibraryApi } from './server/libraryApi.mjs';
+import { canHandleConcertHallApiRoute, handleConcertHallApi } from './server/concertHallApi.mjs';
 import { canHandleAtelierApiRoute, handleAtelierApi } from './server/atelierApi.mjs';
 import { canHandleStarCradleApiRoute, handleStarCradleApi } from './server/starCradleApi.mjs';
 import { canHandleConversationPopupSettingsRoute, handleConversationPopupSettingsApi } from './server/conversationPopupSettingsApi.mjs';
 import { canHandleAudioSettingsRoute, handleAudioSettingsApi } from './server/audioSettingsApi.mjs';
-import { canHandleSaveDataRepairRoute, handleSaveDataRepairApi } from './server/saveDataRepairApi.mjs';
 import { canHandleFlagDebugRoute, handleFlagDebugApi } from './server/flagDebugApi.mjs';
 import { canHandleDeleteFlagsRoute, handleDeleteFlagsApi } from './server/deleteFlagsApi.mjs';
 import { canHandleAuthoringApiRoute, handleAuthoringApi } from './server/authoringApi.mjs';
@@ -31,6 +32,7 @@ import { canHandleDungeonApiRoute, handleDungeonApi } from './server/dungeonApi.
 import { canHandleArenaApiRoute, handleArenaApi } from './server/arenaApi.mjs';
 import { canHandleAuctionApiRoute, handleAuctionApi } from './server/auctionApi.mjs';
 import { canHandleLoungeApiRoute, handleLoungeApi } from './server/loungeApi.mjs';
+import { canHandleOverlookApiRoute, handleOverlookApi } from './server/overlookApi.mjs';
 import { canHandleDiaryApiRoute, handleDiaryApi } from './server/diaryApi.mjs';
 import { beginLlmActivity } from './llm/llmActivity.mjs';
 import { canHandleInteractionContinuityApiRoute, handleInteractionContinuityApi, isInteractionStartRoute } from './server/interactionContinuityApi.mjs';
@@ -45,7 +47,8 @@ import { defaultRuntimePaths } from './runtimePaths.mjs';
 import { createStorageApi } from './storage.mjs';
 import { assertValidSlotId, readActiveSlot, readValidActiveSlotId, resolveValidActivePlayRoot } from './playSession.mjs';
 import { isDegradedSlotError, readSaveSlotActivePlayMode } from './saveLoad.mjs';
-import { recoverPromotingFinalizations, runRoutingReadScopeIfActive, runRoutingReadScopeRequired } from './routingFinalizeQueue.mjs';
+import { recoverPromotingFinalizations, runRoutingReadScopeIfActive, runRoutingReadScopeRequired, waitForRoutingFinalizationsIdle } from './routingFinalizeQueue.mjs';
+import { holdServerLockForProcess, ServerLockHeldError } from './serverLock.mjs';
 
 const projectRoot = defaultRuntimePaths.projectRoot;
 const defaultPublicRoot = defaultRuntimePaths.publicRoot;
@@ -54,6 +57,11 @@ const defaultCanonicalVisualSetsRoot = defaultRuntimePaths.canonicalVisualSetsRo
 const defaultLmStudioConfigPath = path.join(defaultRuntimePaths.configRoot, 'lmstudio.json');
 const defaultPort = Number(process.env.PORT ?? 4173);
 const defaultHost = process.env.HOST ?? '127.0.0.1';
+// The 星見の窓 academy clock reads the server's wall clock.
+const overlookClock = Object.freeze({ now: () => Date.now() });
+// Per-server shutdown bookkeeping: `stopping` refuses new requests, `inFlight` holds one entry per accepted
+// request that settles once its handler has returned and its response has left the socket.
+const serverLifecycles = new WeakMap();
 
 function storageFor(root, options = {}) {
   return createStorageApi({ root, ...options });
@@ -313,6 +321,21 @@ async function routeApi(req, res, url, context, { routingRequest = false, readBo
     });
     return;
   }
+  if (canHandleConcertHallApiRoute(req.method, url.pathname)) {
+    await handleConcertHallApi({
+      req,
+      res,
+      url,
+      context,
+      sendJson,
+      readBody: readBodyOverride,
+      activePlayMode,
+      resolveLmStudioConfig: () => ensureLmStudioConversationConfig(context),
+      openSse,
+      sendSseEvent
+    });
+    return;
+  }
   if (canHandleAtelierApiRoute(req.method, url.pathname)) {
     await handleAtelierApi({
       req,
@@ -339,10 +362,6 @@ async function routeApi(req, res, url, context, { routingRequest = false, readBo
   }
   if (canHandleAudioSettingsRoute(req.method, url.pathname)) {
     await handleAudioSettingsApi({ req, res, url, context, sendJson, readBody: readBodyOverride });
-    return;
-  }
-  if (canHandleSaveDataRepairRoute(req.method, url.pathname)) {
-    await handleSaveDataRepairApi({ req, res, url, context, sendJson });
     return;
   }
   if (canHandleFlagDebugRoute(req.method, url.pathname)) {
@@ -429,6 +448,22 @@ async function routeApi(req, res, url, context, { routingRequest = false, readBo
     });
     return;
   }
+  if (canHandleOverlookApiRoute(req.method, url.pathname)) {
+    await handleOverlookApi({
+      req,
+      res,
+      url,
+      context,
+      sendJson,
+      readBody: readBodyOverride,
+      activePlayMode,
+      resolveLmStudioConfig: () => ensureLmStudioConversationConfig(context),
+      clock: overlookClock,
+      openSse,
+      sendSseEvent
+    });
+    return;
+  }
   if (canHandleDiaryApiRoute(req.method, url.pathname)) {
     await handleDiaryApi({ req, res, url, context, sendJson });
     return;
@@ -475,7 +510,6 @@ async function routeApi(req, res, url, context, { routingRequest = false, readBo
       writeJson,
       runConversationOpening,
       runConversationTurn,
-      editConversationUserMessage,
       runConversationFinalization: runConversationFinalizationForRequest,
       markGraduationEndingComplete,
       isGraduationEndingContext,
@@ -496,6 +530,7 @@ async function routeApi(req, res, url, context, { routingRequest = false, readBo
       resolveRuntimeProviders,
       runConversationOpening,
       runConversationTurn,
+      editConversationUserMessage,
       runConversationFinalization: runConversationFinalizationForRequest,
       markGraduationEndingComplete,
       isGraduationEndingContext,
@@ -655,7 +690,6 @@ export function createServer(options = {}) {
     playModeSettingsPath: path.resolve(options.playModeSettingsPath ?? process.env.MAGIC_ACADEMY_PLAY_MODE_SETTINGS ?? path.join(path.dirname(resolvedLmStudioConfigPath), 'play-mode.json')),
     conversationPopupSettingsPath: path.resolve(options.conversationPopupSettingsPath ?? process.env.MAGIC_ACADEMY_CONV_POPUP_SETTINGS ?? path.join(path.dirname(resolvedLmStudioConfigPath), 'conversation-popup.json')),
     audioSettingsPath: path.resolve(options.audioSettingsPath ?? process.env.MAGIC_ACADEMY_AUDIO_SETTINGS ?? path.join(path.dirname(resolvedLmStudioConfigPath), 'audio.json')),
-    saveDataRepairRunnerForTest: options.saveDataRepairRunnerForTest ?? null,
     activeRootRestorePromise: null
   };
   if (!context.activeRoot) {
@@ -663,17 +697,74 @@ export function createServer(options = {}) {
       context.activeRoot = activeRoot;
     });
   }
-  return http.createServer(async (req, res) => {
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    try {
-      if (url.pathname.startsWith('/api/')) await routeApiWithReadScope(req, res, url, context);
-      else await serveStatic(req, res, url, context);
-    } catch (error) {
-      const payload = { error: error.message };
-      if (error?.errorCode) payload.error_code = error.errorCode;
-      sendJson(res, payload, error?.statusCode ?? 500);
+  const lifecycle = { stopping: false, inFlight: new Set() };
+  const server = http.createServer(async (req, res) => {
+    if (lifecycle.stopping) {
+      res.setHeader('connection', 'close');
+      sendJson(res, { error: 'server is shutting down', error_code: 'server_shutting_down' }, 503);
+      return;
     }
+    const handled = handleRequest(req, res, context);
+    const request = Promise.allSettled([handled, finished(res)]);
+    lifecycle.inFlight.add(request);
+    request.then(() => lifecycle.inFlight.delete(request));
+    await handled;
   });
+  serverLifecycles.set(server, lifecycle);
+  return server;
+}
+
+async function handleRequest(req, res, context) {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  try {
+    if (url.pathname.startsWith('/api/')) await routeApiWithReadScope(req, res, url, context);
+    else await serveStatic(req, res, url, context);
+  } catch (error) {
+    sendJson(res, errorResponsePayload(error), error?.statusCode ?? 500);
+  }
+}
+
+// Stops a server built by createServer without cutting a write short: new connections and new requests
+// are refused, every accepted request runs to the end of its response, and the routing finalization queue
+// settles; only then are the remaining (idle keep-alive) connections closed. There is no deadline here —
+// the caller's supervisor owns the kill timeout.
+export async function shutdownServer(server) {
+  const lifecycle = serverLifecycles.get(server);
+  if (!lifecycle) throw new Error('shutdownServer requires a server built by createServer');
+  if (lifecycle.stopping) throw new Error('shutdownServer was already called for this server');
+  lifecycle.stopping = true;
+  const closed = new Promise((resolve, reject) => {
+    server.close((error) => (error ? reject(error) : resolve()));
+  });
+  server.closeIdleConnections();
+  while (lifecycle.inFlight.size > 0) {
+    await Promise.allSettled([...lifecycle.inFlight]);
+  }
+  await waitForRoutingFinalizationsIdle();
+  server.closeAllConnections();
+  await closed;
+}
+
+// SIGTERM / SIGINT run shutdownServer once and exit when it settles; a repeated signal while it is still
+// waiting only reports that the wait is in progress.
+export function shutdownServerOnSignals(server) {
+  let shutdown = null;
+  const onSignal = (signal) => {
+    if (shutdown) {
+      console.log(`${signal} received again; still finishing in-flight requests and finalizations`);
+      return;
+    }
+    const startedAt = Date.now();
+    console.log(`${signal} received; finishing in-flight requests and finalizations before exit`);
+    // Exit from the write callback: stdout/stderr on a pipe are asynchronous, and the last line must land.
+    shutdown = shutdownServer(server).then(() => {
+      process.stdout.write(`STARFALL MAGIC ACADEMY runtime stopped after ${Date.now() - startedAt}ms\n`, () => process.exit(0));
+    }, (error) => {
+      process.stderr.write(`${error?.stack ?? error}\n`, () => process.exit(1));
+    });
+  };
+  process.on('SIGTERM', onSignal);
+  process.on('SIGINT', onSignal);
 }
 
 async function loadStartupLmStudioConfig(configPath) {
@@ -722,6 +813,21 @@ export async function startServer(options = {}) {
   return { server, host: startedHost, port: startedPort, url: `http://${startedHost}:${startedPort}`, lmStudioConfigPath: configPath, lmStudioConfig };
 }
 
+// A process entry that serves this repository's saves (data/mutable): holds the one-server lock before the
+// server first touches them, then runs in the foreground until SIGTERM / SIGINT. When the lock is held by
+// another live server, the reason is the last stderr line and the exit code is 1.
+export async function runRepositoryServerEntry({ owner, host, port }) {
+  try {
+    holdServerLockForProcess({ projectRoot, owner });
+  } catch (error) {
+    if (!(error instanceof ServerLockHeldError)) throw error;
+    process.stderr.write(`${error.message}\n`, () => process.exit(1));
+    return;
+  }
+  const { server } = await startServer({ host, port });
+  shutdownServerOnSignals(server);
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-  await startServer();
+  await runRepositoryServerEntry({ owner: 'npm start', host: defaultHost, port: defaultPort });
 }

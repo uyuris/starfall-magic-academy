@@ -17,6 +17,8 @@ export const ROUTING_DISPATCH_SCREENS = Object.freeze({
   arena: 'academy-arena',
   auction: 'academy-auction',
   lounge: 'academy-lounge',
+  concert_hall: 'academy-concert-hall',
+  overlook: 'academy-overlook',
   title: 'title'
 });
 

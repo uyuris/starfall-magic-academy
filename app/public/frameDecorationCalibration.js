@@ -26,46 +26,6 @@ export const CALIBRATION_CORNERS = Object.freeze(['top-left', 'top-right', 'bott
 //   varX / varY        custom property names driving the ornament's translate offset, in px
 export const FRAME_DECORATION_CALIBRATION_TARGETS = Object.freeze([
   Object.freeze({
-    id: 'routing-hub-standee-corner-tl',
-    label: '立ち絵フレーム 左上',
-    screen: 'routing-hub',
-    anchorSelector: '.routing-hub-standee-frame',
-    corner: 'top-left',
-    styleHostSelector: '.routing-hub-standee-frame',
-    varX: '--rh-standee-corner-tl-dx',
-    varY: '--rh-standee-corner-tl-dy'
-  }),
-  Object.freeze({
-    id: 'routing-hub-standee-corner-br',
-    label: '立ち絵フレーム 右下',
-    screen: 'routing-hub',
-    anchorSelector: '.routing-hub-standee-frame',
-    corner: 'bottom-right',
-    styleHostSelector: '.routing-hub-standee-frame',
-    varX: '--rh-standee-corner-br-dx',
-    varY: '--rh-standee-corner-br-dy'
-  }),
-  Object.freeze({
-    id: 'routing-hub-chat-corner-tl',
-    label: '会話パネル 左上',
-    screen: 'routing-hub',
-    anchorSelector: '.routing-hub-chat-panel',
-    corner: 'top-left',
-    styleHostSelector: '.routing-hub-corner-tl',
-    varX: '--rh-chat-corner-tl-dx',
-    varY: '--rh-chat-corner-tl-dy'
-  }),
-  Object.freeze({
-    id: 'routing-hub-chat-corner-br',
-    label: '会話パネル 右下',
-    screen: 'routing-hub',
-    anchorSelector: '.routing-hub-chat-panel',
-    corner: 'bottom-right',
-    styleHostSelector: '.routing-hub-corner-br',
-    varX: '--rh-chat-corner-br-dx',
-    varY: '--rh-chat-corner-br-dy'
-  }),
-  Object.freeze({
     id: 'conversation-day-standee-corner-tl',
     label: '立ち絵フレーム 左上',
     screen: 'conversation-day',
@@ -105,47 +65,7 @@ export const FRAME_DECORATION_CALIBRATION_TARGETS = Object.freeze([
     varX: '--cd-chat-corner-br-dx',
     varY: '--cd-chat-corner-br-dy'
   }),
-  Object.freeze({
-    id: 'title-corner-tl',
-    label: 'タイトル額装 左上',
-    screen: 'title',
-    anchorSelector: '.title-screen-shell',
-    corner: 'top-left',
-    styleHostSelector: '.title-corner-tl',
-    varX: '--title-corner-tl-dx',
-    varY: '--title-corner-tl-dy'
-  }),
-  Object.freeze({
-    id: 'title-corner-tr',
-    label: 'タイトル額装 右上',
-    screen: 'title',
-    anchorSelector: '.title-screen-shell',
-    corner: 'top-right',
-    styleHostSelector: '.title-corner-tr',
-    varX: '--title-corner-tr-dx',
-    varY: '--title-corner-tr-dy'
-  }),
-  Object.freeze({
-    id: 'title-corner-bl',
-    label: 'タイトル額装 左下',
-    screen: 'title',
-    anchorSelector: '.title-screen-shell',
-    corner: 'bottom-left',
-    styleHostSelector: '.title-corner-bl',
-    varX: '--title-corner-bl-dx',
-    varY: '--title-corner-bl-dy'
-  }),
-  Object.freeze({
-    id: 'title-corner-br',
-    label: 'タイトル額装 右下',
-    screen: 'title',
-    anchorSelector: '.title-screen-shell',
-    corner: 'bottom-right',
-    styleHostSelector: '.title-corner-br',
-    varX: '--title-corner-br-dx',
-    varY: '--title-corner-br-dy'
-  }),
-  // 学院マップ額装の四隅（tl/tr/bl/br の4箇所）。routing-hub / conversation-day が tl/br の2箇所だけ持つのと違い、
+  // 学院マップ額装の四隅（tl/tr/bl/br の4箇所）。conversation-day が tl/br の2箇所だけ持つのと違い、
   // マップ額装は四隅すべてに隅飾りを置く。オフセットは #academy-map-screen 実宣言の --am-corner-*（初期 0px・
   // var() fallback なし）を各 .academy-map-corner-* が consume し、host はその consuming 要素自身（pseudo-element
   // でない実要素なので inline で直接上書きできる）。anchor はマップ canvas の各隅。

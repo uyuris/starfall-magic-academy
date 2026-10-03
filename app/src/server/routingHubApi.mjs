@@ -13,6 +13,8 @@ import {
   ROUTING_GRADUATION_GUIDE_STATE_KEY
 } from '../graduationEnding.mjs';
 import { createStorageApi } from '../storage.mjs';
+import { routingDestinations, validateRoutingDestinations } from '../routingDestinations.mjs';
+import { resolveRoutingDestinationDispatch } from '../routingDispatch.mjs';
 
 const ROUTING_HUB_START_ROUTE = 'POST /api/routing/hub/start';
 const CONVERSATION_ID_PATTERN = /^conv_[A-Za-z0-9_-]+$/;
@@ -29,6 +31,28 @@ function assertValidConversationIdForApi(value, fieldName = 'id') {
   const normalized = String(value).trim();
   if (CONVERSATION_ID_PATTERN.test(normalized)) return normalized;
   throw statusError(`invalid ${fieldName}: ${value}`, 400, { errorCode: 'invalid_conversation_id' });
+}
+
+// Every hub start answers with the destination catalog's ids and names (routing_destinations): the hub names the
+// destinations in the guide's words and on its failure notice from this one list. A destination without a label is a
+// catalog/config mismatch, which the catalog's own validation stops here, naming its id
+// (`routing destination.label is required: <id>`).
+function routingDestinationNames() {
+  return validateRoutingDestinations(routingDestinations).map(({ id, label }) => ({ id, label }));
+}
+
+// A hub start that returns from a destination the player reached without a dispatch (the dev ?initialScreen entry,
+// the reload resume) names that destination's screen as failed_arrival_screen; the response names the destination by
+// id, and the client reads its name from routing_destinations. A screen no destination dispatches to is a client bug
+// (400).
+function resolveFailedArrival(failedArrivalScreen, destinations) {
+  if (failedArrivalScreen === undefined) return null;
+  if (typeof failedArrivalScreen !== 'string' || failedArrivalScreen === '') {
+    throw statusError(`invalid failed_arrival_screen: ${JSON.stringify(failedArrivalScreen)}`, 400);
+  }
+  const destination = destinations.find(({ id }) => resolveRoutingDestinationDispatch(id).next_screen === failedArrivalScreen);
+  if (!destination) throw statusError(`failed_arrival_screen is not a routing destination screen: ${failedArrivalScreen}`, 400);
+  return { destination_id: destination.id };
 }
 
 export function canHandleRoutingHubRoute(method, pathname) {
@@ -58,6 +82,8 @@ export async function handleRoutingHubApi({
 
   const root = context.activeRoot ?? context.root;
   const conversationId = assertValidConversationIdForApi(body.id, 'id');
+  const destinationNames = routingDestinationNames();
+  const failedArrival = resolveFailedArrival(body.failed_arrival_screen, destinationNames);
   const stateBeforeStart = await createStorageApi({ root }).readJson('game_data/runtime_state.json');
   // An in-flight graduation phase 2 (ending) conversation must never be overwritten by a hub greeting: the
   // hub start would replace the pending ending context and active conversation with a fresh hub conversation,
@@ -132,6 +158,11 @@ export async function handleRoutingHubApi({
     root,
     personaVariant: activePlayMode.routing_persona_variant
   });
-  sendJson(res, { ...result, routing_persona_visual: routingPersonaVisual });
+  sendJson(res, {
+    ...result,
+    routing_persona_visual: routingPersonaVisual,
+    routing_destinations: destinationNames,
+    ...(failedArrival === null ? {} : { failed_arrival: failedArrival })
+  });
   return true;
 }

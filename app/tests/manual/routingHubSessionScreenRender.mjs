@@ -28,16 +28,16 @@
 //      drawer geometry is measured against real layout: it opens as a LEFT drawer from the rail's right
 //      edge (left-hugging, roughly full height) with the chat panel still visible beside it.
 //   4. CONVERSATION CONTINUATION + DESTINATION DECISION + TRANSITION: type a turn and send; the decided
-//      turn reveals the send-off in the hub stream (continuation), fires ② (player-spoke) and, on the
-//      routing_draining signal, ③ (dispatch climax) + the drain loading screen, then transitions to the
+//      turn reveals the send-off in the hub stream (continuation) and, on the
+//      routing_draining signal, shows the drain loading screen, then transitions to the
 //      content screen (academy-training). FOCUS-RESTORE (terminal-transition half): after the dispatch
 //      lands on the content screen, keyboard focus is NOT on #routing-hub-input (the 3-condition helper
 //      gate no-ops — the terminal transition does not steal focus from the destination screen).
 //   5. RESTORE: the routing hub re-opens cleanly via enterRoutingHub — the same entry function the
 //      content-return 復帰 (navigateToPostContentScreen('interaction')) reuses. (The hub is left only via
 //      a decided destination; ending it with no decision correctly fail-fasts.)
-//   6. REDUCED MOTION: with prefers-reduced-motion:reduce emulated (CDP), the decor drift / ①②③
-//      animations are disabled and the starfield is drawn static (no rAF loop).
+//   6. REDUCED MOTION: with prefers-reduced-motion:reduce emulated (CDP), the decor drift
+//      animation is disabled and the starfield is drawn static (no rAF loop).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -69,7 +69,7 @@ const SENDOFF_LAST = '新しい一週間をそこから始めます';
 // versa, so the deterministic stub can discriminate it in the accumulated transcript.
 const MAP_INPUT = '今週は学院マップで過ごす';
 const MAP_SENDOFF_TEXT = 'では、学院マップへ向かいましょう。新しい一週間を、学院のどこかから始めます。';
-// A distinct input that decides the ダンジョン (dungeon) destination, used by the dungeon direct-entry
+// A distinct input that decides the ダンジョン (dungeon) destination, used by the dungeon dispatch
 // section. It must NOT be a substring of PLAYER_INPUT / CONTINUE_INPUT / MAP_INPUT and vice versa, so the
 // deterministic stub can discriminate it in the accumulated transcript.
 const DUNGEON_INPUT = '今週はダンジョンに潜る';
@@ -224,29 +224,26 @@ const js = (win, expr) => win.webContents.executeJavaScript(expr);
 
 // Poll a decided routing turn against real timing (relative to when the send fires), capturing: when the
 // FIRST and LAST send-off 吹き出し reveal on the hub, when the drain loading screen first appears, when the
-// destination screen goes active, and whether the ③ dispatch-climax flare was observed. Used for both the
+// destination screen goes active. Used for both the
 // result-first (Order A) and pause-first (Order B) orderings, so the pause behaviour is measured against real
 // Blink layout, not inferred. Runs until the destination transition or the poll budget elapses.
 async function measureDispatchTiming(win, { sendoffFirst, sendoffLast, destinationSelector }) {
-  let firstSendoffAt = null, allSendoffAt = null, loadingAt = null, transitionAt = null, climaxSeen = false;
+  let firstSendoffAt = null, allSendoffAt = null, loadingAt = null, transitionAt = null;
   const pollStart = Date.now();
   for (let i = 0; i < 500 && transitionAt === null; i += 1) {
     const s = await js(win, `(() => {
       const stream = document.querySelector('#routing-hub-message-stream');
       const text = (stream?.textContent || '');
-      const screen = document.querySelector('#routing-hub-screen');
       return {
         first: text.includes(${JSON.stringify(sendoffFirst)}),
         all: text.includes(${JSON.stringify(sendoffLast)}),
         loading: !!document.querySelector('#academy-loading-screen')?.classList.contains('active'),
-        climax: !!screen?.classList.contains('is-dispatch-climax'),
         arrived: !!document.querySelector(${JSON.stringify(destinationSelector)})?.classList.contains('active')
       };
     })()`);
     const now = Date.now() - pollStart;
     if (s.first && firstSendoffAt === null) firstSendoffAt = now;
     if (s.all && !s.loading && allSendoffAt === null) allSendoffAt = now;
-    if (s.climax) climaxSeen = true;
     if (s.loading && loadingAt === null) loadingAt = now;
     if (s.arrived && transitionAt === null) transitionAt = now;
     await sleep(80);
@@ -254,7 +251,7 @@ async function measureDispatchTiming(win, { sendoffFirst, sendoffLast, destinati
   const sendoffSpanMs = (firstSendoffAt !== null && allSendoffAt !== null) ? allSendoffAt - firstSendoffAt : -1;
   const readingPauseMs = (allSendoffAt !== null && loadingAt !== null) ? loadingAt - allSendoffAt : -1;
   const postLoadingMs = (loadingAt !== null && transitionAt !== null) ? transitionAt - loadingAt : -1;
-  return { firstSendoffAt, allSendoffAt, loadingAt, transitionAt, climaxSeen, sendoffSpanMs, readingPauseMs, postLoadingMs };
+  return { firstSendoffAt, allSendoffAt, loadingAt, transitionAt, sendoffSpanMs, readingPauseMs, postLoadingMs };
 }
 
 async function newGameToHub(win, base) {
@@ -294,10 +291,9 @@ async function dispatchFromHubToMap(win) {
   return landed;
 }
 
-// From the routing hub, send the DUNGEON_INPUT turn and wait for the decided dispatch to enter the dungeon
-// run DIRECTLY — the streamed run board (#dungeon-play), NOT the operable pre-entry screen (#dungeon-entry).
-// Same send choreography as the map/training dispatch, but the stub decides the dungeon destination and the
-// direct-entry auto-runs the enter under the loading screen, landing on the run board.
+// From the routing hub, send the DUNGEON_INPUT turn and wait for the decided dispatch to land on the dungeon's
+// prep screen (data-scene="entry" with 潜る enabled) — the player dives from there. Same send choreography as the
+// map/training dispatch, but the stub decides the dungeon destination.
 async function dispatchFromHubToDungeon(win) {
   let sent = false;
   for (let attempt = 0; attempt < 20 && !sent; attempt += 1) {
@@ -313,14 +309,12 @@ async function dispatchFromHubToDungeon(win) {
     sent = fired && await waitFor(win, `document.querySelector('#routing-hub-input').value === ''`, { tries: 40, intervalMs: 50 });
     if (!sent) await sleep(400);
   }
-  // Direct-entry landing: the dungeon screen active with the streamed run board shown (#dungeon-play) — not
-  // a stop on the operable pre-entry (#dungeon-entry). The enter streams a companion opening, so allow ample
-  // time.
   const landed = sent && await waitFor(win, `
     document.querySelector('#academy-dungeon-screen')?.classList.contains('active')
-    && document.querySelector('#dungeon-play') && !document.querySelector('#dungeon-play').hidden
+    && document.querySelector('#academy-dungeon-screen').dataset.scene === 'entry'
+    && !document.querySelector('#dungeon-dive').disabled
   `, { tries: 600, intervalMs: 120 });
-  log('dungeon_dispatch_send_diag', { sent, landed, activeScreen: await js(win, `document.querySelector('.screen.active')?.id ?? null`), playHidden: await js(win, `document.querySelector('#dungeon-play')?.hidden ?? null`), entryHidden: await js(win, `document.querySelector('#dungeon-entry')?.hidden ?? null`) });
+  log('dungeon_dispatch_send_diag', { sent, landed, activeScreen: await js(win, `document.querySelector('.screen.active')?.id ?? null`), scene: await js(win, `document.querySelector('#academy-dungeon-screen')?.dataset.scene ?? null`) });
   return landed;
 }
 
@@ -582,7 +576,7 @@ async function main() {
   // ── 1.4) NO IN-PROGRESS STATUS TEXT + SCROLL-FOLLOW ACROSS REAL CONTINUATION TURNS (this task) ──
   // Runs BEFORE the static layout probe below, while the entry state (reader pinned to the bottom of the
   // opening) is still pristine. The routing hub no longer surfaces in-progress status text ("送信しています…" /
-  // "応答を準備しています…" / "ルミが応答しています…") — the ① responding glow conveys that a turn is in flight —
+  // "応答を準備しています…" / "ルミが応答しています…"),
   // so its status line (an error banner only now) stays hidden through a normal turn and never shrinks the
   // stream. Drive several REAL continuation turns (the stub keeps the player on the hub by deciding no
   // destination) and assert: (a) the status line never shows text at any point during a turn, and (b) after
@@ -648,7 +642,7 @@ async function main() {
     followMeasurements.push(measured);
     log(`follow_turn_${i + 1}`, measured);
   }
-  check('NO STATUS TEXT: the in-progress status line never shows text during a normal turn (progress is the ① responding glow, not text)',
+  check('NO STATUS TEXT: the in-progress status line never shows text during a normal turn (progress is not shown as text)',
     followTurns === 3 && !statusTextEverShownDuringTurn && followMeasurements.every((m) => m.statusHidden && m.statusText === ''),
     { followTurns, statusTextEverShownDuringTurn, settledStatus: followMeasurements.map((m) => ({ hidden: m.statusHidden, text: m.statusText })) });
   const followOverflowed = followMeasurements.some((m) => m.overflowing);
@@ -1016,7 +1010,7 @@ async function main() {
   await js(win, `document.querySelector('#routing-hub-info-popup .routing-hub-info-popup-close').click(); true`);
   await waitFor(win, `document.querySelector('#routing-hub-info-popup').hidden === true`, { tries: 40, intervalMs: 40 });
 
-  // ── 3) CONTINUATION + DESTINATION DECISION + 統一出現規律 + 見送り読みポーズ + TRANSITION + ①②③ (this task) ──
+  // ── 3) CONTINUATION + DESTINATION DECISION + 統一出現規律 + 見送り読みポーズ + TRANSITION (this task) ──
   await waitFor(win, `!document.querySelector('#routing-hub-send')?.disabled`, { tries: 100, intervalMs: 100 });
   // Leave a category popup OPEN before the dispatch, to prove it does not persist onto the restored hub.
   await js(win, `document.querySelector('.routing-hub-category-button[data-routing-category="self"]').click(); true`);
@@ -1026,10 +1020,6 @@ async function main() {
     document.querySelector('#routing-hub-send').click();
     return true;
   })()`);
-  const spoke = await observeTransient(win, `document.querySelector('#routing-hub-screen').classList.contains('is-player-spoke')`);
-  check('② player-spoke flare fires on send', spoke);
-  const responding = await observeTransient(win, `document.querySelector('#routing-hub-screen').classList.contains('is-lumi-responding')`, { tries: 250, intervalMs: 20 });
-  check('① ルミ-responding class fires while the reply streams', responding);
 
   // ORDER A — result-first. The stub drain is fast (no injected delay), so the backend `result` arrives WHILE
   // the ~5s 見送り読みポーズ is still running. Measure the two task behaviours against real timing:
@@ -1043,7 +1033,7 @@ async function main() {
   // the drain is fast — Order B below is the case that discriminates the concurrency fix.
   const timingA = await measureDispatchTiming(win, { sendoffFirst: SENDOFF_FIRST, sendoffLast: SENDOFF_LAST, destinationSelector: '#academy-training-screen' });
   log('dispatch_timing_orderA_resultFirst', timingA);
-  check('③ dispatch climax / drain loading screen fires on the decided turn', timingA.climaxSeen || timingA.loadingAt !== null, { climaxSeen: timingA.climaxSeen, loadingAt: timingA.loadingAt });
+  check('drain loading screen fires on the decided turn', timingA.loadingAt !== null, { loadingAt: timingA.loadingAt });
   check('統一出現規律: the send-off 吹き出し appear one at a time spaced by the popup cooldown (not all-at-once)',
     timingA.firstSendoffAt !== null && timingA.allSendoffAt !== null && timingA.sendoffSpanMs >= 600, { firstSendoffAt: timingA.firstSendoffAt, allSendoffAt: timingA.allSendoffAt, sendoffSpanMs: timingA.sendoffSpanMs });
   check('見送り読みポーズ (Order A / result-first): the full send-off is held visible on the hub (no loading screen) ~5s before the loading screen, and the transition follows promptly since the result was already in hand',
@@ -1255,40 +1245,32 @@ async function main() {
   check('FAIL-FAST (Goal 3): the failed routing arrival un-strands to an interactive hub (loading screen is not terminal; the error is surfaced through reportLoadingError)',
     Boolean(failFast.reached && failFast.hubActive && failFast.hubSendEnabled), failFast);
 
-  // ── 5.7) ROUTING DUNGEON DIRECT-ENTRY (this task) ─────────────────────────
-  // A routing dispatch to the dungeon (destination_id=dungeon) must enter the RUN directly — hub → loading
-  // screen → dungeon run board — with NO manual step on the operable pre-entry screen (academy-dungeon /
-  // #dungeon-entry). Drive a real routing dungeon dispatch and measure the landing against real layout: the
-  // dungeon screen is active with the streamed run board shown (#dungeon-play), the operable pre-entry
-  // (#dungeon-entry + its enter button) is NOT the landing, the loading screen is not terminal, and the
-  // week advanced (the dispatch progressed the week server-side before the auto-enter — the week/drain
-  // contract is unchanged).
-  // NEGATIVE CONTROL (documented in the task report): reverting the direct-entry so the dispatch lands on
-  // the academy-dungeon pre-entry screen and stops leaves #dungeon-entry shown and #dungeon-play hidden —
-  // the landing checks FAIL, so they discriminate the fix rather than passing on unfixed code.
+  // ── 5.7) ROUTING DUNGEON DISPATCH → PREP SCREEN ─────────────────────────
+  // A routing dispatch to the dungeon (destination_id=dungeon) lands on the dungeon's prep screen (hub → loading →
+  // prep), not on the run board: the prep screen is the dungeon screen's entry scene with 潜る enabled, the loading
+  // screen is not terminal, it offers no way back to the hub (the player only dives from there), and the week advanced
+  // (the dispatch progressed the week server-side — the week/drain contract is unchanged).
   const dungeonReset = await newGameToHub(win, base);
   const weekBeforeDungeon = await js(win, `(async () => { const s = await fetch('/api/state').then((r) => r.json()); return Number(s?.elapsed_weeks); })()`);
-  const dungeonDirect = dungeonReset && await dispatchFromHubToDungeon(win);
+  const dungeonPrep = dungeonReset && await dispatchFromHubToDungeon(win);
   await sleep(300);
   const dungeonLanding = await js(win, `(() => {
     const screen = document.querySelector('#academy-dungeon-screen');
-    const play = document.querySelector('#dungeon-play');
-    const entry = document.querySelector('#dungeon-entry');
     return {
       dungeonScreenActive: !!screen?.classList.contains('active'),
-      playShown: !!(play && !play.hidden),
-      entryShown: !!(entry && !entry.hidden),
-      loadingActive: !!document.querySelector('#academy-loading-screen')?.classList.contains('active'),
-      gridPresent: !!document.querySelector('#dungeon-grid')?.childElementCount
+      scene: screen?.dataset.scene ?? null,
+      diveEnabled: !document.querySelector('#dungeon-dive')?.disabled,
+      backHidden: document.querySelector('#dungeon-back-to-map')?.hidden ?? null,
+      loadingActive: !!document.querySelector('#academy-loading-screen')?.classList.contains('active')
     };
   })()`);
   const weekAfterDungeon = await js(win, `(async () => { const s = await fetch('/api/state').then((r) => r.json()); return Number(s?.elapsed_weeks); })()`);
-  log('dungeon_direct_entry', { dungeonReset, dungeonDirect, weekBeforeDungeon, weekAfterDungeon, ...dungeonLanding });
-  check('DUNGEON DIRECT-ENTRY: a routing dungeon dispatch lands directly on the dungeon run board (hub → loading → run), not stranded on the loading screen',
-    Boolean(dungeonDirect && dungeonLanding.dungeonScreenActive && dungeonLanding.playShown && dungeonLanding.gridPresent && !dungeonLanding.loadingActive), dungeonLanding);
-  check('DUNGEON DIRECT-ENTRY: the operable pre-entry screen (#dungeon-entry) is not the landing — no manual enter step is shown',
-    Boolean(dungeonLanding.dungeonScreenActive && !dungeonLanding.entryShown), dungeonLanding);
-  check('DUNGEON DIRECT-ENTRY: the dispatch progressed the week server-side before the auto-enter (week/drain contract unchanged)',
+  log('dungeon_dispatch_prep', { dungeonReset, dungeonPrep, weekBeforeDungeon, weekAfterDungeon, ...dungeonLanding });
+  check('DUNGEON DISPATCH: a routing dungeon dispatch lands on the prep screen (hub → loading → prep), not stranded on the loading screen',
+    Boolean(dungeonPrep && dungeonLanding.dungeonScreenActive && dungeonLanding.scene === 'entry' && dungeonLanding.diveEnabled && !dungeonLanding.loadingActive), dungeonLanding);
+  check('DUNGEON DISPATCH: the prep screen reached from the hub offers no way back to the hub',
+    dungeonLanding.backHidden === true, dungeonLanding);
+  check('DUNGEON DISPATCH: the dispatch progressed the week server-side (week/drain contract unchanged)',
     Boolean(Number.isFinite(weekBeforeDungeon) && Number.isFinite(weekAfterDungeon) && weekAfterDungeon > weekBeforeDungeon), { weekBeforeDungeon, weekAfterDungeon });
 
   // ── 6) REDUCED MOTION: emulate prefers-reduced-motion:reduce, re-render the hub, and verify the CSS

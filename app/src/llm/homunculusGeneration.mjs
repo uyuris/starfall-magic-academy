@@ -19,6 +19,7 @@
 // 『』台詞 — throws a 503-tagged error with nothing persisted. No authored fallback, no silent retry.
 
 import { callLmStudioChat, callLmStudioStructuredJson } from './lmStudioClient.mjs';
+import { WORLD_CANON_GUARD_CLAUSE } from './worldCanonGuard.mjs';
 
 // Target length band for the farewell speech and the hard cap that fences a runaway (実測: ~800字超で反復,
 // so the cap弾く暴走 is 1000). The target is the prompt guidance; the cap is the post-gen gate.
@@ -77,7 +78,7 @@ export function buildHomunculusPersonaPrompt({ name, skeleton }) {
     '- 鉤括弧で囲ったセリフ（その子が口にする発言例）は書かない。口調や性格は地の文の記述で表す。',
     '- 手に持った象徴的な小物（〜を握りしめている等）は書かない。',
     '- 髪・瞳・肌・服の色などの外見は書かない（姿はこの後べつに定まる）。',
-    '- 実在の地名・人名・歴史、現代語・外来語、現代の器具・単位・年号は使わない。世界の背骨（役目を終えた星の残光・地脈・番所）と食い違う断定を足さない。',
+    `- 実在の地名・人名・歴史、現代語・外来語、現代の器具・単位・年号は使わない。${WORLD_CANON_GUARD_CLAUSE}`,
     '- 長さは400〜500字くらい。見出し・前置き・名前の再掲はせず、紹介文の本文だけを書く。',
     '',
     '【話し方の書き方】',
@@ -101,7 +102,7 @@ export function buildHomunculusSkeletonPrompt({ name }) {
     '- 名前の印象に素直に従う。',
     '- 気質・雰囲気・好むこと・心の癖などを短く挙げる程度でよい（細部はこの後べつに膨らませる）。',
     '- 毎回ちがう人物になるよう、ありふれた無難な像に寄せすぎない。',
-    '- 外見（髪・瞳・肌・服）は書かない。実在の地名・人名・歴史、現代語・外来語、現代の器具・単位・年号は使わない。世界の背骨（役目を終えた星の残光・地脈・番所）と食い違う断定を足さない。',
+    `- 外見（髪・瞳・肌・服）は書かない。実在の地名・人名・歴史、現代語・外来語、現代の器具・単位・年号は使わない。${WORLD_CANON_GUARD_CLAUSE}`,
     '- 骨子の本文だけを2〜3行で書く。見出し・前置き・名前の再掲はつけない。'
   ].join('\n');
 }

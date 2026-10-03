@@ -186,6 +186,14 @@ function revealAround(run, actor, stats, actorLabel, purpose) {
   }
 }
 
+// Where the companion stands beside the hero — on landing on a floor and on revive: the nearest free tile to the
+// hero (the shared BFS nearestFreeTile), free meaning no hero and no living enemy on it.
+function companionStandTile(run) {
+  const tile = nearestFreeTile(run, run.player, (x, y) => actorAt(run, x, y, { ignore: 'companion' }) === null);
+  if (!tile) throw new Error('dungeon found no free tile to stand the companion on');
+  return tile;
+}
+
 function loadFloor(run, floor) {
   const generated = generateFloor({ seed: run.seed, floor });
   run.floor = floor;
@@ -199,8 +207,9 @@ function loadFloor(run, floor) {
   run.player.x = generated.entrance.x;
   run.player.y = generated.entrance.y;
   if (run.companion && !run.companion.down) {
-    run.companion.x = generated.entrance.x;
-    run.companion.y = generated.entrance.y;
+    const tile = companionStandTile(run);
+    run.companion.x = tile.x;
+    run.companion.y = tile.y;
   }
   run.explored = buildExplored(run);
   revealAround(run, run.player, run.player_stats, 'player', 'floor reveal');
@@ -656,8 +665,7 @@ function planConsumable(run, item, action) {
   // revive: the downed companion only, once per run.
   if (reviveAlreadyUsed(run)) return { error: 'revive_used' };
   if (!run.companion || !run.companion.down) return { error: 'invalid_target' };
-  const tile = nearestFreeTile(run, run.player, (x, y) => actorAt(run, x, y, { ignore: 'companion' }) === null);
-  if (!tile) throw new Error('dungeon revive found no free tile to stand the companion on');
+  const tile = companionStandTile(run);
   return {
     execute: () => {
       run.companion.down = false;
@@ -770,11 +778,8 @@ function buildView(run, { availability = null, materialDisplayNames, consumables
     // (with the marker) so the screen resumes the finalize instead of resuming play.
     active: run.status === 'active' && !run.pending_finalize,
     pending_finalize: run.pending_finalize ?? null,
-    // For a held run, the exact deltas the deferred finalize will bank (clamped), so a resumed
-    // exit shows the same result the action's preview did. Null for normal play views.
-    applied_gains_preview: run.pending_finalize
-      ? (run.pending_finalize.outcome === 'dead' ? { magic: {}, abilities: {} } : bankPendingGains(run.parameters, run.pending_gains).applied)
-      : null,
+    // For a held run, the result surface the run-ending action returned (heldRunEndResult). Null for normal play views.
+    held_result: run.pending_finalize ? heldRunEndResult(run, materialDisplayNames) : null,
     run_id: run.run_id,
     floor: run.floor,
     max_floors: run.max_floors,
@@ -880,9 +885,24 @@ export function buildDungeonCompanionPromptTailContext(run) {
 
 // ----- public API -----
 
+// Reads the runtime state for its stored run. A save written by code that let the living companion share the hero's
+// tile opens with the companion stood on companionStandTile — the tile landing picks — and that position is saved at
+// once, so every later open finds the companion on the same tile. A run without that overlap is returned untouched.
+async function loadStoredRunState(root) {
+  const state = await loadRuntimeState(root);
+  const run = state.dungeon_run;
+  const companion = run?.companion;
+  if (!companion || companion.down || companion.x !== run.player.x || companion.y !== run.player.y) return state;
+  const tile = companionStandTile(run);
+  companion.x = tile.x;
+  companion.y = tile.y;
+  await saveRuntimeState(root, state);
+  return state;
+}
+
 export async function loadDungeonRun({ root } = {}) {
   if (!root) throw new Error('root is required');
-  const state = await loadRuntimeState(root);
+  const state = await loadStoredRunState(root);
   return state.dungeon_run ?? null;
 }
 
@@ -1059,7 +1079,7 @@ export async function dungeonAction({ root, action, postDungeonScreen, routing =
   if (!root) throw new Error('root is required');
   if (!action || typeof action.type !== 'string') throw new Error('action.type is required');
   const resolvedPostDungeonScreen = assertPostDungeonScreen(postDungeonScreen);
-  const state = await loadRuntimeState(root);
+  const state = await loadStoredRunState(root);
   const run = state.dungeon_run;
   if (!run || run.status !== 'active') {
     const error = new Error('no active dungeon run');
@@ -1188,16 +1208,11 @@ function materialResultItems(buffer, displayNames) {
   });
 }
 
-async function beginRunEnd({ root, state, run, outcome, postDungeonScreen }) {
-  const resolvedPostDungeonScreen = assertPostDungeonScreen(postDungeonScreen);
-  const displayNames = dungeonMaterialDisplayNames(await loadDungeonMaterialDefinitions({ root }));
-  run.pending_finalize = { outcome };
-  const events = [...(run.turn_events ?? [])];
-  await saveRuntimeState(root, { ...state, dungeon_run: { ...run, turn_events: [] } });
-  // The preview must be exactly what the deferred finalize will bank — same per-run cap AND the
-  // 0-100 clamp (bankPendingGains), not the unclamped HUD summary — so the result surface never
-  // shows a gain larger than what is actually applied (e.g. a parameter already near the 100 cap).
-  const previewGains = outcome === 'dead' ? { magic: {}, abilities: {} } : bankPendingGains(run.parameters, run.pending_gains).applied;
+// The result surface of a run held awaiting its deferred finalize: what the finalize will bank. The run-ending
+// action returns it (beginRunEnd) and the held run's view carries it (buildView), so a run resumed after a close or a
+// failed finalize shows the same result the run-ending action did.
+function heldRunEndResult(run, displayNames) {
+  const outcome = run.pending_finalize.outcome;
   return {
     ended: true,
     pending_finalize: true,
@@ -1206,14 +1221,27 @@ async function beginRunEnd({ root, state, run, outcome, postDungeonScreen }) {
     run_id: run.run_id,
     floor_reached: run.floor,
     max_floors: run.max_floors,
-    applied_gains: previewGains,
+    // Exactly what the deferred finalize will bank — same per-run cap AND the 0-100 clamp (bankPendingGains), not the
+    // unclamped HUD summary — so the result surface never shows a gain larger than what is actually applied.
+    applied_gains: outcome === 'dead' ? { magic: {}, abilities: {} } : bankPendingGains(run.parameters, run.pending_gains).applied,
     // The materials the deferred finalize will keep (踏破/撤退) or discard (敗北).
     // Same buffer the finalize reads, so the result screen shows what actually lands.
     materials: { items: materialResultItems(readMaterialBuffer(run), displayNames), retained: outcome !== 'dead' },
     // The boss-chest equipment the deferred finalize will confirm into player_equipment (踏破/撤退)
     // or discard (敗北) — same greed ladder as materials.
     equipment: { items: equipmentBufferItems(readEquipmentBuffer(run)), retained: outcome !== 'dead' },
-    companion: run.companion ? { character_id: run.companion.character_id, name: run.companion.name, conversation_id: run.companion.conversation_id } : null,
+    companion: run.companion ? { character_id: run.companion.character_id, name: run.companion.name, conversation_id: run.companion.conversation_id } : null
+  };
+}
+
+async function beginRunEnd({ root, state, run, outcome, postDungeonScreen }) {
+  const resolvedPostDungeonScreen = assertPostDungeonScreen(postDungeonScreen);
+  const displayNames = dungeonMaterialDisplayNames(await loadDungeonMaterialDefinitions({ root }));
+  run.pending_finalize = { outcome };
+  const events = [...(run.turn_events ?? [])];
+  await saveRuntimeState(root, { ...state, dungeon_run: { ...run, turn_events: [] } });
+  return {
+    ...heldRunEndResult(run, displayNames),
     log: [...run.log],
     // The run-ending turn's combat (e.g. the fatal blow) so the frontend can play it before
     // the result screen. Empty for non-combat ends (retreat / cleared-by-descend).
@@ -1332,7 +1360,7 @@ async function commitRunEnd({ root, state, run, outcome, finalizeCompanion = nul
 export async function dungeonFinalizeRun({ root, finalizeCompanion = null, postDungeonScreen, routing = false, now = new Date().toISOString() } = {}) {
   if (!root) throw new Error('root is required');
   const resolvedPostDungeonScreen = assertPostDungeonScreen(postDungeonScreen);
-  const state = await loadRuntimeState(root);
+  const state = await loadStoredRunState(root);
   const run = state.dungeon_run;
   if (!run || !run.pending_finalize) {
     const error = new Error('no dungeon run awaiting finalize');

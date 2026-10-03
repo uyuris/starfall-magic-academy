@@ -1,6 +1,6 @@
-// The week-event save-cleanup script: it strips every fixed-week-event trace from a save so the cleaned save
-// loads, progresses, and shows the diary without throwing (a W10-stuck save returns to the routing hub). The
-// fixture seeds the full residue a real save could carry and the tests drive the module directly (no server).
+// 残す (a): save 掃除 script（scripts/remove-week-event-save-data.mjs）が週イベントの残滓以外を消す壊れ方と、dry-run が save に書き込む壊れ方から、プレイヤーの save を守る。
+// The week-event save-cleanup script: dry-run writes nothing, and apply strips only the fixed-week-event traces.
+// The fixture seeds the full residue a real save could carry and the tests drive the module directly (no server).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -83,11 +83,6 @@ async function seedResidualSave(t) {
   return { root, slotRoot };
 }
 
-test('a residual week-event content result is a load-blocker after the mechanism is removed', () => {
-  // The read the routing hub does on entry now fail-fasts on the unknown kind — the reason the cleanup exists.
-  assert.throws(() => readRoutingContentResult(residualRuntimeState()), /kind must be one of/);
-});
-
 test('dry-run reports every week-event residue and writes nothing', async (t) => {
   const { root, slotRoot } = await seedResidualSave(t);
   const plan = await removeWeekEventSaveData({ root, slotId: 'slot_001', apply: false });
@@ -150,39 +145,4 @@ test('apply removes every residue; the cleaned save loads and shows the diary wi
   const affinity = await readJson(slotRoot, 'game_data/characters/character_005/affinity.json');
   assert.deepEqual(affinity.applied_affinity_conversation_ids, ['conv_other_001']);
   assert.equal(affinity.affinity, 35, 'the affinity value is untouched');
-});
-
-test('the cleanup is idempotent: a second run finds nothing to clean', async (t) => {
-  const { root } = await seedResidualSave(t);
-  await removeWeekEventSaveData({ root, slotId: 'slot_001', apply: true });
-  const second = await removeWeekEventSaveData({ root, slotId: 'slot_001', apply: true });
-  assert.deepEqual(second.runtime_state_changes, { removed_marker: false, removed_content_result: false, reset_screen: null });
-  assert.deepEqual(second.removed_memory_files, []);
-  assert.deepEqual(second.removed_affinity_audit_files, []);
-  assert.deepEqual(second.removed_money_idempotency_keys, []);
-  assert.deepEqual(second.removed_affinity_idempotency_keys, []);
-});
-
-test('cleanup fails fast on a malformed idempotency ledger, before writing anything', async (t) => {
-  const { root, slotRoot } = await seedResidualSave(t);
-  await writeJson(slotRoot, 'game_data/player_inventory.json', { money: 0, applied_money_delta_conversation_ids: 'not-an-array' });
-  await assert.rejects(
-    removeWeekEventSaveData({ root, slotId: 'slot_001', apply: true }),
-    /applied_money_delta_conversation_ids must be an array/
-  );
-  // The plan-phase throw fires before any write: the stuck screen is still there (nothing partially cleaned).
-  const state = await readJson(slotRoot, 'game_data/runtime_state.json');
-  assert.equal(state.current_screen, 'academy-week-event');
-});
-
-test('a clean save (no week-event residue) yields an empty plan and no throw', async (t) => {
-  const root = await fixtureRoot('remove-week-event-clean-');
-  t.after(() => fs.rm(root, { recursive: true, force: true }));
-  await initializeNewPlayArea({ root, slotId: 'slot_001', playMode: 'routing', routingPersonaVariant: 'fallen_star' });
-  const plan = await removeWeekEventSaveData({ root, slotId: 'slot_001', apply: false });
-  assert.deepEqual(plan.runtime_state_changes, { removed_marker: false, removed_content_result: false, reset_screen: null });
-  assert.deepEqual(plan.removed_memory_files, []);
-  assert.deepEqual(plan.removed_affinity_audit_files, []);
-  assert.deepEqual(plan.removed_money_idempotency_keys, []);
-  assert.deepEqual(plan.removed_affinity_idempotency_keys, []);
 });

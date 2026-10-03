@@ -1,0 +1,126 @@
+{
+  "directions": {
+    "festive": {
+      "modes": ["major", "mixolydian"],
+      "tempo": [116, 168],
+      "accompaniment": "block",
+      "instruments": { "melody": "flute", "accompaniment": "piano", "bass": "strings" },
+      "harmony": "I–IV–V–I と I–V–vi–IV の骨太な進行を軸に、2 小節ごとに和音を替える。mixolydian なら bVII–I のカデンツで土臭さを出す。付加音は add9 まで、maj7 は使わない。拍の頭を強く打ち、旋律は 8 分音符の刻みと 4 分音符の跳躍を交互に置く。",
+      "dissonance": "不協和音は拍の裏に置く短い経過音だけに留め、拍頭は必ず和音の構成音で鳴らす。"
+    },
+    "serene": {
+      "modes": ["major", "lydian"],
+      "tempo": [44, 72],
+      "accompaniment": "arpeggio",
+      "instruments": { "melody": "celesta", "accompaniment": "harp", "bass": "strings" },
+      "harmony": "Imaj7–vi–IVmaj7–V や I–iii–IV–I の柔らかい進行を 2 から 4 小節ごとに替える。lydian なら IV に #4 を含む浮遊感を保つ。旋律は順次進行を主にして跳躍は 3 度まで、1 音を 2 拍以上伸ばす箇所を各節に置く。",
+      "dissonance": "不協和音は maj7 と add9 の付加音として和音のなかに溶かし、ぶつけて解決させる形は作らない。"
+    },
+    "mournful": {
+      "modes": ["minor", "dorian"],
+      "tempo": [48, 84],
+      "accompaniment": "arpeggio",
+      "instruments": { "melody": "strings", "accompaniment": "piano", "bass": "piano" },
+      "harmony": "i–VI–III–VII の下行する平行進行と i–iv–V–i を軸にする。旋律は下向きの動きを主にして、2 音が半音か全音で下がるため息の形を各節に 2 回以上置く。節の終わりは V で開いたままにするか、i に沈んで閉じる。",
+      "dissonance": "不協和音は sus4 の係留として置き、次の拍で必ず 3 度へ下がって解決させる。"
+    },
+    "rousing": {
+      "modes": ["minor", "mixolydian", "dorian"],
+      "tempo": [144, 200],
+      "accompaniment": "block",
+      "instruments": { "melody": "piano", "accompaniment": "strings", "bass": "piano" },
+      "harmony": "i–VII–VI–VII と i–III–VII–iv の力強い平行進行を 1 小節ごとに替える。旋律は同音の連打を 3 から 4 音続けてから 4 度か 5 度へ跳ぶ形と、付点のリズムを主にする。",
+      "dissonance": "不協和音は拍頭に短く打撃的に置いてよく、解決させずに次の和音へ移ってかまわない。"
+    },
+    "departure": {
+      "modes": ["major"],
+      "tempo": [88, 132],
+      "accompaniment": "arpeggio",
+      "instruments": { "melody": "flute", "accompaniment": "harp", "bass": "piano" },
+      "harmony": "I–V–vi–IV と IV–V–I の前へ進む進行を 2 小節ごとに替え、節の最後は V–I で明るく閉じる。旋律は上行する線を軸に、節の冒頭を低く始めて後半で最高音に届かせる。",
+      "dissonance": "不協和音は上行の途中に置く経過音だけに留め、和音の変わり目では構成音に着地させる。"
+    },
+    "dreamy": {
+      "modes": ["lydian", "dorian"],
+      "tempo": [52, 92],
+      "accompaniment": "arpeggio",
+      "instruments": { "melody": "vibraphone", "accompaniment": "celesta", "bass": "harp" },
+      "harmony": "lydian なら I–II–I–II の 2 和音を往復して機能的な解決を避け、dorian なら i–IV–i–IV の明るい下属和音を保つ。maj7・add9・m9 の付加音を全和音に付けてよく、旋律は 1 オクターブを超える広い音域を漂わせて同じ音型を音高だけ変えて繰り返す。",
+      "dissonance": "不協和音は付加音として常に鳴らしておき、解決を急がず和音が変わるまで保つ。"
+    },
+    "solemn": {
+      "modes": ["minor", "major"],
+      "tempo": [40, 68],
+      "accompaniment": "block",
+      "instruments": { "melody": "strings", "accompaniment": "strings", "bass": "strings" },
+      "harmony": "i–iv–i–V か I–IV–I–V の重い進行を 1 和音 2 拍以上、多くは 1 小節ずつ保つ。旋律は 2 拍以上の長い音価を主にして、各節に 1 回だけ 6 度以上の大きな跳躍を置く。節の終わりは V–i か V–I の完全終止で閉じる。",
+      "dissonance": "不協和音は sus4 の係留を拍頭で長く鳴らしてから 3 度へ解決させ、重さを作る。"
+    },
+    "playful": {
+      "modes": ["major", "dorian"],
+      "tempo": [100, 148],
+      "accompaniment": "block",
+      "instruments": { "melody": "vibraphone", "accompaniment": "piano", "bass": "harp" },
+      "harmony": "I–vi–ii–V と I–IV–V–I を 1 小節ごとに替え、途中で一度だけ 1 小節 bVI か bIII へ寄り道して戻る。旋律は短い音価の跳ねる音型を主にして、2 音の追いかけっこのように同じ動機を 3 度上と 3 度下で交互に置く。",
+      "dissonance": "不協和音は拍の裏に置く半音のぶつかりを短く鳴らしてすぐ隣の構成音へ逃がし、いたずらのように扱う。"
+    }
+  },
+  "subjects": {
+    "starry_sky": {
+      "guidance": "旋律の高い音域に短い 8 分音符のきらめきを散らし、和音は maj7 と add9 を含めて広がりを出す。伴奏は高めの音域で、低音は 2 小節ごとの長い音価で支える。"
+    },
+    "academy_hall": {
+      "guidance": "均等な 4 分音符の歩みを伴奏に置き、旋律は 2 小節の短い動機を反復してから 3 度上で繰り返す。和音は I と V の交替を軸にして、節の変わり目だけ IV へ寄せる。"
+    },
+    "forest_beasts": {
+      "guidance": "低音を 1 小節以上の長い音価で唸らせるドローンにして、和音は 3 度を抜いた 4 度・5 度の空虚な響きを混ぜる。旋律は低めの音域を這うように動き、時折 5 度の跳躍で獣の気配を出す。"
+    },
+    "farewell_morning": {
+      "guidance": "旋律の終止を完全終止で閉じず、IV か vi で開いたまま終える節を最低 1 つ入れる。和音は 2 小節ごとにゆっくり替え、旋律は上行してから下行して元の音へ戻る形を繰り返す。"
+    },
+    "harvest_fair": {
+      "guidance": "3/4 か跳ねる 6/8 を候補にして、旋律を 2 小節ごとの掛け合いにする（前半が問い、後半が答え）。和音は I–IV–V の 3 つを軸にして、低音は拍頭を強く打つ。"
+    },
+    "old_tome": {
+      "guidance": "dorian か mixolydian の古風な旋法を選び、旋律は順次進行を主にして跳躍を 4 度までに抑える。和音は 3 度を抜いた開いた響きを混ぜ、1 和音を 1 小節以上保って語りを進める。"
+    },
+    "rainy_day": {
+      "guidance": "伴奏を規則的な分散和音か同じ音の連打にして雨粒を表し、旋律は短い音価と 1 音を伸ばす箇所を交互に置いて途切れがちにする。和音は ii–V–I と vi–ii–V の柔らかな循環を使う。"
+    },
+    "moonlit_beyond": {
+      "guidance": "速度の帯の遅い側を選び、和音を 2 小節以上動かさず、旋律は高い音域の長い音価と広い跳躍で漂わせる。調性の中心をぼかすために IV と II の和音を主和音の代わりに多く置き、節の終わりでも I へ着地させない。"
+    },
+    "arena_roar": {
+      "guidance": "低音を 4 分音符の同音連打にして拍頭を打ち、和音は 1 小節ごとに替える。旋律は付点リズムと 4 度・5 度の跳躍を主にして、各節の後半で音域を一段上げる。"
+    },
+    "lounge_hearth": {
+      "guidance": "中音域に旋律を置き、伴奏は 1 拍ずつのゆるやかな分散和音か 2 拍ごとの和音にする。和音は I–vi–IV–V の穏やかな循環を軸にして、旋律は狭い音域で同じ動機を少しずつ変えて繰り返す。"
+    }
+  },
+  "motif_categories": {
+    "ascending": {
+      "guidance": "各節の冒頭動機を上行する 3〜5 音で作り、節の山で最高音に達してから短く下りる。上行は順次進行を主にして、山の直前だけ 3 度以上の跳躍を置く。"
+    },
+    "ostinato": {
+      "guidance": "1〜2 小節の短い音型を旋律で執拗に繰り返し、和音の変化だけで色を変える。音型は変えずに、和音が替わる小節で構成音に合わせて 1 音だけ動かす。"
+    },
+    "bell": {
+      "guidance": "2 拍以上伸ばす長い音を各小節の頭に置き、その上に 5 度か 8 度の重なりを鳴らす。旋律は長い音の間を 2〜3 音の短い装飾で埋め、次の長い音へつなぐ。"
+    },
+    "dance": {
+      "guidance": "付点 4 分と 8 分の組み合わせや、8 分と 4 分の並びで拍の裏を強調する跳ねたリズムを旋律の全小節に組み込む。跳ねる音型は 2 小節で 1 組にして、後半を 3 度上で繰り返す。"
+    },
+    "lullaby": {
+      "guidance": "旋律を 5 度以内の狭い音域に収め、揺れるように上下を往復させる。同じ形を 2 小節ごとに繰り返し、音価は 4 分音符と 2 分音符だけにして 8 分音符を使わない。"
+    },
+    "march": {
+      "guidance": "拍頭の同音連打と 4 分音符主体の歩幅の揃った旋律を使い、跳躍は 4 度と 5 度に限る。伴奏は拍ごとの和音で、低音は根音と 5 度を交互に打つ。"
+    },
+    "wave": {
+      "guidance": "上って下る弧を描く 2 小節の長いフレーズを作り、音価を少しずつ伸縮させて揺らす。弧の頂点は節ごとに少しずつ高くして、最後の節で最高音に届かせる。"
+    },
+    "call_response": {
+      "guidance": "1 小節の問いの句と 1 小節の答えの句を交互に置き、問いは上行して開き、答えは下行して閉じる。答えの句は問いの音型を 3 度下か 5 度下で写して作る。"
+    }
+  }
+}

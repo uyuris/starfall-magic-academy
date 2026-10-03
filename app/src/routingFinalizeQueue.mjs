@@ -12,6 +12,25 @@ const routingReadScopes = new AsyncLocalStorage();
 const routingReadScopeRequirements = new AsyncLocalStorage();
 
 let promotionEpoch = 0;
+const inFlightFinalizations = new Set();
+
+async function trackFinalization(run) {
+  const running = run();
+  inFlightFinalizations.add(running);
+  try {
+    return await running;
+  } finally {
+    inFlightFinalizations.delete(running);
+  }
+}
+
+// Resolves once no pending-finalization drain/retry or staged finalization is running, including any that
+// start while earlier ones settle. Shutdown awaits this so a stop never cuts a finalization mid-promotion.
+export async function waitForRoutingFinalizationsIdle() {
+  while (inFlightFinalizations.size > 0) {
+    await Promise.allSettled([...inFlightFinalizations]);
+  }
+}
 
 function assertValidConversationId(conversationId) {
   const normalized = String(conversationId ?? '').trim();
@@ -359,10 +378,39 @@ export function enqueuePendingFinalizationInState(state, job) {
   };
 }
 
+export function removePendingFinalizationInState(state, conversationId) {
+  const normalizedConversationId = assertValidConversationId(conversationId);
+  const pending = readPendingFinalizationsFromState(state).map((pendingJob) => normalizeExistingPendingFinalizationRecord(pendingJob));
+  return {
+    ...state,
+    pending_finalizations: pending.filter((pendingJob) => pendingJob.conversation_id !== normalizedConversationId)
+  };
+}
+
 function pendingFinalizationDrainError(message) {
   const error = pendingFinalizationRecordError(message);
   error.retryable = true;
   return error;
+}
+
+// Every remaining job is failed or queued behind a failed job for the same character, so the drain cannot make
+// progress. The exits that drain first refuse under this error_code; the retry route is what clears it.
+const PENDING_FINALIZATIONS_BLOCKED_ERROR_CODE = 'pending_finalizations_blocked';
+
+function pendingFinalizationsBlockedError() {
+  const error = new Error('pending finalizations are blocked by failed jobs');
+  error.code = 'PENDING_FINALIZATIONS_BLOCKED';
+  error.errorCode = PENDING_FINALIZATIONS_BLOCKED_ERROR_CODE;
+  error.statusCode = 500;
+  error.retryable = true;
+  return error;
+}
+
+// A failed job is only cleared by the retry route, so every drain over this queue ends refused under the blocked
+// error. An exit that writes its waiting state before it drains checks this first and refuses with nothing written.
+export function assertNoFailedPendingFinalizations(state) {
+  const pending = readPendingFinalizationsFromState(state).map((job) => normalizeExistingPendingFinalizationRecord(job));
+  if (pending.some((job) => job.status === 'failed')) throw pendingFinalizationsBlockedError();
 }
 
 function pendingFinalizationErrorPayload(error) {
@@ -455,7 +503,7 @@ export async function retryPendingFinalizationForCharacter({ root, characterId, 
   if (!root) throw new Error('root is required');
   if (typeof finalizeJob !== 'function') throw new Error('pending finalization retry finalizeJob is required');
   const normalizedCharacterId = normalizePendingFinalizationCharacterId(characterId);
-  return await runOutsideRoutingReadScope(async () => {
+  return await trackFinalization(() => runOutsideRoutingReadScope(async () => {
     const storage = createStorageApi({ root });
     const state = await storage.readJson('game_data/runtime_state.json');
     const retryCandidate = selectRetryableFailedPendingFinalizationForCharacter(state, normalizedCharacterId);
@@ -463,13 +511,13 @@ export async function retryPendingFinalizationForCharacter({ root, characterId, 
     const retried = preparePendingFinalizationRetryInState(state, retryCandidate);
     const drained = await drainPendingFinalizationJob({ root, job: retried.job, finalizeJob });
     return { retried: retried.job, drained: [drained], state: drained.state };
-  });
+  }));
 }
 
 export async function drainAllPendingFinalizations({ root, finalizeJob }) {
   if (!root) throw new Error('root is required');
   if (typeof finalizeJob !== 'function') throw new Error('pending finalization drain finalizeJob is required');
-  return await runOutsideRoutingReadScope(async () => {
+  return await trackFinalization(() => runOutsideRoutingReadScope(async () => {
     const drained = [];
     while (true) {
       const storage = createStorageApi({ root });
@@ -477,15 +525,13 @@ export async function drainAllPendingFinalizations({ root, finalizeJob }) {
       const pending = readPendingFinalizationsFromState(state).map((job) => normalizeExistingPendingFinalizationRecord(job));
       if (pending.length === 0) return { drained, state };
       const job = selectNextPendingFinalizationForDrain(state);
-      if (!job) {
-        throw pendingFinalizationDrainError('pending finalizations are blocked by failed jobs');
-      }
+      if (!job) throw pendingFinalizationsBlockedError();
       const drainedEntry = await drainPendingFinalizationJob({ root, job, finalizeJob });
       const nextState = drainedEntry.state;
       drained.push({ job: drainedEntry.job, finalization: drainedEntry.finalization });
       if (readPendingFinalizationsFromState(nextState).length === 0) return { drained, state: nextState };
     }
-  });
+  }));
 }
 
 async function writeFileAtomic(fullPath, bytes) {
@@ -549,7 +595,11 @@ function preserveScreenOwnership(state, liveState) {
   };
 }
 
-export async function runAtomicFinalizationWithStaging({
+export async function runAtomicFinalizationWithStaging(args) {
+  return await trackFinalization(() => runStagedFinalization(args));
+}
+
+async function runStagedFinalization({
   root,
   conversationId,
   finalStateTransform = null,

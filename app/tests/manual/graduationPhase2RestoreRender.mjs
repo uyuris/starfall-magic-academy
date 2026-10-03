@@ -27,11 +27,6 @@ const PUBLIC_ROOT = path.join(PROJECT_ROOT, 'app/public');
 const REPO_CANONICAL = path.join(PROJECT_ROOT, 'assets/canonical');
 const WIN_W = 1200;
 const WIN_H = 820;
-const PERSONA_VARIANT = 'fallen_star';
-const PERSONA_DISPLAY_NAME = 'ルミ';
-const PERSONA_VISUAL_SET = 'routing_lumi_fallen_star';
-const GUIDE_START_INPUT = '今週は鍛錬する';
-const GUIDE_SENDOFF_TEXT = 'では、鍛錬へ向かいましょう。（あなたの背をそっと押す）新しい一週間をそこから始めます。';
 const SELECT_INPUT_GUIDE = 'あなた自身と、この学院生活の最後を過ごしたい';
 const SELECT_INPUT_CANDIDATE = 'セラと、この学院生活の最後を過ごしたい';
 const SELECT_REPLY = 'ふふ、うれしい。では最後の時間を、わたしと一緒に過ごしましょうね。';
@@ -51,7 +46,8 @@ function check(name, pass, detail = {}) {
 const { createServer } = await import(path.join(PROJECT_ROOT, 'app/src/server.mjs'));
 const { fixtureRoot } = await import(path.join(PROJECT_ROOT, 'app/tests/helpers.mjs'));
 const { runtimePathsManifestFilename } = await import(path.join(PROJECT_ROOT, 'app/src/runtimePaths.mjs'));
-const { resolvePlayRoot, resolveSlotProjectRoot } = await import(path.join(PROJECT_ROOT, 'app/src/playSession.mjs'));
+const { resolvePlayRoot, resolveSlotProjectRoot, readSlotMeta, writeSlotMeta } = await import(path.join(PROJECT_ROOT, 'app/src/playSession.mjs'));
+const { routingPersonaDisplayName } = await import(path.join(PROJECT_ROOT, 'app/src/routingPersona.mjs'));
 
 // Deterministic routing LM stub. The graduation guide selection judgment answers `lina` when the player asks
 // for the 案内人自身, otherwise `character_001` (セラ) — so one stub drives both the guide and candidate phase-2
@@ -63,10 +59,7 @@ function routingTurnLmResponder({ prompt, requestIndex }) {
   if (prompt.includes('場所移動の合意')) return 'false';
   if (prompt.includes('location_idを1つだけ返す')) return 'none';
   if (prompt.includes('締めくくりを誰と過ごすと選んだか')) return prompt.includes(SELECT_INPUT_CANDIDATE) ? 'character_001' : 'lina';
-  if (prompt.includes('ルーティングハブ会話内容') && prompt.includes('destination_id')) {
-    return prompt.includes(GUIDE_START_INPUT) ? 'training' : 'none';
-  }
-  if (prompt.includes('行き先が確定したプレイヤーを送り出す')) return GUIDE_SENDOFF_TEXT;
+  if (prompt.includes('ルーティングハブ会話内容') && prompt.includes('destination_id')) return 'none';
   if (prompt.includes(CONTINUE_INPUT)) return CONTINUE_REPLY;
   if (requestIndex === 0) return OPENING_TEXT;
   if (prompt.includes(SELECT_INPUT_GUIDE) || prompt.includes(SELECT_INPUT_CANDIDATE)) return SELECT_REPLY;
@@ -95,7 +88,9 @@ async function startStubLm() {
   return { server, requests, baseUrl: `http://127.0.0.1:${server.address().port}/v1` };
 }
 
-async function makeFixture(slug, { mode }) {
+// A new game always starts in routing with a randomly drawn persona variant (the play-mode sidecar is not
+// consulted), so no sidecar is written; the slot's own meta.json carries the mode and variant.
+async function makeFixture(slug) {
   const root = await fixtureRoot(`${slug}-`);
   await fs.writeFile(path.join(root, runtimePathsManifestFilename), `${JSON.stringify({
     configRoot: path.join(root, 'app/config'),
@@ -110,8 +105,6 @@ async function makeFixture(slug, { mode }) {
   }, null, 2)}\n`, 'utf8');
   const settingsDir = await fs.mkdtemp(path.join(os.tmpdir(), `${slug}-settings-`));
   const settingsPath = path.join(settingsDir, 'play-mode.json');
-  const settings = mode === 'routing' ? { mode: 'routing', routing_persona_variant: PERSONA_VARIANT } : { mode: 'loop' };
-  await fs.writeFile(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, 'utf8');
   return { root, settingsDir, settingsPath };
 }
 
@@ -153,6 +146,13 @@ async function mutateActiveSlotState(root, mutate) {
   mutate(state);
   await fs.writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
   return { slotId, state };
+}
+
+// The routing persona identity the active slot was drawn with at new game (meta.json routing_persona_variant).
+async function readActiveSlotPersona(root) {
+  const slotId = await readActiveSlotId(root);
+  const variant = (await readSlotMeta(root, slotId))?.routing_persona_variant;
+  return { variant, displayName: routingPersonaDisplayName(variant), visualSet: `routing_lumi_${variant}` };
 }
 
 async function readActiveSlotState(root) {
@@ -205,12 +205,15 @@ async function sendHubTurn(input) {
   return false;
 }
 
-// Drive: hub → seed week 49 → guide start (week 50) → select partner → phase-2 卒業会話 on the daytime screen.
+// Drive: hub → seed week 49 → reload + LOAD (hub start at the graduation week creates the guide) → select
+// partner → phase-2 卒業会話 on the daytime screen.
 async function driveToPhase2Day(root, base, selectInput) {
   if (!await newGameRouting(base)) throw new Error('did not reach the routing hub');
   await seedActiveSlotElapsedWeeks(root, 49);
-  if (!await sendHubTurn(GUIDE_START_INPUT)) throw new Error('guide-start turn did not send');
-  if (!await waitFor(`document.querySelector('#routing-hub-screen')?.classList.contains('active') && !document.querySelector('#routing-hub-send')?.disabled && !document.querySelector('#academy-loading-screen')?.classList.contains('active')`, { tries: 300, intervalMs: 120 })) throw new Error('guide start did not settle on the hub');
+  await reloadToTitle(base);
+  if (!await loadFirstSlotFromTitle()) throw new Error('slot load button was not clickable');
+  if (!await waitFor(`document.querySelector('#routing-hub-screen')?.classList.contains('active') && !document.querySelector('#routing-hub-send')?.disabled && !document.querySelector('#academy-loading-screen')?.classList.contains('active') && (document.querySelector('#routing-hub-message-stream')?.textContent || '').trim().length > 0`, { tries: 300, intervalMs: 120 })) throw new Error('guide start did not settle on the hub');
+  if (!(await readActiveSlotState(root)).routing_graduation_guide) throw new Error('hub start at week 49 did not create the graduation guide');
   await sleep(400);
   if (!await sendHubTurn(selectInput)) throw new Error('selection turn did not send');
   const landed = await waitFor(`
@@ -253,17 +256,19 @@ async function loadFirstSlotFromTitle() {
 }
 
 async function scenarioGuideLoad(lm) {
-  const fx = await makeFixture('grad-phase2-restore-guide', { mode: 'routing' });
+  const fx = await makeFixture('grad-phase2-restore-guide');
   cleanups.push(fx.root, fx.settingsDir);
   const { server, base } = await startGameServer({ root: fx.root, settingsPath: fx.settingsPath, lm });
   cleanups.push(() => server.close());
   log('scenario', { name: 'guide-load', base });
 
   await driveToPhase2Day(fx.root, base, SELECT_INPUT_GUIDE);
+  const persona = await readActiveSlotPersona(fx.root);
+  log('guide_persona', persona);
   const before = await readDayLanding();
   check('DRIVE (案内人): phase 2 started on the daytime screen with the persona identity (pre-reload)',
     before.activeScreenId === 'conversation-day-screen' && before.endingCharacterId === 'lina'
-    && before.speakerName === PERSONA_DISPLAY_NAME && typeof before.faceSrc === 'string' && before.faceSrc.includes(PERSONA_VISUAL_SET), before);
+    && before.speakerName === persona.displayName && typeof before.faceSrc === 'string' && before.faceSrc.includes(persona.visualSet), before);
   const openingPresent = before.streamText.includes(GRADUATION_OPENING_TEXT);
 
   // ── RELOAD (fresh frontend, no in-memory persona) → explicit LOAD → live re-entry ──
@@ -282,8 +287,8 @@ async function scenarioGuideLoad(lm) {
     Boolean(reentered && after.activeScreenId === 'conversation-day-screen' && !after.loadingActive && !hubShown), { reentered, hubShown, activeScreenId: after.activeScreenId });
   check('LOAD (案内人): the restored conversation history is rendered (the phase-2 opening line is present after re-entry)',
     Boolean(openingPresent && after.streamText.includes(GRADUATION_OPENING_TEXT)), { streamLen: after.streamText.length });
-  check('LOAD (案内人): identity restored — speaker name = ルミ and face = routing_lumi_<variant> (registered from the entry contract before refresh)',
-    after.speakerName === PERSONA_DISPLAY_NAME && typeof after.faceSrc === 'string' && after.faceSrc.includes(PERSONA_VISUAL_SET), { speakerName: after.speakerName, faceSrc: after.faceSrc });
+  check('LOAD (案内人): identity restored — speaker name = the slot variant\'s display name and face = routing_lumi_<variant> (registered from the entry contract before refresh)',
+    after.speakerName === persona.displayName && typeof after.faceSrc === 'string' && after.faceSrc.includes(persona.visualSet), { speakerName: after.speakerName, faceSrc: after.faceSrc });
 
   // ── Continue a turn in the restored conversation ──
   const turnSent = await js(`(() => {
@@ -312,7 +317,7 @@ async function scenarioGuideLoad(lm) {
   const resumeLanding = await readDayLanding();
   log('guide_resume', { resumeClicked, resumed, resumeHubShown, activeScreenId: resumeLanding.activeScreenId, speakerName: resumeLanding.speakerName });
   check('RESUME (案内人): the 「プレイに戻る」 button re-enters phase 2 (same conversation) and never opens the routing hub',
-    Boolean(resumed && resumeLanding.activeScreenId === 'conversation-day-screen' && !resumeHubShown && resumeLanding.speakerName === PERSONA_DISPLAY_NAME), { resumed, resumeHubShown });
+    Boolean(resumed && resumeLanding.activeScreenId === 'conversation-day-screen' && !resumeHubShown && resumeLanding.speakerName === persona.displayName), { resumed, resumeHubShown });
 
   // ── PHASE 2 → TITLE ──
   await waitFor(`!document.querySelector('#conversation-day-end')?.disabled`, { tries: 200, intervalMs: 120 });
@@ -329,7 +334,7 @@ async function scenarioGuideLoad(lm) {
 }
 
 async function scenarioCandidateAndVariants(lm) {
-  const fx = await makeFixture('grad-phase2-restore-candidate', { mode: 'routing' });
+  const fx = await makeFixture('grad-phase2-restore-candidate');
   cleanups.push(fx.root, fx.settingsDir);
   const { server, base } = await startGameServer({ root: fx.root, settingsPath: fx.settingsPath, lm });
   cleanups.push(() => server.close());
@@ -389,10 +394,11 @@ async function scenarioCandidateAndVariants(lm) {
 }
 
 async function scenarioLoop(lm) {
-  // A loop mid-phase-2 slot must land in the conversation, not academy-room. Loop graduation is week-50 gated, so
-  // rather than drive 50 weeks this seeds a loop new-game slot into an in-flight phase-2 (opening 未実行) shape and
-  // asserts the LOAD lands on the daytime conversation.
-  const fx = await makeFixture('grad-phase2-restore-loop', { mode: 'loop' });
+  // A loop mid-phase-2 slot must land in the conversation, not academy-room. A new game always starts in routing
+  // and loop graduation is week-50 gated, so rather than drive 50 weeks this re-marks the new-game slot as a loop
+  // save (meta.json play_mode, which LOAD resolves the mode from), seeds it into an in-flight phase-2 (opening
+  // 未実行) shape, and asserts the LOAD lands on the daytime conversation.
+  const fx = await makeFixture('grad-phase2-restore-loop');
   cleanups.push(fx.root, fx.settingsDir);
   const { server, base } = await startGameServer({ root: fx.root, settingsPath: fx.settingsPath, lm });
   cleanups.push(() => server.close());
@@ -418,7 +424,9 @@ async function scenarioLoop(lm) {
       source_type: 'event'
     };
   });
-  log('loop_seed', { slotId: seed.slotId });
+  const { routing_persona_variant: _routingVariant, ...slotMeta } = await readSlotMeta(fx.root, seed.slotId);
+  await writeSlotMeta(fx.root, seed.slotId, { ...slotMeta, play_mode: 'loop' });
+  log('loop_seed', { slotId: seed.slotId, playMode: (await readSlotMeta(fx.root, seed.slotId)).play_mode });
   await reloadToTitle(base);
   const loaded = await loadFirstSlotFromTitle();
   const onConversation = loaded && await waitFor(`
@@ -426,10 +434,13 @@ async function scenarioLoop(lm) {
     && (document.querySelector('#conversation-day-message-stream')?.textContent || '').trim().length > 0
   `, { tries: 600, intervalMs: 150 });
   const roomShown = await js(`!!document.querySelector('#academy-room-screen')?.classList.contains('active')`);
-  const loopState = await js(`(() => ({ activeScreenId: document.querySelector('.screen.active')?.id ?? null }))()`);
+  const loopState = await js(`(async () => {
+    const slots = await fetch('/api/slots').then((r) => r.json());
+    return { activeScreenId: document.querySelector('.screen.active')?.id ?? null, activePlayMode: slots?.active_play_mode?.mode ?? null };
+  })()`);
   log('loop_reentry', { loaded, onConversation, roomShown, ...loopState });
   check('LOAD (loop): a loop mid-phase-2 slot lands on the phase-2 conversation, not academy-room',
-    Boolean(onConversation && loopState.activeScreenId === 'conversation-day-screen' && !roomShown), loopState);
+    Boolean(onConversation && loopState.activeScreenId === 'conversation-day-screen' && !roomShown && loopState.activePlayMode === 'loop'), loopState);
 }
 
 async function main() {

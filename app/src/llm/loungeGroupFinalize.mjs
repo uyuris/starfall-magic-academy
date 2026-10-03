@@ -17,11 +17,19 @@
 // finalize-staging workspace and only then does one group finalization marker and one transcript discard land,
 // promoted atomically. Any participant's generation failure throws, the staging workspace is discarded by the
 // atomic machinery, and no partial finalize is ever promoted.
+//
+// Generation and application are two phases. The per-participant LLM chain (memory → skill necessity →
+// work record → [skill update] → affinity) reads only the shared record and the participant, never the state,
+// so the three chains are an independent bundle and run side by side through `runIndependentBundle` (bundle
+// concurrency bound in `llmConcurrency.mjs`). Only once every chain has returned are the results applied —
+// validated, written, and threaded through state — strictly in `record.participants` order, so the final state
+// and every artifact are identical to a serial run no matter which chain finished first.
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { createStorageApi } from '../storage.mjs';
+import { runIndependentBundle } from './llmConcurrency.mjs';
 import { resolveDialogueActor } from './dialogueActor.mjs';
 import { validateConversationRecordUpdates } from './validator.mjs';
 import { applyCharacterAffinityDelta, parseAffinityDeltaAnswer } from '../affinityState.mjs';
@@ -216,21 +224,13 @@ function assertProvider(provider, name) {
   if (typeof provider !== 'function') throw new Error(`${name} is required`);
 }
 
-// Finalizes one participant off the shared record against the (staging) root: generates the three-piece records
-// through the injected provider seams, validates them through the shared single-actor validator, writes the
-// participant-scoped logs and accepted records, applies the accepted work-record flags to that participant's actor
-// flags, and applies the conversation affinity delta (idempotent per conversation id inside the participant's own
-// affinity file). Returns the state carrying this participant's accepted flags, threaded into the next participant.
-async function finalizeLoungeParticipant({ storage, root, record, participant, state, now, weekSnapshot, providers }) {
+// Phase 1 (generation) for one participant: runs the participant's LLM chain through the injected provider
+// seams — memory → skill necessity → work record → [skill update when necessary] → affinity delta, serial inside
+// the chain because the skill update depends on the necessity answer. Reads only the (projected) record and the
+// participant; touches neither state nor storage, which is what makes the three chains independent of each other.
+async function generateLoungeParticipantRecords({ record, participant, now, providers }) {
   const conversationId = record.id;
   const workRecordId = participantWorkRecordId(conversationId, participant.character_id);
-  const logKey = participantLogKey(conversationId, participant.character_id);
-  const actor = resolveDialogueActor(participant.character_id);
-
-  // Load the participant's persisted flags into state so the validator resolves the actor and knowledge-flag
-  // candidates against real flags (mirrors the 1:1 finalizer's actor-flag merge).
-  const actorFlagsFile = await storage.readJsonIfExists(`${actor.basePath}/flags.json`);
-  mergeDialogueActorFlagsIntoState({ state, actor, flagsFile: actorFlagsFile });
 
   const memoryPrompt = buildLoungeMemoryUpdatePrompt({ record, participant, workRecordId });
   const skillNecessityPrompt = buildLoungeSkillNecessityPrompt({ record, participant, workRecordId });
@@ -256,6 +256,27 @@ async function finalizeLoungeParticipant({ storage, root, record, participant, s
       source_conversation_id: conversationId,
       work_record_id: workRecordId
     };
+
+  const rawAffinityDelta = await providers.affinityDeltaProvider({ prompt: affinityPrompt, record, participant, workRecordId, now });
+
+  return { workRecordId, memoryUpdate, skillUpdate, workRecordUpdate, rawAffinityDelta, affinityPrompt };
+}
+
+// Phase 2 (application) for one participant against the (staging) root: validates the generated records through
+// the shared single-actor validator, writes the participant-scoped logs and accepted records, applies the accepted
+// work-record flags to that participant's actor flags, and applies the conversation affinity delta (idempotent per
+// conversation id inside the participant's own affinity file). Returns the state carrying this participant's
+// accepted flags, threaded into the next participant in `record.participants` order.
+async function applyLoungeParticipantRecords({ storage, root, record, participant, state, now, weekSnapshot, generated }) {
+  const conversationId = record.id;
+  const { workRecordId, memoryUpdate, skillUpdate, workRecordUpdate, rawAffinityDelta, affinityPrompt } = generated;
+  const logKey = participantLogKey(conversationId, participant.character_id);
+  const actor = resolveDialogueActor(participant.character_id);
+
+  // Load the participant's persisted flags into state so the validator resolves the actor and knowledge-flag
+  // candidates against real flags (mirrors the 1:1 finalizer's actor-flag merge).
+  const actorFlagsFile = await storage.readJsonIfExists(`${actor.basePath}/flags.json`);
+  mergeDialogueActorFlagsIntoState({ state, actor, flagsFile: actorFlagsFile });
 
   const conversationProjection = { id: conversationId, character_id: participant.character_id, character_name: participant.character_name };
   // The target participant owns every record: force character_id to the participant so a generator can never
@@ -305,7 +326,6 @@ async function finalizeLoungeParticipant({ storage, root, record, participant, s
   const nextState = applyAcceptedFlags(state, validator);
   await writeDialogueActorFlagsFromState({ root, state: nextState, actorId: participant.character_id });
 
-  const rawAffinityDelta = await providers.affinityDeltaProvider({ prompt: affinityPrompt, record, participant, workRecordId, now });
   const conversationDelta = parseAffinityDeltaAnswer(rawAffinityDelta);
   const affinityUpdatePath = `game_data/logs/affinity_updates/${logKey}.json`;
   const appliedAffinity = await applyCharacterAffinityDelta({
@@ -382,13 +402,13 @@ export async function runLoungeGroupFinalization({
   let state = await storage.readJson('game_data/runtime_state.json');
   const weekSnapshot = academyWeekSnapshotFromState(state);
 
-  const participantResults = [];
-  for (const participant of record.participants) {
-    // v2 participant-scoped transcript projection: each participant's three-piece + affinity generation only sees
-    // the transcript slice the participant was present for. active → the full transcript; exited → messages
-    // truncated at the participant's own `exited_after_message_count` boundary (which includes their departure
-    // utterance). The participant lifecycle entry MUST exist — its absence is a schema-shape bug in a validated
-    // record and throws rather than silently defaulting to the full transcript.
+  // v2 participant-scoped transcript projection: each participant's three-piece + affinity generation only sees
+  // the transcript slice the participant was present for. active → the full transcript; exited → messages
+  // truncated at the participant's own `exited_after_message_count` boundary (which includes their departure
+  // utterance). The participant lifecycle entry MUST exist — its absence is a schema-shape bug in a validated
+  // record and throws rather than silently defaulting to the full transcript. Every projection is resolved
+  // before any generation starts, so a malformed record fails before a single LM request is spent.
+  const projections = record.participants.map((participant) => {
     const lifecycleEntry = record.participant_lifecycle.find((entry) => entry.character_id === participant.character_id);
     if (!lifecycleEntry) {
       throw new Error(`lounge finalization: participant_lifecycle entry missing for ${participant.character_id}`);
@@ -396,8 +416,22 @@ export async function runLoungeGroupFinalization({
     const projectedMessages = lifecycleEntry.status === 'exited'
       ? record.messages.slice(0, lifecycleEntry.exited_after_message_count)
       : record.messages;
-    const projectedRecord = { ...record, messages: projectedMessages };
-    const result = await finalizeLoungeParticipant({ storage, root, record: projectedRecord, participant, state, now, weekSnapshot, providers });
+    return { participant, record: { ...record, messages: projectedMessages } };
+  });
+
+  // Phase 1: the three participant chains are independent of each other and of state, so they run as one
+  // bundle. The results come back in participants order; any chain failure rejects the whole finalization
+  // before anything is written (the caller's staging then discards the workspace).
+  const generated = await runIndependentBundle(projections, {
+    run: (projection) => generateLoungeParticipantRecords({ record: projection.record, participant: projection.participant, now, providers })
+  });
+
+  // Phase 2: apply strictly in participants order, threading the accepted flags through state exactly as a
+  // serial run would, so completion order of the chains above never reaches the persisted result.
+  const participantResults = [];
+  for (let index = 0; index < projections.length; index += 1) {
+    const { participant, record: projectedRecord } = projections[index];
+    const result = await applyLoungeParticipantRecords({ storage, root, record: projectedRecord, participant, state, now, weekSnapshot, generated: generated[index] });
     state = result.state;
     participantResults.push(result);
   }

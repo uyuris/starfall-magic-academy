@@ -12,6 +12,8 @@ const ROUTING_DISPATCH_TARGETS = Object.freeze({
   arena: 'academy-arena',
   auction: 'academy-auction',
   lounge: 'academy-lounge',
+  concert_hall: 'academy-concert-hall',
+  overlook: 'academy-overlook',
   homunculus: 'academy-atelier',
   title: 'title'
 });

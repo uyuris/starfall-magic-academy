@@ -4,7 +4,7 @@ Executable application code, public runtime assets, config, and tests live here.
 
 ## Current implementation
 
-- `src/server.mjs` is the Node HTTP entrypoint used by `npm start`.
+- `src/server.mjs` is the Node HTTP entrypoint used by `npm start` and by `scripts/serve-starfall.mjs`; both hold the one-server lock on `data/mutable/` (`src/serverLock.mjs`).
 - `src/server/*.mjs` contains route groups for save/load, LM Studio settings, debug flags, authoring, field/runtime state, progression/economy, continuity records, and conversation lifecycle/streaming.
 - `public/index.html`, `public/style.css`, and `public/app.js` are the current authored browser shell. The shell is vanilla browser JavaScript, not a Vite/React build output.
 - `config/lmstudio.example.json` documents the local LM Studio OpenAI-compatible connection shape.

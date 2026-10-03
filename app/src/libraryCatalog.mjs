@@ -226,6 +226,38 @@ export function libraryCatalogById(books) {
   return new Map(books.map((book) => [book.id, book]));
 }
 
+// Builds the per-request catalog index: the id lookup plus a title lookup, both derived in one pass
+// so a request that resolves ids AND titles (a read, a footnote projection) walks the 531 entries
+// once instead of once per lookup surface. `byTitle` holds every book carrying that 題, so an
+// ambiguous title is a condition the resolver can see rather than a silently-picked first match.
+export function libraryCatalogIndex(books) {
+  const byId = libraryCatalogById(books);
+  const byTitle = new Map();
+  for (const book of books) {
+    const bucket = byTitle.get(book.title);
+    if (bucket) bucket.push(book);
+    else byTitle.set(book.title, [book]);
+  }
+  return { books, byId, byTitle };
+}
+
+// 同題解決: resolves a title to the one catalog book carrying it, or null when the catalog has no
+// such 題. Exact match only — no trimming, no normalization, no nearest neighbour. Two books under
+// one title is refused, never guessed: the caller cannot be told which book it opened.
+export function resolveLibraryCatalogTitle(index, title) {
+  if (!index || !(index.byTitle instanceof Map)) throw new Error('library title resolution requires a catalog index');
+  if (typeof title !== 'string' || !title) throw new Error('library title resolution requires a non-empty title');
+  const matches = index.byTitle.get(title);
+  if (matches === undefined) return null;
+  if (matches.length > 1) {
+    const error = new Error(`library catalog resolves this title to more than one book: ${title}`);
+    error.statusCode = 500;
+    error.errorCode = 'LIBRARY_CATALOG_TITLE_AMBIGUOUS';
+    throw error;
+  }
+  return matches[0];
+}
+
 function gatePasses(gate, normalizedMagic) {
   if (gate === null) return true;
   if (gate.kind === 'magic') return normalizedMagic[gate.key].value >= gate.min;
@@ -246,4 +278,75 @@ export function isLibraryBookReadable(book, parameters) {
 export function filterReadableLibraryBooks(books, parameters) {
   const normalized = normalizeParameters(parameters);
   return books.filter((book) => gatePasses(book.gate ?? null, normalized.magic));
+}
+
+// ----- 中核関連宣言 (core reference table) -----
+//
+// The 中核 books' 関連する本 are authored, not generated: a core read resolves its footnotes from
+// data/definitions/game_data/library_core_references.json and calls no generator. The declaration
+// is a total map over the core layer — every core id is a key, and a book with no declared relation
+// carries an explicit empty list rather than a missing key, so "no relations" and "forgotten" are
+// never the same state. Values are catalog ids (any layer); the file authors no title or body.
+
+export const LIBRARY_CORE_REFERENCES_FILENAME = 'library_core_references.json';
+
+// The per-book relation cap the presentation is built around (0〜3行).
+export const LIBRARY_CORE_REFERENCE_MAX = 3;
+
+// Strictly validates the raw core reference declaration against a normalized catalog and returns a
+// Map<core id, readonly id array> in the declared (file) order. A key set that is not exactly the
+// catalog's core set, a list over the cap, an unknown id, a duplicate, or a self reference throws:
+// a missing or unknown declaration is never completed into an empty list.
+export function normalizeLibraryCoreReferences(raw, catalog) {
+  const value = requiredObject(raw, 'library core references');
+  assertKeys(value, ['references'], [], 'library core references');
+  const references = requiredObject(value.references, 'library core references.references');
+  if (!Array.isArray(catalog)) throw new Error('library core references require a catalog array');
+  const catalogIds = new Set(catalog.map((book) => book.id));
+  const coreIds = catalog.filter((book) => book.layer === 'core').map((book) => book.id);
+  const coreIdSet = new Set(coreIds);
+
+  const declaredIds = Object.keys(references);
+  const missing = coreIds.filter((id) => !Object.prototype.hasOwnProperty.call(references, id));
+  if (missing.length > 0) {
+    throw new Error(`library core references must declare every core book: missing ${missing.join(', ')}`);
+  }
+  const extra = declaredIds.filter((id) => !coreIdSet.has(id));
+  if (extra.length > 0) {
+    throw new Error(`library core references declares non-core id(s): ${extra.join(', ')}`);
+  }
+
+  const table = new Map();
+  for (const id of declaredIds) {
+    const label = `library core references[${id}]`;
+    const list = references[id];
+    if (!Array.isArray(list)) throw new Error(`${label} must be an array`);
+    if (list.length > LIBRARY_CORE_REFERENCE_MAX) {
+      throw new Error(`${label} must declare at most ${LIBRARY_CORE_REFERENCE_MAX} references: got ${list.length}`);
+    }
+    const seen = new Set();
+    for (const reference of list) {
+      requiredString(reference, `${label} entry`);
+      if (!catalogIds.has(reference)) throw new Error(`${label} references an unknown catalog id: ${reference}`);
+      if (reference === id) throw new Error(`${label} references itself`);
+      if (seen.has(reference)) throw new Error(`${label} repeats a reference: ${reference}`);
+      seen.add(reference);
+    }
+    table.set(id, Object.freeze([...list]));
+  }
+  return table;
+}
+
+export async function loadLibraryCoreReferences({ root, catalog } = {}) {
+  if (!root) throw new Error('root is required');
+  const storage = createStorageApi({ root });
+  const definitionsPath = path.join(storage.paths.definitionsRoot, LIBRARY_CORE_REFERENCES_FILENAME);
+  let rawText;
+  try {
+    rawText = await fs.readFile(definitionsPath, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') throw new Error(`library core references file is missing: ${definitionsPath}`);
+    throw error;
+  }
+  return normalizeLibraryCoreReferences(JSON.parse(rawText), catalog);
 }

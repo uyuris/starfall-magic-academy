@@ -3,11 +3,13 @@ import { buildRoutingErrandSceneContext, readActiveRoutingErrand } from '../rout
 import { buildRoutingStudyCircleSceneContext, readActiveRoutingStudyCircle } from '../routingStudyCircle.mjs';
 import { matchingActiveAtelierConversation } from '../homunculusAtelierVisit.mjs';
 import { atelierInjectedSceneContext } from '../homunculusScene.mjs';
-import { attachRoutingErrandCompletion, attachRoutingGraduationGuideSelection, attachRoutingStudyCircleCompletion, attachRoutingTurnDispatch, graduationPersonaVariantForActivePlayMode, resolveConversationTurnRequest, resolveRoutingGraduationGuideContext, routingPersonaVisualForGraduationPhase2 } from './conversationLifecycleApi.mjs';
+import { attachRoutingErrandCompletion, attachRoutingGraduationGuideSelection, attachRoutingStudyCircleCompletion, attachRoutingTurnDispatch, graduationPersonaVariantForActivePlayMode, resolveConversationLifecycleRoot, resolveConversationTurnRequest, resolveRoutingGraduationGuideContext, routingPersonaVisualForGraduationPhase2 } from './conversationLifecycleApi.mjs';
+import { runExclusiveConversationWork } from './conversationTurnExclusion.mjs';
 
 const CONVERSATION_STREAMING_ROUTES = new Set([
   'POST /api/conversation/opening/stream',
-  'POST /api/conversation/stream'
+  'POST /api/conversation/stream',
+  'POST /api/conversation/edit-user-message/stream'
 ]);
 
 const CONVERSATION_ID_PATTERN = /^conv_[A-Za-z0-9_-]+$/;
@@ -69,9 +71,12 @@ export function isConversationOpeningStreamRoute(method, pathname) {
   return method === 'POST' && pathname === '/api/conversation/opening/stream';
 }
 
+// A PROMPT_PREWARM_FAILED error is raised after the turn was written, so it carries the written turn
+// (`turn_result`, the payload `result` would have carried): the client keeps the turn and only reports the failure.
 export function serializeStreamError(error) {
   const payload = { error: error.message };
   if (error?.errorCode) payload.error_code = error.errorCode;
+  if (error?.turnResult) payload.turn_result = error.turnResult;
   return payload;
 }
 
@@ -228,6 +233,7 @@ export async function handleConversationStreamingApi({
   resolveRuntimeProviders,
   runConversationOpening,
   runConversationTurn,
+  editConversationUserMessage,
   runConversationFinalization,
   markGraduationEndingComplete,
   isGraduationEndingContext,
@@ -277,182 +283,222 @@ export async function handleConversationStreamingApi({
     return true;
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/conversation/edit-user-message/stream') {
+    const editRoot = resolveConversationLifecycleRoot(context, activePlayMode);
+    const body = await readBody(req);
+    // The edit rewinds and re-runs the active conversation (last_conversation_id), so that is the one it holds.
+    const { last_conversation_id: activeConversationId } = await readJson(editRoot, 'game_data/runtime_state.json');
+    const conversationId = assertValidConversationIdForApi(activeConversationId, 'last_conversation_id');
+    return await runExclusiveConversationWork({ root: editRoot, conversationId }, async () => {
+      openSse(res);
+      try {
+        sendSseEvent(res, 'status', { phase: 'chat_started' });
+        const providers = await resolveRuntimeProviders({
+          requestedProvider: body.provider,
+          context,
+          onChatDelta: (delta) => sendSseEvent(res, 'assistant_delta', { delta })
+        });
+        const result = await editConversationUserMessage({
+          root: editRoot,
+          characterId: body.character_id ?? 'lina',
+          messageIndex: body.message_index,
+          content: body.content,
+          now: new Date().toISOString(),
+          ...providers,
+          onEmotion: (emotion) => sendSseEvent(res, 'assistant_emotion', emotion),
+          onAssistantComplete: ({ content, emotion }) => sendSseEvent(res, 'assistant_complete', { content, ...emotion })
+        });
+        sendSseEvent(res, 'result', result);
+      } catch (error) {
+        sendSseEvent(res, 'error', serializeStreamError(error));
+      } finally {
+        res.end();
+      }
+      return true;
+    });
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/conversation/stream') {
     const body = await readBody(req);
     const conversationId = assertValidConversationIdForApi(body.id, 'id');
-    let turnRequest = null;
-    let activeErrand = undefined;
-    let activeStudyCircle = undefined;
-    let activeAtelier = undefined;
-    const getTurnRequest = async () => {
-      turnRequest ??= await resolveConversationTurnRequest({
-        root,
-        body,
-        activePlayMode,
-        readJson,
-        readJsonIfExists
-      });
-      return turnRequest;
-    };
-    const getActiveErrand = async () => {
-      if (activeErrand !== undefined) return activeErrand;
-      const request = await getTurnRequest();
-      const state = await readJson(root, 'game_data/runtime_state.json');
-      activeErrand = activePlayMode?.mode === 'routing'
-        ? matchingActiveErrandForConversation({
-            state,
-            conversationId: request.conversationId,
-            characterId: request.characterId
-          })
-        : null;
-      return activeErrand;
-    };
-    const getActiveStudyCircle = async () => {
-      if (activeStudyCircle !== undefined) return activeStudyCircle;
-      const request = await getTurnRequest();
-      const state = await readJson(root, 'game_data/runtime_state.json');
-      activeStudyCircle = activePlayMode?.mode === 'routing'
-        ? matchingActiveStudyCircleForConversation({
-            state,
-            conversationId: request.conversationId,
-            characterId: request.characterId
-          })
-        : null;
-      return activeStudyCircle;
-    };
-    // The atelier conversation (錬成室のうちの子) is the third injected-scene companion conversation: its 舞台 (the
-    // authored atelier scene) must be re-supplied each streamed turn like errand/study, or the streamed record
-    // inherits source_type 'homunculus' while dropping location_name/visible_situation and finalization
-    // fail-fasts. It carries no achievement judgment and takes the companion post-turn policy.
-    const getActiveAtelier = async () => {
-      if (activeAtelier !== undefined) return activeAtelier;
-      const request = await getTurnRequest();
-      const state = await readJson(root, 'game_data/runtime_state.json');
-      activeAtelier = activePlayMode?.mode === 'routing'
-        ? matchingActiveAtelierConversation({
-            state,
-            conversationId: request.conversationId,
-            characterId: request.characterId
-          })
-        : null;
-      return activeAtelier;
-    };
-    openSse(res);
-    try {
-      const errandForStream = await getActiveErrand();
-      const studyCircleForStream = await getActiveStudyCircle();
-      const atelierForStream = await getActiveAtelier();
-      // Mirrors the non-stream /api/conversation guard: errand and study circle cannot both be active. The
-      // atelier matcher keys on the same conversation id + actor as errand/study, so it cannot co-match with
-      // either for one conversation; scene selection below prefers errand > study > atelier, matching the
-      // non-stream lifecycle handler exactly.
-      if (errandForStream && studyCircleForStream) {
-        throw routingStudyCircleContextMismatch('routing errand and study circle are both active');
-      }
-      const injectedSceneForStream = errandForStream || studyCircleForStream || atelierForStream;
-      await streamConversationTurnSse({
-        res,
-        root,
-        context,
-        body,
-        resolveConversationId: async () => (await getTurnRequest()).conversationId ?? conversationId,
-        resolveCharacterId: async () => (await getTurnRequest()).characterId,
-        resolveRoutingHubContext: async () => (await getTurnRequest()).routingHubContext,
-        resolveRoutingGraduationGuideContext: async () => {
-          const request = await getTurnRequest();
-          if (activePlayMode?.mode !== 'routing' || request.routingHubContext === undefined) return undefined;
-          const state = await readJson(root, 'game_data/runtime_state.json');
-          return resolveRoutingGraduationGuideContext({ root, authoringRoot: context.root, state });
-        },
-        ...(injectedSceneForStream ? {
-          resolveDungeonSceneContext: async () => errandForStream
-            ? buildRoutingErrandSceneContext(errandForStream)
-            : studyCircleForStream
-              ? buildRoutingStudyCircleSceneContext(studyCircleForStream)
-              : atelierInjectedSceneContext()
-        } : {}),
-        ...(errandForStream ? {
-          resolveErrandJudgmentContext: async () => ({ condition_text: errandForStream.condition_text })
-        } : {}),
-        ...(studyCircleForStream ? {
-          resolveStudyCircleJudgmentContext: async () => ({ condition_text: studyCircleForStream.condition_text })
-        } : {}),
-        postTurnStatePolicy: injectedSceneForStream ? companionPostTurnStatePolicy : academyPostTurnStatePolicy,
-        graduationPersonaVariant: graduationPersonaVariantForActivePlayMode(activePlayMode),
-        resolveRuntimeProviders,
-        runConversationTurn,
-        sendSseEvent,
-        // A streaming turn is finalized through all in-turn seams: a decided routing hub sendoff drains via
-        // attachRoutingTurnDispatch, an achieved errand auto-ends via attachRoutingErrandCompletion, and an
-        // achieved study circle auto-ends via attachRoutingStudyCircleCompletion. Each is a no-op unless its own
-        // signal (routing_destination / errand_achievement / study_circle_achievement) is on the turn, and hub /
-        // errand / study circle are mutually exclusive, so chaining them returns the right completion contract.
-        finalizeTurnResult: async (turnResult, progressReporter) => {
-          const dispatched = await attachRoutingTurnDispatch({
-            root,
-            context,
-            body,
-            turnResult,
-            resolveRuntimeProviders,
-            readJson,
-            readJsonIfExists,
-            writeJson,
-            runConversationFinalization,
-            markGraduationEndingComplete,
-            isGraduationEndingContext,
-            activePlayMode,
-            progressReporter
-          });
-          const completedErrand = await attachRoutingErrandCompletion({
-            root,
-            context,
-            body,
-            turnResult: dispatched,
-            resolveRuntimeProviders,
-            readJson,
-            readJsonIfExists,
-            writeJson,
-            runConversationFinalization,
-            markGraduationEndingComplete,
-            isGraduationEndingContext,
-            activePlayMode,
-            progressReporter
-          });
-          const completedStudyCircle = await attachRoutingStudyCircleCompletion({
-            root,
-            context,
-            body,
-            turnResult: completedErrand,
-            resolveRuntimeProviders,
-            readJson,
-            readJsonIfExists,
-            writeJson,
-            runConversationFinalization,
-            markGraduationEndingComplete,
-            isGraduationEndingContext,
-            activePlayMode,
-            progressReporter
-          });
-          return attachRoutingGraduationGuideSelection({
-            root,
-            context,
-            body,
-            turnResult: completedStudyCircle,
-            resolveRuntimeProviders,
-            readJson,
-            writeJson,
-            runConversationFinalization,
-            activePlayMode,
-            progressReporter
-          });
+    // A turn holds the conversation it continues: the explicit id, else the active conversation the turn resolves to.
+    const { last_conversation_id: activeConversationId } = await readJson(root, 'game_data/runtime_state.json');
+    const heldConversationId = conversationId ?? assertValidConversationIdForApi(activeConversationId, 'last_conversation_id');
+    return await runExclusiveConversationWork({ root, conversationId: heldConversationId }, async () => {
+      let turnRequest = null;
+      let activeErrand = undefined;
+      let activeStudyCircle = undefined;
+      let activeAtelier = undefined;
+      const getTurnRequest = async () => {
+        turnRequest ??= await resolveConversationTurnRequest({
+          root,
+          body,
+          activePlayMode,
+          readJson,
+          readJsonIfExists
+        });
+        return turnRequest;
+      };
+      const getActiveErrand = async () => {
+        if (activeErrand !== undefined) return activeErrand;
+        const request = await getTurnRequest();
+        const state = await readJson(root, 'game_data/runtime_state.json');
+        activeErrand = activePlayMode?.mode === 'routing'
+          ? matchingActiveErrandForConversation({
+              state,
+              conversationId: request.conversationId,
+              characterId: request.characterId
+            })
+          : null;
+        return activeErrand;
+      };
+      const getActiveStudyCircle = async () => {
+        if (activeStudyCircle !== undefined) return activeStudyCircle;
+        const request = await getTurnRequest();
+        const state = await readJson(root, 'game_data/runtime_state.json');
+        activeStudyCircle = activePlayMode?.mode === 'routing'
+          ? matchingActiveStudyCircleForConversation({
+              state,
+              conversationId: request.conversationId,
+              characterId: request.characterId
+            })
+          : null;
+        return activeStudyCircle;
+      };
+      // The atelier conversation (錬成室のうちの子) is the third injected-scene companion conversation: its 舞台 (the
+      // authored atelier scene) must be re-supplied each streamed turn like errand/study, or the streamed record
+      // inherits source_type 'homunculus' while dropping location_name/visible_situation and finalization
+      // fail-fasts. It carries no achievement judgment and takes the companion post-turn policy.
+      const getActiveAtelier = async () => {
+        if (activeAtelier !== undefined) return activeAtelier;
+        const request = await getTurnRequest();
+        const state = await readJson(root, 'game_data/runtime_state.json');
+        activeAtelier = activePlayMode?.mode === 'routing'
+          ? matchingActiveAtelierConversation({
+              state,
+              conversationId: request.conversationId,
+              characterId: request.characterId
+            })
+          : null;
+        return activeAtelier;
+      };
+      openSse(res);
+      try {
+        const errandForStream = await getActiveErrand();
+        const studyCircleForStream = await getActiveStudyCircle();
+        const atelierForStream = await getActiveAtelier();
+        // Mirrors the non-stream /api/conversation guard: errand and study circle cannot both be active. The
+        // atelier matcher keys on the same conversation id + actor as errand/study, so it cannot co-match with
+        // either for one conversation; scene selection below prefers errand > study > atelier, matching the
+        // non-stream lifecycle handler exactly.
+        if (errandForStream && studyCircleForStream) {
+          throw routingStudyCircleContextMismatch('routing errand and study circle are both active');
         }
-      });
-    } catch (error) {
-      sendSseEvent(res, 'status', { phase: 'chat_started' });
-      sendSseEvent(res, 'error', serializeStreamError(error));
-      res.end();
-    }
-    return true;
+        const injectedSceneForStream = errandForStream || studyCircleForStream || atelierForStream;
+        await streamConversationTurnSse({
+          res,
+          root,
+          context,
+          body,
+          resolveConversationId: async () => (await getTurnRequest()).conversationId ?? conversationId,
+          resolveCharacterId: async () => (await getTurnRequest()).characterId,
+          resolveRoutingHubContext: async () => (await getTurnRequest()).routingHubContext,
+          resolveRoutingGraduationGuideContext: async () => {
+            const request = await getTurnRequest();
+            if (activePlayMode?.mode !== 'routing' || request.routingHubContext === undefined) return undefined;
+            const state = await readJson(root, 'game_data/runtime_state.json');
+            return resolveRoutingGraduationGuideContext({ root, authoringRoot: context.root, state });
+          },
+          ...(injectedSceneForStream ? {
+            resolveDungeonSceneContext: async () => errandForStream
+              ? buildRoutingErrandSceneContext(errandForStream)
+              : studyCircleForStream
+                ? buildRoutingStudyCircleSceneContext(studyCircleForStream)
+                : atelierInjectedSceneContext()
+          } : {}),
+          ...(errandForStream ? {
+            resolveErrandJudgmentContext: async () => ({ condition_text: errandForStream.condition_text })
+          } : {}),
+          ...(studyCircleForStream ? {
+            resolveStudyCircleJudgmentContext: async () => ({ condition_text: studyCircleForStream.condition_text })
+          } : {}),
+          postTurnStatePolicy: injectedSceneForStream ? companionPostTurnStatePolicy : academyPostTurnStatePolicy,
+          graduationPersonaVariant: graduationPersonaVariantForActivePlayMode(activePlayMode),
+          resolveRuntimeProviders,
+          runConversationTurn,
+          sendSseEvent,
+          // A streaming turn is finalized through all in-turn seams: a decided routing hub sendoff drains via
+          // attachRoutingTurnDispatch, an achieved errand auto-ends via attachRoutingErrandCompletion, and an
+          // achieved study circle auto-ends via attachRoutingStudyCircleCompletion. Each is a no-op unless its own
+          // signal (routing_destination / errand_achievement / study_circle_achievement) is on the turn, and hub /
+          // errand / study circle are mutually exclusive, so chaining them returns the right completion contract.
+          finalizeTurnResult: async (turnResult, progressReporter) => {
+            const dispatched = await attachRoutingTurnDispatch({
+              root,
+              context,
+              body,
+              turnResult,
+              resolveRuntimeProviders,
+              readJson,
+              readJsonIfExists,
+              writeJson,
+              runConversationFinalization,
+              markGraduationEndingComplete,
+              isGraduationEndingContext,
+              activePlayMode,
+              progressReporter
+            });
+            const completedErrand = await attachRoutingErrandCompletion({
+              root,
+              context,
+              body,
+              turnResult: dispatched,
+              resolveRuntimeProviders,
+              readJson,
+              readJsonIfExists,
+              writeJson,
+              runConversationFinalization,
+              markGraduationEndingComplete,
+              isGraduationEndingContext,
+              activePlayMode,
+              progressReporter
+            });
+            const completedStudyCircle = await attachRoutingStudyCircleCompletion({
+              root,
+              context,
+              body,
+              turnResult: completedErrand,
+              resolveRuntimeProviders,
+              readJson,
+              readJsonIfExists,
+              writeJson,
+              runConversationFinalization,
+              markGraduationEndingComplete,
+              isGraduationEndingContext,
+              activePlayMode,
+              progressReporter
+            });
+            return attachRoutingGraduationGuideSelection({
+              root,
+              context,
+              body,
+              turnResult: completedStudyCircle,
+              resolveRuntimeProviders,
+              readJson,
+              writeJson,
+              runConversationFinalization,
+              activePlayMode,
+              progressReporter
+            });
+          }
+        });
+      } catch (error) {
+        sendSseEvent(res, 'status', { phase: 'chat_started' });
+        sendSseEvent(res, 'error', serializeStreamError(error));
+        res.end();
+      }
+      return true;
+    });
   }
 
   return false;

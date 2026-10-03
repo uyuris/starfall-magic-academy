@@ -27,6 +27,7 @@
 import { callLmStudioChat, callLmStudioStructuredJson } from './lmStudioClient.mjs';
 import { renderConversationActorContext } from './conversationActorContext.mjs';
 import { parseHomunculusPersona } from './homunculusGeneration.mjs';
+import { WORLD_CANON_GUARD_CLAUSE } from './worldCanonGuard.mjs';
 import { validateCraftNaming, buildCraftNamingPrompt, CRAFT_NAME_MAX_LENGTH, CRAFT_FLAVOR_MAX_LENGTH } from './craftNaming.mjs';
 import { AUCTION_WEAPON_KINDS, AUCTION_BANDS, AUCTION_BEING_SPECIES } from '../routingAuction.mjs';
 
@@ -417,7 +418,7 @@ export function buildAuctionBeingPersonaPrompt({ name, temperamentSeed, species 
     '- 鉤括弧で囲ったセリフ（その者が口にする発言例）は書かない。口調や性格は地の文の記述で表す。',
     '- 手に持った象徴的な小物（〜を握りしめている等）は書かない。',
     '- 髪・瞳・肌・服の色などの外見は書かない（姿はこの後べつに定まる）。',
-    '- 実在の地名・人名・歴史、現代語・外来語、現代の器具・単位・年号は使わない。世界の背骨（役目を終えた星の残光・地脈・番所）と食い違う断定を足さない。',
+    `- 実在の地名・人名・歴史、現代語・外来語、現代の器具・単位・年号は使わない。${WORLD_CANON_GUARD_CLAUSE}`,
     '- 長さは400〜500字くらい。見出し・前置き・名前の再掲はせず、紹介文の本文だけを書く。',
     '',
     '【話し方の書き方】',

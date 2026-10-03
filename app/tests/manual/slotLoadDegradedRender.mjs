@@ -5,7 +5,7 @@
 // under incompatible_slots (with active_slot_incompatible when one is the active slot). This drives the REAL
 // client through the frontend degraded contract:
 //   title → 「ロード」 → the load screen OPENS with both a normal card and degraded cards → each degraded card
-//   shows a fixed reason (no migration CLI text), NO 「このデータで始める」 load button, and NO memo editor, only a
+//   shows its error_code's reason sentence (no migration CLI text), NO 「このデータで始める」 load button, and NO memo editor, only a
 //   削除 button → delete each degraded slot through the confirmation dialog → the degraded cards disappear one by
 //   one while the normal card stays → (active-incompatible variant) the resume 「プレイに戻る」 button is disabled
 //   and the load screen still opens.
@@ -158,6 +158,7 @@ function readSlotLoadDom() {
       hasLoadButton: !!el.querySelector('.academy-map-action-button.primary'),
       hasDeleteButton: Array.from(el.querySelectorAll('button')).some((b) => b.textContent.trim() === '削除'),
       hasNoteEditor: !!el.querySelector('.slot-load-note-editor'),
+      reason: (el.querySelector('.slot-load-item-degraded-reason')?.textContent || '').trim(),
       text: (el.textContent || '').trim(),
       slotId: (el.querySelector('strong')?.textContent || '').trim()
     }));
@@ -239,9 +240,10 @@ async function scenarioNormalPlusTwoDegraded() {
   check('DEGRADED CARD: each degraded card has a 削除 button but NO load button and NO note editor',
     degradedCards.length === 2 && degradedCards.every((c) => c.hasDeleteButton && !c.hasLoadButton && !c.hasNoteEditor),
     degradedCards.map((c) => ({ del: c.hasDeleteButton, load: c.hasLoadButton, note: c.hasNoteEditor })));
-  check('DEGRADED CARD: the reason text does NOT contain the migration CLI command',
-    !dom.listText.includes(MIGRATION_CLI_FRAGMENT) && dom.listText.includes('旧バージョンのセーブデータ'),
-    { hasCli: dom.listText.includes(MIGRATION_CLI_FRAGMENT) });
+  check('DEGRADED CARD: the reason is the old-shape sentence (slot_play_mode_missing), never the migration CLI command',
+    !dom.listText.includes(MIGRATION_CLI_FRAGMENT)
+      && degradedCards.every((c) => c.reason === 'このセーブは古い形のままのため、読み込めません。'),
+    { hasCli: dom.listText.includes(MIGRATION_CLI_FRAGMENT), reasons: degradedCards.map((c) => c.reason) });
 
   const normalCard = dom.cards.find((c) => !c.degraded);
   check('NORMAL CARD: the compatible slot keeps its load button and note editor',

@@ -65,6 +65,11 @@ npm start
 The runtime starts on localhost by default:
 
 - default URL: `http://127.0.0.1:4173`
+- `PORT` and `HOST` override the port and bind address
+
+`scripts/serve-starfall.mjs` starts the same server for a process supervisor: it requires `SERVE_PORT` and `SERVE_HOST`, stays in the foreground, and on SIGTERM finishes in-flight writes before exiting.
+
+Both play the repository's saves under `data/mutable/`, and only one server may use them at a time. While one runs, starting the other exits non-zero with the running server's pid and kind on the last stderr line. A mark left by a server that is no longer running is taken over on the next start. The Electron runtime keeps its saves under its own user data directory and is not part of this.
 
 On a fresh clone, the server should still start **without** `app/config/lmstudio.json`.
 In that state, you can open the browser shell and settings surface, but normal gameplay/conversation progression requires LM Studio to be configured and running.

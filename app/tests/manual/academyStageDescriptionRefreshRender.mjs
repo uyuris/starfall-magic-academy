@@ -23,10 +23,7 @@
 // SCOPE NOTE (why this is a positive check, not a standalone pre-fix discriminator): the shadow store was
 // only populated by the character-placement reroll, which no-ops when the selectable roster is empty. The
 // isolated fixture materializes no selectable roster (characterCount = 0), so the pre-fix client also
-// showed the truth here — reproducing the shadow in-harness would need the full character pipeline. The
-// deterministic pre-fix/post-fix discrimination lives in app/tests/uiIntegration.academyMap.test.mjs (the
-// selectedAcademyStageSituation precedence assertion + the academyMapStageSituationAssignments/
-// randomStageSituation doesNotMatch guards fail on the pre-fix source and pass on the fix).
+// showed the truth here — reproducing the shadow in-harness would need the full character pipeline.
 //
 // Checks (all via real client flows + DOM reads, no module poking):
 //   1. TRUTH REFLECTED  — with the server truth set to a specific non-default variant V1, the map's
@@ -47,8 +44,7 @@
 // conversationProvider() === 'lmstudio' (app.js), so a UI-driven conversation end cannot run LM-free, and
 // the isolated fixture has no selectable roster (characterCount = 0) to start a conversation from in the
 // first place. Its situation-follow is instead covered by executed contract tests: the server persists
-// current_location_visible_situation on end (conversationPipeline.test.mjs) and the client re-renders the
-// map from the refreshed field on end (uiIntegration.academyMap.test.mjs); check 4 above exercises the identical
+// current_location_visible_situation on end (conversationPipeline.test.mjs); check 4 above exercises the identical
 // "persisted truth changed -> render follows on refresh" mechanism that conversation end relies on.
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';

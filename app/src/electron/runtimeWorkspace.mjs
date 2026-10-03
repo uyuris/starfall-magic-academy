@@ -37,6 +37,17 @@ async function ensureLmStudioConfig({ resourceRoot, lmStudioConfigPath }) {
   }
 }
 
+// The packaged app keeps Electron's default userData; a dev launch (`!app.isPackaged`) gets a sibling dir
+// with `-dev` appended to the basename so `npm run electron` never writes into the installed app's config
+// and saves. The dev dir starts empty and is populated from the template — nothing is copied over.
+export function resolveElectronUserDataRoot({ defaultUserDataRoot, isPackaged }) {
+  if (!defaultUserDataRoot) throw new Error('defaultUserDataRoot is required');
+  if (typeof isPackaged !== 'boolean') throw new Error('isPackaged is required');
+  const resolved = path.resolve(defaultUserDataRoot);
+  if (isPackaged) return resolved;
+  return path.join(path.dirname(resolved), `${path.basename(resolved)}-dev`);
+}
+
 export async function ensureElectronRuntimeWorkspace({ resourceRoot, userDataRoot }) {
   if (!resourceRoot) throw new Error('resourceRoot is required');
   if (!userDataRoot) throw new Error('userDataRoot is required');

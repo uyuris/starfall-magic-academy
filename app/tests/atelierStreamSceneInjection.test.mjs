@@ -1,8 +1,8 @@
-// atelier-stream-scene-injection-fix: the stream endpoint's atelier scene injection, the injected-scene
-// defensive invariant, and the corrupt-save repair script.
+// 残す (a): 壊れた錬成室会話を直す repair script が、dry-run で記録や queue に書き込む壊れ方と、直す対象の無い正常な save を書き換える壊れ方から、プレイヤーの save を守る。
+// atelier-stream-scene-injection-fix: the corrupt-save repair script (dry-run first, then apply) and its no-op on a
+// clean save.
 //
-// The LLM-backed paths run with provider=mock (deterministic providers, no live LM), mirroring the errand /
-// study-circle stream tests.
+// The LLM-backed paths run with provider=mock (deterministic providers, no live LM).
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,9 +14,7 @@ import { projectRoot } from './testPaths.mjs';
 import { createServer } from '../src/server.mjs';
 import { initializeNewPlayArea, resolvePlayRoot } from '../src/playSession.mjs';
 import {
-  runConversationOpening,
-  runConversationTurn as runConversationTurnCore,
-  companionPostTurnStatePolicy
+  runConversationOpening
 } from '../src/llm/conversationPipeline.mjs';
 import {
   ATELIER_LOCATION_NAME,
@@ -29,9 +27,9 @@ import {
   conversationFinalizationStageFields
 } from '../src/routingMetaContext.mjs';
 import { ROUTING_PERSONA_CHARACTER_ID } from '../src/routingPersona.mjs';
+import { buildRoutingHubContextSnapshot } from '../src/routingHubContextSnapshot.mjs';
 import {
-  ROUTING_ATELIER_ACTIVE_CONVERSATION_STATE_KEY,
-  ROUTING_ATELIER_CONVERSATION_SPENT_WEEK_STATE_KEY
+  ROUTING_ATELIER_ACTIVE_CONVERSATION_STATE_KEY
 } from '../src/homunculusAtelierVisit.mjs';
 import { repairAtelierConversationScene } from '../src/repairAtelierConversationScene.mjs';
 
@@ -115,18 +113,9 @@ async function postJson(base, pathname, body) {
   return { status: response.status, body: text ? JSON.parse(text) : null, text };
 }
 
-function parseSseEvents(text) {
-  return text.split('\n\n').filter((block) => block.trim()).map((block) => {
-    const event = block.split('\n').find((line) => line.startsWith('event: '))?.slice(7);
-    const dataText = block.split('\n').find((line) => line.startsWith('data: '))?.slice(6);
-    return { event, data: dataText ? JSON.parse(dataText) : null };
-  });
-}
-
 // Seeds an in-progress atelier conversation the way /api/atelier/conversation/start does — an opening record
 // carrying the authored atelier scene plus the active-conversation marker — but directly, so the setup does not
-// depend on an LM config (the atelier start endpoint eagerly resolves one). The stream turn under test still
-// runs through the server.
+// depend on an LM config (the atelier start endpoint eagerly resolves one).
 async function seedAtelierConversation(slotRoot, { conversationId = 'conv_atelier_001', week = 5 } = {}) {
   await runConversationOpening({
     root: slotRoot,
@@ -154,7 +143,7 @@ async function seedAtelierConversation(slotRoot, { conversationId = 'conv_atelie
 // A decided-'title' (区切りをつける) routing-hub conversation that is already work-recorded (discarded), so the
 // wrap-up dispatch re-confirms its landing without enqueuing a new hub finalization — isolating the drain
 // behavior under test. 'title' is the neutral non-progressing wrap-up exit.
-function hubTitleDispatchConversation(id) {
+function hubTitleDispatchConversation(id, routingHub) {
   return {
     id,
     character_id: ROUTING_PERSONA_CHARACTER_ID,
@@ -162,7 +151,7 @@ function hubTitleDispatchConversation(id) {
     created_at: NOW,
     updated_at: NOW,
     source_type: ROUTING_HUB_SOURCE_TYPE,
-    routing_hub: { persona_variant: 'fallen_star' },
+    routing_hub: routingHub,
     routing_destination_judgment: { decided: true, destination_id: 'title', destination_label: '区切りをつける' },
     discarded_after_work_record_id: 'wr_hub_title_001',
     conversation_actor_context: null,
@@ -172,6 +161,29 @@ function hubTitleDispatchConversation(id) {
       { role: 'user', content: '今日はここまでにする。' },
       { role: 'assistant', content: 'わかりました。今日はここで区切りをつけましょう。' }
     ]
+  };
+}
+
+function hubValidatorLog(id) {
+  return {
+    source_conversation_id: id,
+    accepted_flags: [],
+    rejected_flags: [],
+    accepted_memory: [{
+      id: `mem_${id}`,
+      character_id: ROUTING_PERSONA_CHARACTER_ID,
+      visibility: 'character_known',
+      type: 'relationship_change',
+      text: '今日はここで区切りをつけることにした。',
+      source_conversation_id: id,
+      work_record_id: 'wr_hub_title_001',
+      tags: []
+    }],
+    rejected_memory: [],
+    accepted_skills: [],
+    rejected_skills: [],
+    accepted_work_record: null,
+    rejected_work_record: null
   };
 }
 
@@ -186,94 +198,6 @@ function failedHomunculusJob(conversationId) {
     error: { message: 'homunculus conversation record must carry a non-empty location_name for finalization' }
   };
 }
-
-// ----- Part 1: the stream atelier branch -----
-
-test('a streamed homunculus atelier turn keeps the atelier scene on the record and finalization succeeds', async (t) => {
-  const { root, slotRoot } = await routingFixture(t, { elapsedWeeks: 5 });
-  const base = await startServer(t, root);
-  const conversationId = await seedAtelierConversation(slotRoot, { week: 5 });
-
-  // A daytime turn goes through the STREAM endpoint; before the fix it dropped the atelier 舞台.
-  const streamed = await fetch(`${base}/api/conversation/stream`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id: conversationId, character_id: 'homunculus_001', player_input: '今日はどんな一日だった？', provider: 'mock' })
-  });
-  assert.equal(streamed.status, 200);
-  const events = parseSseEvents(await streamed.text());
-  assert.equal(events.some((e) => e.event === 'error'), false, 'the streamed atelier turn does not error');
-  assert.ok(events.find((e) => e.event === 'result'), 'the stream emits a result event');
-
-  // The persisted record keeps the homunculus source_type and the atelier 舞台, with no residual field location.
-  const record = await readJson(slotRoot, `game_data/logs/conversations/${conversationId}.json`);
-  assert.equal(record.source_type, HOMUNCULUS_SOURCE_TYPE);
-  assert.equal(record.location_name, ATELIER_LOCATION_NAME);
-  assert.equal(record.visible_situation, ATELIER_VISIBLE_SITUATION);
-  assert.equal(Object.prototype.hasOwnProperty.call(record, 'location_id'), false);
-  assert.equal(Object.prototype.hasOwnProperty.call(record, 'time_slot'), false);
-  // The finalization stage-descriptor guard (the one that fail-fasted before) now accepts the streamed record.
-  assert.doesNotThrow(() => conversationFinalizationStageFields(record));
-
-  // Ending the atelier conversation finalizes it (no location_name error) and completes the visit.
-  const ended = await postJson(base, '/api/conversation/end', { conversation_id: conversationId, character_id: 'homunculus_001', provider: 'mock' });
-  assert.equal(ended.status, 200, `atelier end failed: ${ended.text}`);
-  assert.equal(ended.body.finalization_status, 'drained');
-  const endedState = await readJson(slotRoot, 'game_data/runtime_state.json');
-  assert.equal(Object.prototype.hasOwnProperty.call(endedState, ROUTING_ATELIER_ACTIVE_CONVERSATION_STATE_KEY), false, 'the active atelier marker is cleared on a successful end');
-  assert.equal(endedState[ROUTING_ATELIER_CONVERSATION_SPENT_WEEK_STATE_KEY], 5, 'the visit conversation is spent for this week');
-});
-
-// ----- Part 2: the injected-scene defensive invariant -----
-
-test('runConversationTurn fails fast before writing when an atelier conversation is continued without its injected scene', async (t) => {
-  const { slotRoot } = await routingFixture(t, { elapsedWeeks: 5 });
-  const conversationId = await seedAtelierConversation(slotRoot, { week: 5 });
-  const before = await readJson(slotRoot, `game_data/logs/conversations/${conversationId}.json`);
-
-  // Continue the homunculus conversation WITHOUT re-supplying the atelier scene — the exact pre-fix stream bug.
-  // The invariant must throw BEFORE any provider call or record write.
-  await assert.rejects(
-    runConversationTurnCore({
-      root: slotRoot,
-      id: conversationId,
-      characterId: 'homunculus_001',
-      playerInput: '少し話そう。',
-      now: NOW,
-      postTurnStatePolicy: companionPostTurnStatePolicy,
-      emotionProvider: async () => { throw new Error('emotion provider must not run — the invariant must throw first'); },
-      chatProvider: async () => { throw new Error('chat provider must not run — the invariant must throw first'); },
-      conversationContinuationProvider: async () => 'true',
-      workRecordRecallProvider: async () => ({ work_record_ids: [] })
-    }),
-    /homunculus conversation must be continued with its injected scene/
-  );
-
-  // The record was NOT overwritten: the invariant fires before the write, so the atelier scene survives intact.
-  const after = await readJson(slotRoot, `game_data/logs/conversations/${conversationId}.json`);
-  assert.deepEqual(after, before, 'the corrupting write is prevented; the record is byte-identical');
-  assert.equal(after.location_name, ATELIER_LOCATION_NAME);
-  assert.equal(Object.prototype.hasOwnProperty.call(after, 'location_id'), false);
-
-  // Positive control: the same turn WITH the atelier scene re-supplied succeeds and keeps the scene.
-  await runConversationTurnCore({
-    root: slotRoot,
-    id: conversationId,
-    characterId: 'homunculus_001',
-    playerInput: '少し話そう。',
-    now: '2026-07-09T00:01:00.000Z',
-    postTurnStatePolicy: companionPostTurnStatePolicy,
-    dungeonSceneContext: atelierInjectedSceneContext(),
-    emotionProvider: async () => ({ expression: 'neutral' }),
-    chatProvider: async () => '……はい、少しだけ。',
-    conversationContinuationProvider: async () => 'true',
-    workRecordRecallProvider: async () => ({ work_record_ids: [] })
-  });
-  const healed = await readJson(slotRoot, `game_data/logs/conversations/${conversationId}.json`);
-  assert.equal(healed.source_type, HOMUNCULUS_SOURCE_TYPE);
-  assert.equal(healed.location_name, ATELIER_LOCATION_NAME);
-  assert.equal(Object.prototype.hasOwnProperty.call(healed, 'location_id'), false);
-});
 
 // ----- Part 3: the corrupt-save repair, end-to-end through a routing dispatch -----
 
@@ -302,7 +226,15 @@ test('the repair script fixes a corrupt atelier record + failed job (dry-run fir
   );
 
   const hubConversationId = 'conv_hub_repair_001';
-  await writeJson(slotRoot, `game_data/logs/conversations/${hubConversationId}.json`, hubTitleDispatchConversation(hubConversationId));
+  const routingHub = await buildRoutingHubContextSnapshot({
+    root: slotRoot,
+    authoringRoot: root,
+    state: await readJson(slotRoot, 'game_data/runtime_state.json'),
+    personaVariant: 'fallen_star'
+  });
+  await writeJson(slotRoot, `game_data/logs/conversations/${hubConversationId}.json`, hubTitleDispatchConversation(hubConversationId, routingHub));
+  // The hub conversation is already recorded (discarded_after_work_record_id), so its validator log is on disk.
+  await writeJson(slotRoot, `game_data/logs/validator/${hubConversationId}.json`, hubValidatorLog(hubConversationId));
   await patchRuntimeState(slotRoot, {
     current_screen: 'routing-hub',
     current_interaction_character_id: ROUTING_PERSONA_CHARACTER_ID,

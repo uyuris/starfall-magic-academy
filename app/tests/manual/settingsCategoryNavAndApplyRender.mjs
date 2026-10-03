@@ -88,8 +88,10 @@ async function main() {
   // Per-category visibility: a hidden panel resolves to display:none (offsetParent null) via the
   // id-scoped [hidden] guard; the selected panel is display:grid and laid out.
   const measurePanels = () => win.webContents.executeJavaScript(`(() => {
-    const cats = ['lmstudio', 'conversation-popup', 'conversation-finalize'];
-    const out = { activeScreen: document.querySelector('.screen.active')?.id ?? null, hasSaveButton: !!document.querySelector('#save-lmstudio-settings'), panels: {}, activeTab: null };
+    const cats = ['lmstudio', 'conversation-popup', 'audio'];
+    const out = { activeScreen: document.querySelector('.screen.active')?.id ?? null, hasSaveButton: !!document.querySelector('#save-lmstudio-settings'), panels: {}, activeTab: null,
+      tabs: [...document.querySelectorAll('.settings-category-tab')].map((tab) => tab.dataset.settingsCategory),
+      panelCount: document.querySelectorAll('.settings-category-panel').length };
     for (const c of cats) {
       const panel = document.querySelector('#settings-panel-' + c);
       out.panels[c] = panel ? { hidden: panel.hidden, display: getComputedStyle(panel).display, laidOut: panel.offsetParent !== null } : null;
@@ -125,9 +127,12 @@ async function main() {
   const defaultOk = opened.activeScreen === 'settings-screen' && !opened.hasSaveButton && onlyShows(opened, 'lmstudio');
   console.log(`OPEN shows only the default LM Studio panel, no save button: ${defaultOk ? 'PASS' : 'FAIL'}`);
   if (!defaultOk) exitCode = 1;
+  const categoriesOk = JSON.stringify(opened.tabs) === JSON.stringify(['lmstudio', 'conversation-popup', 'audio']) && opened.panelCount === 3;
+  console.log(`CATEGORIES are exactly 接続設定 / セリフの出かた / サウンド: ${categoriesOk ? 'PASS' : 'FAIL'}`);
+  if (!categoriesOk) exitCode = 1;
 
   // Switch to each other category: only that panel shows.
-  for (const category of ['conversation-popup', 'conversation-finalize', 'lmstudio']) {
+  for (const category of ['conversation-popup', 'audio', 'lmstudio']) {
     await clickTab(category);
     await new Promise((r) => setTimeout(r, 200));
     const m = await measurePanels();

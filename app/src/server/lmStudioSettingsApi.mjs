@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import { normalizeLmStudioConfig, normalizeLmStudioThinkingEffort } from '../llm/lmStudioClient.mjs';
+import { attachLmStudioTransportDiagnostics, normalizeLmStudioConfig, normalizeLmStudioThinkingEffort } from '../llm/lmStudioClient.mjs';
 
 function statusError(message, statusCode, { errorCode = null } = {}) {
   const error = new Error(message);
@@ -10,8 +10,28 @@ function statusError(message, statusCode, { errorCode = null } = {}) {
   return error;
 }
 
+// Error JSON shape shared by the settings routes and the outer createServer catch: `error` always,
+// `error_code` when classified, and for an LM Studio transport failure (`LMSTUDIO_MODEL_LIST_UNAVAILABLE`
+// here, `LMSTUDIO_CONNECTION_UNAVAILABLE` from the client) `target` plus exactly one of `cause_code` /
+// `cause_message`.
+export function errorResponsePayload(error) {
+  const payload = { error: error.message };
+  if (error?.errorCode) payload.error_code = error.errorCode;
+  if (error?.target) payload.target = error.target;
+  if (error?.causeCode) payload.cause_code = error.causeCode;
+  else if (error?.causeMessage) payload.cause_message = error.causeMessage;
+  return payload;
+}
+
 export function lmStudioConfigRequiredError(message = 'LM Studioの設定が必要です。設定画面で接続先とモデルを保存してください。') {
   return statusError(message, 503, { errorCode: 'LMSTUDIO_CONFIG_REQUIRED' });
+}
+
+// The model-list transport failure names its target and cause so the caller can tell a refused port, an
+// unreachable host, and a denied local-network permission apart.
+function lmStudioModelListUnavailableError({ target, cause }) {
+  const error = statusError(`LM Studio model list request failed: ${cause.message}`, 502, { errorCode: 'LMSTUDIO_MODEL_LIST_UNAVAILABLE' });
+  return attachLmStudioTransportDiagnostics(error, { target, cause });
 }
 
 function normalizeLmStudioSettingsShape(config = {}) {
@@ -24,11 +44,9 @@ function normalizeLmStudioSettingsShape(config = {}) {
   }
   const host = parsedUrl?.hostname ? decodeURIComponent(parsedUrl.hostname) : '127.0.0.1';
   const port = parsedUrl?.port ? Number(parsedUrl.port) : 1234;
-  const connectionMode = host === '127.0.0.1' || host === 'localhost' ? 'localhost' : 'lan';
   const model = String(config.chat_model ?? config.reflection_model ?? '').trim();
   return {
-    connection_mode: connectionMode,
-    host: connectionMode === 'localhost' ? '127.0.0.1' : host,
+    host,
     port,
     base_url: baseUrl,
     model,
@@ -55,48 +73,38 @@ function validateLmStudioThinkingEffortUpdate(body = {}) {
   throw statusError('thinking_effort must be null, low, medium, or high', 400);
 }
 
-function validateLmStudioSettingsUpdate(body = {}) {
-  const connectionMode = body.connection_mode === 'lan' ? 'lan' : body.connection_mode === 'localhost' ? 'localhost' : null;
-  if (!connectionMode) throw statusError('connection_mode must be localhost or lan', 400);
+// The endpoint is exactly the host and port the caller typed: base_url is built from them alone.
+function validateLmStudioEndpoint(body = {}) {
   const port = Number(body.port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw statusError('port must be an integer between 1 and 65535', 400);
-  const host = connectionMode === 'localhost' ? '127.0.0.1' : String(body.host ?? '').trim();
-  if (connectionMode === 'lan' && !host) throw statusError('host is required for lan connection mode', 400);
+  const host = String(body.host ?? '').trim();
+  if (!host) throw statusError('host is required', 400);
+  return {
+    host,
+    port,
+    baseUrl: `http://${host}:${port}/v1`
+  };
+}
+
+function validateLmStudioSettingsUpdate(body = {}) {
+  const endpoint = validateLmStudioEndpoint(body);
   const model = String(body.model ?? '').trim();
   if (!model) throw statusError('model is required', 400);
   const thinkingEffort = validateLmStudioThinkingEffortUpdate(body);
   return {
-    connectionMode,
-    host,
-    port,
+    ...endpoint,
     model,
-    thinkingEffort,
-    baseUrl: `http://${host}:${port}/v1`
-  };
-}
-
-function validateLmStudioConnectionInput(body = {}) {
-  const connectionMode = body.connection_mode === 'lan' ? 'lan' : body.connection_mode === 'localhost' ? 'localhost' : null;
-  if (!connectionMode) throw statusError('connection_mode must be localhost or lan', 400);
-  const port = Number(body.port);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) throw statusError('port must be an integer between 1 and 65535', 400);
-  const host = connectionMode === 'localhost' ? '127.0.0.1' : String(body.host ?? '').trim();
-  if (connectionMode === 'lan' && !host) throw statusError('host is required for lan connection mode', 400);
-  return {
-    connectionMode,
-    host,
-    port,
-    baseUrl: `http://${host}:${port}/v1`
+    thinkingEffort
   };
 }
 
 async function fetchLmStudioModelCatalog(body = {}) {
-  const connection = validateLmStudioConnectionInput(body);
+  const connection = validateLmStudioEndpoint(body);
   let response;
   try {
     response = await fetch(`${connection.baseUrl}/models`);
   } catch (error) {
-    throw statusError(`LM Studio model list request failed: ${error.message}`, 502);
+    throw lmStudioModelListUnavailableError({ target: connection.baseUrl, cause: error });
   }
   const text = await response.text();
   if (!response.ok) {
@@ -118,7 +126,6 @@ async function fetchLmStudioModelCatalog(body = {}) {
       .filter(Boolean)
     : [];
   return {
-    connection_mode: connection.connectionMode,
     host: connection.host,
     port: connection.port,
     base_url: connection.baseUrl,
@@ -220,10 +227,10 @@ export async function handleLmStudioSettingsApi({ req, res, url, context, sendJs
     try {
       sendJson(res, await fetchLmStudioModelCatalog(body));
     } catch (error) {
-      // Validation rejects carry an explicit 400 and an LM Studio reachability failure carries 502; an
-      // unclassified failure without a statusCode surfaces as a 500 server failure, consistent with the
-      // outer createServer catch.
-      sendJson(res, { error: error.message }, error.statusCode ?? 500);
+      // Validation rejects carry an explicit 400 and an LM Studio reachability failure carries 502 with its
+      // error_code / target / cause; an unclassified failure without a statusCode surfaces as a 500 server
+      // failure, consistent with the outer createServer catch.
+      sendJson(res, errorResponsePayload(error), error.statusCode ?? 500);
     }
     return true;
   }

@@ -1,5 +1,7 @@
 import { computeMapHoverTooltipPlacement } from './mapHoverPlacement.js';
 import { computeDungeonCellSize, computeFollowMargin, computeDungeonCamera, reframeDungeonCamera, playerViewportFraction, rescaleBoardPx } from './dungeonCamera.js';
+import { stairsDownSvg, stairsUpSvg, chestSvg, heroCrestSvg, entryArchSvg, swordSvg, staffSvg, wandSvg, charmSvg } from './dungeonMarks.js';
+import { abilitySigilLabel, createHubTerrace, dressSigilButton, fillWithEmptyArt, loadAbilitySigils } from './hubTerrace.js';
 import { assertDrainedRoutingFinalization, assertRoutingDispatchFinalization, validateRoutingDispatchScreen } from './routingDispatchClient.js';
 import {
   ALCHEMY_CATEGORY_ORDER,
@@ -33,6 +35,65 @@ import {
   assertWorkshopInteger
 } from './workshopArrivalClient.js';
 import {
+  CONCERT_HALL_STAGE_CARDS,
+  createConcertHallStateMachine,
+  validateConcertHallArrivalPayload,
+  validateConcertHallStageEvent,
+  validateConcertHallDoneEvent,
+  validateConcertHallErrorEvent,
+  validateConcertHallPiece,
+  parseConcertHallSseBlock,
+  concertHallScoreHeadline,
+  concertHallShelfOrder
+} from './concertHallClient.js';
+import { createConcertHallPlayer } from './concertHallPlayer.js';
+import {
+  OVERLOOK_COMA_RADIUS,
+  OVERLOOK_SAY_DELAY_MS,
+  OVERLOOK_LINES_DELAY_MS,
+  OVERLOOK_FOCUS_PAN_MS,
+  OVERLOOK_FOCUS_ZOOM_MS,
+  OVERLOOK_TALK_CROSSFADE_MS,
+  OVERLOOK_FIELD_POLL_MS,
+  OVERLOOK_PLAYBACK_DELAY_MS,
+  OVERLOOK_STAGE_IMAGE_URL,
+  OVERLOOK_FOUNTAIN_PLACE_ID,
+  OVERLOOK_ENTRY_LOADING_COPY,
+  createOverlookStateMachine,
+  isOverlookFieldState,
+  overlookRosterMayOpen,
+  validateOverlookEnterResponse,
+  validateOverlookFieldResponse,
+  validateOverlookFocusResponse,
+  validateOverlookReturnResponse,
+  validateOverlookSwapResponse,
+  validateOverlookWritingResponse,
+  validateOverlookWritingLimited,
+  validateOverlookExitResponse,
+  validateOverlookConversationResponse,
+  validateOverlookLayoutReply,
+  parseOverlookSseBlock,
+  isValidOverlookWritingText,
+  overlookFocusLoadingCopy,
+  overlookAcademyMinute,
+  overlookSampleMs,
+  overlookPlaybackPositions,
+  overlookTrimSamples,
+  clampOverlookCamera,
+  overlookCameraCentredOn,
+  overlookFocusCameraFrame,
+  overlookFrameOfCamera,
+  overlookScreenPoint,
+  isOverlookComaHoverable,
+  isOverlookChildPointable,
+  overlookComaAt,
+  overlookPlaceAt,
+  overlookWritingFrameRect,
+  overlookPairRing,
+  overlookSayLabelRectAt
+} from './overlookClient.js';
+import { placeSayLabel, placeTraceLabels, placePairSayLabel, OVERLOOK_LINE_WIDTH } from './overlookLayout.js';
+import {
   ATELIER_SYNTHESIS_MODES,
   ATELIER_SYNTHESIS_MODE_LABELS,
   ATELIER_TOTAL_WEEKS,
@@ -61,10 +122,20 @@ import {
   validateArenaIntroResponse,
   validateArenaResultFlavorResponse
 } from './arenaClient.js';
-import { LIBRARY_COLLECTION_REQUEST_PATH, parseLibraryCollectionEntries } from './libraryCollectionViewClient.js';
+import {
+  LIBRARY_COLLECTION_REQUEST_PATH,
+  LIBRARY_COLLECTION_FAVORITE_PATH,
+  LIBRARY_COLLECTION_DISPOSE_PATH,
+  LIBRARY_COLLECTION_SORT_KEYS,
+  parseLibraryCollectionEntries,
+  sortLibraryCollectionEntries
+} from './libraryCollectionViewClient.js';
+import { LIBRARY_FOOTNOTES_REQUEST_PATH, parseLibraryFootnotes, libraryFootnoteReadTarget } from './libraryFootnotesClient.js';
+import { createLibraryScreen } from './libraryScreen.js';
 import { parseGraduationPhase2Reentry } from './graduationPhase2ReentryClient.js';
 import { createConversationStage, createStarfieldAmbient, conversationStageWeek, buildConversationStageStars, resolveConversationStageInfoCategoryTitle } from './conversationStage.js';
 import { createLoadingConstellation } from './loadingConstellation.js';
+import { startMetaJourney } from './metaJourney.js';
 import { settingsSaveErrorMessage } from './settingsSaveError.js';
 import {
   FRAME_DECORATION_CALIBRATION_TARGETS,
@@ -83,8 +154,7 @@ import {
 import {
   ROUTING_PERSONA_CHARACTER_ID,
   listFailedFinalizations,
-  runFailedFinalizationRetry,
-  describeRetryOutcome
+  runFailedFinalizationRetry
 } from './routingFinalizeClient.js';
 
 const tabs = document.querySelectorAll('[data-screen]');
@@ -107,10 +177,12 @@ const screens = {
   'academy-study-circle': document.querySelector('#academy-study-circle-screen'),
   'academy-workshop': document.querySelector('#academy-workshop-screen'),
   'academy-library': document.querySelector('#academy-library-screen'),
+  'academy-concert-hall': document.querySelector('#academy-concert-hall-screen'),
   'academy-atelier': document.querySelector('#academy-atelier-screen'),
   'academy-arena': document.querySelector('#academy-arena-screen'),
   'academy-auction': document.querySelector('#academy-auction-screen'),
   'academy-lounge': document.querySelector('#academy-lounge-screen'),
+  'academy-overlook': document.querySelector('#academy-overlook-screen'),
   training: document.querySelector('#training-screen'),
   event: document.querySelector('#event-screen'),
   inventory: document.querySelector('#inventory-screen'),
@@ -406,11 +478,16 @@ const LM_STUDIO_RUNTIME_ERROR_CODES = new Set([
   'LMSTUDIO_CONNECTION_UNAVAILABLE'
 ]);
 
-// The backend fails a turn fast when a judgment LM output is invalid (currently the conversation
-// continuation judgment: neither true nor false). It travels the same conversation error path (SSE
-// `error` / JSON error) carrying this error_code; the client shows a fixed cause message and routes the
-// player to the LM settings instead of stranding them on the loading screen.
-const INVALID_LLM_OUTPUT_ERROR_CODE = 'INVALID_LLM_CONTINUATION_OUTPUT';
+// The backend fails fast when an LM output is invalid: the conversation continuation judgment (neither true
+// nor false), and the 星見の窓 strict gates (a JSON answer still broken after its retries, a judgment outside
+// its closed set). Each travels its route's error path (SSE `error` / JSON error) carrying one of these
+// error_codes; the client shows a fixed cause message and routes the player to the LM settings instead of
+// stranding them on the loading screen.
+const INVALID_LLM_OUTPUT_ERROR_CODES = new Set([
+  'INVALID_LLM_CONTINUATION_OUTPUT',
+  'OVERLOOK_GENERATION_FAILED',
+  'OVERLOOK_JUDGMENT_INVALID'
+]);
 const INVALID_LLM_OUTPUT_MESSAGE = 'LLM出力が不正です。接続設定やモデルを見直してください。';
 
 const magicParameterDefinitions = [
@@ -444,17 +521,15 @@ const REFRESH_TASK_TIMEOUT_MS = 3000;
 const ACADEMY_LOADING_MINIMUM_MS = 1000;
 const ACADEMY_MAP_REGION_SWITCH_FLOURISH_MS = 420;
 const GRADUATION_ENDING_WEEK = 50;
-// The metaphysical-moonlight ambient for the meta screens (title + loading + slot-load + settings): a silver
-// starfield twinkle over each screen's own canvas, reusing the shared conversation-stage starfield part (same
-// reduced-motion static draw + canvas.dataset.starfield contract as the routing hub). showScreen starts each on
-// its screen and stops it on leave.
-const titleStarfield = createStarfieldAmbient({ canvasSelector: '#title-starfield', starColorRgb: '207, 218, 255', starCount: 80 });
+// The metaphysical-moonlight ambient for the loading screen: a silver starfield twinkle over its own canvas,
+// reusing the shared conversation-stage starfield part (same reduced-motion static draw + canvas.dataset.starfield
+// contract as the routing hub). showScreen starts it on the loading screen and stops it on leave. The title,
+// slot-load and settings screens have no ambient of their own: the night journey layer (metaJourney.js) draws one
+// sky over them.
 const academyLoadingStarfield = createStarfieldAmbient({ canvasSelector: '#academy-loading-starfield', starColorRgb: '207, 218, 255', starCount: 64 });
 // Progress-driven constellation over the loading starfield: advanced only by notifyAcademyLoadingProgress() at
 // observed event points, reset each time the loader shows (started/stopped by showScreen alongside the starfield).
 const academyLoadingConstellation = createLoadingConstellation({ canvasSelector: '#academy-loading-constellation', lineColorRgb: '198, 212, 255', nodeColorRgb: '224, 232, 255', random: Math.random });
-const slotLoadStarfield = createStarfieldAmbient({ canvasSelector: '#slot-load-starfield', starColorRgb: '207, 218, 255', starCount: 72 });
-const settingsStarfield = createStarfieldAmbient({ canvasSelector: '#settings-starfield', starColorRgb: '207, 218, 255', starCount: 72 });
 let currentTrainingProgress = { actions_used: 0, actions_limit: TRAINING_ACTION_LIMIT, remaining_actions: TRAINING_ACTION_LIMIT, completed: false, next_day: trainingWeekdays[0] };
 let currentTrainingDay = trainingWeekdays[0];
 let trainingEffectTimer = null;
@@ -639,11 +714,25 @@ let giftGivenConversationId = null;
 let conversationGiftInFlight = false;
 let pendingDeleteSlotId = null;
 const SLOT_LOAD_NOTE_MAX_LENGTH = 2000;
-// The player-facing explanation for a degraded (incompatible) save slot on the load screen. The server's
-// compatibility.message carries a migration CLI command (run node scripts/stamp-slot-play-mode.mjs …) that
-// is developer tooling, not player copy, so the degraded card never surfaces it — it shows this fixed
-// explanation plus a delete affordance instead.
-const SLOT_LOAD_DEGRADED_REASON = '旧バージョンのセーブデータのため読み込めません。削除のみ可能です。';
+// The player-facing reason on a degraded (incompatible) save slot card, one sentence per compatibility
+// error_code (the closed set GET /api/slots reports in incompatible_slots). The server's
+// compatibility.message is developer copy, so the card never surfaces it. The three old-shape codes (a save
+// that predates a field) share one sentence; a present but broken play_mode says the record is broken.
+const SLOT_LOAD_OLD_SHAPE_REASON = 'このセーブは古い形のままのため、読み込めません。';
+const SLOT_LOAD_DEGRADED_REASONS = Object.freeze({
+  slot_play_mode_missing: SLOT_LOAD_OLD_SHAPE_REASON,
+  slot_routing_persona_variant_missing: SLOT_LOAD_OLD_SHAPE_REASON,
+  slot_routing_conversation_pointer_missing: SLOT_LOAD_OLD_SHAPE_REASON,
+  slot_play_mode_invalid: 'このセーブは記録が壊れているため、読み込めません。'
+});
+
+// An unknown error_code throws rather than falling back to a generic sentence.
+function slotLoadDegradedReason(errorCode) {
+  if (!Object.prototype.hasOwnProperty.call(SLOT_LOAD_DEGRADED_REASONS, errorCode)) {
+    throw new Error(`degraded save slot: unknown compatibility error_code ${JSON.stringify(errorCode)}`);
+  }
+  return SLOT_LOAD_DEGRADED_REASONS[errorCode];
+}
 let playerInputIsComposing = false;
 let conversationRequestInFlight = false;
 let conversationFinalizationInFlight = false;
@@ -913,11 +1002,12 @@ function activeActorIsRoutingPersona() {
 }
 
 // Resolve the routing persona visual actor for a character id, but only while it is the active routing
-// hub actor. This is routing-scoped: an ordinary リナ・クラウゼ conversation on the same `lina` slot must
-// NOT inherit the routing persona variant visual, so it resolves only when the routing hub is live.
+// hub actor, or while the hub without a conversation (routingHubStartFailure) shows the last hub conversation's
+// lines, which that persona spoke. This is routing-scoped: an ordinary リナ・クラウゼ conversation on the same `lina`
+// slot must NOT inherit the routing persona variant visual, so it resolves only on the hub.
 function routingActorById(characterId) {
   if (characterId !== ROUTING_PERSONA_CHARACTER_ID) return null;
-  if (!activeActorIsRoutingPersona()) return null;
+  if (!activeActorIsRoutingPersona() && !routingHubStartFailure) return null;
   return routingPersonaActor();
 }
 
@@ -1054,7 +1144,11 @@ function characterAuthoringEnabled() {
   return characterAuthoringCapability?.enabled !== false;
 }
 
-function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false } = {}) {
+// routingArrival marks the render a routing hub dispatch lands on ({ destinationLabel } from the dispatch, null
+// otherwise): a failed arrival fetch there has nothing to go on with, so it returns to the hub
+// (returnToRoutingHubAfterArrivalFailure) with the failure notice naming the destination instead of staying on the
+// screen's status line.
+function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false, routingArrival = null } = {}) {
   // Entry fail-fast: the 28 `screens` keys are the closed set of screen ids. An unknown id would silently blank
   // every screen (and desync BGM), so it throws here. A known screen with no BGM track is a different, valid case
   // (silence) handled by syncBgmForUiState.
@@ -1074,11 +1168,8 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
     showProcessingToast();
     return;
   }
-  if (name !== 'title') titleStarfield.stop();
   if (name !== 'academy-loading') academyLoadingStarfield.stop();
   if (name !== 'academy-loading') academyLoadingConstellation.stop();
-  if (name !== 'slot-load') slotLoadStarfield.stop();
-  if (name !== 'settings') settingsStarfield.stop();
   if (name !== 'training') resetTrainingResultDisplay();
   if (name === 'academy-map') {
     ensureAcademyMapCharacterAssignments({ force: rerollAcademyMap });
@@ -1091,17 +1182,15 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
   }
   for (const tab of tabs) tab.classList.toggle('active', tab.dataset.screen === name);
   for (const [screenName, element] of Object.entries(screens)) element.classList.toggle('active', screenName === name);
-  if (name === 'title') titleStarfield.start();
   // True entry only: a non-loader → loader transition starts (resets to zero) the starfield + constellation. A
   // loader → loader re-show (loaderAlreadyActive) leaves both running so the traced segments are preserved across
   // the continuous handoff; only the loading copy/phase is updated in that case.
   if (name === 'academy-loading' && !loaderAlreadyActive) academyLoadingStarfield.start();
   if (name === 'academy-loading' && !loaderAlreadyActive) academyLoadingConstellation.start();
-  if (name === 'slot-load') slotLoadStarfield.start();
-  if (name === 'settings') settingsStarfield.start();
   if (name === 'academy-conversation-session') renderAcademyConversationSessionScreen();
   if (name === 'academy-room') renderAcademyRoomScreen();
   if (name === 'routing-hub') routingHubStage.renderScreen();
+  hubTerrace.screenShown(name, currentRuntimeState);
   if (name !== 'routing-hub') {
     routingHubStage.stopAmbient();
     routingHubStage.closeInfo();
@@ -1116,54 +1205,78 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
   // The errand arrival screen has no operable pre-entry state: showing it fetches this week's offers
   // and renders the selectable cards. A failed fetch / malformed offers throw and surface on the
   // arrival status line (no silent empty cards) — the routing dispatch has already consumed the week.
-  if (name === 'academy-errand') refreshErrandScreen().catch(reportErrandScreenError);
+  if (name === 'academy-errand') {
+    errandVisitRoutingArrival = routingArrival;
+    refreshErrandScreen().catch(reportErrandScreenError);
+  }
   // The alchemy arrival screen has no operable pre-entry state either: showing it fetches the full 56-recipe
-  // book and renders the selectable rows. A failed fetch / malformed payload throws and surfaces on the arrival
-  // status line (no silent empty rows) — the routing dispatch has already consumed the week. Unlike the errand /
+  // book and renders the selectable rows. A failed fetch / malformed payload throws (no silent empty rows): on the
+  // hub dispatch's arrival it returns to the hub, otherwise it surfaces on the arrival status line. Unlike the errand /
   // study-circle arrivals the alchemy lab is a stay-and-craft screen, so this same refresh runs after each craft
   // (the 分類 filter is reset only on a fresh arrival, preserved across the in-visit re-fetches).
-  if (name === 'academy-alchemy') refreshAlchemyScreen({ resetFilter: true }).catch(reportAlchemyScreenError);
+  if (name === 'academy-alchemy') refreshAlchemyScreen({ resetFilter: true }).catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportAlchemyScreenError);
   // The study circle arrival screen has no operable pre-entry state either: showing it fetches this week's
   // three study circle offers and renders the selectable cards. A failed fetch / malformed offers throw and
   // surface on the arrival status line (no silent empty cards) — the routing dispatch has already consumed the week.
-  if (name === 'academy-study-circle') refreshStudyCircleScreen().catch(reportStudyCircleScreenError);
+  if (name === 'academy-study-circle') {
+    studyCircleVisitRoutingArrival = routingArrival;
+    refreshStudyCircleScreen().catch(reportStudyCircleScreenError);
+  }
   // The workshop arrival screen has no operable pre-entry state either: showing it fetches this week's full
-  // recipe board and renders the selectable cards. A failed fetch / malformed payload throws and surfaces on
-  // the arrival status line (no silent empty cards) — the routing dispatch has already consumed the week. Unlike
-  // the other arrivals the workshop is a stay-and-craft screen, so this same refresh runs after each craft (the
+  // recipe board and renders the selectable cards. A failed fetch / malformed payload throws (no silent empty
+  // cards): on the hub dispatch's arrival it returns to the hub, otherwise it surfaces on the arrival status line.
+  // Unlike the other arrivals the workshop is a stay-and-craft screen, so this same refresh runs after each craft (the
   // 種別 filter is reset only on a fresh arrival, preserved across the in-visit re-fetches).
-  if (name === 'academy-workshop') refreshWorkshopScreen({ resetFilter: true }).catch(reportWorkshopScreenError);
-  // The library arrival screen has no operable pre-entry state either: showing it fetches the current-week
-  // arrival envelope (week header + server-authoritative exit) and clears the shelf back to its search prompt.
-  // Reading is search-driven from there (no offer board is pre-fetched). A failed fetch throws and surfaces on
-  // the arrival status line (no silent blank) — the routing dispatch has already consumed the week.
-  if (name === 'academy-library') refreshLibraryScreen().catch(reportLibraryScreenError);
+  if (name === 'academy-workshop') refreshWorkshopScreen({ resetFilter: true }).catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportWorkshopScreenError);
+  // The library arrival screen has no operable pre-entry state either: showing it rebuilds the scene from its
+  // first state (the lamps and dust of the arrival, an empty shelf, a blank 請求票) and fetches the arrival
+  // envelope (server-authoritative exit; a failed one on the hub dispatch's arrival returns to the hub). Reading is
+  // search-driven from there. Leaving the screen stops the scene's running flows and dust, so nothing resolved
+  // afterwards draws onto a later visit.
+  if (name === 'academy-library') {
+    libraryArrivalFromRouting = routingArrival;
+    libraryScreen.enter().catch(reportError);
+  }
+  if (name !== 'academy-library') libraryScreen.suspend();
+  // The 奏楽堂 (concert hall) arrival is a stay screen (like the workshop / library): showing it fetches
+  // GET /api/concert-hall (week header, server-authoritative exit, the 楽師's lines, the 収蔵 shelf — no LM) and
+  // lands the 棚面 (a failed fetch on the hub dispatch's arrival returns to the hub). Any performance still sounding is stopped on every screen change away from it: the concert
+  // hall is a silent BGM screen and its player is the only voice there, so nothing may keep playing under
+  // another screen's music.
+  if (name === 'academy-concert-hall') refreshConcertHallScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportConcertHallScreenError);
+  if (name !== 'academy-concert-hall') concertHallPlayer.stop();
   // The 錬成室 arrival is a stay screen (like the workshop / library): showing it fetches GET /api/atelier and
   // renders the 3 slots / 銘棚 / cost / conversation-spent state from the response. A failed fetch (locked gate /
-  // non-routing / malformed) throws and surfaces on the arrival status line (no silent empty slots) — the routing
-  // dispatch has already consumed the week. This same refresh runs after synthesis / farewell / a conversation
+  // non-routing / malformed) throws (no silent empty slots): on the hub dispatch's arrival it returns to the hub,
+  // otherwise it surfaces on the arrival status line. This same refresh runs after synthesis / farewell / a conversation
   // return, so the slots and 銘棚 reflect the latest surface.
-  if (name === 'academy-atelier') refreshAtelierScreen().catch(reportAtelierScreenError);
+  if (name === 'academy-atelier') refreshAtelierScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportAtelierScreenError);
   // The arena screen has no operable pre-entry state either: showing it fetches GET /api/arena/state and
   // renders the participate-form selection (no tournament yet) or the bracket (with the player's live match
-  // attached when one is in progress — reload resume). A failed fetch / malformed payload throws and surfaces
-  // on the selection status line (no silent empty cards) — the routing dispatch has already consumed the week.
-  if (name === 'academy-arena') refreshArenaScreen().catch(reportArenaScreenError);
-  if (name === 'academy-auction') enterOrResumeAuctionScreen().catch(reportAuctionScreenError);
+  // attached when one is in progress — reload resume). A failed fetch / malformed payload throws (no silent empty
+  // cards): on the hub dispatch's arrival it returns to the hub, otherwise it surfaces on the selection status line.
+  if (name === 'academy-arena') refreshArenaScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportArenaScreenError);
+  if (name === 'academy-auction') enterOrResumeAuctionScreen({ routingArrival }).catch(reportAuctionScreenError);
   if (name !== 'academy-auction') auctionStage.stopAmbient();
   // The 談話室 (lounge) is a routing-only content destination reached through the hub dispatch (lounge →
   // academy-lounge). Like the auction it drives itself from the frontend across a dedicated per-utterance HTTP
   // surface; showing it enters a fresh weekly group talk under an entry loading cover that releases on the first
   // NPC utterance stream (M-2026-07-06-001). The loungeFlowInFlight guard makes the trailing re-entrant
   // showScreen('academy-lounge') from the loading interstitial a no-op (the reset runs once per genuine entry).
-  if (name === 'academy-lounge') enterLoungeScreen().catch(reportLoungeScreenError);
+  if (name === 'academy-lounge') enterLoungeScreen({ routingArrival }).catch(reportLoungeScreenError);
   if (name !== 'academy-lounge') loungeStage.stopAmbient();
+  // The 星見の窓 (overlook) is a routing-only content destination reached through the hub dispatch (overlook →
+  // academy-overlook). Showing it enters under a loading cover (or, on the trailing re-show after a cover of its
+  // own, resumes the entry that is already live); leaving it stops the frame loop and the talk ambient. The field
+  // poll follows the entry's state, not the screen, so a focus wait under the loading cover keeps reading it.
+  if (name === 'academy-overlook') enterOrResumeOverlookScreen().catch(reportOverlookScreenError);
+  if (name !== 'academy-overlook') suspendOverlookScreen();
   if (name === 'gathering') refreshGathering().catch(reportError);
   // Normally opening the dungeon screen re-fetches its state to render the entry/active view. The
   // enter flow already holds the fresh board from the enter stream, so it activates the screen with
   // skipDungeonRefresh and renders that buffered board itself — a re-fetch here would redundantly
-  // re-render over the still-streaming opening.
-  if (name === 'academy-dungeon' && !skipDungeonRefresh) refreshDungeonScreen().catch(reportError);
+  // re-render over the still-streaming opening. A failed state fetch on the hub dispatch's arrival returns to the hub.
+  if (name === 'academy-dungeon' && !skipDungeonRefresh) refreshDungeonScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportError);
   // The debug field screen's creature box lists the full roster. Load it only when that
   // screen is opened, so production surfaces (academy map / companion / etc.) never depend
   // on /api/creatures and a catalog failure cannot widen their contract. Rerender in both
@@ -1178,7 +1291,7 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
 // Dev-only entry to the daytime conversation screen (the same ?initialScreen= convention as the other dev entries). It gives
 // the new screen a verification entry before B2 wires the academy-map landing; the production landing switch
 // is NOT added here. Reaching the screen requires runtime state (week/moon) — no save fails fast, mirroring
-// the routing hub's ?calibrate= requirement.
+// the ?calibrate= requirement.
 function requestedInitialConversationDay() {
   return new URLSearchParams(window.location.search).get('initialScreen') === 'conversation-day';
 }
@@ -1372,7 +1485,7 @@ function createLoadingProgressDeltaThrottle() {
   };
 }
 
-async function showAcademyLoadingScreenUntilReady({ readiness, nextScreen = null, refreshBeforeNextScreen = true, rerollAcademyMap = false, strictFieldRefresh = false, copyKey = null, loadingCopy = null }) {
+async function showAcademyLoadingScreenUntilReady({ readiness, nextScreen = null, refreshBeforeNextScreen = true, rerollAcademyMap = false, strictFieldRefresh = false, routingArrival = null, copyKey = null, loadingCopy = null }) {
   setAcademyLoadingDestinationCopy(nextScreen, { copyKey, loadingCopy });
   showScreen('academy-loading');
   const minimumDisplay = new Promise((resolve) => setTimeout(resolve, ACADEMY_LOADING_MINIMUM_MS));
@@ -1396,7 +1509,7 @@ async function showAcademyLoadingScreenUntilReady({ readiness, nextScreen = null
     throw error;
   }
   if (nextScreen == null) return;
-  showScreen(nextScreen, { rerollAcademyMap });
+  showScreen(nextScreen, { rerollAcademyMap, routingArrival });
 }
 
 // The graduation ending event conversation (loop week 50 direct / routing guide selection phase 2) lands on the
@@ -1547,6 +1660,7 @@ async function routeGraduationEndingSessionDay(started, { loadingAlreadyVisible 
   } finally {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
+    focusConversationDayInputIfContinuing();
   }
 }
 
@@ -1805,7 +1919,7 @@ async function routeAfterCompletedAcademyTraining(postContentScreen) {
 
 // The settings screen is a master-detail category nav: a category list plus only the selected
 // category's panel. These are the categories, in nav order; the first is the default shown on open.
-const SETTINGS_CATEGORIES = ['lmstudio', 'conversation-popup', 'conversation-finalize', 'audio', 'save-data-repair'];
+const SETTINGS_CATEGORIES = ['lmstudio', 'conversation-popup', 'audio'];
 const DEFAULT_SETTINGS_CATEGORY = 'lmstudio';
 
 // Show exactly the chosen category's panel and mark its nav tab active. Unknown categories fail-fast
@@ -1828,87 +1942,20 @@ function selectSettingsCategory(category) {
 
 // Open the settings screen and reflect every persisted settings section from disk. Every settings
 // entry point (the top-bar 設定 tab and the title/academy-map 設定 button) routes through here so
-// the displayed state — LM Studio connection and conversation popup — is identical regardless of entry.
-// The conversation post-processing (finalize) recovery panel is rendered from the current runtime state.
+// the displayed state — LM Studio connection, conversation popup and audio — is identical regardless of entry.
 // The default category is selected on every open so no empty panel is ever shown.
 function openSettingsScreen() {
   showScreen('settings');
+  refreshSettingsScreen();
+}
+
+// Reflect the persisted settings into the settings screen without switching screens. openSettingsScreen runs it
+// after showing the screen; the night journey runs it alone when the settings room is lit over the screen in play.
+function refreshSettingsScreen() {
   selectSettingsCategory(DEFAULT_SETTINGS_CATEGORY);
   loadLmStudioSettings().catch(reportError);
   loadConversationPopupSettings().catch(reportError);
   loadAudioSettings().catch(reportError);
-  renderRoutingFinalizePanel();
-  resetSaveDataRepairResults();
-}
-
-// セーブデータ修正カテゴリ: 個別 migration ボタンの UI 側配線。単一同時実行ガードで押下即 disable、応答後に再 enable。
-// endpoint も同型のガードを持つので、複数タブ同時押下や curl 併走でも二重実行にはならない。
-const SAVE_DATA_REPAIR_UNCONSUMED_POINTER_ENDPOINT = '/api/settings/save-data-repair/unconsumed-routing-conversation-pointer';
-
-function saveDataRepairEntryElements(entryKey) {
-  const button = document.querySelector(`#save-data-repair-${entryKey}-button`);
-  const result = document.querySelector(`#save-data-repair-${entryKey}-result`);
-  return { button, result };
-}
-
-function setSaveDataRepairEntryResult(entryKey, { message, tone }) {
-  const { result } = saveDataRepairEntryElements(entryKey);
-  if (!result) return;
-  result.textContent = message;
-  result.classList.toggle('is-error', tone === 'error');
-}
-
-function resetSaveDataRepairResults() {
-  for (const result of document.querySelectorAll('.save-data-repair-entry-result')) {
-    result.textContent = '';
-    result.classList.remove('is-error');
-  }
-}
-
-function formatSaveDataRepairSuccessMessage(result) {
-  if (!result || typeof result !== 'object') throw new Error('save data repair result is missing');
-  const added = Number(result.added);
-  const skipped = Number(result.skipped_already_present);
-  if (!Number.isInteger(added) || !Number.isInteger(skipped)) {
-    throw new Error(`save data repair result has non-integer counts: ${JSON.stringify(result)}`);
-  }
-  return `${added} slot に設定を追加しました（既に持っていた ${skipped} slot は変更なし）。`;
-}
-
-async function runSaveDataRepairMigration(entryKey, endpoint) {
-  const { button } = saveDataRepairEntryElements(entryKey);
-  if (!button || button.disabled) return;
-  button.disabled = true;
-  setSaveDataRepairEntryResult(entryKey, { message: '実行中…', tone: 'info' });
-  try {
-    const payload = await postJson(endpoint);
-    if (!payload || payload.status !== 'ok') {
-      throw new Error(`unexpected response from ${endpoint}: ${JSON.stringify(payload)}`);
-    }
-    setSaveDataRepairEntryResult(entryKey, {
-      message: formatSaveDataRepairSuccessMessage(payload.result),
-      tone: 'info'
-    });
-  } catch (error) {
-    setSaveDataRepairEntryResult(entryKey, {
-      message: `失敗しました: ${error?.message ?? String(error)}`,
-      tone: 'error'
-    });
-  } finally {
-    button.disabled = false;
-  }
-}
-
-{
-  const button = document.querySelector('#save-data-repair-unconsumed-routing-conversation-pointer-button');
-  if (button) {
-    button.addEventListener('click', () => {
-      runSaveDataRepairMigration(
-        'unconsumed-routing-conversation-pointer',
-        SAVE_DATA_REPAIR_UNCONSUMED_POINTER_ENDPOINT
-      );
-    });
-  }
 }
 
 for (const tab of tabs) {
@@ -1979,7 +2026,6 @@ async function readJsonResponse(response, url) {
 
 function defaultLmStudioSettings() {
   return {
-    connection_mode: 'localhost',
     host: '127.0.0.1',
     port: 1234,
     base_url: 'http://127.0.0.1:1234/v1',
@@ -1997,11 +2043,8 @@ function defaultLmStudioSettings() {
 function lmStudioSettingsElements() {
   return {
     status: document.querySelector('#lmstudio-settings-status'),
-    localhost: document.querySelector('#lmstudio-connection-mode-localhost'),
-    lan: document.querySelector('#lmstudio-connection-mode-lan'),
     host: document.querySelector('#lmstudio-host'),
     port: document.querySelector('#lmstudio-port'),
-    baseUrl: document.querySelector('#lmstudio-base-url'),
     model: document.querySelector('#lmstudio-model'),
     thinkingEffort: document.querySelector('#lmstudio-thinking-effort'),
     modelStatus: document.querySelector('#lmstudio-model-status'),
@@ -2024,12 +2067,6 @@ function normalizeLmStudioThinkingEffortSelectValue(value) {
 function lmStudioThinkingEffortFromSelectValue(value) {
   if (value === 'none') return null;
   return value === 'low' || value === 'medium' || value === 'high' ? value : null;
-}
-
-function buildLmStudioBaseUrl({ connectionMode, host, port }) {
-  const normalizedPort = Number(port);
-  const normalizedHost = connectionMode === 'localhost' ? '127.0.0.1' : normalizeLmStudioHost(host);
-  return `http://${normalizedHost}:${normalizedPort}/v1`;
 }
 
 function effectiveLmStudioModel(settings = currentLmStudioSettings) {
@@ -2059,22 +2096,6 @@ function setLmStudioModelStatus(message) {
   if (modelStatus) modelStatus.textContent = message;
 }
 
-function syncLmStudioConnectionModeUi() {
-  const { localhost, host, port, baseUrl } = lmStudioSettingsElements();
-  const localhostMode = localhost?.checked === true;
-  if (host) {
-    host.disabled = localhostMode;
-    if (localhostMode) host.value = '127.0.0.1';
-  }
-  const activeHost = localhostMode ? '127.0.0.1' : normalizeLmStudioHost(host?.value);
-  const activePort = Number(port?.value || 1234);
-  if (baseUrl) {
-    baseUrl.textContent = activeHost && Number.isFinite(activePort)
-      ? `接続URL: ${buildLmStudioBaseUrl({ connectionMode: localhostMode ? 'localhost' : 'lan', host: activeHost, port: activePort })}`
-      : '接続URL: 入力待ち';
-  }
-}
-
 function renderLmStudioModelOptions(settings = currentLmStudioSettings) {
   const { model } = lmStudioSettingsElements();
   if (!model) return;
@@ -2086,11 +2107,8 @@ function renderLmStudioModelOptions(settings = currentLmStudioSettings) {
     options.unshift({ id: selectedModel, label: `${selectedModel}（現在の保存値・一覧外）` });
   }
 
-  const placeholder = selectedModel
-    ? { id: '', label: 'モデルを選択してください' }
-    : { id: '', label: 'モデル一覧を取得してください' };
   model.innerHTML = '';
-  model.append(new Option(placeholder.label, placeholder.id));
+  model.append(new Option('未選択', ''));
   for (const option of options) {
     model.append(new Option(option.label, option.id));
   }
@@ -2100,23 +2118,17 @@ function renderLmStudioModelOptions(settings = currentLmStudioSettings) {
     setLmStudioModelStatus(`現在モデル: ${selectedModel}（取得した一覧には見つかりませんでした）`);
   } else if (selectedModel) {
     setLmStudioModelStatus(`現在モデル: ${selectedModel}`);
-  } else if (fetchedOptions.length > 0) {
-    setLmStudioModelStatus('モデルを選択してください。');
   } else {
-    setLmStudioModelStatus('モデル一覧を取得してください。');
+    setLmStudioModelStatus('未選択');
   }
 }
 
 function renderLmStudioSettings(settings = currentLmStudioSettings ?? defaultLmStudioSettings()) {
   if (!settings) return;
-  const { localhost, lan, host, port, thinkingEffort } = lmStudioSettingsElements();
-  const connectionMode = settings.connection_mode === 'lan' ? 'lan' : 'localhost';
-  if (localhost) localhost.checked = connectionMode === 'localhost';
-  if (lan) lan.checked = connectionMode === 'lan';
+  const { host, port, thinkingEffort } = lmStudioSettingsElements();
   if (host) host.value = settings.host ?? '127.0.0.1';
   if (port) port.value = String(settings.port ?? 1234);
   if (thinkingEffort) thinkingEffort.value = normalizeLmStudioThinkingEffortSelectValue(settings.thinking_effort);
-  syncLmStudioConnectionModeUi();
   renderLmStudioModelOptions(settings);
   setLmStudioSettingsStatus(`現在: ${settings.base_url}`);
 }
@@ -2138,48 +2150,96 @@ async function loadLmStudioSettings() {
   return currentLmStudioSettings;
 }
 
+// Terminal text for a failed モデル一覧を取得. The server names a transport failure as 502
+// `{ error_code: 'LMSTUDIO_MODEL_LIST_UNAVAILABLE', target, cause_code | cause_message }`; this maps
+// that onto a closed table keyed by cause_code and always names the target. A code outside the table
+// is shown verbatim in the generic row (never rounded to an unnamed error), and a payload that claims
+// the diagnostics code without the fields the contract promises throws instead of guessing. Every other
+// rejection (validation 400, non-transport 502, a network reject reaching our own server) terminates
+// the status with its concrete reason.
+const LM_STUDIO_MODEL_LIST_UNAVAILABLE_CODE = 'LMSTUDIO_MODEL_LIST_UNAVAILABLE';
+const LM_STUDIO_UNREACHABLE_CAUSE_CODES = new Set(['EHOSTUNREACH', 'ETIMEDOUT', 'UND_ERR_CONNECT_TIMEOUT']);
+
+// The transport-failure table itself, shared by every LM transport diagnostics payload (`target` plus one of
+// `cause_code` / `cause_message`): the model list (LMSTUDIO_MODEL_LIST_UNAVAILABLE) and the conversation
+// post-processing retry (LMSTUDIO_CONNECTION_UNAVAILABLE).
+function lmStudioTransportFailureMessage(payload) {
+  const errorCode = payload?.error_code;
+  const target = typeof payload?.target === 'string' ? payload.target.trim() : '';
+  if (!target) throw new Error(`${errorCode} response carries no target`);
+  const causeCode = typeof payload.cause_code === 'string' ? payload.cause_code.trim() : '';
+  const causeMessage = typeof payload.cause_message === 'string' ? payload.cause_message.trim() : '';
+  if (causeCode) {
+    if (LM_STUDIO_UNREACHABLE_CAUSE_CODES.has(causeCode)) {
+      return `${target} に届きません。IP・LM Studio 側の起動・macOS の「ローカルネットワーク」権限（STARFALL MAGIC ACADEMY）を確認してください。`;
+    }
+    if (causeCode === 'ECONNREFUSED') {
+      return `${target} は在りますが、この port で LM Studio が待ち受けていません。`;
+    }
+    return `${target} への接続に失敗しました（${causeCode}）。`;
+  }
+  if (causeMessage) return `${target} への接続に失敗しました（${causeMessage}）。`;
+  throw new Error(`${errorCode} response carries neither cause_code nor cause_message`);
+}
+
+function lmStudioModelListFailureMessage(error) {
+  const payload = error?.payload;
+  if (payload?.error_code === LM_STUDIO_MODEL_LIST_UNAVAILABLE_CODE) return lmStudioTransportFailureMessage(payload);
+  const reason = String(payload?.error ?? error?.message ?? '').trim();
+  if (!reason) throw new Error('model list request failed without a reason');
+  return `モデル一覧の取得に失敗しました: ${reason}`;
+}
+
 async function fetchLmStudioModels() {
-  const { localhost, host, port, fetchModelsButton } = lmStudioSettingsElements();
-  const connectionMode = localhost?.checked ? 'localhost' : 'lan';
+  const { host, port, fetchModelsButton } = lmStudioSettingsElements();
   setLmStudioModelStatus('モデル一覧を取得中です。');
   if (fetchModelsButton) fetchModelsButton.disabled = true;
+  // Success and failure both drive the model status to a terminal state: a failure paints the
+  // cause-naming line (lmStudioModelListFailureMessage) so 取得中 never survives the request, then the
+  // original error is rethrown to reportError so console/global reporting is unchanged.
   try {
     const response = await fetch('/api/settings/lmstudio/models', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
-        connection_mode: connectionMode,
         host: host?.value,
         port: Number(port?.value || 1234)
       })
     });
-    const text = await response.text();
-    if (!response.ok) throw new Error(`/api/settings/lmstudio/models: ${response.status} ${text}`);
-    const payload = text ? JSON.parse(text) : { models: [] };
+    const payload = (await readJsonResponse(response, '/api/settings/lmstudio/models')) ?? { models: [] };
     lmStudioFetchedModelOptions = normalizeLmStudioModelOptions(payload.models);
     renderLmStudioModelOptions(currentLmStudioSettings);
-    setLmStudioSettingsStatus(`現在: ${payload.base_url ?? buildLmStudioBaseUrl({ connectionMode, host: host?.value, port: Number(port?.value || 1234) })}`);
+    setLmStudioSettingsStatus(`現在: ${payload.base_url}`);
     if ((lmStudioFetchedModelOptions ?? []).length === 0) {
       setLmStudioModelStatus('利用可能なモデルは返ってきませんでした。');
     }
     return payload;
+  } catch (error) {
+    let message;
+    try {
+      message = lmStudioModelListFailureMessage(error);
+    } catch (contractError) {
+      setLmStudioModelStatus(contractError.message);
+      throw contractError;
+    }
+    setLmStudioModelStatus(message);
+    throw error;
   } finally {
     if (fetchModelsButton) fetchModelsButton.disabled = false;
   }
 }
 
-// LM Studio settings apply on change — no save button. A committed host/port edit (blur/Enter), a
-// connection-mode toggle, or a model / thinking-effort selection each calls this, symmetric with the
-// play-mode radios. The backend requires a model; when none is chosen yet this surfaces the
-// requirement and declines to PATCH (a visible prompt, mirroring the play-mode variant-required
-// gate — not a silent skip or a defaulted model).
+// LM Studio settings apply on change — no save button. A committed host/port edit (blur/Enter) or a
+// model / thinking-effort selection each calls this, symmetric with the play-mode radios. The destination
+// is the host + port fields alone (the server builds base_url from them). The backend requires a model;
+// while none is chosen the model status names it 未選択 and no PATCH leaves the client (not a silent
+// skip or a defaulted model). An empty host is the server's to reject (400 host is required), and that
+// reason lands on the status line like any other failed save.
 async function saveLmStudioSettings() {
-  const { localhost, host, port, model, thinkingEffort } = lmStudioSettingsElements();
-  const connectionMode = localhost?.checked ? 'localhost' : 'lan';
+  const { host, port, model, thinkingEffort } = lmStudioSettingsElements();
   const selectedModel = normalizeLmStudioModelValue(model?.value);
   if (!selectedModel) {
-    setLmStudioModelStatus('モデルを選択してください。');
-    setLmStudioSettingsStatus('モデルを選ぶと接続設定が反映されます。');
+    setLmStudioModelStatus('未選択');
     return null;
   }
   setLmStudioSettingsStatus('反映中です。');
@@ -2189,7 +2249,6 @@ async function saveLmStudioSettings() {
   // unchanged. No silent retry or fallback.
   try {
     const saved = await patchJson('/api/settings/lmstudio', {
-      connection_mode: connectionMode,
       host: host?.value,
       port: Number(port?.value || 1234),
       model: selectedModel,
@@ -2644,9 +2703,9 @@ function setAcademyMapNavigationDisabled(disabled) {
 }
 
 function setConversationControlsDisabled(disabled) {
-  for (const selector of ['#academy-conversation-session-run-conversation', '#academy-conversation-session-end-conversation']) {
-    const button = document.querySelector(selector);
-    if (button) button.disabled = disabled;
+  for (const selector of ['#academy-conversation-session-run-conversation', '#academy-conversation-session-end-conversation', '#academy-conversation-session-player-input']) {
+    const control = document.querySelector(selector);
+    if (control) control.disabled = disabled;
   }
 }
 
@@ -2819,7 +2878,7 @@ function collectPlayerParameters() {
   return parameters;
 }
 
-function renderParameterGroup(title, definitions, values = {}) {
+function renderParameterGroup(title, definitions, values, createLabel) {
   const section = document.createElement('section');
   section.className = 'character-parameter-section';
   const heading = document.createElement('h4');
@@ -2831,8 +2890,7 @@ function renderParameterGroup(title, definitions, values = {}) {
     const value = Math.max(0, Math.min(100, Number(stat?.value ?? stat ?? 0)));
     const item = document.createElement('div');
     item.className = 'character-parameter-item';
-    const label = document.createElement('span');
-    label.textContent = shortLabel;
+    const label = createLabel(key, shortLabel);
     const meter = document.createElement('meter');
     meter.min = 0;
     meter.max = 100;
@@ -2855,12 +2913,20 @@ function renderParameterGroup(title, definitions, values = {}) {
 // The two parameter groups (魔法習熟度 / 基礎能力) as detached sections, shared by the player / character parameter
 // renderers below and by the routing hub self / buddy drawers (which append them into a titled sub-section instead
 // of replacing a whole container). The player world state and a character profile carry the same {magic, abilities}
-// shape, so one builder serves both.
-function buildParameterGroups(parameters = {}) {
+// shape, so one builder serves both. createLabel(key, shortLabel) draws each parameter's name: words
+// (parameterTextLabel) everywhere but the hub, whose drawers show the sigil alone (abilitySigilLabel).
+function buildParameterGroups(parameters = {}, createLabel) {
   return [
-    renderParameterGroup('魔法習熟度', magicParameterDefinitions, parameters.magic),
-    renderParameterGroup('基礎能力', abilityParameterDefinitions, parameters.abilities)
+    renderParameterGroup('魔法習熟度', magicParameterDefinitions, parameters.magic, createLabel),
+    renderParameterGroup('基礎能力', abilityParameterDefinitions, parameters.abilities, createLabel)
   ];
+}
+
+// A parameter's name as words (the academy / training / dungeon meters).
+function parameterTextLabel(_key, shortLabel) {
+  const label = document.createElement('span');
+  label.textContent = shortLabel;
+  return label;
 }
 
 function renderCharacterParametersInto(character, containerSelector) {
@@ -2869,7 +2935,7 @@ function renderCharacterParametersInto(character, containerSelector) {
   // Sanrin creatures carry the same magic/ability stats as academy students and
   // render identical meters; their parameters arrive on the backend creature
   // summary, so missing values fail fast upstream rather than being zero-filled here.
-  container.replaceChildren(...buildParameterGroups(character.parameters));
+  container.replaceChildren(...buildParameterGroups(character.parameters, parameterTextLabel));
 }
 
 function renderInteractionCharacterParameters(character) {
@@ -2885,7 +2951,7 @@ function renderTrainingPlayerParameters(parameters = {}) {
 function renderPlayerParametersInto(parameters = {}, containerSelector) {
   const container = document.querySelector(containerSelector);
   if (!container) return;
-  container.replaceChildren(...buildParameterGroups(parameters));
+  container.replaceChildren(...buildParameterGroups(parameters, parameterTextLabel));
 }
 
 // Build the 素材メタ badges (属性ラベル + T<tier>) for a dungeon-material inventory item, or null for a
@@ -5136,6 +5202,12 @@ function renderSlotCard(slot) {
   title.textContent = slot.label || slot.slot_id;
   const meta = document.createElement('p');
   meta.textContent = [slot.slot_id, slot.updated_at, slot.current_location_id].filter(Boolean).join(' / ');
+  // 足跡のまとめ（「今日はここまで」で書かれた遊び筋の 1〜2 文）。まとめを持たないセーブは日時だけ。
+  const footprintSummary = slot.footprint_summary ? document.createElement('p') : null;
+  if (footprintSummary) {
+    footprintSummary.className = 'slot-load-item-footprint-summary';
+    footprintSummary.textContent = slot.footprint_summary.text;
+  }
   const graduationStatus = document.createElement('p');
   graduationStatus.className = 'slot-load-item-status';
   graduationStatus.textContent = '卒業済み';
@@ -5155,7 +5227,7 @@ function renderSlotCard(slot) {
   remove.textContent = '削除';
   remove.addEventListener('click', () => openDeleteSlotDialog(slot.slot_id));
   actions.append(load, remove);
-  summary.append(title, meta, graduationStatus, actions);
+  summary.append(title, meta, ...(footprintSummary ? [footprintSummary] : []), graduationStatus, actions);
 
   body.append(summary, renderSlotNoteEditor(slot));
   article.append(body);
@@ -5164,7 +5236,7 @@ function renderSlotCard(slot) {
 
 // A degraded (incompatible) save slot card: rendered from an entry in response.incompatible_slots
 // ({ slot_id, compatibility: { error_code, message }, note, updated_at }). It shows only the safely
-// readable metadata plus a fixed player-facing reason (never the server's migration CLI message), and
+// readable metadata plus the error_code's player-facing reason (never the server's message), and
 // offers ONLY the shared delete-confirm dialog — no start button and no note editor, because a degraded
 // slot cannot be loaded or its note re-saved (the backend re-throws the same compatibility error on both).
 function renderDegradedSlotCard(entry) {
@@ -5183,7 +5255,7 @@ function renderDegradedSlotCard(entry) {
   meta.textContent = [entry.slot_id, entry.updated_at, entry.note].filter(Boolean).join(' / ');
   const reason = document.createElement('p');
   reason.className = 'slot-load-item-status slot-load-item-degraded-reason';
-  reason.textContent = SLOT_LOAD_DEGRADED_REASON;
+  reason.textContent = slotLoadDegradedReason(entry.compatibility?.error_code);
   const actions = document.createElement('div');
   actions.className = 'dialog-action-row';
   const remove = document.createElement('button');
@@ -5793,12 +5865,15 @@ async function deleteCharacterRecords(target) {
   await resetContinuityRecords(target);
 }
 
-async function runRefreshTask(label, taskFactory, { timeoutMs = REFRESH_TASK_TIMEOUT_MS, fallbackValue = null } = {}) {
+// acceptedErrorCodes names the API error codes that are a known state for this task, not a failure: the task then
+// yields fallbackValue without reporting. Every other error is reported as before.
+async function runRefreshTask(label, taskFactory, { timeoutMs = REFRESH_TASK_TIMEOUT_MS, fallbackValue = null, acceptedErrorCodes = [] } = {}) {
   let timedOut = false;
   const taskPromise = Promise.resolve()
     .then(taskFactory)
     .then((value) => ({ status: 'fulfilled', value }))
     .catch((error) => {
+      if (acceptedErrorCodes.includes(error?.errorCode)) return { status: 'accepted', value: fallbackValue };
       if (!timedOut) reportError(error);
       return { status: 'rejected', value: fallbackValue };
     });
@@ -5813,7 +5888,11 @@ async function runRefreshTask(label, taskFactory, { timeoutMs = REFRESH_TASK_TIM
   return result.value;
 }
 
-async function refresh({ strictField = false } = {}) {
+// noSaveYet is the boot read on a machine that may hold no save at all: /api/state and /api/field answer
+// NO_ACTIVE_SLOT there, which is the "no save yet" state (the title offers only 最初から始める), not an error to
+// write on the title. Any other failure of the boot read is reported as usual.
+async function refresh({ strictField = false, noSaveYet = false } = {}) {
+  const playStateAccepted = noSaveYet ? ['NO_ACTIVE_SLOT'] : [];
   await Promise.all([
     runRefreshTask('characters', () => refreshCharacters()),
     runRefreshTask('world settings', () => refreshWorldSettings()),
@@ -5824,10 +5903,10 @@ async function refresh({ strictField = false } = {}) {
   // cached field and rendering a frozen map. The default resilient path (loop and every other caller)
   // keeps the last-known field on a stalled fetch, so those transitions stay byte-equivalent.
   const [state, field] = await Promise.all([
-    runRefreshTask('state', () => getJson('/api/state'), { fallbackValue: currentRuntimeState }),
+    runRefreshTask('state', () => getJson('/api/state'), { fallbackValue: currentRuntimeState, acceptedErrorCodes: playStateAccepted }),
     strictField
       ? getJson('/api/field')
-      : runRefreshTask('field', () => getJson('/api/field'), { fallbackValue: currentField })
+      : runRefreshTask('field', () => getJson('/api/field'), { fallbackValue: currentField, acceptedErrorCodes: playStateAccepted })
   ]);
   currentRuntimeState = state ?? currentRuntimeState;
   renderRelationshipDebugControls();
@@ -5885,6 +5964,21 @@ async function revealResultSequentially(surface, result) {
     await sleep(conversationPopupCooldownMs());
   }
   surface.commitState(result);
+}
+
+// The turn's prompt prewarm failed after the turn was written (SSE error PROMPT_PREWARM_FAILED). The error carries
+// the written turn as turn_result; the stream adopts it in place of the result and attaches the failure as
+// prompt_prewarm_error, which the screen shows on its error banner while keeping the turn and reopening input.
+const PROMPT_PREWARM_FAILED_ERROR_CODE = 'PROMPT_PREWARM_FAILED';
+
+function promptPrewarmFailedTurnResult({ url, data }) {
+  if (!data.turn_result || typeof data.turn_result !== 'object') {
+    throw new Error(`${url}: PROMPT_PREWARM_FAILED stream error is missing turn_result`);
+  }
+  return {
+    ...data.turn_result,
+    prompt_prewarm_error: createApiError({ url, status: 503, payload: data, fallbackText: data.error ?? '' })
+  };
 }
 
 async function runAssistantSseStream({ surface, endpoint, body, statusPrefix = 'stream', finalAssistantMode = 'last', refreshAfter = true, onAssistantStreamStart = null, onStageMove = null, onRoutingDispatch = null, onRoutingDraining = null, onEvent = null }) {
@@ -6051,7 +6145,12 @@ async function runAssistantSseStream({ surface, endpoint, body, statusPrefix = '
       finalResult = data;
       notifyAcademyLoadingProgress();
     }
-    if (event === 'error') throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data?.error ?? '' });
+    // PROMPT_PREWARM_FAILED arrives after the turn was written: adopt the written turn like a result (the failure
+    // rides on it for the screen's banner). Every other error fails the turn.
+    if (event === 'error') {
+      if (data?.error_code !== PROMPT_PREWARM_FAILED_ERROR_CODE) throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data?.error ?? '' });
+      finalResult = promptPrewarmFailedTurnResult({ url: endpoint, data });
+    }
   }
 
   while (true) {
@@ -6075,12 +6174,12 @@ async function runAssistantSseStream({ surface, endpoint, body, statusPrefix = '
     throw new Error('conversation turn result carries both stage_move and routing_dispatch (mutually exclusive)');
   }
   if (stageMove) {
-    // The normal reply and the movement cutoff have already streamed in as the two
-    // assistant_complete segments. Hold the new-stage opening line back so the move
-    // choreography (loading screen) can reveal it once we arrive at the new stage.
-    await assistantRevealPromise;
-    surface.setHistory(surface.mapMessages(finalResult.conversation).slice(0, -1));
-    await onStageMove({ result: finalResult, stageMove });
+    // The reply, the movement cutoff, and the new-stage opening line have streamed in as three assistant_complete
+    // segments and are revealed as they arrive; the move choreography (loading screen → the new stage) follows the
+    // result, once the turn has written the new stage.
+    await finishAssistantSegmentReveal();
+    surface.commitState(finalResult);
+    await onStageMove({ stageMove });
   } else if (routingDispatch) {
     // A decided routing hub turn carries the send-off utterance plus the dispatch payload, exactly
     // where a field turn carries a stage move. Unlike a stage move there is no opening line to hold
@@ -6110,12 +6209,11 @@ async function runOpeningConversationStream({ characterId = activeCharacterId, p
   });
 }
 
-async function performStageMoveTransition({ result, stageMove }) {
-  // Reached when a conversation turn confirms an in-session stage move. The reply
-  // and the movement cutoff are already on screen; slip into the loading screen to
-  // absorb the jump, refresh so the session adopts the destination stage (image /
-  // name / visible_situation), then return and reveal the new-stage opening line.
-  // Same session, same history — only the stage changes.
+async function performStageMoveTransition({ stageMove }) {
+  // Reached when a conversation turn confirms an in-session stage move. The reply, the
+  // movement cutoff, and the new-stage opening line are already on screen; slip into the
+  // loading screen to absorb the jump and refresh so the session adopts the destination
+  // stage (image / name / visible_situation). Same session, same history — only the stage changes.
   const destinationName = stageMove.to_location_name;
   try {
     await showAcademyLoadingScreenUntilReady({
@@ -6140,7 +6238,6 @@ async function performStageMoveTransition({ result, stageMove }) {
     }
     throw error;
   }
-  await renderConversationResultSequentially(result);
 }
 
 // The per-turn conversation request body. A routing hub turn additionally carries the routing hub
@@ -6278,6 +6375,10 @@ const ROUTING_HUB_CATEGORY_TITLES = Object.freeze({
   library: '収蔵庫'
 });
 
+// The terrace: the hub's place-name glow and peek, the send-off curtain, the returned week's fading place, and the left
+// rail's switching while a rail screen is open (hubTerrace.js).
+const hubTerrace = createHubTerrace();
+
 // The routing hub conversation stage. Axis 1 (scope/theme): the #routing-hub-* selectors, the
 // /canonical/routing category icons, and a deep-night starfield ambient. Axis 2 (conversation type): the
 // ルミ persona visual (standee/speaker), the routing actor identity, the routing runtime week, and the
@@ -6290,16 +6391,8 @@ const routingHubStage = createConversationStage({
   controlSelectors: ['#routing-hub-send', '#routing-hub-end', '#routing-hub-input'],
   standeeSelector: '#routing-hub-standee',
   weekSelector: '#routing-hub-week',
-  moonSelector: '#routing-hub-moon-phase',
-  respondingClass: 'is-lumi-responding',
-  playerSpokeClass: 'is-player-spoke',
-  dispatchClimaxClass: 'is-dispatch-climax',
-  playerSpokeMs: 600,
-  dispatchClimaxMs: 900,
   weekTotal: ROUTING_HUB_TOTAL_WEEKS,
-  moonPhaseCount: 8,
   weekLabel: (week, total) => `第${week}週 / ${total}`,
-  moonAriaLabel: (phase, count) => `月相 ${phase + 1} / ${count}`,
   // The routing runtime week source (fail-fast on missing/invalid elapsed_weeks lives in the stage's
   // conversationStageWeek — week 1 fabrication / silent clamp is not introduced). The graduation guide week
   // reads 第50週 / 50 through this same derivation with no special-casing: the guide holds elapsed_weeks at 49,
@@ -6343,7 +6436,9 @@ const routingHubStage = createConversationStage({
   }
 }, {
   displayMessages,
-  createMessageRows,
+  // The terrace marks the destination names in the guide's words as the rows are drawn (and watches for the send-off's
+  // last piece to be lit).
+  createMessageRows: (displayList, popFromDisplayIndex, allowEdit) => hubTerrace.markRows(createMessageRows(displayList, popFromDisplayIndex, allowEdit)),
   messagesFromConversation,
   conversationPopupCooldownMs,
   sleep,
@@ -6402,6 +6497,8 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
   let expression = 'neutral';
   let assistantText = '';
   let assistantSegmentCount = 0;
+  // The last complete assistant message: on a dispatch turn, the send-off words the terrace waits to see lit.
+  let lastAssistantContent = '';
   let finalResult = null;
   // 見送り読みポーズ (行き先確定ターン) の並行制御。sendoffReadingPause は routing_draining で1回だけ起動する
   // 読みポーズの promise、drainLoadingShown はそのポーズが drain ロード画面を先に出したか (result より先にポーズが
@@ -6438,20 +6535,17 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
   // 見送り読みポーズ pipeline. routing_draining が「このターンは行き先確定で、送り出しの吹き出しは全て enqueue 済み、
   // これから backend の後処理 drain が走る」ことを告げた瞬間に起動する: 送り出しの吹き出しが全て出揃ったら (reveal.drain)
   // ~5秒の読みポーズを取るが、それを backend drain と並行して走らせる (drain の後に直列で走らせない)。ポーズが drain 完了
-  // (result 到着) より先に満了したら、③ climax → drain ロード画面へ自分で hand off し、まだ開いている stream が result を
+  // (result 到着) より先に満了したら、drain ロード画面へ自分で hand off し、まだ開いている stream が result を
   // その下で受け取る。result が先に着けばハブ表示のまま満了を待ち、下の dispatch 分岐が hand off する。ターンにつき1回だけ。
   function beginSendoffReadingPause() {
     if (sendoffReadingPause) return;
     sendoffReadingPause = (async () => {
       await reveal.drain();
-      // 送り出しの吹き出しは全て出揃った (ルミは話し終えた): 読みポーズの間は responding グローを落とす。
-      routingHubStage.setResponding(false);
       await sleep(DRAIN_READING_PAUSE_MS);
-      // 5秒経過。drain がまだ result を返していなければ、③ climax → drain ロード画面をここで出し、その下で result を
-      // 待ち続ける。result が既に着いていればハブ表示のまま (dispatch 分岐が ③ を出して遷移する)。error で終わった stream
+      // 5秒経過。drain がまだ result を返していなければ、drain ロード画面をここで出し、その下で result を
+      // 待ち続ける。result が既に着いていればハブ表示のまま (dispatch 分岐が遷移する)。error で終わった stream
       // は自分でハブを復元するので、その後にロード画面を出さない。
       if (!finalResult && !streamFailed) {
-        routingHubStage.flashDispatchClimax();
         showRoutingDrainLoadingScreen();
         drainLoadingShown = true;
       }
@@ -6461,16 +6555,14 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
   // 見送り読みポーズ pipeline for the graduation guide selection (routing phase 2). graduation_guide_draining は
   // 「このターンは締めくくり相手が確定し、ルミの見送りの吹き出しは全て enqueue 済み、これから backend が hub 会話を
   // finalize して選択キャラの卒業 event を起こす」ことを告げる (routing_draining と同層)。beginSendoffReadingPause と
-  // 同一の並行規律で、見送りが出揃ったら (reveal.drain) ~5秒読みポーズを backend drain と並行に取り、pause が先着したら ③
-  // climax → graduation-ending-start ロード画面へ hand off して result をその下で待つ。ターンにつき1回だけ。
+  // 同一の並行規律で、見送りが出揃ったら (reveal.drain) ~5秒読みポーズを backend drain と並行に取り、pause が先着したら
+  // graduation-ending-start ロード画面へ hand off して result をその下で待つ。ターンにつき1回だけ。
   function beginGraduationSelectionPause() {
     if (graduationSelectionPause) return;
     graduationSelectionPause = (async () => {
       await reveal.drain();
-      routingHubStage.setResponding(false);
       await sleep(DRAIN_READING_PAUSE_MS);
       if (!finalResult && !streamFailed) {
-        routingHubStage.flashDispatchClimax();
         showGraduationEndingStartLoadingScreen();
         drainLoadingShown = true;
       }
@@ -6483,7 +6575,6 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     const data = dataText ? JSON.parse(dataText) : null;
     if (event === 'assistant_emotion') expression = data.expression ?? 'neutral';
     if (event === 'assistant_delta') {
-      routingHubStage.setResponding(true);
       noteLoadingDelta();
       assistantText += data.delta;
       enqueueAssistantSegments(completedAssistantPrefix(assistantText));
@@ -6492,6 +6583,7 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
       notifyAcademyLoadingProgress();
       expression = data.expression ?? expression;
       assistantText = data.content ?? assistantText;
+      lastAssistantContent = assistantText;
       enqueueAssistantSegments(assistantText);
       // Reset per-assistant-message accounting so a second assistant_complete (e.g. a follow-up 吹き出し)
       // queues its own segments from scratch.
@@ -6503,6 +6595,8 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     // ポーズ NOW so the ~5s read runs concurrently with that drain instead of serially after it; the pause raises
     // the drain loading screen itself only if the drain outlasts it (backend 契約・SSE イベント順序は不変).
     if (event === 'routing_draining') {
+      // The terrace opens the decided destination (the drain signal's destination_id, not a name the words mentioned).
+      hubTerrace.beginSendoff(data.destination_id, lastAssistantContent);
       beginSendoffReadingPause();
       notifyAcademyLoadingProgress();
     }
@@ -6523,7 +6617,12 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
       finalResult = data;
       notifyAcademyLoadingProgress();
     }
-    if (event === 'error') throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data?.error ?? '' });
+    // PROMPT_PREWARM_FAILED arrives after the turn was written: adopt the written turn like a result (the failure
+    // rides on it for the screen's banner). Every other error fails the turn.
+    if (event === 'error') {
+      if (data?.error_code !== PROMPT_PREWARM_FAILED_ERROR_CODE) throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data?.error ?? '' });
+      finalResult = promptPrewarmFailedTurnResult({ url: endpoint, data });
+    }
   }
 
   try {
@@ -6556,6 +6655,7 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     // had already fired) does not raise the drain loading screen after the hub has been restored.
     streamFailed = true;
     reveal.cancel();
+    hubTerrace.abortSendoff(currentRuntimeState);
     throw error;
   }
   if (!finalResult) throw new Error('routing hub stream ended without a final result');
@@ -6581,11 +6681,10 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     // 締めくくり相手確定ターン (routing phase 2). The graduation 見送り読みポーズ has been running concurrently with the
     // backend drain (hub finalize + graduation event start) since graduation_guide_draining. Await it: either the
     // result arrived within the ~5s pause (hub stayed visible) or the pause elapsed first and already raised the
-    // graduation-ending-start loading screen (drainLoadingShown). Drop the hub actor/id, play ③ once if the hub is
-    // still visible, then hand off to the shared loop graduation entry to open the selected character's event.
+    // graduation-ending-start loading screen (drainLoadingShown). Drop the hub actor/id, then hand off to the shared
+    // loop graduation entry to open the selected character's event.
     await graduationSelectionPause;
     clearRoutingHubConversation();
-    if (!drainLoadingShown) routingHubStage.flashDispatchClimax();
     await startRoutingGraduationEndingFromSelection({ result: finalResult, loadingAlreadyVisible: drainLoadingShown });
     routingHubStage.setStatus('');
     return finalResult;
@@ -6599,11 +6698,10 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     await sendoffReadingPause;
     routingHubStage.surface.commitState(finalResult);
     routingHubStage.renderStream(routingHubStage.surface.getHistory());
-    // ③ climax plays once on the hub as it hands to the loading screen. If the pause already raised the drain
-    // loading screen it已 played there; otherwise the hub is still visible, so play it now before dispatch.
-    if (!drainLoadingShown) routingHubStage.flashDispatchClimax();
-    await performRoutingTurnDispatch({ result: finalResult, dispatch: routingDispatch });
+    // Clear the hub status BEFORE dispatching: a failed arrival returns to the hub inside the dispatch and writes its
+    // failure notice there, which a clear after the dispatch would wipe.
     routingHubStage.setStatus('');
+    await performRoutingTurnDispatch({ result: finalResult, dispatch: routingDispatch });
     return finalResult;
   }
 
@@ -6612,7 +6710,6 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
   await reveal.drain();
   routingHubStage.surface.commitState(finalResult);
   routingHubStage.renderStream(routingHubStage.surface.getHistory());
-  routingHubStage.setResponding(false);
   routingHubStage.setStatus('');
   return finalResult;
 }
@@ -6622,6 +6719,8 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
 // input. The player's utterance is not rendered optimistically here — the turn's shared reveal queue reveals
 // it as the first 吹き出し単位 on the same 統一出現規律 as ルミの応答.
 async function runRoutingHubConversation() {
+  // The hub-start failure landing has no conversation to send into: the send stays closed there.
+  if (routingFinalizeBlockedExit || routingHubStartFailure) return;
   if (conversationRequestInFlight) {
     showProcessingToast();
     return;
@@ -6632,16 +6731,10 @@ async function runRoutingHubConversation() {
   const historySnapshot = [...routingHubStage.surface.getHistory()];
   const inputSnapshot = input ? input.value : '';
   conversationRequestInFlight = true;
-  routingHubStage.setControlsDisabled(true);
+  setRoutingHubControlsDisabled(true);
   const provider = conversationProvider();
   try {
     if (input) input.value = '';
-    // ② the player spoke — flare the composer. The utterance itself pops in through the turn's reveal queue.
-    routingHubStage.flashPlayerSpoke();
-    // ① ルミ is now responding — set it from the turn start (not only on the first streamed delta) so the
-    // responding glow shows for the whole turn whether or not the provider streams token deltas. This glow
-    // is the only in-progress cue; the hub shows no in-progress status text (only the error banner remains).
-    routingHubStage.setResponding(true);
     const result = await runRoutingHubTurnStream({ playerInput, provider });
     // A decided turn dispatched in-turn (performRoutingTurnDispatch already navigated to the
     // destination after the queue drained); do not refresh the closed hub.
@@ -6652,10 +6745,15 @@ async function runRoutingHubConversation() {
     if (isRoutingGraduationGuideSelection(result)) return;
     if (await autoEndConversationAfterFinalReply(result)) return;
     await refresh();
+    if (result.prompt_prewarm_error) routingHubStage.setStatus(errorDisplayMessage(result.prompt_prewarm_error), { tone: 'error' });
   } catch (error) {
+    // A send-off that fails after its curtain began lifts the curtain before the hub is restored.
+    hubTerrace.abortSendoff(currentRuntimeState);
     routingHubStage.surface.setHistory(historySnapshot);
     routingHubStage.renderStream(historySnapshot);
-    if (input) input.value = inputSnapshot;
+    // A turn refused by the blocked post-processing queue is already saved, so its text does not go back into
+    // the input; every other failure restores it.
+    if (input && !isPendingFinalizationsBlockedError(error)) input.value = inputSnapshot;
     routingHubStage.setStatus('');
     // Invalid LLM output (and LM Studio config/connection failures) route the player to the LM settings
     // with the cause message, the same as the hub-entry path; any other failure shows the hub error banner.
@@ -6670,11 +6768,20 @@ async function runRoutingHubConversation() {
     // in-progress status text; the error banner is its only status line). General — gated only on the loading
     // screen being active, not on any destination id.
     if (isAcademyLoadingScreenActive()) showScreen('routing-hub');
+    // An exit turn (a decided send-off, or a graduation-guide partner) whose drain the blocked post-processing
+    // queue refused shows the emergency exit instead of the cause. The turn itself is already saved: after the
+    // retry a send-off resumes its dispatch; a guide turn has no server route to rebuild the selection, so it
+    // stays on the hub.
+    if (isPendingFinalizationsBlockedError(error)) {
+      showRoutingFinalizeBlockedNotice(isRoutingGraduationGuideActive()
+        ? async () => focusRoutingHubInputIfContinuing()
+        : resumeRoutingHubSendoffDispatch);
+      return;
+    }
     routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
   } finally {
     conversationRequestInFlight = false;
-    routingHubStage.setControlsDisabled(false);
-    routingHubStage.setResponding(false);
+    setRoutingHubControlsDisabled(false);
     // Non-terminal turn refocus: after re-enabling controls, restore keyboard focus to `#routing-hub-input`
     // so the next utterance can be typed without a mouse click (mirrors the lounge's runLoungePlayerTurn
     // re-enable→focus seam). The helper's 3-condition gate (hub screen active + hub conversation active +
@@ -6688,18 +6795,12 @@ async function runRoutingHubConversation() {
 // The category renderers wired into routingHubStage.categoryRenderers (axis 2 data). The drawer
 // open/switch/close, rail-select, header icon, and fixed-set fail-fast are owned by the shared stage;
 // these builders paint the routing-specific category bodies with the routing-hub-info-* classes.
-// Empty-state card (buddy 不在 / enemy 0件 / 持ち物なし): a titled card, never a bare one-line text.
-function routingHubInfoEmptyCard(title, note) {
+// Empty-state card (buddy 不在 / enemy 0件 / 持ち物なし …): the dotted picture of what is missing, set where the rows
+// would begin; the title and note are its read-out name.
+function routingHubInfoEmptyCard(title, note, art) {
   const card = document.createElement('div');
   card.className = 'routing-hub-info-empty-card';
-  const heading = document.createElement('strong');
-  heading.className = 'routing-hub-info-empty-title';
-  heading.textContent = title;
-  const body = document.createElement('p');
-  body.className = 'routing-hub-info-empty-note';
-  body.textContent = note;
-  card.append(heading, body);
-  return card;
+  return fillWithEmptyArt(card, art, `${title}。${note}`);
 }
 
 // Count summary band atop the enemy / inventory lists.
@@ -6746,7 +6847,7 @@ function renderRoutingHubSelfInto(bodyEl) {
     throw new Error(`routing hub self info requires currentWorld.player_parameters, got ${JSON.stringify(parameters)}`);
   }
   const params = routingHubInfoSection('パラメーター');
-  params.body.append(...buildParameterGroups(parameters));
+  params.body.append(...buildParameterGroups(parameters, abilitySigilLabel));
   const equipment = routingHubInfoSection('装備');
   equipment.body.append(routingHubEquipmentLoadingCard());
   bodyEl.append(params.section, equipment.section);
@@ -6771,16 +6872,20 @@ async function loadRoutingHubBuddyInto(bodyEl) {
   const popup = document.querySelector('#routing-hub-info-popup');
   if (!popup || popup.dataset.category !== 'buddy') return;
   const subject = resolveBuddyPanelSubject(view);
+  // ui-prose-exception: 1790825320180-97982fce
+  const buddySection = routingHubInfoSection('バディー');
   if (!subject) {
-    bodyEl.replaceChildren(routingHubInfoEmptyCard('バディー記録なし', 'バディーはいません。'));
+    buddySection.body.append(routingHubInfoEmptyCard('バディー記録なし', 'バディーはいません。', 'person'));
+    bodyEl.replaceChildren(buddySection.section);
     return;
   }
-  const nodes = [routingHubBuddyHeroCard(subject)];
+  buddySection.body.append(routingHubBuddyHeroCard(subject));
+  const nodes = [buddySection.section];
   // The parameter section is roster-derived (同 design as self); a homunculus carries no roster parameters in the
   // endpoint, so it shows no parameter section rather than fabricating one.
   if (subject.kind === 'character') {
     const params = routingHubInfoSection('パラメーター');
-    params.body.append(...buildParameterGroups(subject.roster.parameters));
+    params.body.append(...buildParameterGroups(subject.roster.parameters, abilitySigilLabel));
     nodes.push(params.section);
   }
   const equipment = routingHubInfoSection('装備');
@@ -6856,15 +6961,18 @@ function routingHubInfoRosterCard(character) {
 
 function renderRoutingHubEnemiesInto(bodyEl) {
   const enemies = resolveInfoDrawerEnemies();
+  // ui-prose-exception: 1790825320180-97982fce
+  const enemySection = routingHubInfoSection('エネミー');
+  bodyEl.append(enemySection.section);
   if (!enemies.length) {
-    bodyEl.append(routingHubInfoEmptyCard('エネミー記録なし', '対立関係のキャラクターはいません。'));
+    enemySection.body.append(routingHubInfoEmptyCard('エネミー記録なし', '対立関係のキャラクターはいません。', 'person'));
     return;
   }
-  bodyEl.append(routingHubInfoSummary(`${enemies.length}件`, 'エネミー'));
+  enemySection.body.append(routingHubInfoSummary(`${enemies.length}件`, 'エネミー'));
   const list = document.createElement('div');
   list.className = 'routing-hub-info-roster-list';
   list.append(...enemies.map((enemy) => routingHubInfoRosterCard(enemy)));
-  bodyEl.append(list);
+  enemySection.body.append(list);
 }
 
 // Monotonic guard for the whole inventory drawer generation: each (re-)render of the inventory category bumps this
@@ -6924,7 +7032,7 @@ function renderRoutingHubInventoryLedgerInto(bodyEl, feedback = null) {
   // The 使う result stays visible above the ledger while the list below re-renders to the new quantities.
   if (feedback) bodyEl.append(routingHubInventoryFeedbackCard(feedback));
   if (items.length === 0) {
-    bodyEl.append(routingHubInfoEmptyCard('持ち物なし', '所持しているアイテムはありません。'));
+    bodyEl.append(routingHubInfoEmptyCard('持ち物なし', '所持しているアイテムはありません。', 'pouch'));
     return;
   }
   bodyEl.append(routingHubInfoSummary(`${items.length}種類`, '持ち物'));
@@ -7143,8 +7251,7 @@ async function handleRoutingHubGift(item) {
   if (!window.confirm(`「${item.name}」を${partnerName}に渡しますか？`)) return;
   conversationGiftInFlight = true;
   conversationRequestInFlight = true;
-  routingHubStage.setControlsDisabled(true);
-  routingHubStage.setResponding(true);
+  setRoutingHubControlsDisabled(true);
   routingHubStage.setStatus('');
   routingHubStage.closeInfo();
   try {
@@ -7161,8 +7268,7 @@ async function handleRoutingHubGift(item) {
   } finally {
     conversationGiftInFlight = false;
     conversationRequestInFlight = false;
-    routingHubStage.setControlsDisabled(false);
-    routingHubStage.setResponding(false);
+    setRoutingHubControlsDisabled(false);
   }
 }
 
@@ -7238,7 +7344,7 @@ async function loadRoutingHubInventoryEquipmentInto(sectionBody) {
 // shared 装備 detail popup), or a quiet titled empty state (an empty pool is not an error).
 function routingHubInventoryEquipmentList(unequipped) {
   if (unequipped.length === 0) {
-    return [routingHubInfoEmptyCard('未装備の装備品なし', '装備していない武器・護符はありません。')];
+    return [routingHubInfoEmptyCard('未装備の装備品なし', '装備していない武器・護符はありません。', 'gear')];
   }
   const nodes = [routingHubInfoSummary(`${unequipped.length}件`, '未装備の装備品')];
   const list = document.createElement('div');
@@ -7690,15 +7796,15 @@ function renderRoutingHubStarCradleView(view) {
   const garden = document.createElement('div');
   garden.className = 'routing-hub-star-cradle-garden';
 
-  const pots = starCradleSlotRow('鉢', view.pot_slots, view.pots, (record) => starCradlePlantSlotCard(record));
-  const creatures = starCradleSlotRow('生き物', view.creature_slots, view.creatures, (record) => starCradleCreatureSlotCard(record));
+  const pots = starCradleSlotRow('鉢', 'pot', view.pot_slots, view.pots, (record) => starCradlePlantSlotCard(record));
+  const creatures = starCradleSlotRow('生き物', 'nest', view.creature_slots, view.creatures, (record) => starCradleCreatureSlotCard(record));
   garden.append(pots, creatures);
 
   body.replaceChildren(garden, starCradlePlantSection(view), starCradleCagedSection(view));
 }
 
-// One garden row: `total` slots labeled, each filled by its slot_index record or shown as an empty slot.
-function starCradleSlotRow(labelText, total, records, cardFor) {
+// One garden row: `total` slots labeled, each filled by its slot_index record or shown as the row's empty picture.
+function starCradleSlotRow(labelText, emptyArt, total, records, cardFor) {
   const section = document.createElement('section');
   section.className = 'routing-hub-star-cradle-row';
   const label = document.createElement('h4');
@@ -7709,20 +7815,17 @@ function starCradleSlotRow(labelText, total, records, cardFor) {
   const byIndex = new Map(records.map((record) => [record.slot_index, record]));
   for (let index = 0; index < total; index += 1) {
     const record = byIndex.get(index);
-    track.append(record ? cardFor(record) : starCradleEmptySlotCard());
+    track.append(record ? cardFor(record) : starCradleEmptySlotCard(emptyArt));
   }
   section.append(label, track);
   return section;
 }
 
-function starCradleEmptySlotCard() {
+// An empty slot: the dotted pot / nest of its row, read out as 空き.
+function starCradleEmptySlotCard(art) {
   const card = document.createElement('div');
   card.className = 'routing-hub-star-cradle-slot routing-hub-star-cradle-slot-empty';
-  const note = document.createElement('span');
-  note.className = 'routing-hub-star-cradle-empty-note';
-  note.textContent = '空き';
-  card.append(note);
-  return card;
+  return fillWithEmptyArt(card, art, '空き');
 }
 
 // A sprite figure: the swaying plant / wandering creature art. The per-kind class drives the CSS animation;
@@ -7776,7 +7879,7 @@ function starCradlePlantSlotCard(view) {
   if (view.revealed) {
     if (view.golden) card.append(starCradleBadge('金色変異'));
     card.append(starCradleSlotNote(view.variety.flavor, 'routing-hub-star-cradle-flavor'));
-    card.append(starCradleActionButton('収穫する', () => starCradleHarvest(view.slot_index)));
+    card.append(starCradleActionButton('harvest', '収穫する', () => starCradleHarvest(view.slot_index)));
   }
   if (view.feedable) card.append(starCradleFeedPicker('plant', view));
   return card;
@@ -7800,7 +7903,7 @@ function starCradleCreatureSlotCard(view) {
     card.append(starCradleByproductAction(view));
     card.append(starCradleNameForm(view));
     // cageable is the contract flag for 籠に入れる; a full caged surface never blocks caging (it always adds).
-    card.append(starCradleActionButton('籠に入れる', () => starCradleCage(view.slot_index), { disabled: !view.cageable }));
+    card.append(starCradleActionButton('cage', '籠に入れる', () => starCradleCage(view.slot_index), { disabled: !view.cageable }));
   }
   if (view.feedable) card.append(starCradleFeedPicker('creature', view));
   return card;
@@ -7818,12 +7921,12 @@ function starCradleBadge(text) {
 function starCradleByproductAction(view) {
   const pending = view.byproduct_pending_weeks;
   if (pending > 0) {
-    return starCradleActionButton(`副産物を受け取る（${pending}週分）`, () => starCradleByproduct(view.slot_index));
+    return starCradleActionButton('byproduct', `副産物を受け取る（${pending}週分）`, () => starCradleByproduct(view.slot_index), { count: pending });
   }
   const wrap = document.createElement('div');
   wrap.className = 'routing-hub-star-cradle-action-wrap';
   wrap.append(
-    starCradleActionButton('副産物を受け取る', () => starCradleByproduct(view.slot_index), { disabled: true }),
+    starCradleActionButton('byproduct', '副産物を受け取る', () => starCradleByproduct(view.slot_index), { disabled: true }),
     starCradleSlotNote('今週分は受け取り済みです。', 'routing-hub-star-cradle-reason')
   );
   return wrap;
@@ -7838,10 +7941,9 @@ function starCradleNameForm(view) {
   input.type = 'text';
   input.className = 'routing-hub-star-cradle-name-input';
   input.maxLength = 48;
-  input.placeholder = '名前をつける';
   if (view.name) input.value = view.name;
   input.setAttribute('aria-label', 'この子の名前');
-  const button = starCradleActionButton('名付ける', () => starCradleName(view.slot_index, input.value));
+  const button = starCradleActionButton('name', '名付ける', () => starCradleName(view.slot_index, input.value));
   form.append(input, button);
   return form;
 }
@@ -7865,8 +7967,8 @@ function starCradleFeedPicker(kind, view) {
   const list = document.createElement('div');
   list.className = 'routing-hub-star-cradle-feed-list';
   for (const item of materials) {
-    const button = starCradleActionButton(`${item.name}（×${item.quantity.toLocaleString('ja-JP')}）`, () =>
-      starCradleFeed(kind, view.slot_index, item.item_id), { variant: 'chip' });
+    const button = starCradleFeedButton(`${item.name}（×${item.quantity.toLocaleString('ja-JP')}）`, () =>
+      starCradleFeed(kind, view.slot_index, item.item_id));
     list.append(button);
   }
   wrap.append(list);
@@ -7899,7 +8001,7 @@ function starCradlePlantSection(view) {
     const label = document.createElement('span');
     label.className = 'routing-hub-star-cradle-plant-label';
     label.textContent = `${item.name}（×${item.quantity.toLocaleString('ja-JP')}）`;
-    row.append(label, starCradleActionButton('植える', () => starCradlePlant(item.item_id)));
+    row.append(label, starCradleActionButton('plant', '植える', () => starCradlePlant(item.item_id)));
     list.append(row);
   }
   section.append(list);
@@ -7907,7 +8009,7 @@ function starCradlePlantSection(view) {
 }
 
 // The 籠入り (caged) list: each one-off caged creature with its variety / mutation / caged-week and a 放す
-// action (backend 409s a full garden near the action). An empty cage is an explicit note.
+// action (backend 409s a full garden near the action). An empty cage is the dotted empty cage, read out as its note.
 function starCradleCagedSection(view) {
   const section = document.createElement('section');
   section.className = 'routing-hub-star-cradle-caged-section';
@@ -7916,7 +8018,9 @@ function starCradleCagedSection(view) {
   title.textContent = '籠の中';
   section.append(title);
   if (view.caged.length === 0) {
-    section.append(starCradleSlotNote('籠に入れた子はいません。', 'routing-hub-star-cradle-reason'));
+    const empty = document.createElement('p');
+    empty.className = 'routing-hub-star-cradle-note routing-hub-star-cradle-reason';
+    section.append(fillWithEmptyArt(empty, 'cage', '籠に入れた子はいません。'));
     return section;
   }
   const list = document.createElement('div');
@@ -7932,24 +8036,41 @@ function starCradleCagedSection(view) {
     kind.className = 'routing-hub-star-cradle-caged-kind';
     kind.textContent = instance.mutation ? `${instance.variety.name}・${instance.mutation.name}` : instance.variety.name;
     label.append(name, kind);
-    row.append(label, starCradleActionButton('放す', () => starCradleRelease(instance.instance_id)));
+    row.append(label, starCradleActionButton('release', '放す', () => starCradleRelease(instance.instance_id)));
     list.append(row);
   }
   section.append(list);
   return section;
 }
 
-// A star cradle action button. A disabled button (contract-known-impossible action) fires nothing; an enabled
-// one runs its op through the single-flight runner.
-function starCradleActionButton(labelText, onClick, { disabled = false, variant = 'action' } = {}) {
+// A star cradle action button: the action's sigil, its words on aria-label; the claimable week count of the byproduct
+// stays a number beside the sigil. A disabled button (contract-known-impossible action) fires nothing; an enabled one
+// runs its op through the single-flight runner.
+function starCradleActionButton(sigil, name, onClick, { disabled = false, count = null } = {}) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = `routing-hub-star-cradle-button routing-hub-star-cradle-button-${variant}`;
-  button.textContent = labelText;
+  button.className = 'routing-hub-star-cradle-button routing-hub-star-cradle-button-action';
+  dressSigilButton(button, sigil, name);
+  if (count !== null) {
+    const countText = document.createElement('span');
+    countText.className = 'terrace-sigil-count';
+    countText.textContent = String(count);
+    button.append(countText);
+  }
   if (disabled) {
     button.disabled = true;
     return button;
   }
+  button.addEventListener('click', () => { onClick(); });
+  return button;
+}
+
+// A feed material choice: the material name and count as words (choosing it feeds one unit).
+function starCradleFeedButton(labelText, onClick) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'routing-hub-star-cradle-button routing-hub-star-cradle-button-chip';
+  button.textContent = labelText;
   button.addEventListener('click', () => { onClick(); });
   return button;
 }
@@ -8052,10 +8173,6 @@ function routingHubDiaryPickerEntries() {
 
 function renderRoutingHubDiaryInto(bodyEl) {
   diaryFetchToken += 1; // re-opening the category abandons any in-flight character fetch
-  const intro = document.createElement('p');
-  intro.className = 'routing-hub-info-diary-intro';
-  intro.textContent = 'キャラクターを選ぶと、その人の日記が読めます。';
-  bodyEl.append(intro);
   const list = document.createElement('div');
   list.className = 'routing-hub-info-roster-list';
   // ルミ is always prepended, so the picker is never empty (the empty-roster case is unreachable now).
@@ -8100,7 +8217,7 @@ async function loadRoutingHubDiaryForCharacter(bodyEl, character) {
   if (!popup || popup.dataset.category !== 'diary') return;
   bodyEl.replaceChildren(routingHubDiaryBackButton(bodyEl), routingHubDiaryHeader(character, entries.length));
   if (entries.length === 0) {
-    bodyEl.append(routingHubInfoEmptyCard('まだ日記がありません', `${character.display_name ?? character.character_id}との思い出は、まだ日記に綴られていません。`));
+    bodyEl.append(routingHubInfoEmptyCard('まだ日記がありません', `${character.display_name ?? character.character_id}との思い出は、まだ日記に綴られていません。`, 'diary'));
     return;
   }
   const journal = document.createElement('div');
@@ -8122,7 +8239,7 @@ function routingHubDiaryBackButton(bodyEl) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'routing-hub-info-diary-back';
-  button.textContent = '← ほかのキャラを選ぶ';
+  dressSigilButton(button, 'back', 'ほかのキャラを選ぶ');
   button.addEventListener('click', () => {
     bodyEl.replaceChildren();
     renderRoutingHubDiaryInto(bodyEl);
@@ -8142,10 +8259,14 @@ function routingHubDiaryHeader(character, count) {
   const title = document.createElement('strong');
   title.className = 'routing-hub-info-diary-title';
   title.textContent = `${character.display_name ?? character.character_id}の日記`;
-  const note = document.createElement('span');
-  note.className = 'routing-hub-info-diary-count';
-  note.textContent = count === 0 ? 'まだ記録がありません' : `${count}件の記録`;
-  body.append(title, note);
+  body.append(title);
+  // A journal with no entries says so with the empty picture below the header, so the header carries no count then.
+  if (count > 0) {
+    const note = document.createElement('span');
+    note.className = 'routing-hub-info-diary-count';
+    note.textContent = `${count}件の記録`;
+    body.append(note);
+  }
   header.append(face, body);
   return header;
 }
@@ -8162,16 +8283,197 @@ function routingHubDiaryEntry(entry) {
   return block;
 }
 
+// ── 関連する本 (library footnotes) — the footnote strip of the ハブ収蔵庫 re-read ─────────────────────────────
+// 本文 and its 脚注 are two SEPARATE requests: POST /api/library/read banks the fragment into the 収蔵庫 and
+// returns collection_entry_id, then POST /api/library/footnotes { entry_id } answers { entry_id, references }.
+// The body is already banked when the footnote call starts, so a slow or failed footnote never costs the reading:
+// it is a LOCAL state at the end of the body with an explicit 再試行 (no auto retry, and an HTTP error / malformed
+// payload is never read as an empty list — parseLibraryFootnotes refuses it, so 0件 and 失敗 stay distinguishable).
+// An LM-config failure here is handled as this local failure too — routing to the settings screen would throw away
+// the body the player already has.
+//
+// The three states (pending / ready / failed) are drawn by renderLibraryFootnotesInto into the ハブ収蔵庫 drawer (the
+// 大書庫 見開き draws the same states as ink footnotes under the end of the body — libraryScreen.js — with the same wording). The ink and
+// rules come from the host's own token layer through CSS scope (#routing-hub-info-popup-body), so this renderer pins
+// no color.
+//
+// Staleness: every opened book takes the next generation token. A resolved / failed call commits only while its
+// captured token is still current, its host is still in the document, AND its host view is still on screen —
+// closing the book, going back to the shelf, picking another book, closing the drawer or switching category all
+// abandon it, so an old answer (or an old failure) can never land on a newly opened book.
+let libraryFootnoteGeneration = 0;
+
+function nextLibraryFootnoteGeneration() {
+  libraryFootnoteGeneration += 1;
+  return libraryFootnoteGeneration;
+}
+
+// The strip lives at the very end of the body it belongs to (inside the 大書庫 page's own scroller / right after
+// the saved 収蔵 body), never as a separately stacked card.
+function buildLibraryFootnotesHost() {
+  const host = document.createElement('section');
+  host.className = 'library-footnotes';
+  return host;
+}
+
+// The 関連する本 heading. It titles the strip in EVERY state it draws — the resolved list and the failure alike —
+// so a reader who has the strip open never has to guess what the line under the rule is about.
+function libraryFootnotesHeading() {
+  const heading = document.createElement('p');
+  heading.className = 'library-footnotes-heading';
+  heading.textContent = '関連する本';
+  return heading;
+}
+
+function libraryFootnotesStatusLine(text) {
+  const line = document.createElement('p');
+  line.className = 'library-footnotes-status';
+  line.setAttribute('role', 'status');
+  line.setAttribute('aria-live', 'polite');
+  const label = document.createElement('span');
+  label.className = 'library-footnotes-status-label';
+  label.textContent = text;
+  line.append(label);
+  return line;
+}
+
+// One 関連する本 row. A readable reference is an underlined title that reads it; an unreadable (禁書) one is the
+// title plus 今は開けない — NOT a link, and carrying nothing else the backend refused to send (no gate value, no
+// 骨子, no 分類).
+function libraryFootnoteItem(reference, onOpen) {
+  const item = document.createElement('li');
+  item.className = 'library-footnotes-item';
+  item.dataset.readable = String(reference.readable);
+  if (!reference.readable) {
+    const unreadable = document.createElement('span');
+    unreadable.className = 'library-footnotes-unreadable';
+    const title = document.createElement('span');
+    title.className = 'library-footnotes-unreadable-title';
+    title.textContent = reference.title;
+    const note = document.createElement('span');
+    note.className = 'library-footnotes-unreadable-note';
+    note.textContent = '今は開けない';
+    unreadable.append(title, note);
+    item.append(unreadable);
+    return item;
+  }
+  const link = document.createElement('button');
+  link.type = 'button';
+  link.className = 'library-footnotes-link';
+  link.textContent = reference.title;
+  link.addEventListener('click', () => onOpen(reference));
+  item.append(link);
+  return item;
+}
+
+// Draw one footnote state into a host. Both drawn states open with the same 関連する本 heading under the rule:
+// ready is 見出し → 題の行, failed is 見出し → 読み込めませんでした + 再試行. 'ready' with zero references removes
+// the host entirely — a 中核 book whose 関連宣言 is empty gets NO 関連する本 box, not an empty one (and a pending
+// wait stays the single line it is). An unknown state is a wiring bug → throw.
+function renderLibraryFootnotesInto(host, state) {
+  if (!host) throw new Error('library footnotes host is missing (broken wiring)');
+  const status = state?.status;
+  if (status === 'pending') {
+    host.dataset.state = 'pending';
+    host.replaceChildren(libraryFootnotesStatusLine('関連する本を探しています…'));
+    return;
+  }
+  if (status === 'failed') {
+    host.dataset.state = 'failed';
+    const line = libraryFootnotesStatusLine('関連する本を読み込めませんでした。');
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'library-footnotes-retry';
+    retry.textContent = '再試行';
+    retry.addEventListener('click', state.onRetry);
+    line.append(retry);
+    host.replaceChildren(libraryFootnotesHeading(), line);
+    return;
+  }
+  if (status !== 'ready') {
+    throw new Error(`library footnotes state must be pending / ready / failed, got ${JSON.stringify(status)}`);
+  }
+  if (state.references.length === 0) {
+    host.remove();
+    return;
+  }
+  host.dataset.state = 'ready';
+  const list = document.createElement('ul');
+  list.className = 'library-footnotes-list';
+  for (const reference of state.references) list.append(libraryFootnoteItem(reference, state.onOpen));
+  host.replaceChildren(libraryFootnotesHeading(), list);
+}
+
+// The stale guard every async footnote commit passes: same generation, host still in the document, and the host
+// view still on screen (context.isCurrent).
+function libraryFootnoteContextIsCurrent(host, context) {
+  return context.generation === libraryFootnoteGeneration && host.isConnected && context.isCurrent();
+}
+
+function failLibraryFootnotes(host, context, error) {
+  // The reason is recorded (never a silent catch) and the failure stays local: body, 本を閉じる / ← 棚に戻る and
+  // the rest of the view are untouched, and 再試行 re-sends the SAME entry_id once.
+  console.error(error);
+  if (!libraryFootnoteContextIsCurrent(host, context)) return;
+  renderLibraryFootnotesInto(host, {
+    status: 'failed',
+    onRetry: () => { loadLibraryFootnotesInto(host, context).catch(reportError); }
+  });
+}
+
+async function loadLibraryFootnotesInto(host, context) {
+  renderLibraryFootnotesInto(host, { status: 'pending' });
+  let payload;
+  try {
+    payload = await postJson(LIBRARY_FOOTNOTES_REQUEST_PATH, { entry_id: context.entryId });
+  } catch (error) {
+    failLibraryFootnotes(host, context, error);
+    return;
+  }
+  if (!libraryFootnoteContextIsCurrent(host, context)) return;
+  let references;
+  try {
+    references = parseLibraryFootnotes(payload, { entryId: context.entryId, layer: context.layer });
+  } catch (error) {
+    failLibraryFootnotes(host, context, error);
+    return;
+  }
+  renderLibraryFootnotesInto(host, { status: 'ready', references, onOpen: context.onOpen });
+}
+
 // ── 収蔵庫 (library collection) — the routing hub's 7th info-drawer category, hub-only ─────────────────────────
 // The 大書庫 (library) destination commits every read fragment to the per-slot 収蔵庫 server-side; this drawer is
 // the ONLY place it is surfaced (うゆりすさん確定: hub-only — no 書庫画面-internal view, no other-screen 導線). It
 // follows the diary async-category grammar: the sync renderer shows a loading card and kicks off the async loader
-// (GET /api/library/collection, LM-free), which fills the 自分の書斎棚 with small spines IN RECEIVED ORDER (no
-// client re-sort — backend owns order). Picking a spine re-reads the SAVED text as-is (no re-fetch / re-generation
-// — the entry carries its own point-in-time fragment); ← 棚に戻る re-renders the shelf from the same in-memory
-// entries. An absent / empty collection is a legitimate initial state → a quiet empty card, not an error; a fetch
-// failure / malformed response surfaces through reportError (no silent swallow). The read/parse contract lives in
-// the headless-tested libraryCollectionViewClient.js.
+// (GET /api/library/collection, LM-free), which fills the 自分の書斎棚 with small spines — ordered by the chosen
+// 並び替え軸, a display-only choice that writes nothing to storage. Picking a spine re-reads the SAVED text as-is
+// (no read call, no re-generation — the entry carries its own point-in-time fragment) and fetches only its 脚注;
+// ← 棚に戻る re-renders the shelf from the last server answer. お気に入り and 処分 are explicit mutations whose
+// RESPONSE entries are the authority (never a locally guessed toggle), and 処分 goes through an in-drawer
+// confirmation. A 関連する本 move reads inside the drawer: the hub screen never changes and the drawer stays open.
+// An absent / empty collection is a legitimate initial state → a quiet empty card, not an error; a fetch failure /
+// malformed response surfaces through reportError (no silent swallow). The read/parse/sort contract lives in the
+// headless-tested libraryCollectionViewClient.js.
+const LIBRARY_COLLECTION_SORT_LABELS = Object.freeze({
+  read_week: '読んだ週',
+  title: '題',
+  category: '分類',
+  favorite: 'お気に入り'
+});
+
+// 並び替え is display state for the page session: the chosen 軸 survives ← 棚に戻る and re-opening the drawer, and
+// is never persisted. Its initial value is the closed set's first key (読んだ週, newest first).
+let libraryCollectionSortKey = LIBRARY_COLLECTION_SORT_KEYS[0];
+
+// The drawer's live view: the entries the server last returned, the entry currently open (null on the shelf), and
+// the body node they are drawn into. Every mutation answer replaces the entries, so 棚 and 開いている本 always show
+// what the server last said.
+let routingHubLibraryView = null;
+
+// Single-flight guard shared by every 収蔵庫 action that talks to the server (お気に入り / 処分 / 関連本への移動),
+// so a double press — or two different actions raced together — never issues a second POST.
+let libraryCollectionActionInFlight = false;
+
 async function fetchLibraryCollection() {
   const response = await fetch(LIBRARY_COLLECTION_REQUEST_PATH);
   if (!response.ok) {
@@ -8184,6 +8486,9 @@ async function fetchLibraryCollection() {
 // then the async loader fills the shelf. Bumping the token abandons any in-flight fetch on re-open (diary文法).
 function renderRoutingHubLibraryCollectionInto(bodyEl) {
   const token = (libraryCollectionFetchToken += 1);
+  nextLibraryFootnoteGeneration();
+  closeRoutingHubLibraryDisposeConfirm();
+  routingHubLibraryView = null;
   bodyEl.replaceChildren(routingHubLibraryLoadingCard());
   loadRoutingHubLibraryCollection(bodyEl, token).catch(reportError);
 }
@@ -8191,62 +8496,125 @@ function renderRoutingHubLibraryCollectionInto(bodyEl) {
 async function loadRoutingHubLibraryCollection(bodyEl, token) {
   const entries = await fetchLibraryCollection();
   if (token !== libraryCollectionFetchToken) return;
-  const popup = document.querySelector('#routing-hub-info-popup');
-  if (!popup || popup.dataset.category !== 'library') return;
+  if (!routingHubLibraryDrawerIsOpen()) return;
   renderRoutingHubLibraryShelf(bodyEl, entries);
 }
 
-// The 自分の書斎棚: entries as small spines on a shelf, IN RECEIVED ORDER. Empty is a legitimate initial state.
+// The drawer is still the live 収蔵庫 view: open, on the library category, and its body still in the document.
+function routingHubLibraryDrawerIsOpen() {
+  const popup = document.querySelector('#routing-hub-info-popup');
+  return Boolean(popup) && !popup.hidden && popup.dataset.category === 'library';
+}
+
+function routingHubLibraryViewIsLive() {
+  return routingHubLibraryDrawerIsOpen() && Boolean(routingHubLibraryView) && routingHubLibraryView.bodyEl.isConnected;
+}
+
+// The 自分の書斎棚: entries as small spines on a shelf, in the chosen 並び替え order. Empty is a legitimate initial
+// state — and carries no 並び替え row, since there is nothing to order.
 function renderRoutingHubLibraryShelf(bodyEl, entries) {
+  nextLibraryFootnoteGeneration();
+  routingHubLibraryView = { bodyEl, entries, entry: null };
   bodyEl.replaceChildren();
-  const intro = document.createElement('p');
-  intro.className = 'routing-hub-info-library-intro';
-  intro.textContent = '読んだ本の写しが、この書斎棚に収蔵されています。背表紙を選ぶと読み返せます。';
-  bodyEl.append(intro);
   if (entries.length === 0) {
-    bodyEl.append(routingHubInfoEmptyCard('まだ何も収蔵されていません', '大書庫で本を読むと、その写しがここへ並びます。'));
+    bodyEl.append(routingHubInfoEmptyCard('まだ何も収蔵されていません', '大書庫で本を読むと、その写しがここへ並びます。', 'shelf'));
     return;
   }
+  bodyEl.append(routingHubLibrarySortRow());
   const shelf = document.createElement('div');
   shelf.className = 'routing-hub-info-library-shelf';
-  for (const entry of entries) {
-    shelf.append(routingHubLibrarySpineButton(bodyEl, entry, entries));
+  for (const entry of sortLibraryCollectionEntries(entries, libraryCollectionSortKey)) {
+    shelf.append(routingHubLibrarySpineButton(entry));
   }
   bodyEl.append(shelf);
 }
 
+// 並び替え: the closed 4軸 select above the shelf. Choosing an 軸 only re-draws the shelf — the
+// received entries are untouched and nothing is written to storage. A value outside the closed set is a wiring
+// bug → throw before anything is re-rendered.
+function routingHubLibrarySortRow() {
+  const row = document.createElement('div');
+  row.className = 'routing-hub-info-library-sort';
+  const label = document.createElement('label');
+  label.className = 'routing-hub-info-library-sort-label';
+  label.setAttribute('for', 'routing-hub-info-library-sort-select');
+  label.textContent = '並び替え';
+  const select = document.createElement('select');
+  select.className = 'routing-hub-info-library-sort-select';
+  select.id = 'routing-hub-info-library-sort-select';
+  for (const key of LIBRARY_COLLECTION_SORT_KEYS) {
+    const option = document.createElement('option');
+    option.value = key;
+    option.textContent = LIBRARY_COLLECTION_SORT_LABELS[key];
+    select.append(option);
+  }
+  select.value = libraryCollectionSortKey;
+  select.addEventListener('change', () => {
+    const sortKey = select.value;
+    if (!LIBRARY_COLLECTION_SORT_KEYS.includes(sortKey)) {
+      throw new Error(`library collection sort select produced an unknown key ${JSON.stringify(sortKey)}`);
+    }
+    libraryCollectionSortKey = sortKey;
+    renderRoutingHubLibraryShelf(routingHubLibraryView.bodyEl, routingHubLibraryView.entries);
+  });
+  row.append(label, select);
+  return row;
+}
+
 // One 背表紙 (book spine): the layer picks its 装丁 tone (data-layer — core=革装金箔系 / periphery=布装彩色系 /
-// generated=無銘写本系, all routing-token accents). The title is set upright vertically (省略 on overflow). Clicking
-// re-reads the saved fragment.
-function routingHubLibrarySpineButton(bodyEl, entry, entries) {
+// generated=無銘写本系, all routing-token accents) and the top carries the お気に入り ★ — a non-favorite spine keeps
+// the same line, unmarked, so the shelf stays even. Clicking re-reads the saved fragment.
+function routingHubLibrarySpineButton(entry) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'routing-hub-info-library-spine';
   button.dataset.layer = entry.layer;
+  const favorite = document.createElement('span');
+  favorite.className = 'routing-hub-info-library-spine-favorite';
+  favorite.dataset.on = String(entry.favorite);
+  favorite.textContent = '★';
   const title = document.createElement('span');
   title.className = 'routing-hub-info-library-spine-title';
   title.textContent = entry.title;
-  button.append(title);
-  button.addEventListener('click', () => showRoutingHubLibraryEntry(bodyEl, entry, entries));
+  button.append(favorite, title);
+  button.addEventListener('click', () => showRoutingHubLibraryEntry(entry));
   return button;
 }
 
-// Re-reading a collected book shows the SAVED text as-is — no re-fetch, no re-generation (the entry carries its
-// own point-in-time fragment). ← 棚に戻る re-renders the shelf from the same in-memory entries (no re-fetch).
-function showRoutingHubLibraryEntry(bodyEl, entry, entries) {
-  bodyEl.replaceChildren(routingHubLibraryBackButton(bodyEl, entries), routingHubLibraryEntryHeader(entry));
+// Re-reading a collected book shows the SAVED text as-is — no read call, no re-generation (the entry carries its
+// own point-in-time fragment); only its 脚注 are fetched. ← 棚に戻る re-renders the shelf from the entries the
+// server last returned, keeping the chosen 並び替え.
+function showRoutingHubLibraryEntry(entry) {
+  const bodyEl = routingHubLibraryView.bodyEl;
+  nextLibraryFootnoteGeneration();
+  routingHubLibraryView = { bodyEl, entries: routingHubLibraryView.entries, entry };
+  bodyEl.replaceChildren(
+    routingHubLibraryBackButton(),
+    routingHubLibraryEntryHeader(entry),
+    routingHubLibraryEntryActions(entry),
+    routingHubLibraryErrorLine()
+  );
   const text = document.createElement('p');
   text.className = 'routing-hub-info-library-entry-text';
   text.textContent = entry.text;
   bodyEl.append(text);
+  const host = buildLibraryFootnotesHost();
+  bodyEl.append(host);
+  loadLibraryFootnotesInto(host, {
+    generation: libraryFootnoteGeneration,
+    entryId: entry.entry_id,
+    layer: entry.layer,
+    isCurrent: routingHubLibraryDrawerIsOpen,
+    onOpen: (reference) => followRoutingHubLibraryFootnote(reference).catch(reportError)
+  }).catch(reportError);
 }
 
-function routingHubLibraryBackButton(bodyEl, entries) {
+function routingHubLibraryBackButton() {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'routing-hub-info-library-back';
-  button.textContent = '← 棚に戻る';
-  button.addEventListener('click', () => renderRoutingHubLibraryShelf(bodyEl, entries));
+  dressSigilButton(button, 'back', '棚に戻る');
+  button.addEventListener('click', () => renderRoutingHubLibraryShelf(routingHubLibraryView.bodyEl, routingHubLibraryView.entries));
   return button;
 }
 
@@ -8262,6 +8630,225 @@ function routingHubLibraryEntryHeader(entry) {
   meta.textContent = `${entry.category}・第${conversationStageWeek(entry.read_week)}週に読んだ`;
   header.append(title, meta);
   return header;
+}
+
+// お気に入り・処分 の1行: between the 題/分類/週 header and the saved body.
+function routingHubLibraryEntryActions(entry) {
+  const row = document.createElement('div');
+  row.className = 'routing-hub-info-library-actions';
+  const favorite = document.createElement('button');
+  favorite.type = 'button';
+  favorite.className = 'routing-hub-info-library-favorite';
+  favorite.dataset.on = String(entry.favorite);
+  favorite.textContent = `${entry.favorite ? '★' : '☆'} お気に入り`;
+  favorite.addEventListener('click', () => toggleRoutingHubLibraryFavorite(entry).catch(reportError));
+  const dispose = document.createElement('button');
+  dispose.type = 'button';
+  dispose.className = 'routing-hub-info-library-dispose';
+  dispose.textContent = '処分';
+  dispose.addEventListener('click', () => openRoutingHubLibraryDisposeConfirm(entry));
+  row.append(favorite, dispose);
+  return row;
+}
+
+// The drawer's own error line: a failed お気に入り / 処分 / 関連本への移動 says so HERE, leaving the saved body and
+// the shelf exactly as they were (hidden — and so absent from layout — until something fails).
+function routingHubLibraryErrorLine() {
+  const line = document.createElement('p');
+  line.className = 'routing-hub-info-library-error';
+  line.setAttribute('role', 'status');
+  line.setAttribute('aria-live', 'polite');
+  line.hidden = true;
+  return line;
+}
+
+function setRoutingHubLibraryError(message) {
+  const line = routingHubLibraryView?.bodyEl.querySelector('.routing-hub-info-library-error');
+  if (!line) return;
+  const text = String(message ?? '').trim();
+  line.hidden = text === '';
+  line.textContent = text;
+}
+
+// お気に入り: POST the INVERTED value and adopt the returned entries as the authority — the button's own mark is
+// never flipped before the server answers, and a failure changes nothing but the error line.
+async function toggleRoutingHubLibraryFavorite(entry) {
+  if (libraryCollectionActionInFlight) {
+    showProcessingToast();
+    return;
+  }
+  libraryCollectionActionInFlight = true;
+  try {
+    setRoutingHubLibraryError('');
+    const payload = await postJson(LIBRARY_COLLECTION_FAVORITE_PATH, { entry_id: entry.entry_id, favorite: !entry.favorite });
+    const entries = parseLibraryCollectionEntries(payload);
+    if (!routingHubLibraryViewIsLive()) return;
+    const next = requireLibraryCollectionEntry(entries, entry.entry_id);
+    routingHubLibraryView = { bodyEl: routingHubLibraryView.bodyEl, entries, entry: next };
+    // Only the actions row is redrawn: the saved body and its already-fetched 脚注 stay as they are (a shelf mark
+    // is not a re-reading, so it must not cost another footnote generation).
+    const actions = routingHubLibraryView.bodyEl.querySelector('.routing-hub-info-library-actions');
+    if (actions) actions.replaceWith(routingHubLibraryEntryActions(next));
+  } catch (error) {
+    console.error(error);
+    if (!routingHubLibraryViewIsLive()) return;
+    setRoutingHubLibraryError(`お気に入りを変更できませんでした。${errorDisplayMessage(error)}`);
+  } finally {
+    libraryCollectionActionInFlight = false;
+  }
+}
+
+// The 処分 confirmation: an overlay INSIDE the drawer card (the hub screen never changes). It names the book, asks
+// once, and offers やめる / 処分する in that order. The initial selection is やめる and is shown through :focus —
+// not :focus-visible — so it is visible whether the confirmation was opened by mouse or by keyboard. Tab /
+// Shift+Tab move the selection between the two buttons and nothing else, so focus stays inside the confirmation.
+function openRoutingHubLibraryDisposeConfirm(entry) {
+  const card = document.querySelector('.routing-hub-info-popup-card');
+  if (!card) throw new Error('routing hub info drawer card (.routing-hub-info-popup-card) is missing (broken markup wiring)');
+  if (card.querySelector('.routing-hub-info-library-confirm')) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'routing-hub-info-library-confirm';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  const confirmCard = document.createElement('div');
+  confirmCard.className = 'routing-hub-info-library-confirm-card';
+  const title = document.createElement('p');
+  title.className = 'routing-hub-info-library-confirm-title';
+  title.textContent = entry.title;
+  const question = document.createElement('p');
+  question.className = 'routing-hub-info-library-confirm-question';
+  question.textContent = 'この本を棚から処分しますか？';
+  const row = document.createElement('div');
+  row.className = 'routing-hub-info-library-confirm-row';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'routing-hub-info-library-confirm-cancel';
+  dressSigilButton(cancel, 'keep', 'やめる');
+  cancel.addEventListener('click', () => closeRoutingHubLibraryDisposeConfirm());
+  const accept = document.createElement('button');
+  accept.type = 'button';
+  accept.className = 'routing-hub-info-library-confirm-accept';
+  dressSigilButton(accept, 'dispose', '処分する');
+  accept.addEventListener('click', () => disposeRoutingHubLibraryEntry(entry).catch(reportError));
+  overlay.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeRoutingHubLibraryDisposeConfirm();
+      return;
+    }
+    if (event.key !== 'Tab') return;
+    event.preventDefault();
+    (document.activeElement === cancel ? accept : cancel).focus();
+  });
+  row.append(cancel, accept);
+  confirmCard.append(title, question, row);
+  overlay.append(confirmCard);
+  card.append(overlay);
+  cancel.focus();
+}
+
+// やめる / Escape: the confirmation closes and NOTHING was sent — the book is still on the shelf and still open.
+function closeRoutingHubLibraryDisposeConfirm() {
+  const overlay = document.querySelector('.routing-hub-info-library-confirm');
+  if (overlay) overlay.remove();
+}
+
+// 処分する: the only path that sends POST /api/library/collection/dispose, once. The returned entries are the
+// authority for the shelf that comes back (an お気に入り book disposes through this same confirmation); a failure
+// keeps the saved view and says so.
+async function disposeRoutingHubLibraryEntry(entry) {
+  if (libraryCollectionActionInFlight) {
+    showProcessingToast();
+    return;
+  }
+  libraryCollectionActionInFlight = true;
+  try {
+    const payload = await postJson(LIBRARY_COLLECTION_DISPOSE_PATH, { entry_id: entry.entry_id });
+    const entries = parseLibraryCollectionEntries(payload);
+    if (!routingHubLibraryViewIsLive()) return;
+    closeRoutingHubLibraryDisposeConfirm();
+    renderRoutingHubLibraryShelf(routingHubLibraryView.bodyEl, entries);
+  } catch (error) {
+    console.error(error);
+    if (!routingHubLibraryViewIsLive()) return;
+    closeRoutingHubLibraryDisposeConfirm();
+    setRoutingHubLibraryError(`本を処分できませんでした。${errorDisplayMessage(error)}`);
+  } finally {
+    libraryCollectionActionInFlight = false;
+  }
+}
+
+// A 関連する本 move from the 収蔵 re-read: the real read API runs, but the wait is covered INSIDE the drawer card
+// and the hub screen never changes. On success the saved copy is the authority — the shelf is re-fetched and the
+// entry the read just banked is looked up by its collection_entry_id (an id the refreshed shelf does not carry is
+// broken state → throw; read_week / favorite are never guessed). A failed read leaves the open book untouched; a
+// failed refresh says the reading WAS banked but the shelf could not be updated, and never re-reads the book.
+async function followRoutingHubLibraryFootnote(reference) {
+  if (libraryCollectionActionInFlight) {
+    showProcessingToast();
+    return;
+  }
+  const target = libraryFootnoteReadTarget(reference);
+  libraryCollectionActionInFlight = true;
+  setRoutingHubLibraryError('');
+  setRoutingHubLibraryBusy(true, '司書が写しを綴じている…');
+  try {
+    let reading;
+    try {
+      reading = validateLibraryReadResult(await postJson('/api/library/read', target));
+    } catch (error) {
+      console.error(error);
+      if (routingHubLibraryViewIsLive()) setRoutingHubLibraryError(`関連する本を開けませんでした。${errorDisplayMessage(error)}`);
+      return;
+    }
+    try {
+      const entries = await fetchLibraryCollection();
+      if (!routingHubLibraryViewIsLive()) return;
+      routingHubLibraryView = { bodyEl: routingHubLibraryView.bodyEl, entries, entry: null };
+      showRoutingHubLibraryEntry(requireLibraryCollectionEntry(entries, reading.collectionEntryId));
+    } catch (error) {
+      console.error(error);
+      if (routingHubLibraryViewIsLive()) setRoutingHubLibraryError(`本は読み終えて収蔵しましたが、書斎棚を読み直せませんでした。${errorDisplayMessage(error)}`);
+    }
+  } finally {
+    libraryCollectionActionInFlight = false;
+    setRoutingHubLibraryBusy(false);
+  }
+}
+
+// The entry a mutation / refresh answer must contain. A missing id is broken state — never a fabricated entry.
+function requireLibraryCollectionEntry(entries, entryId) {
+  const entry = entries.find((candidate) => candidate.entry_id === entryId);
+  if (!entry) throw new Error(`library collection has no entry ${JSON.stringify(entryId)} (broken 収蔵 state)`);
+  return entry;
+}
+
+// The in-drawer wait cover for a 関連する本 move: the same 3-dot live-region grammar as the 大書庫 board busy, in
+// the routing token layer, sized to the drawer card so the hub behind it stays visible and unchanged.
+function setRoutingHubLibraryBusy(active, label = '') {
+  const card = document.querySelector('.routing-hub-info-popup-card');
+  if (!card) throw new Error('routing hub info drawer card (.routing-hub-info-popup-card) is missing (broken markup wiring)');
+  const existing = card.querySelector('.routing-hub-info-library-busy');
+  if (existing) existing.remove();
+  if (!active) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'routing-hub-info-library-busy';
+  overlay.setAttribute('role', 'status');
+  overlay.setAttribute('aria-live', 'polite');
+  const orbits = document.createElement('span');
+  orbits.className = 'routing-hub-info-library-busy-orbits';
+  orbits.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 3; i += 1) {
+    const dot = document.createElement('span');
+    dot.className = 'routing-hub-info-library-busy-dot';
+    orbits.append(dot);
+  }
+  const labelEl = document.createElement('span');
+  labelEl.className = 'routing-hub-info-library-busy-label';
+  labelEl.textContent = label;
+  overlay.append(orbits, labelEl);
+  card.append(overlay);
 }
 
 function routingHubLibraryLoadingCard() {
@@ -8639,12 +9226,14 @@ async function handleConversationDayGift(item) {
   conversationDayStage.setResponding(true);
   conversationDayStage.setStatus('');
   conversationDayStage.closeInfo();
+  let reactionRevealed = false;
   try {
     const { result, state } = await postJson('/api/conversation/gift', { item_id: item.item_id });
     currentRuntimeState = state ?? currentRuntimeState;
     currentInventory = result.inventory;
     giftGivenConversationId = currentDaytimeConversationId();
     await revealConversationDayGift(result);
+    reactionRevealed = true;
     showEconomyMessage(conversationGiftEffectMessage(result));
     await refresh().catch(reportError);
   } catch (error) {
@@ -8655,6 +9244,7 @@ async function handleConversationDayGift(item) {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
     conversationDayStage.setResponding(false);
+    if (reactionRevealed) focusConversationDayInputIfContinuing();
   }
 }
 
@@ -9406,7 +9996,12 @@ async function runConversationDayTurnStream({ playerInput, provider }) {
       finalResult = data;
       notifyAcademyLoadingProgress();
     }
-    if (event === 'error') throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data?.error ?? '' });
+    // PROMPT_PREWARM_FAILED arrives after the turn was written: adopt the written turn like a result (the failure
+    // rides on it for the screen's banner). Every other error fails the turn.
+    if (event === 'error') {
+      if (data?.error_code !== PROMPT_PREWARM_FAILED_ERROR_CODE) throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data?.error ?? '' });
+      finalResult = promptPrewarmFailedTurnResult({ url: endpoint, data });
+    }
   }
 
   try {
@@ -9464,16 +10059,6 @@ async function runConversationDayTurnStream({ playerInput, provider }) {
     conversationDayStage.surface.commitState(finalResult);
     conversationDayStage.renderStream(conversationDayStage.surface.getHistory());
     return finalResult;
-  }
-  // 舞台移動を挟んだターン: the reply + movement cutoff already streamed as assistant_complete 完成吹き出し and are
-  // on the reveal queue, but the backend holds the new-stage opening line back — it never streams, arriving only
-  // as the last displayable message of finalResult.conversation (system narration/guidance are dropped by
-  // mapMessages, so the opening 発話 is `.at(-1)`, mirroring the academy path's slice(0, -1) hold-back). Put that
-  // held-back opening (発話・地の文の全セグメント) onto the SAME queue so it pops in one 吹き出し単位 at a time on the
-  // shared cadence; without this the commitState adoption below paints it all at once, いつの間にか / 無アニメで.
-  if (finalResult.stage_move) {
-    const finalMessages = conversationDayStage.surface.mapMessages(finalResult.conversation);
-    reveal.enqueue(displayMessages([finalMessages.at(-1)]));
   }
   // Let every queued 吹き出し finish revealing on the shared cadence before adopting the authoritative state.
   await reveal.drain();
@@ -9592,6 +10177,45 @@ async function completeStudyCircleFromTurnResult(result) {
   return true;
 }
 
+// The daytime screen's modal overlays: the info drawer, the stage-detail popup, and the three partner popups
+// (roster character / うちの子 / 案内人). While any is open the player is reading it, so the turn-completion refocus
+// must not pull focus behind it. (The gift confirmation is a blocking window.confirm, so it can never be open
+// while the refocus runs.)
+const CONVERSATION_DAY_OVERLAY_SELECTORS = Object.freeze([
+  '#conversation-day-info-popup',
+  '#conversation-day-stage-popup',
+  '#conversation-day-character-popup',
+  '#conversation-day-homunculus-popup',
+  '#conversation-day-graduation-popup'
+]);
+
+function isConversationDayOverlayOpen() {
+  return CONVERSATION_DAY_OVERLAY_SELECTORS.some((selector) => {
+    const overlay = document.querySelector(selector);
+    if (!overlay) throw new Error(`conversation day overlay ${selector} is missing (broken markup wiring)`);
+    return !overlay.hidden;
+  });
+}
+
+// Restore keyboard focus to `#conversation-day-input` whenever the partner has finished speaking and the player is
+// expected to type the next utterance: after a daytime turn (the reply has revealed to its last 吹き出し), after the
+// opening (each daytime start's finally, once the first reply has revealed), and after a gift's reaction has
+// revealed (handleConversationDayGift, success only). The same gate as the routing hub's
+// focusRoutingHubInputIfContinuing, all required, no silent fallback: the daytime screen is active, a conversation
+// is live (the runtime state carries the interaction partner), the input is present and not disabled — plus no
+// daytime overlay is open. Every terminal exit (auto-end, errand / study circle completion,
+// settings redirect) leaves the daytime screen, so this is a no-op there and never steals focus from the
+// destination screen. preventScroll keeps a scrolled-up read position in place.
+function focusConversationDayInputIfContinuing() {
+  if (!screens['conversation-day'].classList.contains('active')) return;
+  const partnerId = currentRuntimeState?.current_interaction_character_id;
+  if (typeof partnerId !== 'string' || partnerId === '') return;
+  if (isConversationDayOverlayOpen()) return;
+  const input = document.querySelector('#conversation-day-input');
+  if (!input || input.disabled) return;
+  input.focus({ preventScroll: true });
+}
+
 // Send a daytime turn. Snapshots history + input before the turn so a transport / API / stream failure
 // restores both instead of stranding an unsent utterance with a cleared input. The player's utterance is not
 // rendered optimistically — the reveal queue reveals it as the first 吹き出し単位, the same 統一出現規律 as the
@@ -9629,6 +10253,7 @@ async function runConversationDayConversation() {
     // Reflect a 舞台移動 (or any stage change) that this turn produced: re-paint the stage image from the
     // freshly-refreshed field so the shown stage always matches the current conversation stage.
     renderConversationDayStage();
+    if (result.prompt_prewarm_error) conversationDayStage.setStatus(errorDisplayMessage(result.prompt_prewarm_error), { tone: 'error' });
   } catch (error) {
     conversationDayStage.surface.setHistory(historySnapshot);
     conversationDayStage.renderStream(historySnapshot);
@@ -9640,6 +10265,7 @@ async function runConversationDayConversation() {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
     conversationDayStage.setResponding(false);
+    focusConversationDayInputIfContinuing();
   }
 }
 
@@ -9742,6 +10368,7 @@ async function startConversationDay(characterId) {
   } finally {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
+    focusConversationDayInputIfContinuing();
   }
 }
 
@@ -9822,6 +10449,7 @@ async function startConversationDayFromPendingEvent(flagId, { loadingAlreadyVisi
   } finally {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
+    focusConversationDayInputIfContinuing();
   }
 }
 
@@ -10700,56 +11328,585 @@ async function exitWorkshop() {
 document.querySelector('#academy-workshop-result-close').addEventListener('click', () => acknowledgeWorkshopResult().catch(reportWorkshopScreenError));
 document.querySelector('#academy-workshop-exit').addEventListener('click', () => exitWorkshop().catch(reportWorkshopScreenError));
 
-// ── Great Library arrival screen (academy-library): the routing "大書庫" (library) destination lands here ────────
-// A routing dispatch to the library destination navigates to #academy-library-screen through the existing loading
-// interstitial (performRoutingTurnDispatch / navigateToPostContentScreen consume the dispatch, the mirror
-// ROUTING_DISPATCH_SCREENS maps library → academy-library). Unlike the workshop/alchemy arrivals (which pre-fetch a
-// full offer board), the library is a SEARCH-driven stay screen: the arrival GET /api/library only carries the week
-// header + the server-authoritative exit; the player types a theme, the 司書 (LLM) picks matching catalog books and
-// fills the shelf with generated titles, and手に取った本 are read on demand. It is pure lore — reading commits the
-// fragment to the 収蔵庫 server-side (no parameter/affinity effect) and returns to the shelf so any number of books
-// can be read in one visit; leaving is the explicit 「書庫を出る」 to the held post_content_screen. Every LLM wait
-// (search, and periphery/generated read) is covered IN SCREEN by a board busy overlay (M-2026-07-06-001), so a slow
-// LM reads as the 司書 working, not a frozen screen. Core-book reads touch no LM (authored text) and resolve at once.
-const ACADEMY_LIBRARY_TOTAL_WEEKS = 50;
+// ── Concert hall arrival screen (academy-concert-hall): the routing "奏楽堂" (concert_hall) destination lands here ──
+// A routing dispatch to the concert_hall destination navigates to #academy-concert-hall-screen through the existing
+// loading interstitial (the mirror ROUTING_DISPATCH_SCREENS maps concert_hall → academy-concert-hall). Like the
+// workshop / library it is a STAY screen: the player writes a free-text wish, the 楽師 composes it through the
+// staged LM pipeline (S1 材料 → S2 方向 → S3 指南 → S4 骨子 → S5 節ごとの音符) whose stage outputs are read out on the
+// 語り面 as the PRE-PERFORMANCE narration while they arrive (in-screen busy, M-2026-07-06-001 stay-screen form),
+// the piece is performed by the screen's own Web Audio player (concertHallPlayer.js — its own AudioContext; the
+// screen-music controller and the BGM settings are never touched, the screen is a silent BGM screen), and it is
+// already in the 収蔵 shelf when the performance ends (the backend commits on S5 success — no 「収蔵する」 button).
+// Any shelf row replays its saved score with its saved narration (no LM). Leaving is the explicit 「奏楽堂を出る」
+// to the server-authoritative post_content_screen (a performance still sounding is stopped first).
+//
+// The board is driven by the closed 9-state machine of concertHallClient.js (到着 / 入力中 / 作曲中 / 演奏前の語り /
+// 演奏中 / 演奏後 / 棚 / 再演 / LM エラー); every DOM change below is a function of that state, and every payload,
+// stream event and piece is validated by the same module BEFORE any DOM mutation (no inline re-implementation).
+const ACADEMY_CONCERT_HALL_TOTAL_WEEKS = 50;
+const CONCERT_HALL_SAMPLE_BASE_URL = '/canonical/concert_hall/';
+const CONCERT_HALL_BUSY_LABEL = '楽師が譜を書いている…';
+const CONCERT_HALL_WRITTEN_LABEL = '譜が書けた';
+const CONCERT_HALL_RETRY_LABEL = 'もう一度';
 
-// Single-flight guards so a double submit/click never fires two search or read POSTs.
-let librarySearchInFlight = false;
-let libraryReadInFlight = false;
-// The server-authoritative exit screen from the latest GET /api/library, held so 「書庫を出る」 can navigate onward.
-// Never a fabricated default — set only from a validated arrival payload.
-let libraryExitScreen = null;
+// The ONE player of the screen. Its AudioContext is created lazily inside the first 「演奏を始める」 click (autoplay
+// policy satisfied by this player alone); an environment without Web Audio fails fast there, never silently.
+const concertHallPlayer = createConcertHallPlayer({
+  fetchImpl: (url) => fetch(url),
+  audioContextFactory: () => {
+    const AudioContextCtor = window.AudioContext;
+    if (!AudioContextCtor) throw new Error('concert hall player: this runtime has no Web Audio (AudioContext)');
+    return new AudioContextCtor();
+  },
+  sampleBaseUrl: CONCERT_HALL_SAMPLE_BASE_URL
+});
 
-// The arrival status line is the error banner: a failed arrival / search / read surfaces here instead of leaving a
-// blank shelf or a stuck busy overlay (no silent fallback). The status line ships in the markup, so a missing node
-// is broken wiring — throw rather than silently suppressing the very error surface the screen relies on.
-function setLibraryScreenStatus(message, { tone = null } = {}) {
-  const status = document.querySelector('#academy-library-status');
-  if (!status) {
-    throw new Error('library arrival status line (#academy-library-status) is missing (broken markup wiring)');
-  }
+// The screen's state: the machine, the validated arrival (performer lines + shelf), the server-authoritative exit,
+// the in-progress compose draft (its text, the narration filled so far, the failed stage) and the piece on stage.
+let concertHallMachine = createConcertHallStateMachine();
+let concertHallArrival = null;
+let concertHallExitScreen = null;
+let concertHallDraft = null;
+let concertHallStagePiece = null;
+// The entry highlighted on the 棚面 after a performance (演奏後: the piece just composed, on top).
+let concertHallHighlightEntryId = null;
+// Single-flight guards: one compose stream, one perform / replay start at a time.
+let concertHallComposeInFlight = false;
+let concertHallStartInFlight = false;
+
+function concertHallNode(selector) {
+  const node = document.querySelector(selector);
+  if (!node) throw new Error(`concert hall screen node (${selector}) is missing (broken markup wiring)`);
+  return node;
+}
+
+function setConcertHallScreenStatus(message, { tone = null } = {}) {
+  const status = concertHallNode('#academy-concert-hall-status');
   const text = String(message ?? '').trim();
-  if (!text) {
-    status.hidden = true;
-    status.textContent = '';
-    delete status.dataset.tone;
-    return;
-  }
-  status.hidden = false;
+  status.hidden = text === '';
   status.textContent = text;
   if (tone) status.dataset.tone = tone;
   else delete status.dataset.tone;
 }
 
-function reportLibraryScreenError(error) {
-  if (handleRuntimeApiError(error, { allowSettingsRedirect: true })) return;
-  setLibraryScreenStatus(errorDisplayMessage(error), { tone: 'error' });
+function reportConcertHallScreenError(error) {
   console.error(error);
+  setConcertHallScreenStatus(errorDisplayMessage(error), { tone: 'error' });
 }
 
-// Fail-fast validators for the three library payloads. The backend is the source of truth (its own tests pin the
-// shapes), but the frontend still refuses a malformed envelope BEFORE any DOM mutation so a broken response can
-// never render an empty shelf, a titleless cover, or a bodyless reading view (no silent fallback).
+// Fetch the arrival envelope and land the 棚面 in the 到着 state. The machine is rebuilt (a fresh visit starts at
+// 到着), any performance is stopped, and the whole payload is validated before any DOM mutation.
+async function refreshConcertHallScreen() {
+  concertHallPlayer.stop();
+  concertHallMachine = createConcertHallStateMachine();
+  concertHallDraft = null;
+  concertHallStagePiece = null;
+  concertHallHighlightEntryId = null;
+  setConcertHallScreenStatus('');
+  concertHallNode('#academy-concert-hall-input').value = '';
+  concertHallNode('#academy-concert-hall-shelf').replaceChildren();
+  const payload = await getJson('/api/concert-hall');
+  renderConcertHallArrival(payload);
+}
+
+function renderConcertHallArrival(payload) {
+  const arrival = validateConcertHallArrivalPayload(payload);
+  concertHallArrival = arrival;
+  concertHallExitScreen = arrival.postContentScreen;
+  concertHallNode('#academy-concert-hall-week').textContent = `第${conversationStageWeek(arrival.week)}週 / ${ACADEMY_CONCERT_HALL_TOTAL_WEEKS}`;
+  concertHallNode('#academy-concert-hall-input').placeholder = arrival.performer.input_placeholder;
+  concertHallNode('#academy-concert-hall-greeting').textContent = arrival.performer.greeting;
+  renderConcertHallShelf();
+  setConcertHallFace('shelf');
+  syncConcertHallControls();
+}
+
+// The shelf: newest first, one row button per piece with 題・方向・作った週 columns; the 演奏後 highlight marks the
+// piece just composed. Zero pieces shows the 楽師's empty-shelf line instead of an empty list.
+function renderConcertHallShelf() {
+  const list = concertHallNode('#academy-concert-hall-shelf');
+  const empty = concertHallNode('#academy-concert-hall-shelf-empty');
+  const pieces = concertHallShelfOrder(concertHallArrival.pieces);
+  list.replaceChildren(...pieces.map((piece) => buildConcertHallShelfRow(piece)));
+  list.hidden = pieces.length === 0;
+  empty.hidden = pieces.length > 0;
+  empty.textContent = pieces.length === 0 ? concertHallArrival.performer.empty_shelf : '';
+}
+
+function buildConcertHallShelfRow(piece) {
+  const item = document.createElement('li');
+  item.className = 'academy-concert-hall-shelf-row';
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'academy-concert-hall-shelf-button';
+  button.dataset.entryId = piece.entry_id;
+  if (piece.entry_id === concertHallHighlightEntryId) button.dataset.highlight = 'true';
+  const title = document.createElement('span');
+  title.className = 'academy-concert-hall-shelf-col academy-concert-hall-shelf-title';
+  title.textContent = piece.title;
+  const direction = document.createElement('span');
+  direction.className = 'academy-concert-hall-shelf-col academy-concert-hall-shelf-direction';
+  direction.textContent = piece.direction_label;
+  const week = document.createElement('span');
+  week.className = 'academy-concert-hall-shelf-col academy-concert-hall-shelf-week';
+  week.textContent = `第${conversationStageWeek(piece.composed_week)}週`;
+  button.append(title, direction, week);
+  button.addEventListener('click', () => replayConcertHallPiece(piece.entry_id, button).catch(reportConcertHallScreenError));
+  item.append(button);
+  return item;
+}
+
+// The three faces of the board: exactly one is visible; the board's data-face mirrors it for the CSS / harness.
+function setConcertHallFace(face) {
+  const faces = { shelf: '#academy-concert-hall-shelf-face', narration: '#academy-concert-hall-narrative-face', performance: '#academy-concert-hall-performance-face' };
+  if (!Object.hasOwn(faces, face)) throw new Error(`concert hall face is not one of shelf / narration / performance: ${face}`);
+  for (const [name, selector] of Object.entries(faces)) concertHallNode(selector).hidden = name !== face;
+  concertHallNode('.academy-concert-hall-board').dataset.face = face;
+}
+
+// The controls row follows the state (board §2): the input is dead while composing / performing, 「奏でてもらう」
+// needs text and a state that accepts a new wish, the exit is always live.
+function syncConcertHallControls() {
+  const state = concertHallMachine.state;
+  const input = concertHallNode('#academy-concert-hall-input');
+  const compose = concertHallNode('#academy-concert-hall-compose');
+  input.disabled = state === 'composing' || state === 'playing' || state === 'replaying';
+  compose.disabled = input.disabled || state === 'arrived' || input.value.trim() === '';
+  concertHallNode('#academy-concert-hall-screen').dataset.state = state;
+}
+
+// Typing moves 到着 ⇄ 入力中 (and drops the 演奏後 / 棚 face back to 入力中); in 演奏前 / エラー the text simply
+// arms 「奏でてもらう」 for another piece (the 語り面 stays).
+function onConcertHallInput() {
+  const text = concertHallNode('#academy-concert-hall-input').value.trim();
+  const state = concertHallMachine.state;
+  if (text !== '' && (state === 'arrived' || state === 'played' || state === 'shelf')) {
+    concertHallMachine.transition('typing');
+    if (state !== 'arrived') {
+      concertHallHighlightEntryId = null;
+      renderConcertHallShelf();
+    }
+  } else if (text === '' && state === 'typing') {
+    concertHallMachine.transition('arrived');
+  }
+  syncConcertHallControls();
+}
+
+// ── compose (POST /api/concert-hall/compose as SSE) ──
+
+// 「奏でてもらう」: 入力中 / 演奏前 / エラー → 作曲中 with a fresh draft for the typed wish; 「もう一度」 re-runs the
+// failed draft's text. The stage cards fill as the events arrive; `done` lands 演奏前 with the CTA, `error` lands
+// LM エラー with the message on the failed card.
+async function composeConcertHallPiece({ retry = false } = {}) {
+  if (concertHallComposeInFlight) {
+    showProcessingToast();
+    return;
+  }
+  const text = retry ? concertHallDraft.text : concertHallNode('#academy-concert-hall-input').value.trim();
+  if (text === '') throw new Error('concert hall compose: the wish text is empty');
+  // A wish typed before a replay is still in the input on the 棚面 (演奏後 / 棚): it is 入力中 by the board's
+  // definition, so the machine passes through it on the way to 作曲中.
+  if (concertHallMachine.state === 'played' || concertHallMachine.state === 'shelf') concertHallMachine.transition('typing');
+  concertHallMachine.transition('composing', { stage: 'materials' });
+  concertHallDraft = { text, narration: {}, sections: [], written: new Set(), error: null };
+  concertHallStagePiece = null;
+  concertHallHighlightEntryId = null;
+  setConcertHallScreenStatus('');
+  concertHallNode('#academy-concert-hall-perform').hidden = true;
+  setConcertHallFace('narration');
+  renderConcertHallNarrationCards();
+  syncConcertHallControls();
+  concertHallComposeInFlight = true;
+  try {
+    await readConcertHallComposeStream(text);
+  } catch (error) {
+    // A stream that could not be opened (LM unconfigured → 503 before the stream, transport) or a malformed event:
+    // the same LM エラー face, the message on the running stage's card.
+    landConcertHallError({ stage: concertHallMachine.stage, message: errorDisplayMessage(error) });
+    console.error(error);
+  } finally {
+    concertHallComposeInFlight = false;
+  }
+}
+
+async function readConcertHallComposeStream(text) {
+  const endpoint = '/api/concert-hall/compose';
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ free_text: text })
+  });
+  if (!response.ok) {
+    const bodyText = await response.text();
+    throw createApiError({ url: endpoint, status: response.status, payload: parseJsonText(bodyText), fallbackText: bodyText });
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let closed = false;
+  const handleBlock = async (block) => {
+    const { event, data } = parseConcertHallSseBlock(block);
+    if (event === 'stage') {
+      applyConcertHallStageEvent(validateConcertHallStageEvent(data));
+    } else if (event === 'done') {
+      closed = true;
+      await landConcertHallDone(validateConcertHallDoneEvent(data));
+    } else {
+      closed = true;
+      landConcertHallError(validateConcertHallErrorEvent(data));
+    }
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+    const blocks = buffer.split('\n\n');
+    buffer = blocks.pop() ?? '';
+    for (const block of blocks) if (block.trim()) await handleBlock(block);
+    if (done) break;
+  }
+  if (buffer.trim()) await handleBlock(buffer);
+  if (!closed) throw new Error('concert hall compose stream ended without done / error');
+}
+
+// A validated stage event: the finished stage's narration goes on its card, the next stage becomes the busy one
+// (S3 guidance is machine-resolved and arrives with S2, S4 brings the section cards, each S5 marks its section).
+function applyConcertHallStageEvent({ stage, index, payload, narration }) {
+  if (stage === 'section') {
+    concertHallDraft.written.add(index);
+    concertHallMachine.setStage('section');
+  } else {
+    concertHallDraft.narration[stage] = narration;
+    if (stage === 'skeleton') {
+      concertHallDraft.sections = payload.sections.map((section) => ({ name: section.name, character: section.character }));
+    }
+    const next = { materials: 'direction', direction: 'guidance', guidance: 'skeleton', skeleton: 'section' }[stage];
+    concertHallMachine.setStage(next);
+  }
+  renderConcertHallNarrationCards();
+}
+
+// `done`: the piece is committed server-side; the shelf is refreshed from the arrival GET (LM-free) so 演奏後 can
+// show it on top, and the 語り面 lands 演奏前 with the 「演奏を始める」 CTA.
+async function landConcertHallDone({ piece }) {
+  concertHallStagePiece = piece;
+  concertHallMachine.transition('narrated');
+  const arrival = validateConcertHallArrivalPayload(await getJson('/api/concert-hall'));
+  concertHallArrival = arrival;
+  concertHallExitScreen = arrival.postContentScreen;
+  renderConcertHallNarrationCards();
+  concertHallNode('#academy-concert-hall-perform').hidden = false;
+  syncConcertHallControls();
+}
+
+// `error` (or a stream that failed to open): LM エラー — the finished narration stays, the failed card carries
+// the message in red plus 「もう一度」. A failure with no stage lands on the card that was running.
+function landConcertHallError({ stage, message }) {
+  const failedStage = stage ?? concertHallMachine.stage ?? 'materials';
+  concertHallMachine.transition('error');
+  concertHallDraft.error = { stage: failedStage, message };
+  renderConcertHallNarrationCards();
+  syncConcertHallControls();
+}
+
+// ── the 語り面 / 演奏面 cards ──
+
+// Builds the four fixed stage cards (S1 → S2 → S3 → S4, in that order) plus one section card per skeleton section
+// from a narration view: { narration: {materials, direction, guidance, skeleton}, sections: [{name, character}],
+// written: Set<index>, busyStage, busyIndex, error: {stage, message} | null, currentSection }.
+function buildConcertHallCards(view) {
+  const stageList = document.createElement('ol');
+  stageList.className = 'academy-concert-hall-stage-cards';
+  for (const { stage, title } of CONCERT_HALL_STAGE_CARDS) {
+    const lines = view.narration[stage] ?? null;
+    const busy = view.busyStage === stage;
+    const error = view.error?.stage === stage ? view.error : null;
+    stageList.append(buildConcertHallCard({ kind: 'stage', stage, title, lines, busy, error, written: lines !== null }));
+  }
+  const sectionList = document.createElement('ol');
+  sectionList.className = 'academy-concert-hall-section-cards';
+  // Sections are written in order, so the one being written (or the one that failed) is the first unwritten.
+  view.sections.forEach((section, index) => {
+    const busy = view.busyStage === 'section' && index === view.written.size;
+    const error = view.error?.stage === 'section' && index === view.written.size ? view.error : null;
+    const card = buildConcertHallCard({ kind: 'section', stage: 'section', title: section.name, lines: [section.character], busy, error, written: view.written.has(index) });
+    card.dataset.sectionIndex = String(index);
+    if (view.currentSection === index) card.dataset.current = 'true';
+    sectionList.append(card);
+  });
+  return [stageList, sectionList];
+}
+
+function buildConcertHallCard({ kind, stage, title, lines, busy, error, written }) {
+  const card = document.createElement('li');
+  card.className = `academy-concert-hall-card academy-concert-hall-card-${kind}`;
+  card.dataset.stage = stage;
+  if (busy) card.dataset.busy = 'true';
+  if (written) card.dataset.written = 'true';
+  if (error) card.dataset.error = 'true';
+  const heading = document.createElement('h4');
+  heading.className = 'academy-concert-hall-card-title';
+  heading.textContent = title;
+  card.append(heading);
+  if (lines) {
+    for (const line of lines) {
+      const text = document.createElement('p');
+      text.className = 'academy-concert-hall-card-text';
+      text.textContent = line;
+      card.append(text);
+    }
+  }
+  if (kind === 'section' && written && !error) {
+    const mark = document.createElement('p');
+    mark.className = 'academy-concert-hall-card-written';
+    mark.textContent = CONCERT_HALL_WRITTEN_LABEL;
+    card.append(mark);
+  }
+  if (busy) card.append(buildConcertHallBusyIndicator());
+  if (error) {
+    const message = document.createElement('p');
+    message.className = 'academy-concert-hall-card-error';
+    message.textContent = error.message;
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'academy-concert-hall-retry';
+    retry.textContent = CONCERT_HALL_RETRY_LABEL;
+    retry.addEventListener('click', () => composeConcertHallPiece({ retry: true }).catch(reportConcertHallScreenError));
+    card.append(message, retry);
+  }
+  return card;
+}
+
+// In-card busy (the workshop 銘を刻んでいる… orbit-dots grammar): three pulsing dots and the 楽師が譜を書いている… label
+// as a live region, inside the running stage's card so the wait is visible where the narration will land.
+function buildConcertHallBusyIndicator() {
+  const busy = document.createElement('div');
+  busy.className = 'academy-concert-hall-busy';
+  busy.setAttribute('role', 'status');
+  busy.setAttribute('aria-live', 'polite');
+  const orbits = document.createElement('span');
+  orbits.className = 'academy-concert-hall-busy-orbits';
+  orbits.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 3; i += 1) {
+    const dot = document.createElement('span');
+    dot.className = 'academy-concert-hall-busy-dot';
+    orbits.append(dot);
+  }
+  const label = document.createElement('span');
+  label.className = 'academy-concert-hall-busy-label';
+  label.textContent = CONCERT_HALL_BUSY_LABEL;
+  busy.append(orbits, label);
+  return busy;
+}
+
+function concertHallDraftView() {
+  const composing = concertHallMachine.state === 'composing';
+  return {
+    narration: concertHallDraft.narration,
+    sections: concertHallDraft.sections,
+    written: concertHallDraft.written,
+    busyStage: composing ? concertHallMachine.stage : null,
+    error: concertHallDraft.error,
+    currentSection: null
+  };
+}
+
+function renderConcertHallNarrationCards() {
+  concertHallNode('#academy-concert-hall-narration-cards').replaceChildren(...buildConcertHallCards(concertHallDraftView()));
+}
+
+// The 演奏面's cards from a piece's SAVED narration (the same cards; the current section is emphasised).
+function concertHallPieceView(piece, currentSection) {
+  return {
+    narration: {
+      materials: [piece.narration.materials],
+      direction: [piece.narration.direction],
+      guidance: piece.narration.guidance,
+      skeleton: piece.narration.skeleton
+    },
+    sections: piece.score.sections.map((section) => ({ name: section.name, character: section.character })),
+    written: new Set(piece.score.sections.map((_section, index) => index)),
+    busyStage: null,
+    error: null,
+    currentSection
+  };
+}
+
+function renderConcertHallPerformanceCards(piece, currentSection) {
+  concertHallNode('#academy-concert-hall-performance-cards').replaceChildren(...buildConcertHallCards(concertHallPieceView(piece, currentSection)));
+}
+
+// ── performance (the screen's own player) ──
+
+function renderConcertHallHead(piece, { sectionLabel, progress }) {
+  concertHallNode('#academy-concert-hall-head-title').textContent = piece.title;
+  concertHallNode('#academy-concert-hall-head-meta').textContent = concertHallScoreHeadline(piece.score);
+  concertHallNode('#academy-concert-hall-head-section').textContent = sectionLabel;
+  const percent = Math.max(0, Math.min(100, Math.round(progress * 100)));
+  concertHallNode('#academy-concert-hall-progress-bar').style.width = `${percent}%`;
+  concertHallNode('.academy-concert-hall-progress').setAttribute('aria-valuenow', String(percent));
+}
+
+// Load the piece's samples (all awaited — a missing sample throws before anything sounds) and start the player;
+// the 演奏面 head follows the progress clock. `onEnded` lands the after-state given by the caller.
+async function startConcertHallPerformance(piece, { onEnded }) {
+  await concertHallPlayer.load(piece.score);
+  renderConcertHallPerformanceCards(piece, null);
+  await concertHallPlayer.play({
+    onSection: ({ index, name }) => {
+      renderConcertHallPerformanceCards(piece, index);
+      concertHallNode('#academy-concert-hall-head-section').textContent = name;
+    },
+    onProgress: ({ beat, totalBeats }) => {
+      const percent = Math.max(0, Math.min(100, Math.round(beat / totalBeats * 100)));
+      concertHallNode('#academy-concert-hall-progress-bar').style.width = `${percent}%`;
+      concertHallNode('.academy-concert-hall-progress').setAttribute('aria-valuenow', String(percent));
+    },
+    onEnded: () => {
+      try {
+        onEnded();
+      } catch (error) {
+        reportConcertHallScreenError(error);
+      }
+    }
+  });
+}
+
+// 「演奏を始める」: 演奏前 → 演奏中 (the samples load under the CTA first, so a load failure stays on the 語り面 with
+// the CTA live). The performance's end (or 「止める」) lands 演奏後: the 棚面 with the new piece on top, highlighted.
+async function performConcertHallPiece() {
+  if (concertHallStartInFlight) {
+    showProcessingToast();
+    return;
+  }
+  const piece = concertHallStagePiece;
+  if (!piece) throw new Error('concert hall perform: no composed piece on stage');
+  const cta = concertHallNode('#academy-concert-hall-perform');
+  concertHallStartInFlight = true;
+  cta.disabled = true;
+  try {
+    renderConcertHallHead(piece, { sectionLabel: '譜を開いている…', progress: 0 });
+    await startConcertHallPerformance(piece, { onEnded: () => landConcertHallPlayed() });
+    concertHallMachine.transition('playing');
+    cta.hidden = true;
+    setConcertHallFace('performance');
+    syncConcertHallControls();
+  } finally {
+    cta.disabled = false;
+    concertHallStartInFlight = false;
+  }
+}
+
+function landConcertHallPlayed() {
+  concertHallMachine.transition('played');
+  concertHallHighlightEntryId = concertHallStagePiece.entry_id;
+  concertHallNode('#academy-concert-hall-input').value = '';
+  renderConcertHallShelf();
+  setConcertHallFace('shelf');
+  syncConcertHallControls();
+}
+
+// A shelf row: 到着 / 入力中 / 演奏後 / 棚 → 再演 with the saved narration and score (GET /api/concert-hall/pieces/<id>,
+// no LM). The row is marked loading while the piece and its samples arrive; a failure leaves the state where it
+// was and reports on the status line. The replay's end (or 「止める」) lands 棚.
+async function replayConcertHallPiece(entryId, row) {
+  if (concertHallStartInFlight) {
+    showProcessingToast();
+    return;
+  }
+  const state = concertHallMachine.state;
+  if (!['arrived', 'typing', 'played', 'shelf'].includes(state)) throw new Error(`concert hall replay is not available while ${state}`);
+  concertHallStartInFlight = true;
+  row.dataset.loading = 'true';
+  try {
+    const piece = validateConcertHallPiece(await getJson(`/api/concert-hall/pieces/${encodeURIComponent(entryId)}`));
+    concertHallStagePiece = piece;
+    renderConcertHallHead(piece, { sectionLabel: '譜を取り出している…', progress: 0 });
+    await startConcertHallPerformance(piece, { onEnded: () => landConcertHallShelf() });
+    concertHallMachine.transition('replaying');
+    concertHallHighlightEntryId = null;
+    setConcertHallFace('performance');
+    syncConcertHallControls();
+  } finally {
+    delete row.dataset.loading;
+    concertHallStartInFlight = false;
+  }
+}
+
+function landConcertHallShelf() {
+  concertHallMachine.transition('shelf');
+  renderConcertHallShelf();
+  setConcertHallFace('shelf');
+  syncConcertHallControls();
+}
+
+// 「止める」: the sound stops now and the after-state is the same as a natural end (演奏後 / 棚).
+function stopConcertHallPerformance() {
+  const state = concertHallMachine.state;
+  if (state !== 'playing' && state !== 'replaying') return;
+  concertHallPlayer.stop();
+  if (state === 'playing') landConcertHallPlayed();
+  else landConcertHallShelf();
+}
+
+// 「奏楽堂を出る」: stop any performance first, then the shared routing content return to the held
+// server-authoritative post_content_screen (never a frontend default).
+async function exitConcertHall() {
+  if (routingContentReturnInFlight) {
+    showProcessingToast();
+    return;
+  }
+  const nextScreen = concertHallExitScreen;
+  if (typeof nextScreen !== 'string' || nextScreen === '') {
+    throw new Error('concert hall exit: no post_content_screen held (奏楽堂の退出先が未取得 — broken arrival flow)');
+  }
+  concertHallPlayer.stop();
+  routingContentReturnInFlight = true;
+  try {
+    await returnToRoutingHubFromContent(nextScreen);
+  } finally {
+    routingContentReturnInFlight = false;
+  }
+}
+
+document.querySelector('#academy-concert-hall-input').addEventListener('input', () => {
+  try {
+    onConcertHallInput();
+  } catch (error) {
+    reportConcertHallScreenError(error);
+  }
+});
+document.querySelector('#academy-concert-hall-compose').addEventListener('click', () => composeConcertHallPiece().catch(reportConcertHallScreenError));
+document.querySelector('#academy-concert-hall-perform').addEventListener('click', () => performConcertHallPiece().catch(reportConcertHallScreenError));
+document.querySelector('#academy-concert-hall-stop').addEventListener('click', () => {
+  try {
+    stopConcertHallPerformance();
+  } catch (error) {
+    reportConcertHallScreenError(error);
+  }
+});
+document.querySelector('#academy-concert-hall-exit').addEventListener('click', () => exitConcertHall().catch(reportConcertHallScreenError));
+
+// ── Great Library arrival screen (academy-library): the routing "大書庫" (library) destination lands here ────────
+// A routing dispatch to the library destination navigates to #academy-library-screen through the existing loading
+// interstitial (performRoutingTurnDispatch / navigateToPostContentScreen consume the dispatch, the mirror
+// ROUTING_DISPATCH_SCREENS maps library → academy-library). The scene itself — the 請求票 on the desk, the lamp that
+// searches the aisle, the books standing in the painted bays, the 見開き with page turns and footnotes, the 蔵書票, the lamps
+// going out — is owned by libraryScreen.js. This file keeps only the destination wiring around it: the arrival GET
+// (and the server-authoritative exit it carries), the loading-covered exit to the hub, the LM-config / connection
+// redirect to the settings screen, and the single-flight guard on the body read. Reading commits the fragment to the
+// 収蔵庫 server-side (no parameter/affinity effect), so any number of books can be read in one visit.
+
+// The server-authoritative exit screen from the latest GET /api/library, held so 「書庫を出る」 can navigate onward.
+// Never a fabricated default — set only from a validated arrival payload.
+let libraryExitScreen = null;
+// The routing arrival of the library entry in progress ({ destinationLabel } when a routing hub dispatch landed on it,
+// null otherwise; set by showScreen): a failed arrival fetch then returns to the hub rather than leaving the scene
+// stopped on its 請求票 line.
+let libraryArrivalFromRouting = null;
+// Single-flight guard on POST /api/library/read: the scene never asks for two bodies at once, so a second read while
+// one is in flight is broken wiring (fail fast rather than racing two 収蔵 commits).
+let libraryReadInFlight = false;
+
 function validateLibraryArrivalPayload(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('library arrival: malformed payload');
   const week = payload.week;
@@ -10766,32 +11923,7 @@ function libraryString(value, label) {
   return value;
 }
 
-// Flattens the search result into the ordered shelf: catalog books (each keeps its layer so the cover matches
-// core=革装 / periphery=布装) first, then the theme-fill generated books and the free generated books (無銘の写本
-// cover), each carrying the read target the backend expects (catalog=book_id, generated=generated_title).
-function validateLibrarySearchShelf(result) {
-  if (!result || typeof result !== 'object') throw new Error('library search: malformed result');
-  const catalogBooks = Array.isArray(result.catalog_books) ? result.catalog_books : null;
-  const generatedBooks = Array.isArray(result.generated_books) ? result.generated_books : null;
-  const freeBooks = Array.isArray(result.free_books) ? result.free_books : null;
-  if (!catalogBooks || !generatedBooks || !freeBooks) throw new Error('library search: result is missing a book list');
-  const shelf = [];
-  for (const book of catalogBooks) {
-    const layer = libraryString(book.layer, 'catalog book layer');
-    if (layer !== 'core' && layer !== 'periphery') throw new Error(`library search: unexpected catalog layer ${JSON.stringify(layer)}`);
-    shelf.push({
-      title: libraryString(book.title, 'catalog book title'),
-      cover: layer,
-      target: { book_id: libraryString(book.id, 'catalog book id') }
-    });
-  }
-  for (const book of [...generatedBooks, ...freeBooks]) {
-    const title = libraryString(book.title, 'generated book title');
-    shelf.push({ title, cover: 'generated', target: { generated_title: title } });
-  }
-  return shelf;
-}
-
+// The read-result validator the ハブ収蔵庫's 関連する本 move uses (the 大書庫 scene validates its own reads).
 function validateLibraryReadResult(response) {
   if (!response || typeof response !== 'object') throw new Error('library read: malformed response');
   return {
@@ -10803,226 +11935,33 @@ function validateLibraryReadResult(response) {
   };
 }
 
-// Fetch the arrival envelope (week + server-authoritative exit) and reset the shelf to its search prompt. A failed
-// fetch throws (surfaces on the status line); the shelf is cleared BEFORE the fetch so a failed re-entry leaves no
-// stale, still-clickable covers from a prior visit.
-async function refreshLibraryScreen() {
-  setLibraryScreenStatus('');
-  hideLibraryReadingPopup();
-  clearLibraryShelf();
-  const payload = await getJson('/api/library');
-  const { week, postContentScreen } = validateLibraryArrivalPayload(payload);
-  libraryExitScreen = postContentScreen;
-  const weekLabel = document.querySelector('#academy-library-week');
-  // A missing week node is broken static markup — fail fast rather than silently rendering the placeholder 第1週.
-  if (!weekLabel) throw new Error('library arrival week header (#academy-library-week) is missing (broken markup wiring)');
-  weekLabel.textContent = `第${conversationStageWeek(week)}週 / ${ACADEMY_LIBRARY_TOTAL_WEEKS}`;
-}
-
-// Empty the shelf and show the search prompt (the 収蔵庫 lives in the hub drawer, not here — this board is only the
-// freshly-searched shelf). The prompt hint is toggled with the shelf so it reads only when no books are shown.
-function clearLibraryShelf() {
-  const shelf = document.querySelector('#academy-library-shelf');
-  if (!shelf) throw new Error('library shelf (#academy-library-shelf) is missing (broken markup wiring)');
-  shelf.replaceChildren();
-  toggleLibraryShelfEmpty(true);
-}
-
-function toggleLibraryShelfEmpty(empty) {
-  const hint = document.querySelector('#academy-library-shelf-empty');
-  if (!hint) throw new Error('library shelf prompt (#academy-library-shelf-empty) is missing (broken markup wiring)');
-  hint.hidden = !empty;
-}
-
-// The in-flight busy overlay for the library board: the 司書 (LLM) search / fragment generation can take a visible
-// beat, and the library is a stay screen (no transition to a loading screen), so the wait is covered IN SCREEN — the
-// board goes busy (dimmed + non-interactive) under a live-region 「司書が…」 overlay (the same non-color pulse grammar
-// as the workshop 銘を刻んでいる… / errand 生成中 waiting cards, in the library token layer). Built/removed in lockstep
-// with the request (setLibraryBusy(false) in the caller's finally) so it never lingers past a resolution. A missing
-// board node is broken markup — fail fast.
-function buildLibraryBusyIndicator(label) {
-  const overlay = document.createElement('div');
-  overlay.className = 'academy-library-busy';
-  overlay.id = 'academy-library-busy';
-  overlay.setAttribute('role', 'status');
-  overlay.setAttribute('aria-live', 'polite');
-
-  const orbits = document.createElement('span');
-  orbits.className = 'academy-library-busy-orbits';
-  orbits.setAttribute('aria-hidden', 'true');
-  for (let i = 0; i < 3; i += 1) {
-    const dot = document.createElement('span');
-    dot.className = 'academy-library-busy-dot';
-    orbits.append(dot);
-  }
-
-  const labelEl = document.createElement('span');
-  labelEl.className = 'academy-library-busy-label';
-  labelEl.textContent = label;
-
-  overlay.append(orbits, labelEl);
-  return overlay;
-}
-
-function setLibraryBusy(active, label = '') {
-  const board = document.querySelector('.academy-library-board');
-  if (!board) throw new Error('library board (.academy-library-board) is missing (broken markup wiring)');
-  const existing = board.querySelector('#academy-library-busy');
-  if (active) {
-    board.dataset.busy = 'true';
-    if (existing) existing.remove();
-    board.append(buildLibraryBusyIndicator(label));
-  } else {
-    delete board.dataset.busy;
-    if (existing) existing.remove();
-  }
-}
-
-// Search: POST /api/library/search { theme }. An empty theme is a visible input prompt (not a POST) — the backend
-// would 400 it anyway, and this keeps the affordance honest without a silent no-op. The LLM wait is covered by the
-// board busy overlay shown BEFORE the POST; a failed search REJECTS (fail-fast) to the caller's reporter and clears
-// the busy in finally. On success the returned shelf replaces the board. librarySearchInFlight is the single-flight
-// guard so a double submit issues no second search.
-async function searchLibrary() {
-  const input = document.querySelector('#academy-library-search-input');
-  if (!input) throw new Error('library search input (#academy-library-search-input) is missing (broken markup wiring)');
-  const theme = input.value.trim();
-  if (!theme) {
-    setLibraryScreenStatus('読みたい本のテーマを入力してください。', { tone: 'error' });
-    return;
-  }
-  if (librarySearchInFlight) {
-    showProcessingToast();
-    return;
-  }
-  librarySearchInFlight = true;
+async function loadLibraryArrival() {
+  libraryExitScreen = null;
   try {
-    setLibraryScreenStatus('');
-    setLibraryBusy(true, '司書が奥の書架を探している…');
-    const result = await postJson('/api/library/search', { theme });
-    renderLibraryShelf(result);
-  } finally {
-    librarySearchInFlight = false;
-    setLibraryBusy(false);
+    const { postContentScreen } = validateLibraryArrivalPayload(await getJson('/api/library'));
+    libraryExitScreen = postContentScreen;
+  } catch (error) {
+    // The scene redirects an LM config/connection failure itself (redirectRuntimeError); any other failure on the hub
+    // dispatch's arrival returns to the hub.
+    if (libraryArrivalFromRouting && settingsRedirectErrorMessage(error) == null) returnToRoutingHubAfterArrivalFailure(error, libraryArrivalFromRouting);
+    throw error;
   }
 }
 
-// Render the searched shelf: the whole result is validated fail-fast (shape / layer / target) BEFORE any DOM
-// mutation, so the shelf is never half-rendered on a broken response. A search can legitimately return fewer than
-// the max (the 司書 does not pad), and even an all-empty shelf renders the honest prompt rather than blank.
-function renderLibraryShelf(result) {
-  const shelf = validateLibrarySearchShelf(result);
-  const list = document.querySelector('#academy-library-shelf');
-  if (!list) throw new Error('library shelf (#academy-library-shelf) is missing (broken markup wiring)');
-  list.replaceChildren(...shelf.map((book) => buildLibraryBookCard(book)));
-  toggleLibraryShelfEmpty(shelf.length === 0);
-}
-
-// One book on the shelf: a cover (its layer picks the 装丁 texture via data-cover — 革装/布装/写本) with the title
-// overlaid (the cover art carries no lettering). Clicking reads it; a failed read surfaces through the library
-// reporter (LM-config errors route to settings) and the player stays on the shelf (nothing was consumed).
-function buildLibraryBookCard(book) {
-  const item = document.createElement('li');
-  item.className = 'academy-library-book';
-  item.dataset.cover = book.cover;
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'academy-library-book-button';
-  const cover = document.createElement('span');
-  cover.className = 'academy-library-cover';
-  cover.setAttribute('aria-hidden', 'true');
-  const title = document.createElement('span');
-  title.className = 'academy-library-book-title';
-  title.textContent = book.title;
-  button.append(cover, title);
-  button.addEventListener('click', () => readLibraryBook(book).catch(reportLibraryScreenError));
-  item.append(button);
-  return item;
-}
-
-// Read the selected book: POST /api/library/read (catalog=book_id, generated=generated_title). The backend reads
-// core authored text with no LM, generates periphery/generated fragments (503 on an unconfigured LM), and commits
-// the read to the 収蔵庫 + content result. The LLM wait is covered by the board busy overlay shown BEFORE the POST;
-// a failed read REJECTS (fail-fast) to the caller's reporter (the shelf is untouched, so a retry is valid) and the
-// busy clears in finally. On success the reading view floats. libraryReadInFlight is the single-flight guard.
-async function readLibraryBook(book) {
-  if (libraryReadInFlight) {
-    showProcessingToast();
-    return;
-  }
+async function readLibraryBook(target) {
+  if (libraryReadInFlight) throw new Error('library read: a body read is already in flight (the scene must not ask twice)');
   libraryReadInFlight = true;
   try {
-    setLibraryScreenStatus('');
-    setLibraryBusy(true, '司書が写しを綴じている…');
-    const response = await postJson('/api/library/read', book.target);
-    const reading = validateLibraryReadResult(response);
-    openLibraryReadingPopup(reading);
+    return await postJson('/api/library/read', target);
   } finally {
     libraryReadInFlight = false;
-    setLibraryBusy(false);
   }
-}
-
-// The reading view floats over the board (the workshop/alchemy result-popup idiom: an on-screen modal, not a screen
-// change): the fragment set on the 見開き book frame as 鉄褐色インク on a warm 生成り parchment page (程々の明度 — kept
-// off pure white so it does not glare in the otherwise dark game). Long fragments scroll inside the page. The read
-// already committed the fragment to the 収蔵庫 server-side, so closing (本を閉じる) is a pure presentation flourish.
-function openLibraryReadingPopup(reading) {
-  const popup = document.querySelector('#academy-library-reading-popup');
-  const titleEl = document.querySelector('#academy-library-reading-title');
-  const categoryEl = document.querySelector('#academy-library-reading-category');
-  const textEl = document.querySelector('#academy-library-reading-text');
-  if (!popup || !titleEl || !categoryEl || !textEl) {
-    throw new Error('library reading view markup is missing (broken wiring)');
-  }
-  delete popup.dataset.collecting;
-  titleEl.textContent = reading.title;
-  categoryEl.textContent = reading.category;
-  // Split the fragment into paragraphs on blank lines (or single newlines) so multi-paragraph authored/ generated
-  // text reads as prose rather than one wall. Empty segments are dropped; the validator already guarantees text.
-  const paragraphs = reading.text.split(/\n{2,}|\n/).map((line) => line.trim()).filter(Boolean);
-  textEl.replaceChildren(...paragraphs.map((line) => {
-    const p = document.createElement('p');
-    p.className = 'academy-library-reading-paragraph';
-    p.textContent = line;
-    return p;
-  }));
-  textEl.scrollTop = 0;
-  popup.hidden = false;
-}
-
-function hideLibraryReadingPopup() {
-  const popup = document.querySelector('#academy-library-reading-popup');
-  if (popup) {
-    popup.hidden = true;
-    delete popup.dataset.collecting;
-  }
-}
-
-// 本を閉じる: the 収蔵 flourish — the book glows faint amber and the 蔵書票 (ex libris) stamp presses in, then the
-// view closes back to the shelf (the read already committed the entry server-side, so no extra call). The animation
-// is driven by data-collecting on the popup; on the stamp's animationend the view hides. Under prefers-reduced-motion
-// the flourish is omitted and the view hides at once (減衰/省略), so the close never depends on an animation that a
-// reduced-motion user has turned off.
-function collectAndCloseLibraryReading() {
-  const popup = document.querySelector('#academy-library-reading-popup');
-  if (!popup || popup.hidden) return;
-  const reduceMotion = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduceMotion) {
-    hideLibraryReadingPopup();
-    return;
-  }
-  const stamp = document.querySelector('#academy-library-reading-stamp');
-  if (!stamp) throw new Error('library reading stamp (#academy-library-reading-stamp) is missing (broken markup wiring)');
-  stamp.addEventListener('animationend', () => hideLibraryReadingPopup(), { once: true });
-  popup.dataset.collecting = 'true';
 }
 
 // 書庫を出る: leave the stay screen through the server-authoritative post_content_screen held from the latest GET
 // /api/library (routing-only → the routing hub) via the shared loading-covered return (押下→ロード画面→迎え会話
-// ストリーミング開始でハブ表示 — never a bare enterRoutingHub under the still-visible library screen, which reads as a
-// freeze). A double press is guarded by the shared routingContentReturnInFlight flag. A missing held screen is broken
-// state — fail fast (never a fabricated default); the library needs zero reads to leave, so this is always available.
+// ストリーミング開始でハブ表示). A double press is guarded by the shared routingContentReturnInFlight flag. A missing
+// held screen is broken state — fail fast (never a fabricated default).
 async function exitLibrary() {
   if (routingContentReturnInFlight) {
     showProcessingToast();
@@ -11040,12 +11979,14 @@ async function exitLibrary() {
   }
 }
 
-document.querySelector('#academy-library-search-form').addEventListener('submit', (event) => {
-  event.preventDefault();
-  searchLibrary().catch(reportLibraryScreenError);
+const libraryScreen = createLibraryScreen({
+  loadArrival: loadLibraryArrival,
+  search: (theme) => postJson('/api/library/search', { theme }),
+  read: readLibraryBook,
+  footnotes: (entryId) => postJson(LIBRARY_FOOTNOTES_REQUEST_PATH, { entry_id: entryId }),
+  redirectRuntimeError: (error) => handleRuntimeApiError(error, { allowSettingsRedirect: true }),
+  leave: exitLibrary
 });
-document.querySelector('#academy-library-reading-close').addEventListener('click', () => collectAndCloseLibraryReading());
-document.querySelector('#academy-library-exit').addEventListener('click', () => exitLibrary().catch(reportLibraryScreenError));
 
 // ── 錬成室 arrival screen (academy-atelier): the routing "homunculus" (錬成室) destination lands here ──
 // A routing dispatch to the homunculus destination navigates to #academy-atelier-screen through the existing
@@ -11655,6 +12596,7 @@ async function startAtelierConversation(homunculusId) {
   } finally {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
+    focusConversationDayInputIfContinuing();
   }
 }
 
@@ -11709,27 +12651,25 @@ document.querySelector('#academy-atelier-farewell-speech-close').addEventListene
 const ACADEMY_ERRAND_TOTAL_WEEKS = 50;
 const ACADEMY_ERRAND_OFFER_COUNT = 3;
 
-// The arrival status line is an error banner: a failed offer fetch / start surfaces here instead of leaving
-// empty or placeholder cards (no silent fallback).
-function setErrandScreenStatus(message, { tone = null } = {}) {
+// The arrival status line is an error banner: a failed offer fetch / start shows the failure notice here
+// (reportErrandScreenError / the start's defense line) instead of leaving empty or placeholder cards (no silent
+// fallback). Each fetch clears it first.
+function clearErrandScreenStatus() {
   const status = document.querySelector('#academy-errand-status');
-  if (!status) return;
-  const text = String(message ?? '').trim();
-  if (!text) {
-    status.hidden = true;
-    status.textContent = '';
-    delete status.dataset.tone;
-    return;
-  }
-  status.hidden = false;
-  status.textContent = text;
-  if (tone) status.dataset.tone = tone;
-  else delete status.dataset.tone;
+  status.hidden = true;
+  status.textContent = '';
+  delete status.dataset.tone;
 }
 
+// The routing arrival of the errand visit in progress ({ destinationLabel } when a routing hub dispatch landed on it,
+// null on the dev entry; set by showScreen): its failure notice names the destination.
+let errandVisitRoutingArrival = null;
+
+// A failed errand request shows the failure notice (the glyph and the destination name) on the arrival status line;
+// the English cause stays on the console.
 function reportErrandScreenError(error) {
   if (handleRuntimeApiError(error, { allowSettingsRedirect: true })) return;
-  setErrandScreenStatus(errorDisplayMessage(error), { tone: 'error' });
+  writeRoutingFailureNotice(document.querySelector('#academy-errand-status'), { destinationLabel: routingArrivalDestinationLabel(errandVisitRoutingArrival) });
   console.error(error);
 }
 
@@ -11796,7 +12736,7 @@ function buildErrandGeneratingPlaceholder() {
 // response — not exactly three offers, or an offer missing a required field / with a wrong type — throws, so
 // the arrival never shows empty or placeholder cards. Every throw surfaces on the arrival status line.
 async function refreshErrandScreen() {
-  setErrandScreenStatus('');
+  clearErrandScreenStatus();
   setErrandRetryVisible(false);
   const list = document.querySelector('#academy-errand-offers');
   // Fail closed + in-flight wait display: drop any previously rendered offers BEFORE the fetch (so a failed /
@@ -11988,11 +12928,12 @@ async function startErrand(errandId) {
       // Defense line: a failed / malformed start must never strand the player on the academy-loading screen. A
       // settings-redirect error (invalid LLM output / LM Studio config) was already routed to the settings
       // screen by the helper's reportLoadingError; any other start failure returns to the errand arrival — its
-      // showScreen re-fetches the offers, so the cards come back and the player can retry — with the cause on
-      // the arrival status line. Re-raise so the card click handler's `.catch(reportError)` still logs it once.
+      // showScreen re-fetches the offers, so the cards come back and the player can retry — with the failure notice
+      // on the arrival status line (the same visit, so the same routing arrival names it). Re-raise so the card click
+      // handler's `.catch(reportError)` logs the cause once.
       if (settingsRedirectErrorMessage(error) == null) {
-        showScreen('academy-errand');
-        setErrandScreenStatus(errorDisplayMessage(error), { tone: 'error' });
+        showScreen('academy-errand', { routingArrival: errandVisitRoutingArrival });
+        writeRoutingFailureNotice(document.querySelector('#academy-errand-status'), { destinationLabel: routingArrivalDestinationLabel(errandVisitRoutingArrival) });
       }
       throw error;
     }
@@ -12004,6 +12945,7 @@ async function startErrand(errandId) {
   } finally {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
+    focusConversationDayInputIfContinuing();
   }
 }
 
@@ -12017,27 +12959,25 @@ async function startErrand(errandId) {
 const ACADEMY_STUDY_CIRCLE_TOTAL_WEEKS = 50;
 const ACADEMY_STUDY_CIRCLE_OFFER_COUNT = 3;
 
-// The arrival status line is an error banner: a failed offer fetch / start surfaces here instead of leaving
-// empty or placeholder cards (no silent fallback).
-function setStudyCircleScreenStatus(message, { tone = null } = {}) {
+// The arrival status line is an error banner: a failed offer fetch / start shows the failure notice here
+// (reportStudyCircleScreenError / the start's defense line) instead of leaving empty or placeholder cards (no silent
+// fallback). Each fetch clears it first.
+function clearStudyCircleScreenStatus() {
   const status = document.querySelector('#academy-study-circle-status');
-  if (!status) return;
-  const text = String(message ?? '').trim();
-  if (!text) {
-    status.hidden = true;
-    status.textContent = '';
-    delete status.dataset.tone;
-    return;
-  }
-  status.hidden = false;
-  status.textContent = text;
-  if (tone) status.dataset.tone = tone;
-  else delete status.dataset.tone;
+  status.hidden = true;
+  status.textContent = '';
+  delete status.dataset.tone;
 }
 
+// The routing arrival of the study circle visit in progress ({ destinationLabel } when a routing hub dispatch landed on
+// it, null on the dev entry; set by showScreen): its failure notice names the destination.
+let studyCircleVisitRoutingArrival = null;
+
+// A failed study circle request shows the failure notice (the glyph and the destination name) on the arrival status
+// line; the English cause stays on the console.
 function reportStudyCircleScreenError(error) {
   if (handleRuntimeApiError(error, { allowSettingsRedirect: true })) return;
-  setStudyCircleScreenStatus(errorDisplayMessage(error), { tone: 'error' });
+  writeRoutingFailureNotice(document.querySelector('#academy-study-circle-status'), { destinationLabel: routingArrivalDestinationLabel(studyCircleVisitRoutingArrival) });
   console.error(error);
 }
 
@@ -12092,7 +13032,7 @@ function buildStudyCircleGeneratingPlaceholder() {
 // — not exactly three offers, or an offer missing a required field / with a wrong type — throws, so the arrival never
 // shows empty or placeholder cards. Every throw surfaces on the arrival status line.
 async function refreshStudyCircleScreen() {
-  setStudyCircleScreenStatus('');
+  clearStudyCircleScreenStatus();
   setStudyCircleRetryVisible(false);
   const board = document.querySelector('#academy-study-circle-offers');
   // Fail closed + in-flight wait display (the errand mirror): drop any previously rendered offers BEFORE the fetch (so
@@ -12298,11 +13238,12 @@ async function startStudyCircle(themeId) {
       // Defense line (mirror of startErrand): a failed / malformed start must never strand the player on the
       // academy-loading screen. A settings-redirect error was already routed to the settings screen by the helper's
       // reportLoadingError; any other start failure returns to the study circle arrival — its showScreen re-fetches
-      // the offers, so the cards come back and the player can retry — with the cause on the arrival status line.
-      // Re-raise so the card click handler's `.catch(reportError)` still logs it once.
+      // the offers, so the cards come back and the player can retry — with the failure notice on the arrival status
+      // line (the same visit, so the same routing arrival names it). Re-raise so the card click handler's
+      // `.catch(reportError)` logs the cause once.
       if (settingsRedirectErrorMessage(error) == null) {
-        showScreen('academy-study-circle');
-        setStudyCircleScreenStatus(errorDisplayMessage(error), { tone: 'error' });
+        showScreen('academy-study-circle', { routingArrival: studyCircleVisitRoutingArrival });
+        writeRoutingFailureNotice(document.querySelector('#academy-study-circle-status'), { destinationLabel: routingArrivalDestinationLabel(studyCircleVisitRoutingArrival) });
       }
       throw error;
     }
@@ -12314,6 +13255,7 @@ async function startStudyCircle(themeId) {
   } finally {
     conversationRequestInFlight = false;
     conversationDayStage.setControlsDisabled(false);
+    focusConversationDayInputIfContinuing();
   }
 }
 
@@ -12338,26 +13280,26 @@ async function editUserMessageAtIndex(messageIndex) {
       ...messageHistory.slice(0, messageIndex),
       { ...original, content }
     ]);
-    const provider = conversationProvider();
-    // The regenerate is a NON-streaming LLM call (POST, no SSE ticks to flush a throttled status), so the rewound
-    // history would otherwise sit silently until the full response arrives. Surface the wait IMMEDIATELY on the
-    // shared conversation status line — the same responding/status 機構 the streaming turns use (setStreamStatus /
-    // setConversationStatus) — so the 応答中 state is visible while the reply regenerates.
-    setStreamStatus('返答を再生成しています…', { immediate: true });
-    const result = await postJson('/api/conversation/edit-user-message', {
-      character_id: activeCharacterId,
-      message_index: messageIndex,
-      content,
-      provider
+    // The regenerated reply streams like any turn: each utterance is revealed on its assistant_complete, and the
+    // controls stay closed until the result (the end of the turn's post-processing).
+    const result = await runAssistantSseStream({
+      surface: academyChatSurface,
+      endpoint: '/api/conversation/edit-user-message/stream',
+      body: {
+        character_id: activeCharacterId,
+        message_index: messageIndex,
+        content,
+        provider: conversationProvider()
+      },
+      statusPrefix: 'edit',
+      finalAssistantMode: 'last',
+      refreshAfter: false
     });
-    await renderConversationResultSequentially(result);
     await refresh();
+    if (result.prompt_prewarm_error) reportConversationError(result.prompt_prewarm_error);
   } finally {
     conversationRequestInFlight = false;
     setConversationControlsDisabled(false);
-    // Clear the 応答中 indicator on every outcome (success → the regenerated reply is revealed; failure →
-    // reportError surfaces the cause from the caller's .catch) so it never lingers as a stale responding state.
-    setConversationStatus('');
   }
 }
 
@@ -12392,6 +13334,7 @@ async function runConversation() {
       if (isRoutingTurnDispatch(result)) return;
       if (await autoEndConversationAfterFinalReply(result)) return;
       await refresh();
+      if (result.prompt_prewarm_error) reportConversationError(result.prompt_prewarm_error);
       return;
     }
     const result = await postJson('/api/conversation', routingTurnRequestBody({ player_input: playerInput, provider: provider }));
@@ -12433,6 +13376,7 @@ async function runConversation() {
 // (no post-processing runs in parallel with the transition, and no stall on a cleared conversation
 // screen). We do not hold the loop finalization gate (routing owns its own exit UI).
 async function endRoutingConversation() {
+  hideRoutingFinalizeBlockedNotice();
   const provider = conversationProvider();
   conversationRequestInFlight = true;
   setConversationControlsDisabled(true);
@@ -12445,6 +13389,9 @@ async function endRoutingConversation() {
   // snapshotted here for the same reason (a later clear must not move the hub/content split) and drives the
   // failure-path destination in the catch below.
   const hubActive = isRoutingHubActive();
+  // The hub without a conversation (its hub start failed): its 「今日はここまで」 finds no conversation to end
+  // server-side and goes on to the title gate (the conversationless branch below). Captured pre-clear like hubActive.
+  const hubStartFailure = routingHubStartFailure;
   const endingAtelierConversation = isActiveAtelierConversation();
   const atelierConversationId = endingAtelierConversation ? activeAtelierConversationId : null;
   const endActorId = endingAtelierConversation ? activeAtelierActor.character_id : activeCharacterId;
@@ -12472,6 +13419,10 @@ async function endRoutingConversation() {
   // server's last_conversation_id fallback, so the backend's active-atelier actor/id match is checked
   // against the real homunculus conversation even if the global actor had drifted.
   if (endingAtelierConversation) endBody.conversation_id = atelierConversationId;
+  // The hub end names the hub conversation for the same reason: a conversation post-processing retry that
+  // finalizes an older conversation moves the server's last_conversation_id onto it, so the end that the
+  // emergency exit re-runs after 「もう一度」 would otherwise resolve to that older conversation.
+  if (hubActive) endBody.conversation_id = routingHubConversationId;
   const endRequest = postJson('/api/conversation/end', endBody);
   try {
     // Hold the loading screen up until the drain-backed request returns (nextScreen: null keeps the
@@ -12489,6 +13440,17 @@ async function endRoutingConversation() {
     conversationRequestInFlight = false;
     setConversationControlsDisabled(false);
     writeDebugLog(result);
+    if (hubStartFailure) {
+      // The conversationless hub's end: the server has no conversation to end and answers exactly with the skip
+      // (reason no_active_conversation, no dispatch). Anything else is a contract violation and fails fast. There is
+      // nothing to drain, so the exit goes straight on to the title gate like the wrap-up.
+      if (result.skipped !== true || result.reason !== 'no_active_conversation' || result.routing_dispatch != null) {
+        throw new Error(`routing hub end without a conversation: expected the no_active_conversation skip, got ${JSON.stringify({ skipped: result.skipped, reason: result.reason, routing_dispatch: result.routing_dispatch })}`);
+      }
+      clearRoutingHubStartFailure();
+      await showRoutingWrapUpTitleTransition();
+      return;
+    }
     const dispatch = result.routing_dispatch ?? null;
     if (result.graduation_guide) {
       // Graduation guide start / continue via the end button ("今日はここまで"): routing week 50 cannot leave
@@ -12543,7 +13505,7 @@ async function endRoutingConversation() {
       await navigateToPostContentScreen(result.transition?.next_screen, {
         loadingCopy: routingDispatchLoadingCopy(dispatch),
         copyKey: result.transition?.loading_copy_key ?? null,
-        refreshField: true
+        routingArrival: routingArrivalFromDispatch(dispatch)
       });
       return;
     }
@@ -12554,10 +13516,12 @@ async function endRoutingConversation() {
     assertDrainedRoutingFinalization(result.finalization_status);
     currentRuntimeState = result.state ?? currentRuntimeState;
     clearRoutingHubConversation();
+    // A content-return is a routing arrival too (strict field refresh, the academy-map arrival); it carries no
+    // dispatch, so it has no destination name.
     await navigateToPostContentScreen(result.transition?.next_screen, {
       loadingCopy: null,
       copyKey: result.transition?.loading_copy_key ?? null,
-      refreshField: true
+      routingArrival: { destinationLabel: null }
     });
   } catch (error) {
     // Single defense line over the WHOLE routing end — the drain request AND the post-response validation
@@ -12574,7 +13538,17 @@ async function endRoutingConversation() {
       // errand / study circle daytime) must NOT eject to the hub — that would surface the pre-content hub
       // history as if it were the live conversation — so it stays on the content conversation screen
       // (conversation-day) with the cause shown on that screen's status line.
-      if (hubActive) {
+      // A hub end refused by a blocked post-processing queue shows the emergency exit instead of the cause.
+      if (hubStartFailure) {
+        // The conversationless hub's end failed: land on the same hub-start failure landing again (the cause stays on
+        // the console).
+        console.error(error);
+        showRoutingHubStartFailure(hubStartFailure);
+      } else if (hubActive && isPendingFinalizationsBlockedError(error)) {
+        showScreen('routing-hub');
+        routingHubStage.setStatus('');
+        showRoutingFinalizeBlockedNotice(endRoutingConversation);
+      } else if (hubActive) {
         showScreen('routing-hub');
         routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
       } else {
@@ -12631,40 +13605,38 @@ async function performRoutingTurnDispatch({ result, dispatch }) {
     await showRoutingWrapUpTitleTransition();
     return;
   }
-  if (dispatchScreen === 'academy-dungeon') {
-    // A dungeon dispatch enters the run directly (no operable pre-entry screen): the loading screen
-    // stays up while the field is refreshed and the existing dungeon enter path streams the board in.
-    await performRoutingDungeonDirectEntry({ loadingCopy: routingDispatchLoadingCopy(dispatch) });
-    return;
-  }
   if (dispatchScreen === 'academy-map') {
-    // A map dispatch is the sibling of the dungeon direct entry: the routing arrival satisfies the strict
-    // field refresh + placement reroll contract, then auto-starts a pending event (学院マップを経ずにイベント
-    // 直行) when one is startable — the same loading-covered event route the loop 鍛錬→学院マップ path uses.
+    // A map dispatch satisfies the routing arrival's strict field refresh + placement reroll contract, then
+    // auto-starts a pending event (学院マップを経ずにイベント直行) when one is startable — the same
+    // loading-covered event route the loop 鍛錬→学院マップ path uses.
     // The originating hub turn is still in-flight, so the event start opts into allowDuringInFlight (the
     // errand achievement auto-end 流儀).
-    await arriveAtRoutingAcademyMap({ loadingCopy: routingDispatchLoadingCopy(dispatch), allowDuringInFlight: true });
+    await arriveAtRoutingAcademyMap({ loadingCopy: routingDispatchLoadingCopy(dispatch), allowDuringInFlight: true, routingArrival: routingArrivalFromDispatch(dispatch) });
     return;
   }
-  // The remaining content destinations (鍛錬 / 依頼 / 調合 / 工房 / 研究会 / 週イベント): the dispatch progressed
-  // the week server-side, so refresh the server-evaluated field (/api/field) under the loading screen before
-  // the destination renders. The refresh is strict — a failed /api/field fail-fasts instead of rendering the
-  // destination on a stale field. (The academy-map arrival, the only placement-reroll + event-scan
+  // The remaining content destinations (鍛錬 / ダンジョン / 依頼 / 調合 / 工房 / 研究会 / 週イベント): the dispatch
+  // progressed the week server-side, so refresh the server-evaluated field (/api/field) under the loading screen
+  // before the destination renders. A dungeon dispatch lands on the dungeon's prep screen like every other entry
+  // to it; the player dives from there. The refresh is strict — a failed /api/field fail-fasts instead of
+  // rendering the destination on a stale field. (The academy-map arrival, the only placement-reroll + event-scan
   // destination, is handled above.)
+  const routingArrival = routingArrivalFromDispatch(dispatch);
   try {
     await showAcademyLoadingScreenUntilReady({
       readiness: Promise.resolve(),
       nextScreen: dispatchScreen,
       refreshBeforeNextScreen: true,
       strictFieldRefresh: true,
+      routingArrival,
       loadingCopy: routingDispatchLoadingCopy(dispatch)
     });
   } catch (error) {
     // A failed field refresh must not render the destination on a stale field, and must not strand the
     // player on the loading screen. reportLoadingError already surfaced it through the existing discipline
-    // (LM config/connection errors redirect to settings); for any other failure, un-strand back to the hub
-    // so the player can retry.
-    if (settingsRedirectErrorMessage(error) == null) showScreen('routing-hub');
+    // (LM config/connection errors redirect to settings); for any other failure, return to the hub so the
+    // player can choose again, with the failure notice naming the destination. The dispatch already ended the hub
+    // conversation, so the hub is opened anew (the originating turn is still in flight).
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight: true, failedArrival: routingArrival });
   }
 }
 
@@ -12778,17 +13750,27 @@ function resolvePlayModeEntryRoute(result, source) {
 // mirrors endConversationDay({ allowDuringInFlight: true }) for the cutoff auto-end: the transition is
 // permitted by an explicit flag, never by clearing conversationRequestInFlight early. Every other caller
 // (the 3 play entries, training / content return) omits it and keeps the in-flight guard as a re-entry block.
-async function enterRoutingHub({ allowDuringInFlight = false } = {}) {
+// failedArrivalScreen is the screen of a destination reached without a dispatch whose load failed and sent the player
+// back: the hub start names that destination by id, and this resolves to its name in routing_destinations (null otherwise).
+async function enterRoutingHub({ allowDuringInFlight = false, failedArrivalScreen = null } = {}) {
   if (conversationRequestInFlight && !allowDuringInFlight) {
     showProcessingToast();
-    return;
+    return null;
   }
   conversationRequestInFlight = true;
   setConversationControlsDisabled(true);
+  hideRoutingFinalizeBlockedNotice();
   try {
     // Drain-on-exit owns post-processing: the exit that returned to the hub fully drained the queue
     // before transitioning here, so the hub opening starts immediately with no entry pre-drain wait.
-    const result = await postJson('/api/routing/hub/start', {});
+    const result = await postJson('/api/routing/hub/start', failedArrivalScreen === null ? {} : { failed_arrival_screen: failedArrivalScreen });
+    // The hub start carries the destination catalog's ids and names: the terrace names the destinations in the guide's
+    // words from it, and a failed arrival's name is read from it by id.
+    hubTerrace.setDestinations(result.routing_destinations);
+    if (failedArrivalScreen !== null && typeof result.failed_arrival?.destination_id !== 'string') {
+      throw new Error(`routing hub start: missing failed_arrival.destination_id for ${failedArrivalScreen}`);
+    }
+    const failedArrivalLabel = failedArrivalScreen === null ? null : hubTerrace.destinationLabel(result.failed_arrival.destination_id);
     // The hub-start POST and the refresh below are the two observed await boundaries every routing hub entry shares
     // (the 3 play entries via enterRoutingHubFromPlayEntry, the content → hub returns via
     // returnToRoutingHubThroughLoadingScreen, and the dungeon-exit hub return). Advancing the constellation here
@@ -12798,6 +13780,7 @@ async function enterRoutingHub({ allowDuringInFlight = false } = {}) {
     // refreshCharacters() from resetting the actor to the roster head, and drives the routing display
     // model + deterministic turn continuation. Fail-fast if the response is not a routing hub.
     enterRoutingHubConversation(result.conversation);
+    clearRoutingHubStartFailure();
     // Register ルミ's non-selectable visual (the effective routing_lumi_<variant> set) so her face /
     // standee / speaker icon render her own art. Fail-fast if the response omits it — no blank / roster-head fallback.
     registerRoutingPersonaVisual(result.routing_persona_visual);
@@ -12807,10 +13790,14 @@ async function enterRoutingHub({ allowDuringInFlight = false } = {}) {
     await refresh();
     notifyAcademyLoadingProgress();
     showScreen('routing-hub');
+    // The returned week's fade waits for a hub start that answered (its routing_destinations name the place), so the
+    // conversationless hub a failed start lands on never paints it.
+    hubTerrace.hubStarted(currentRuntimeState);
     await revealResultSequentially(routingHubStage.surface, result);
     await Promise.all([refreshPrompt(), refreshRecordStatus()]);
+    return failedArrivalLabel;
   } catch (error) {
-    if (handleRuntimeApiError(error, { allowSettingsRedirect: true })) return;
+    if (handleRuntimeApiError(error, { allowSettingsRedirect: true })) return null;
     throw error;
   } finally {
     conversationRequestInFlight = false;
@@ -12860,23 +13847,158 @@ async function enterRoutingHubFromPlayEntry(originScreen) {
 // non-streaming hub start with no drain phase of its own: 鍛錬 (routeAfterCompletedAcademyTraining), 調合 と
 // 工房 (returnToRoutingHubFromContent), and the errand achievement auto-return
 // (completeErrandFromTurnResult), which opts into allowDuringInFlight because it runs inside the daytime
-// turn's still-in-flight window (the flag is threaded straight to enterRoutingHub's re-entry gate). The
-// failure defense follows endRoutingConversation's hub-return
-// contract rather than the play-entry origin un-strand: a settings-redirect hub-start error already left the
-// loading screen for the settings screen inside enterRoutingHub (so the loading screen is no longer active
-// and this is skipped); any other hub-start failure threw before the hub switch (the loading screen is still
-// active), so un-strand to the hub and surface the cause on the hub status line instead of stranding the
-// player on the loading screen. A post-switch failure (already on the hub) is rethrown to the caller.
-async function returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight = false } = {}) {
+// turn's still-in-flight window (the flag is threaded straight to enterRoutingHub's re-entry gate).
+// failedArrival (routingFailedArrival's { destinationLabel } or { screen }, or null) is the destination whose arrival
+// failed and sent the player back: once the hub is open again its status line carries the failure notice naming it —
+// by the dispatch's label, or for { screen } by the label the hub start answers for that screen. A settings-redirect hub-start error
+// already left the loading screen for the settings screen inside enterRoutingHub (so the loading screen is no longer
+// active and nothing is shown here); any other hub-start failure threw before the hub switch (the loading screen is
+// still active), so it lands on the hub without a conversation (showRoutingHubStartFailure) instead of stranding the
+// player on the loading screen. A post-switch failure (already on the hub) is rethrown to the caller. Resolves true
+// only when the hub conversation is open, so a caller that writes onto the hub afterwards never overwrites the
+// hub-start failure landing.
+async function returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight = false, failedArrival = null } = {}) {
+  const failedArrivalScreen = failedArrival === null ? null : failedArrival.screen ?? null;
+  const { opened, failedArrivalLabel } = await openRoutingHubThroughLoadingScreen({
+    allowDuringInFlight,
+    failedArrivalScreen,
+    startFailure: { destinationLabel: failedArrival === null || failedArrivalScreen !== null ? null : failedArrival.destinationLabel }
+  });
+  if (opened && failedArrival) {
+    showRoutingHubFailureNotice({ destinationLabel: failedArrivalScreen === null ? failedArrival.destinationLabel : failedArrivalLabel });
+  }
+  return opened;
+}
+
+async function openRoutingHubThroughLoadingScreen({ allowDuringInFlight, failedArrivalScreen, startFailure }) {
   setAcademyLoadingDestinationCopy(null, { loadingCopy: ROUTING_HUB_ENTRY_LOADING_COPY });
   showScreen('academy-loading');
+  let failedArrivalLabel;
   try {
-    await enterRoutingHub({ allowDuringInFlight });
+    failedArrivalLabel = await enterRoutingHub({ allowDuringInFlight, failedArrivalScreen });
   } catch (error) {
     if (!isAcademyLoadingScreenActive()) throw error;
-    showScreen('routing-hub');
-    routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+    console.error(error);
+    showRoutingHubStartFailure(startFailure);
+    return { opened: false, failedArrivalLabel: null };
   }
+  return { opened: isRoutingHubActive(), failedArrivalLabel };
+}
+
+// A routing destination's arrival fetch failed on the screen it landed on: without it the screen has nothing to go on
+// with (no board, no held exit), so return to the hub — opened anew, because the dispatch already ended the hub
+// conversation — with the failure notice naming the destination (failedArrival: routingFailedArrival's), the same
+// exit a failed arrival loading takes. The cause itself stays on the console. An LM config/connection failure goes to
+// the settings screen instead.
+function returnToRoutingHubAfterArrivalFailure(error, failedArrival) {
+  console.error(error);
+  if (handleRuntimeApiError(error, { allowSettingsRedirect: true })) return;
+  returnToRoutingHubThroughLoadingScreen({ failedArrival }).catch(reportError);
+}
+
+// The destination name a routing arrival carries: the dispatch's label, or null for a dev entry that did not come
+// through a dispatch.
+function routingArrivalDestinationLabel(routingArrival) {
+  return routingArrival === null ? null : routingArrival.destinationLabel;
+}
+
+// The failed arrival a hub return names: the dispatch's arrival ({ destinationLabel }) when a routing hub dispatch
+// landed on the screen, otherwise the screen itself ({ screen }) — an entry that did not come through a dispatch (the
+// dev ?initialScreen entry, the reload resume) — whose name the hub start answers from the destination catalog.
+function routingFailedArrival(routingArrival, screen) {
+  return routingArrival === null ? { screen } : routingArrival;
+}
+
+// The routing arrival a dispatch lands with: its destination_label names the destination on a failure notice. The
+// label is required (the same contract routingDispatchLoadingCopy holds).
+function routingArrivalFromDispatch(dispatch) {
+  const label = dispatch?.destination_label;
+  if (typeof label !== 'string' || label === '') {
+    throw new Error('routing dispatch: missing destination_label');
+  }
+  return { destinationLabel: label };
+}
+
+// 失敗の紋: 途切れた星の道 — two star points joined by a path that breaks off midway. It carries the failure on the
+// status lines of the landings a failed destination load leads to, beside the destination's name (the dispatch's
+// destination_label); the English cause stays on the console.
+const ROUTING_FAILURE_GLYPH_SVG = '<svg class="routing-failure-glyph" viewBox="0 0 40 20" aria-hidden="true" focusable="false">'
+  + '<path class="routing-failure-glyph-star" d="M5 4.5 6.1 8.9 10.5 10 6.1 11.1 5 15.5 3.9 11.1-.5 10 3.9 8.9z"/>'
+  + '<path class="routing-failure-glyph-star" d="M35 4.5 36.1 8.9 40.5 10 36.1 11.1 35 15.5 33.9 11.1 29.5 10 33.9 8.9z"/>'
+  + '<path class="routing-failure-glyph-path" d="M10.8 10H16.6M23.4 10H29.2"/>'
+  + '<path class="routing-failure-glyph-break" d="M18.4 7.2 19.4 9M21.6 11 20.6 12.8"/>'
+  + '</svg>';
+
+// Write the failure notice onto a status line: the mark — the glyph, then the destination name when the landing
+// knows it — and, on a row of its own, the one line the landing adds, so the name never reads as the line's subject.
+// A landing without a name or a line shows the glyph alone.
+function writeRoutingFailureNotice(status, { destinationLabel = null, line = null }) {
+  const mark = document.createElement('span');
+  mark.className = 'routing-failure-mark';
+  mark.innerHTML = ROUTING_FAILURE_GLYPH_SVG;
+  if (destinationLabel) {
+    const destination = document.createElement('span');
+    destination.className = 'routing-failure-destination';
+    destination.textContent = destinationLabel;
+    mark.append(destination);
+  }
+  status.replaceChildren(mark);
+  if (line) {
+    const lineElement = document.createElement('span');
+    lineElement.className = 'routing-failure-line';
+    lineElement.textContent = line;
+    status.append(lineElement);
+  }
+  status.hidden = false;
+  status.dataset.tone = 'error';
+}
+
+// The hub status line keeps the stage's bottom-follow rule: a reader at the bottom of the stream stays there when the
+// notice claims its line.
+function showRoutingHubFailureNotice(notice) {
+  const stream = document.querySelector('#routing-hub-message-stream');
+  const stick = routingHubStage.streamIsAtBottom(stream);
+  writeRoutingFailureNotice(document.querySelector('#routing-hub-status'), notice);
+  if (stick) stream.scrollTop = stream.scrollHeight;
+}
+
+// The hub without a conversation: the hub start itself failed (after a failed arrival, or on a plain return such as
+// 工房の「出る」). The landing holds the failure notice with its line, the glyph button that asks for the hub
+// start again (retryRoutingHubStart), a closed send (there is no conversation to send into), and a
+// 「今日はここまで」 that goes on to the title gate (endRoutingConversation's conversationless branch).
+// routingHubStartFailure is the landing's { destinationLabel } while it is up, null otherwise.
+const ROUTING_HUB_START_FAILED_LINE = '今は、会話を始められませんでした';
+let routingHubStartFailure = null;
+
+function showRoutingHubStartFailure(startFailure) {
+  routingHubStartFailure = startFailure;
+  showScreen('routing-hub');
+  showRoutingHubFailureNotice({ destinationLabel: startFailure.destinationLabel, line: ROUTING_HUB_START_FAILED_LINE });
+  const retry = document.querySelector('#routing-hub-start-retry');
+  retry.hidden = false;
+  retry.disabled = false;
+  document.querySelector('#routing-hub-send').disabled = true;
+}
+
+// The hub conversation is open again (or the conversationless hub is left for the title): drop the landing, its
+// notice and its retry button, and reopen the send unless the post-processing notice keeps it stopped.
+function clearRoutingHubStartFailure() {
+  if (!routingHubStartFailure) return;
+  routingHubStartFailure = null;
+  document.querySelector('#routing-hub-start-retry').hidden = true;
+  routingHubStage.setStatus('');
+  if (!routingFinalizeBlockedExit) document.querySelector('#routing-hub-send').disabled = false;
+}
+
+async function retryRoutingHubStart() {
+  const startFailure = routingHubStartFailure;
+  if (!startFailure) throw new Error('routing hub start retry: the hub has a conversation');
+  if (conversationRequestInFlight) {
+    showProcessingToast();
+    return;
+  }
+  document.querySelector('#routing-hub-start-retry').disabled = true;
+  await openRoutingHubThroughLoadingScreen({ allowDuringInFlight: false, failedArrivalScreen: null, startFailure });
 }
 
 // Single-flight guard shared by the 調合 受け取る and 工房 出る hub returns so a double press never starts two
@@ -12940,7 +14062,9 @@ function routingDispatchLoadingCopy(dispatch) {
 // fail-fasts rather than falling back to a default screen. allowDuringInFlight is forwarded to the
 // 'interaction' hub re-open for the errand achievement auto-end — the one content-return that runs inside
 // its still-in-flight originating turn; every other caller leaves it false and keeps the in-flight guard.
-async function navigateToPostContentScreen(nextScreen, { loadingCopy = null, copyKey = null, refreshField = false, allowDuringInFlight = false } = {}) {
+// routingArrival ({ destinationLabel } from the dispatch) marks the routing hub dispatch's arrival; null for the
+// loop navigation.
+async function navigateToPostContentScreen(nextScreen, { loadingCopy = null, copyKey = null, routingArrival = null, allowDuringInFlight = false } = {}) {
   if (typeof nextScreen !== 'string' || nextScreen === '') {
     throw new Error('post-content navigation: missing next screen');
   }
@@ -12948,53 +14072,48 @@ async function navigateToPostContentScreen(nextScreen, { loadingCopy = null, cop
     await enterRoutingHub({ allowDuringInFlight });
     return;
   }
-  if (nextScreen === 'academy-dungeon') {
-    // A dungeon dispatch enters the run directly (no operable pre-entry screen), the sibling of the
-    // 'interaction' hub re-open: the destination needs an action, not just a screen show. The loading
-    // screen stays up while the field is refreshed and the existing enter path streams the board in.
-    await performRoutingDungeonDirectEntry({ loadingCopy });
-    return;
-  }
-  if (refreshField && nextScreen === 'academy-map') {
+  if (routingArrival && nextScreen === 'academy-map') {
     // The routing end-button arrival at the academy map: the sibling of the in-turn map dispatch (both
     // funnel a map arrival into the shared placement-reroll + pending-event-scan helper). The originating
     // turn already released its in-flight flag before navigating (endRoutingConversation), so the event
     // auto-start needs no allowDuringInFlight opt-in here.
-    await arriveAtRoutingAcademyMap({ loadingCopy, copyKey });
+    await arriveAtRoutingAcademyMap({ loadingCopy, copyKey, routingArrival });
     return;
   }
-  // refreshField is the routing content-arrival contract: a routing dispatch progressed the week
+  // The routing arrival is the routing content-arrival contract: a routing dispatch progressed the week
   // server-side, so strictly refresh the server-evaluated field (/api/field) under the loading screen
   // before the destination renders (a failed /api/field fail-fasts instead of rendering a stale field). The
-  // loop dungeon exit reuses this navigation for academy-room with refreshField:false, so its transition
+  // loop dungeon exit reuses this navigation for academy-room with no routing arrival, so its transition
   // stays byte-equivalent (no added refresh, resilient); the routing return to 'interaction' already
   // refreshes through enterRoutingHub above, and the routing academy-map arrival (placement reroll + pending
   // event scan) is handled above.
+  const refreshField = routingArrival !== null;
   try {
     await showAcademyLoadingScreenUntilReady({
       readiness: Promise.resolve(),
       nextScreen,
       refreshBeforeNextScreen: refreshField,
       strictFieldRefresh: refreshField,
+      routingArrival,
       loadingCopy,
       copyKey
     });
   } catch (error) {
-    // Only the routing arrival (refreshField) fail-fasts here; the loop/non-routing navigation keeps its
-    // original propagation (its refresh is resilient and never throws). A failed routing field refresh must
-    // not render the destination on a stale field and must not strand the player on the loading screen:
-    // reportLoadingError already surfaced it (LM config errors → settings); un-strand to the hub otherwise.
+    // Only the routing arrival fail-fasts here; the loop/non-routing navigation keeps its original propagation (its
+    // refresh is resilient and never throws). A failed routing field refresh must not render the destination on a
+    // stale field and must not strand the player on the loading screen: reportLoadingError already surfaced it (LM
+    // config errors → settings); otherwise return to the hub with the failure notice naming the destination, opened
+    // anew because the dispatch already ended the hub conversation.
     if (!refreshField) throw error;
-    if (settingsRedirectErrorMessage(error) == null) showScreen('routing-hub');
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight, failedArrival: routingArrival });
   }
 }
 
-// Routing academy-map arrival with pending-event auto-start — the map sibling of the dungeon direct entry
-// (performRoutingDungeonDirectEntry). Both routing dispatch paths funnel a map destination here: the in-turn
-// performRoutingTurnDispatch and the end-button navigateToPostContentScreen. The dispatch already validated
-// the drained finalization and adopted the post-dispatch state upstream; this keeps the loading screen up
+// Routing academy-map arrival with pending-event auto-start. Both routing dispatch paths funnel a map destination
+// here: the in-turn performRoutingTurnDispatch and the end-button navigateToPostContentScreen. The dispatch already
+// validated the drained finalization and adopted the post-dispatch state upstream; this keeps the loading screen up
 // while it (1) holds the minimum display and STRICTLY refreshes the week-progressed server field (the routing
-// content-arrival contract — a failed /api/field fail-fasts, un-strands to the hub, never renders a stale
+// content-arrival contract — a failed /api/field fail-fasts, returns to the hub, never renders a stale
 // field), then (2) fresh-scans pending events over GET /api/event-flags (never from stale client state). A
 // startable pending event — an event flag carrying an interaction location + source character, the same
 // predicate the loop 鍛錬→学院マップ route uses — keeps the loading screen up and hands off to the loading-aware
@@ -13003,10 +14122,11 @@ async function navigateToPostContentScreen(nextScreen, { loadingCopy = null, cop
 // shown, byte-equivalent to the plain routing arrival. The event scan runs AFTER the strict field refresh so
 // the routing arrival contract is fully satisfied before any divert. A failed field refresh / event scan /
 // event start is never swallowed onto the map: it surfaces through reportLoadingError (or the event start's
-// own loading-error handling) and un-strands to the hub. The in-turn caller is still in-flight, so it passes
-// allowDuringInFlight through to the event start (the errand achievement auto-end 流儀); the end-button caller
-// already released the flag and leaves it false.
-async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, allowDuringInFlight = false } = {}) {
+// own loading-error handling) and returns to the hub, opened anew because the dispatch already ended the hub
+// conversation. The in-turn caller is still in-flight, so it passes allowDuringInFlight through to the event start
+// and the hub re-open (the errand achievement auto-end 流儀); the end-button caller already released the flag and
+// leaves it false.
+async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, allowDuringInFlight = false, routingArrival }) {
   setAcademyLoadingDestinationCopy('academy-map', { copyKey, loadingCopy });
   showScreen('academy-loading');
   const minimumDisplay = new Promise((resolve) => setTimeout(resolve, ACADEMY_LOADING_MINIMUM_MS));
@@ -13015,7 +14135,7 @@ async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, a
     // (1) Hold the loading screen through the minimum display, then the STRICT week-progressed field refresh
     // (a failed /api/field throws — the map is never rendered on a stale field). (2) The dispatch contract is
     // complete (drained + state adopted upstream, field refreshed here); fresh-scan pending events. This scan
-    // is INSIDE the try so a failed /api/event-flags un-strands to the hub instead of silently dropping onto
+    // is INSIDE the try so a failed /api/event-flags returns to the hub instead of silently dropping onto
     // the map.
     await minimumDisplay;
     await refresh({ strictField: true });
@@ -13025,10 +14145,10 @@ async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, a
     autoStartFlag = (status.pending_events ?? []).find((flag) => flag.interaction?.location_id && flag.character_id);
   } catch (error) {
     // A failed strict field refresh or pending-event scan must not render the map on a stale field and must
-    // not silently drop onto the map: surface it (LM config → settings) and un-strand to the hub so the
-    // loading screen is never terminal. Same discipline as performRoutingDungeonDirectEntry.
+    // not silently drop onto the map: surface it (LM config → settings) and return to the hub, opened anew because
+    // the dispatch already ended the hub conversation, so the loading screen is never terminal.
     reportLoadingError(error);
-    if (settingsRedirectErrorMessage(error) == null) showScreen('routing-hub');
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight, failedArrival: routingArrival });
     return;
   }
   if (!autoStartFlag) {
@@ -13041,79 +14161,9 @@ async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, a
     // (opening stream 開始まで loading で覆う); the academy map is never shown.
     await startAcademyConversationSessionFromPendingEvent(autoStartFlag.id, { loadingAlreadyVisible: true, allowDuringInFlight });
   } catch (error) {
-    // The event start already surfaced the cause through its own reportLoadingError; only un-strand off the
-    // loading screen for a non-settings-redirect failure so it is never terminal (never a silent map drop).
-    if (settingsRedirectErrorMessage(error) == null) showScreen('routing-hub');
-  }
-}
-
-// Routing dungeon dispatch (destination_id=dungeon): land the player directly in the dungeon run
-// instead of the operable pre-entry screen (academy-dungeon). The loading screen stays up continuously
-// while (1) the week-progressed server field is strictly refreshed and (2) the same enter path the
-// pre-entry screen's enter button drives streams the board + companion opening in; only then does the
-// run board render (showPlay). No operable intermediate screen is ever shown. This is a frontend-only
-// direct-entry: the dispatch already progressed the week / drained the queue server-side, so this adds
-// no backend contract. An enter failure (LM unavailable, an already-active/held run, ...) is surfaced
-// explicitly and lands on the operable pre-entry screen (academy-dungeon, whose refresh resumes a held
-// run or renders the entry to retry) — never a silent retry and never a silent drop onto the loader.
-async function performRoutingDungeonDirectEntry({ loadingCopy }) {
-  setAcademyLoadingDestinationCopy(null, { loadingCopy });
-  showScreen('academy-loading');
-  try {
-    // Strict field refresh — the same routing content-arrival contract as the other destinations: the
-    // dispatch progressed the week server-side, so a failed /api/field fail-fasts rather than entering
-    // the dungeon on a stale field.
-    await refresh({ strictField: true });
-  } catch (error) {
-    // reportLoadingError surfaced it (LM config → settings); un-strand to the hub otherwise so the
-    // loading screen is never terminal.
-    reportLoadingError(error);
-    if (settingsRedirectErrorMessage(error) == null) showScreen('routing-hub');
-    return;
-  }
-  // Auto-run the existing dungeon enter path under the same loading screen. The board arrives on the
-  // dungeon_enter event; showPlay reveals it the moment the companion opening starts streaming (or after
-  // the minimum hold for a solo/no-opening enter), switching to the dungeon screen with skipDungeonRefresh
-  // so the buffered board renders without a redundant re-fetch.
-  setAcademyLoadingDestinationCopy(null, { loadingCopy: DUNGEON_ENTER_LOADING_COPY });
-  dungeonActionInFlight = true;
-  dungeonChatMessages = [];
-  let bufferedView = null;
-  let leftLoading = false;
-  const showPlay = () => {
-    if (leftLoading || !bufferedView) return;
-    leftLoading = true;
-    showScreen('academy-dungeon', { skipDungeonRefresh: true });
-    renderDungeonPlay(bufferedView);
-  };
-  try {
-    const minimumDisplay = sleep(ACADEMY_LOADING_MINIMUM_MS);
-    await runAssistantSseStream({
-      surface: dungeonChatSurface,
-      endpoint: '/api/dungeon/enter',
-      body: {},
-      statusPrefix: 'dungeon-enter',
-      finalAssistantMode: 'first',
-      refreshAfter: false,
-      onEvent: (event, data) => { if (event === 'dungeon_enter') { bufferedView = data.view; notifyAcademyLoadingProgress(); } },
-      onAssistantStreamStart: () => showPlay()
-    });
-    await minimumDisplay;
-    // Contract guard: the enter stream must deliver the board (dungeon_enter) before its result. If it
-    // resolved without one, showPlay is a no-op and the loading screen would be terminal — fail fast
-    // through the same visible error path as an enter failure instead of silently stranding the loader.
-    if (!bufferedView) {
-      throw new Error('dungeon enter: stream completed without a dungeon_enter board event');
-    }
-    showPlay();
-  } catch (error) {
-    // Enter / opening failure (or a boardless stream) is NOT silently retried: land on the operable
-    // pre-entry screen and surface the cause. academy-dungeon's refresh resumes a held run
-    // (pending_finalize) or renders the entry, so the player lands where they can see the situation and act.
-    showScreen('academy-dungeon');
-    reportError(error);
-  } finally {
-    dungeonActionInFlight = false;
+    // The event start already surfaced the cause through its own reportLoadingError; for a non-settings-redirect
+    // failure return to the hub, opened anew like the failures above (never a silent map drop).
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight, failedArrival: routingArrival });
   }
 }
 
@@ -13123,88 +14173,149 @@ async function performRoutingDungeonDirectEntry({ loadingCopy }) {
 // pending-finalization queue server-side before it transitions, so there is no entry pre-drain wait
 // and no background idle drain — only the failed-retry UI (below) touches the queue after an exit.
 
-// The conversation post-processing (finalize) recovery category owns its own status line, independent of any
-// other settings panel.
-function setConversationFinalizeSettingsStatus(message) {
-  const status = document.querySelector('#conversation-finalize-settings-status');
-  if (status) status.textContent = message;
+// The conversation post-processing emergency exit. A hub exit (今日はここまで, a decided send-off turn, a
+// graduation-guide partner turn) drains the whole pending-finalization queue server-side; when a failed job
+// blocks that drain the server refuses the exit with error_code pending_finalizations_blocked. Only then does
+// the hub show one line and 「もう一度」 over itself (the server's English message is never shown). 「もう一度」
+// drives the retry route for every failed character; once they all pass the line disappears and the refused
+// exit runs again (resumeExit). A retry that fails keeps the line and names the reason beneath it, in the
+// model-list transport table's words. The refused turn is already saved server-side and the refused exit has
+// closed the hub conversation there, so while the line is up the hub's send stays stopped (the button and
+// Enter): a resend could only be refused, and its failure would take the line and 「もう一度」 away.
+const PENDING_FINALIZATIONS_BLOCKED_ERROR_CODE = 'pending_finalizations_blocked';
+const LM_STUDIO_CONNECTION_UNAVAILABLE_CODE = 'LMSTUDIO_CONNECTION_UNAVAILABLE';
+let routingFinalizeBlockedExit = null;
+let routingFinalizeRetryInFlight = false;
+
+function isPendingFinalizationsBlockedError(error) {
+  return error?.errorCode === PENDING_FINALIZATIONS_BLOCKED_ERROR_CODE;
 }
 
-// Re-read runtime_state after a finalize error so the failed-retry UI reflects the latest
-// attempts/error. A read failure is itself surfaced (never swallowed).
-async function refreshRoutingFinalizeStateAfterError() {
-  try {
-    currentRuntimeState = await getJson('/api/state');
-  } catch (error) {
-    reportError(error);
-  }
-  renderRoutingFinalizePanel();
+function routingFinalizeNoticeElements() {
+  return {
+    notice: document.querySelector('#routing-hub-finalize-notice'),
+    retry: document.querySelector('#routing-hub-finalize-retry'),
+    reason: document.querySelector('#routing-hub-finalize-notice-reason')
+  };
 }
 
-// Render the failed pending finalizations (status/attempts/error) into the settings card, each with a
-// retry control that re-drives the per-character drain. Hidden when there are no failed jobs.
-function renderRoutingFinalizePanel() {
-  const panel = document.querySelector('#routing-finalize-panel');
-  const list = document.querySelector('#routing-finalize-failed-list');
-  if (!panel || !list) return;
-  const failed = listFailedFinalizations(currentRuntimeState);
-  panel.hidden = failed.length === 0;
-  list.replaceChildren(...failed.map((job) => {
-    const item = document.createElement('li');
-    item.className = 'routing-finalize-failed-item';
-    const meta = document.createElement('p');
-    meta.className = 'routing-finalize-failed-meta';
-    meta.textContent = `${job.character_id}／状態: ${job.status}／${job.attempts}回失敗${job.failed_at ? `（最終 ${job.failed_at}）` : ''}`;
-    const errorLine = document.createElement('p');
-    errorLine.className = 'routing-finalize-failed-error';
-    errorLine.textContent = job.error_message ?? '原因不明のエラー';
-    const actions = document.createElement('div');
-    actions.className = 'routing-finalize-failed-actions';
-    const retry = document.createElement('button');
-    retry.type = 'button';
-    retry.className = 'academy-map-action-button';
-    retry.textContent = '再試行';
-    retry.addEventListener('click', () => { retryRoutingFinalization(job.character_id, retry).catch(reportError); });
-    actions.append(retry);
-    item.append(meta, errorLine, actions);
-    return item;
-  }));
+function setRoutingHubControlsDisabled(disabled) {
+  routingHubStage.setControlsDisabled(disabled);
+  if (routingFinalizeBlockedExit || routingHubStartFailure) document.querySelector('#routing-hub-send').disabled = true;
 }
 
-// Retry a failed character's post-processing by driving the dedicated retry endpoint, which resets the
-// character's failed head record to pending and re-drains it. `retried` with a drained job clears the
-// entry; `retried` that re-fails leaves it listed with attempts++; `idle` means there was nothing to
-// retry. A thrown error (or an unknown retry_status) is surfaced, never swallowed.
-async function retryRoutingFinalization(characterId, button) {
-  if (button) button.disabled = true;
-  setConversationFinalizeSettingsStatus(`${characterId} の後処理を再試行しています…`);
-  let retry;
-  try {
-    // The POST + response validation + state persist live in the pure, behaviorally-tested
-    // runFailedFinalizationRetry; here we inject the real transport + state writer.
-    retry = await runFailedFinalizationRetry({
-      characterId,
-      retry: (id) => postJson('/api/conversation/finalize/retry', { character_id: id }),
-      writeState: (state) => { currentRuntimeState = state ?? currentRuntimeState; }
-    });
-  } catch (error) {
-    await refreshRoutingFinalizeStateAfterError();
-    setConversationFinalizeSettingsStatus(`${characterId} の後処理の再試行に失敗しました。原因を直して再度お試しください。`);
-    if (button) button.disabled = false;
-    reportError(error);
+function setRoutingFinalizeNoticeReason(text) {
+  const { reason } = routingFinalizeNoticeElements();
+  reason.textContent = text;
+  reason.hidden = text === '';
+}
+
+function showRoutingFinalizeBlockedNotice(resumeExit) {
+  if (typeof resumeExit !== 'function') throw new Error('routing finalize notice requires the refused exit to resume');
+  routingFinalizeBlockedExit = resumeExit;
+  const { notice, retry } = routingFinalizeNoticeElements();
+  setRoutingFinalizeNoticeReason('');
+  retry.disabled = false;
+  notice.hidden = false;
+  document.querySelector('#routing-hub-send').disabled = true;
+}
+
+function hideRoutingFinalizeBlockedNotice() {
+  const sendWasStopped = routingFinalizeBlockedExit !== null;
+  routingFinalizeBlockedExit = null;
+  const { notice } = routingFinalizeNoticeElements();
+  setRoutingFinalizeNoticeReason('');
+  notice.hidden = true;
+  if (sendWasStopped && !routingHubStartFailure) document.querySelector('#routing-hub-send').disabled = false;
+}
+
+// The reason line for a failed retry: an LM transport failure reads from the model-list table; any other
+// failure names its own reason. A failure with no reason at all throws (never an unnamed error).
+function routingFinalizeRetryFailureMessage(error) {
+  const payload = error?.payload;
+  if (payload?.error_code === LM_STUDIO_CONNECTION_UNAVAILABLE_CODE) return lmStudioTransportFailureMessage(payload);
+  const reason = String(payload?.error ?? error?.message ?? '').trim();
+  if (!reason) throw new Error('conversation post-processing retry failed without a reason');
+  return `後片づけに失敗しました: ${reason}`;
+}
+
+async function retryBlockedRoutingFinalizations() {
+  const resumeExit = routingFinalizeBlockedExit;
+  if (!resumeExit) throw new Error('routing finalize retry: no refused hub exit to resume');
+  if (routingFinalizeRetryInFlight) return;
+  if (conversationRequestInFlight) {
+    showProcessingToast();
     return;
   }
-  // runFailedFinalizationRetry already persisted retry.state via the injected writeState.
-  const outcome = describeRetryOutcome(retry);
-  if (outcome === 'idle') {
-    setConversationFinalizeSettingsStatus(`${characterId} に再試行できる失敗はありませんでした。`);
-  } else if (outcome === 'completed') {
-    setConversationFinalizeSettingsStatus(`${characterId} の後処理を再試行し、完了しました。`);
-  } else {
-    setConversationFinalizeSettingsStatus(`${characterId} の後処理を再試行しましたが、まだ完了していません。原因を直して再度お試しください。`);
+  routingFinalizeRetryInFlight = true;
+  const { retry } = routingFinalizeNoticeElements();
+  retry.disabled = true;
+  setRoutingFinalizeNoticeReason('');
+  try {
+    currentRuntimeState = await getJson('/api/state');
+    const characterIds = [...new Set(listFailedFinalizations(currentRuntimeState).map((job) => job.character_id))];
+    for (const characterId of characterIds) {
+      // The POST + response validation + state persist live in the pure runFailedFinalizationRetry; a re-failed
+      // job makes the retry route throw, which lands in the catch below.
+      await runFailedFinalizationRetry({
+        characterId,
+        retry: (id) => postJson('/api/conversation/finalize/retry', { character_id: id }),
+        writeState: (state) => { currentRuntimeState = state; }
+      });
+    }
+  } catch (error) {
+    setRoutingFinalizeNoticeReason(routingFinalizeRetryFailureMessage(error));
+    retry.disabled = false;
+    console.error(error);
+    return;
+  } finally {
+    routingFinalizeRetryInFlight = false;
   }
-  // Re-render from the persisted state: a cleared job disappears, a re-failed one shows attempts++.
-  renderRoutingFinalizePanel();
+  hideRoutingFinalizeBlockedNotice();
+  await resumeExit();
+}
+
+// The refused exit of a decided send-off turn, run again after the retry: the send-off turn is already saved,
+// so a plain hub end (no wrap_up) makes the server rebuild the same dispatch from the conversation's decided
+// destination (the week progression is keyed by the conversation, so it never applies twice), and the
+// in-turn dispatch path takes it to the destination.
+async function resumeRoutingHubSendoffDispatch() {
+  if (conversationRequestInFlight) {
+    showProcessingToast();
+    return;
+  }
+  if (!isRoutingHubActive()) throw new Error('routing send-off resume requires the hub conversation');
+  const endBody = { character_id: activeCharacterId, conversation_id: routingHubConversationId, provider: conversationProvider() };
+  conversationRequestInFlight = true;
+  setRoutingHubControlsDisabled(true);
+  const endRequest = postJson('/api/conversation/end', endBody);
+  try {
+    await showAcademyLoadingScreenUntilReady({
+      readiness: endRequest,
+      nextScreen: null,
+      loadingCopy: ROUTING_EXIT_DRAIN_LOADING_COPY
+    });
+    const result = await endRequest;
+    conversationRequestInFlight = false;
+    setRoutingHubControlsDisabled(false);
+    writeDebugLog(result);
+    const dispatch = result.routing_dispatch ?? null;
+    if (!dispatch) throw new Error('routing send-off resume: conversation end returned no routing_dispatch');
+    await performRoutingTurnDispatch({ result, dispatch });
+  } catch (error) {
+    if (settingsRedirectErrorMessage(error) == null) {
+      showScreen('routing-hub');
+      if (isPendingFinalizationsBlockedError(error)) {
+        routingHubStage.setStatus('');
+        showRoutingFinalizeBlockedNotice(resumeRoutingHubSendoffDispatch);
+      } else {
+        routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+      }
+    }
+  } finally {
+    conversationRequestInFlight = false;
+    setRoutingHubControlsDisabled(false);
+  }
 }
 
 async function startNewGame() {
@@ -13329,7 +14440,7 @@ function isLmStudioRuntimeError(error) {
 }
 
 function isInvalidLlmOutputError(error) {
-  return error?.errorCode === INVALID_LLM_OUTPUT_ERROR_CODE;
+  return INVALID_LLM_OUTPUT_ERROR_CODES.has(error?.errorCode);
 }
 
 function lmStudioRuntimeErrorMessage(error) {
@@ -13506,6 +14617,8 @@ for (const inputElement of [academyConversationSessionInputElement]) {
 document.querySelector('#academy-conversation-session-end-conversation').addEventListener('click', () => endConversation().catch(reportError));
 // Routing hub dedicated chat controls (separate from the academy session chat).
 document.querySelector('#routing-hub-send').addEventListener('click', () => runRoutingHubConversation().catch(reportError));
+document.querySelector('#routing-hub-finalize-retry').addEventListener('click', () => retryBlockedRoutingFinalizations().catch(reportError));
+document.querySelector('#routing-hub-start-retry').addEventListener('click', () => retryRoutingHubStart().catch(reportError));
 document.querySelector('#routing-hub-end').addEventListener('click', () => endConversation().catch(reportError));
 const routingHubInputElement = document.querySelector('#routing-hub-input');
 routingHubInputElement.addEventListener('compositionstart', () => { playerInputIsComposing = true; });
@@ -13529,6 +14642,16 @@ for (const button of document.querySelectorAll('.routing-hub-category-button')) 
 }
 for (const closer of document.querySelectorAll('#routing-hub-info-popup [data-routing-popup-close]')) {
   closer.addEventListener('click', () => routingHubStage.closeInfo());
+}
+// The 処分 confirmation covers the drawer CARD, but a category switch only replaces the drawer BODY and a drawer
+// close only hides the popup — neither touches a child of the card. Both routes therefore invalidate the
+// confirmation explicitly, the same way a view change invalidates a pending footnote answer: the confirmation
+// belongs to the entry it was opened over and must not outlive that view.
+for (const button of document.querySelectorAll('.routing-hub-category-button')) {
+  button.addEventListener('click', () => closeRoutingHubLibraryDisposeConfirm());
+}
+for (const closer of document.querySelectorAll('#routing-hub-info-popup [data-routing-popup-close]')) {
+  closer.addEventListener('click', () => closeRoutingHubLibraryDisposeConfirm());
 }
 // The routing hub speaker name (ルミ) opens her character-detail popup; its close button + backdrop dismiss it
 // (the same [hidden]-toggle modal流儀 as the info drawer). Delegated on the message stream so it survives every
@@ -13627,9 +14750,6 @@ for (const closer of document.querySelectorAll('#conversation-day-graduation-pop
 for (const closer of document.querySelectorAll('#conversation-day-homunculus-popup [data-day-popup-close]')) {
   closer.addEventListener('click', () => closeConversationDayHomunculusPopup());
 }
-for (const closer of document.querySelectorAll('#dungeon-actor-detail [data-dungeon-actor-detail-close]')) {
-  closer.addEventListener('click', () => closeDungeonActorDetail());
-}
 for (const closer of document.querySelectorAll('#arena-actor-detail [data-arena-actor-detail-close]')) {
   closer.addEventListener('click', () => closeArenaActorDetail());
 }
@@ -13652,7 +14772,6 @@ for (const tab of document.querySelectorAll('.settings-category-tab')) {
   tab.addEventListener('click', () => selectSettingsCategory(tab.dataset.settingsCategory));
 }
 for (const input of [document.querySelector('#lmstudio-host'), document.querySelector('#lmstudio-port')]) {
-  input.addEventListener('input', () => syncLmStudioConnectionModeUi());
   // No save button: a committed host/port edit applies on change (blur, or Enter which blurs).
   input.addEventListener('change', () => saveLmStudioSettings().catch(reportError));
   input.addEventListener('keydown', (event) => {
@@ -13660,12 +14779,6 @@ for (const input of [document.querySelector('#lmstudio-host'), document.querySel
       event.preventDefault();
       input.blur();
     }
-  });
-}
-for (const radio of [document.querySelector('#lmstudio-connection-mode-localhost'), document.querySelector('#lmstudio-connection-mode-lan')]) {
-  radio.addEventListener('change', () => {
-    syncLmStudioConnectionModeUi();
-    saveLmStudioSettings().catch(reportError);
   });
 }
 document.querySelector('#lmstudio-model').addEventListener('change', () => saveLmStudioSettings().catch(reportError));
@@ -13680,150 +14793,473 @@ document.querySelector('#delete-character-skills').addEventListener('click', () 
 document.querySelector('#delete-character-work-records').addEventListener('click', () => deleteCharacterRecords('work_records').catch(reportError));
 
 // ===== Practical dungeon (実践) =====
+// 盤が画面の主役で、右の細い柱に階と手目・主人公と同行者の札・会話とこれまでの出来事の記録・魔法と持ち物が並ぶ。入る前は盤と同じ
+// 敷石と灯りの間に、誰と潜るかと何を持って潜るかが並ぶ。決まり（/api/dungeon/*）・操作（方向キー・スペース・エンター・Esc）・照準と
+// 対象選びの手順・同行者との会話の仕組み（共有の runAssistantSseStream と createMessageRows）はそのままで、見た目と動きと配置だけを
+// この区画が持つ。盤の 1 マスの大きさ・追従・端止めは /dungeonCamera.js の純関数、盤の印は /dungeonMarks.js の SVG。
+//
+// 画面の状態は #academy-dungeon-screen の data-scene（entry / play / result）・data-companion（none / present）・data-motion に出す。
+// data-turn は描き直しを終えた手番、data-render は描き直しの通し番号（手番が進まなかった応答でも進む）、data-fx-folded は直前の
+// 手番の入れ替わりで畳んだ演出の数（撮影道具が読む）。
 let currentDungeonView = null;
 let dungeonActionInFlight = false;
-// A companion run end defers its finalize -> bank -> clear so the exit returns to the room
-// at once; the finalize runs in the background while this flag holds (mirrors the
-// conversation post-flow's conversationFinalizationInFlight).
+// A companion run end defers its finalize -> bank -> clear so the exit returns to the room at once; the finalize runs in
+// the background while this flag holds (mirrors the conversation post-flow's conversationFinalizationInFlight).
 let dungeonFinalizationInFlight = false;
 let activeDungeonFinalizationPromise = null;
-// Run-scoped companion chat history, stored as display messages (carrying per-message
-// expression) so the dungeon sidebar mounts the same streaming chat controller as the
-// academy. The enter-time companion opening streams straight into this history during enter.
+// Run-scoped companion chat history, stored as display messages (carrying per-message expression) so the rail's
+// journal mounts the same streaming chat controller as the academy. The enter-time companion opening streams straight
+// into this history during enter.
 let dungeonChatMessages = [];
-// Persistent map-entity nodes (player / companion / enemy:<uid>) kept across renders so a
-// position change animates as a slide. `dungeonBoardSignature` snaps the overlay (no slide)
-// when the board itself changes (new run / new floor), since entities did not "move" there.
-const dungeonEntityNodes = new Map();
-// Each live entity's current logical tile (key -> {x, y}), so a combat effect can find the node at
-// an event's from/to tile and originate from where that token is ACTUALLY drawn (mid-slide), not
-// its final logical tile.
-const dungeonEntityTiles = new Map();
-let dungeonBoardSignature = null;
-// Consumable-use targeting state: null when idle, else the armed dungeon_consumable plus the input it is
-// still collecting — mode 'aim' waits for a board tile (attack_area), mode 'ally' waits for a self/companion
-// pick (heal/MP). The auto (attack_single) and revive kinds need no extra input and fire immediately without
-// ever entering this state.
+// Consumable-use targeting state: null when idle, else the armed item plus the input it is still collecting — mode
+// 'aim' waits for a board tile (attack_area), mode 'ally' waits for a self/companion pick (heal/MP). The auto
+// (attack_single) and revive kinds need no extra input and fire immediately without ever entering this state.
 let dungeonConsumableTargeting = null;
+// Set by the board keydown handler when a move / 待機 / 階段 key is pressed; dungeonTalk clears it at each send, so it
+// reads "the player went back to the board while the companion was replying".
+let dungeonBoardKeyPressedSinceTalk = false;
+// Whether the next dive brings the companion (the entry's 同行 choice; the enter request's with_companion).
+let dungeonWithCompanion = true;
+// The consumables the next run carries in (GET /api/dungeon/entry-consumables), for the entry's kit.
+let dungeonEntryConsumables = [];
+// The companion reply is streaming (sent, not yet settled): the journal shows the waiting dots and the board keeps
+// the speaker in the window.
+let dungeonTalkPending = false;
 
-// Deadzone camera state, in board pixels: the scroll offset whose negation translates
-// the board inside the clipping viewport. Persists across renders so the deadzone follow
-// has the previous position to scroll from; a new floor centers it and a viewport resize
-// reframes it (see layoutDungeonBoard). Cell sizing and camera are recomputed together
-// because the visible tile count, the vision-range fit, and the follow margin are one
-// coupled layout.
-let dungeonCamera = { x: 0, y: 0 };
-// The viewport size (px) the camera was last laid out for. A reframe responds to an actual viewport
-// resize; when the grid ResizeObserver fires with no net size change (e.g. the settle that fires
-// right after a fresh board already centered at its final width), there is nothing to reframe, so
-// the camera is left as placed and the entry center is not content-clamped off-centre.
-let dungeonViewportSize = { w: 0, h: 0 };
-// Tile size is bounded so the map neither shrinks to specks nor blows up past readability; inside the band
-// the cell is sized from the viewport alone against a FIXED target cell count (DN_TARGET_CELLS), so the scale
-// is content- and vision-independent — constant at one window size. The floor is raised from the old 24px so
-// small windows keep icons legible (the player's "小さくて見えない"), and the ceiling lifted from 60px so the
-// tiles read as large as the window allows.
 const DN_CELL_MIN = 44;
 const DN_CELL_MAX = 72;
-// The map targets this many cells across its smaller axis, regardless of vision radius (which only drives the
-// follow margin now). 8 lands ~62px cells on a representative desktop map column and never rezooms per-run.
+// The map targets this many cells across its smaller axis, regardless of vision radius (which only drives the follow
+// margin). The scale is content- and vision-independent — constant at one window size.
 const DN_TARGET_CELLS = 8;
+const DN_LIGHT_MS = 200;
+const DN_LIGHT_MIN_MS = 60;
 
-const DUNGEON_GLYPHS = { player: '＠', companion: '◇', stairs: '＞', entrance: '＜', wall: '█', floor: '・', item: '＊' };
+// 大きな画面ではダンジョンの画面が CSS の zoom で大きく描かれる（style.css の大きな画面の節）。getBoundingClientRect は
+// 描かれた px を返すので、盤の中の位置（zoom の内側の px）として使う矩形はその倍率で割って返す。
+function dungeonLocalRect(node) {
+  const zoom = node.currentCSSZoom;
+  if (!(zoom > 0)) throw new Error('dungeon: currentCSSZoom must be a positive number');
+  const r = node.getBoundingClientRect();
+  return { left: r.left / zoom, top: r.top / zoom, right: r.right / zoom, bottom: r.bottom / zoom, width: r.width / zoom, height: r.height / zoom };
+}
+
 const DUNGEON_MAGIC_LABELS = { light: '光', dark: '闇', fire: '火', water: '水', earth: '土', wind: '風' };
 const DUNGEON_ABILITY_LABELS = { strength: '筋力', agility: '瞬発力', academics: '学力', magical_power: '魔力', charisma: 'カリスマ' };
 const DUNGEON_ASSET_BASE = '/canonical/dungeon';
-// Faceless protagonist crest (案3): a star/starlight emblem, no portrait. Pure SVG = no asset dependency.
-const DUNGEON_CREST_SVG = '<svg viewBox="0 0 24 24" class="dn-crest" aria-hidden="true"><path d="M12 2.2l2.7 6.4 6.9.5-5.3 4.5 1.7 6.7L12 17.1 6 20.8l1.7-6.7L2.4 9.1l6.9-.5z"/></svg>';
+const DUNGEON_PLAYER_NAME = '主人公';
+const DUNGEON_HELP_KEYS = [
+  ['方向キー', '移動'],
+  ['スペース', '待機'],
+  ['エンター', '階段を降りる'],
+  ['Esc', '会話の欄・記録から盤へ戻る・照準をやめる']
+];
+const DUNGEON_RESULT_HEADINGS = { retreated: '撤退しました', cleared: 'ダンジョン制覇', dead: '力尽きました' };
+// Element events (cast / enemy_attack) play per-element asset sprites (a traveling bolt + a hit burst); melee
+// (element: null) has no element sprite and keeps a neutral CSS strike. The six elements are fixed.
+const DUNGEON_EFFECT_ELEMENTS = ['light', 'dark', 'fire', 'water', 'earth', 'wind'];
+// How long a run-ending turn's combat plays before the result takes over (one beat for the fatal blow; covers a
+// projectile's travel + impact).
+const DUNGEON_ENDED_ANIM_MS = 520;
+// How long the board stays fully dark after the lower floor is drawn under the veil, before it lifts.
+const DUNGEON_DESCENT_DARK_HOLD_MS = 200;
+const DUNGEON_ENTER_LOADING_COPY = { title: '実践へ潜ります', status: '同行者との合流と最初の階の生成を待っています。' };
+const DUNGEON_EXIT_LOADING_COPY = { title: '自室へ戻ります', status: '探索の後片付けを続けながら自室を開いています。' };
+// Routing hub return: the companion dungeon finalize is drained under this loading copy before the hub opening
+// starts, so the two never race on the LM pipeline. The destination is the hub, not the room.
+const DUNGEON_HUB_RETURN_LOADING_COPY = { title: 'ハブへ戻ります', status: '探索の後片付けを続けながら、ハブへ戻る準備をしています。' };
+// Where the prep screen was reached from, by global play mode: routing reaches it from the hub (a hub dispatch), loop
+// from the academy map. A failed enter lands where the player can act again — routing back on the prep screen, loop in
+// the room. The way back leads to the origin: loop always offers it; routing offers it only on the prep screen a failed
+// enter landed on (from the hub the player only dives, and the exit keeps repeated failures from shutting them in).
+const DUNGEON_ENTRY_ORIGINS = {
+  loop: { backLabel: '学院マップに戻る', back: async () => showScreen('academy-map'), backOnlyAfterEnterFailure: false, enterFailedScreen: 'academy-room' },
+  routing: { backLabel: 'ハブへ戻る', back: () => returnToRoutingHubThroughLoadingScreen(), backOnlyAfterEnterFailure: true, enterFailedScreen: 'academy-dungeon' }
+};
+// Set by a failed enter and consumed by the next dungeon screen refresh — the landing of that failure.
+let dungeonEnterFailed = false;
+function dungeonEntryOrigin() {
+  if (!Object.hasOwn(DUNGEON_ENTRY_ORIGINS, currentPlayMode)) throw new Error(`dungeon entry: unknown play mode ${JSON.stringify(currentPlayMode)}`);
+  return DUNGEON_ENTRY_ORIGINS[currentPlayMode];
+}
+// The closed set of turn-non-consuming action_error codes the engine returns. An unknown code is a client/server
+// desync and throws.
+const DUNGEON_ACTION_ERROR_MESSAGES = {
+  blocked: 'そちらへは進めません。',
+  not_on_stairs: '階段の上でのみ降りられます。',
+  no_target: '視界内に対象がいません。',
+  insufficient_mp: 'MP が足りません。',
+  hp_full: 'HP はすでに満タンです。',
+  no_item: 'そのアイテムを持っていません。',
+  unknown_item: 'そのアイテムは使えません。',
+  unknown_element: '使えない魔法です。',
+  retreat_not_here: '入口または階段の上でのみ撤退できます。',
+  invalid_aim: 'そこには投げられません（探索済みの床を狙ってください）。',
+  invalid_target: 'その相手には使えません。',
+  revive_used: 'この探索では、もう蘇生させられません。',
+  unknown_consumable: 'その消耗品は使えません。',
+  invalid_consumable: 'その消耗品は使えません。'
+};
 
-function dungeonEnemyIconUrl(archetypeId) {
-  return archetypeId ? `${DUNGEON_ASSET_BASE}/enemies/${archetypeId}.png` : null;
+const dungeonRoot = document.querySelector('#academy-dungeon-screen');
+function dungeonNode(selector) {
+  const node = document.querySelector(selector);
+  if (!node) throw new Error(`dungeon: missing ${selector} (broken markup wiring)`);
+  return node;
 }
-function dungeonItemIconUrl(kind) {
-  return kind ? `${DUNGEON_ASSET_BASE}/items/${kind}.png` : null;
-}
-function dungeonStairsIconUrl() {
-  return `${DUNGEON_ASSET_BASE}/ui/stairs.png`;
-}
-// Companion face reuses the existing visual_set face image; visual_set_id is resolved
-// from the loaded selectable roster by character_id (no engine field needed).
-function dungeonCompanionFaceUrl(characterId) {
-  const character = (selectableCharacters ?? []).find((entry) => entry.character_id === characterId);
-  const visualSetId = character?.visual_set_id;
-  return visualSetId ? `/canonical/character_visual_sets/${visualSetId}/face_emotions/neutral.jpg` : null;
+const dn = {
+  stage: dungeonNode('#dungeon-stage'),
+  viewport: dungeonNode('#dungeon-viewport'),
+  board: dungeonNode('#dungeon-board'),
+  tiles: dungeonNode('#dungeon-tiles'),
+  entities: dungeonNode('#dungeon-entities'),
+  effects: dungeonNode('#dungeon-effects'),
+  voices: dungeonNode('#dungeon-voices'),
+  veil: dungeonNode('#dungeon-veil'),
+  floorMark: dungeonNode('#dungeon-floor-mark'),
+  hurt: dungeonNode('#dungeon-hurt'),
+  entryHall: dungeonNode('#dungeon-entry-hall'),
+  entryDoor: dungeonNode('#dungeon-entry-door'),
+  entryParty: dungeonNode('#dungeon-entry-party'),
+  entryCompanion: dungeonNode('#dungeon-entry-companion'),
+  entryCompanionToken: dungeonNode('#dungeon-entry-companion-token'),
+  entryCompanionName: dungeonNode('#dungeon-entry-companion-name'),
+  entryCompany: dungeonNode('#dungeon-entry-company'),
+  entryNote: dungeonNode('#dungeon-entry-note'),
+  entryKit: dungeonNode('#dungeon-entry-kit'),
+  entryFace: dungeonNode('#dungeon-entry-face'),
+  entryWithLabel: dungeonNode('#dungeon-entry-with-label'),
+  dive: dungeonNode('#dungeon-dive'),
+  entryBack: dungeonNode('#dungeon-back-to-map'),
+  result: dungeonNode('#dungeon-result'),
+  resultTitle: dungeonNode('#dungeon-result-title'),
+  resultReach: dungeonNode('#dungeon-result-reach'),
+  resultLines: dungeonNode('#dungeon-result-lines'),
+  resultBack: dungeonNode('#dungeon-result-back'),
+  depthFloor: dungeonNode('#dungeon-depth-floor'),
+  depthTurn: dungeonNode('#dungeon-depth-turn'),
+  retreat: dungeonNode('#dungeon-retreat-button'),
+  help: dungeonNode('#dungeon-help-button'),
+  party: dungeonNode('#dungeon-party'),
+  journal: dungeonNode('#dungeon-journal'),
+  talkInput: dungeonNode('#dungeon-talk-input'),
+  talkSend: dungeonNode('#dungeon-talk-send'),
+  targeting: dungeonNode('#dungeon-targeting'),
+  spells: dungeonNode('#dungeon-spells'),
+  carry: dungeonNode('#dungeon-carry'),
+  helpModal: dungeonNode('#dungeon-help-modal'),
+  helpBody: dungeonNode('#dungeon-help-body'),
+  retreatModal: dungeonNode('#dungeon-retreat-modal'),
+  retreatMessage: dungeonNode('#dungeon-retreat-message'),
+  retreatYes: dungeonNode('#dungeon-retreat-yes'),
+  detailModal: dungeonNode('#dungeon-detail-modal'),
+  detailTitle: dungeonNode('#dungeon-detail-title'),
+  detailBody: dungeonNode('#dungeon-detail-body'),
+  equipModal: dungeonNode('#dungeon-equip-modal')
+};
+// The dungeon windows that make the board keyboard-inert (help, retreat confirm, actor detail, equipment).
+const DUNGEON_MODALS = [dn.helpModal, dn.retreatModal, dn.detailModal, dn.equipModal];
+
+const dungeonReducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+const dungeonReducedMotion = () => dungeonReducedMotionQuery.matches;
+const syncDungeonMotion = () => { dungeonRoot.dataset.motion = dungeonReducedMotion() ? 'reduced' : 'full'; };
+syncDungeonMotion();
+dungeonReducedMotionQuery.addEventListener('change', syncDungeonMotion);
+
+for (const node of document.querySelectorAll('#academy-dungeon-screen [data-crest]')) node.innerHTML = heroCrestSvg();
+
+// server の応答に必ずある field を取る。欠けていれば client と server の食い違いなので止める（空の値で続けない）。
+function requiredDungeonField(payload, key, label) {
+  if (!payload || payload[key] === undefined || payload[key] === null) throw new Error(`${label} is missing ${key}`);
+  return payload[key];
 }
 
-// The face image for a dungeon companion token — the shared resolution used by both the map ally token and the
-// chat header, so both render the SAME face. A homunculus companion (the face_url schema marker) is absent from
-// the selectable roster, so the visual_set path cannot resolve it; its face comes from the run view entry-snapshot
-// face_url. A selectable companion carries no face_url and resolves its visual_set face from the roster (unchanged).
-// Fail-fast: a homunculus companion whose face_url is missing/blank throws rather than degrading to a glyph token —
-// the same no-silent-blank discipline as the selectable roster miss (openDungeonCompanionDetail).
-function dungeonCompanionTokenFaceUrl(companion) {
-  if (!dungeonCompanionIsHomunculus(companion)) return dungeonCompanionFaceUrl(companion.character_id);
-  const faceUrl = companion.face_url;
-  if (typeof faceUrl !== 'string' || faceUrl === '') {
-    throw new Error(`homunculus dungeon companion is missing face_url: ${companion?.name ?? companion?.character_id ?? '(unknown companion)'}`);
-  }
-  return faceUrl;
+// A run view companion is a homunculus when it carries a face_url (the B3 schema marker — a selectable companion
+// carries no face_url / parameters). Its face comes from the run view entry snapshot, not the roster.
+function dungeonCompanionIsHomunculus(companion) {
+  return typeof companion?.face_url === 'string' && companion.face_url !== '';
 }
 
-function dungeonReasonText(reason) {
-  if (reason === 'lmstudio_not_configured') return 'LM Studio が未設定のため、単独（機械のみ）で潜ります。';
-  if (reason === 'llm_busy') return '直前の会話の後処理が実行中のため、今は単独（機械のみ）で潜ります。';
-  return '同行キャラが現れる可能性があります。';
+// The face of a dungeon companion — the one resolution the board token, the rail card, the journal line and the voice
+// on the board all use. A homunculus companion's face is its entry-snapshot face_url; a selectable companion resolves
+// its visual_set face (per expression) from the loaded roster. A roster miss is a real desync and throws.
+function dungeonCompanionFaceUrl(companion, expression = 'neutral') {
+  if (dungeonCompanionIsHomunculus(companion)) return companion.face_url;
+  const character = selectableCharacters.find((entry) => entry.character_id === companion.character_id);
+  if (!character?.visual_set_id) throw new Error(`dungeon companion not found in character roster: ${companion.character_id}`);
+  return `/canonical/character_visual_sets/${character.visual_set_id}/face_emotions/${expression}.jpg`;
+}
+
+// Per-element effect sprite URL. The server serves /canonical/* as .png only (no extension/jpg fallback), and the
+// element set is fixed — an unknown element fails fast rather than guessing a sprite.
+function dungeonEffectAssetUrl(element, part) {
+  if (!DUNGEON_EFFECT_ELEMENTS.includes(element)) throw new Error(`dungeon effect: unknown element ${element}`);
+  return `/canonical/dungeon/effects/${element}_${part}.png`;
 }
 
 async function refreshDungeonScreen() {
-  // The companion header renders the companion's parameter bars from the loaded character roster
-  // (the same source as the name-click detail). Boot loads the roster before the dungeon is reachable,
-  // so this is a no-op in the normal flow; ensuring it here makes the screen self-sufficient so the
-  // companion render never depends on call order. A fetch failure throws (fail-fast) — this is an
-  // explicit precondition load, not a silent fallback, so renderDungeonChat's miss is a true desync.
+  // The companion faces resolve from the loaded character roster. Boot loads the roster before the dungeon is
+  // reachable, so this is a no-op in the normal flow; ensuring it here makes the screen self-sufficient. A fetch
+  // failure throws (fail-fast) — an explicit precondition load, not a silent fallback.
   if (!selectableCharacters.length) await refreshCharacters();
+  const afterEnterFailure = dungeonEnterFailed;
+  dungeonEnterFailed = false;
   const view = await getJson('/api/dungeon/state');
   if (view && view.pending_finalize) {
-    // A run is held awaiting its deferred finalize (reloaded mid-exit, or a prior background
-    // finalize failed). Resume it: show the held result, then run the finalize and return to the room.
-    const held = dungeonResultFromHeldView(view);
-    renderDungeonResult(held);
-    await dungeonExitToRoom(held);
+    // A run is held awaiting its deferred finalize (reloaded mid-exit, or a prior background finalize failed). Resume
+    // it the way the run ended: draw its last board, then show the result the run-ending action returned (held_result),
+    // run the finalize, and offer the way back.
+    renderDungeonPlay(view);
+    await showDungeonResult(requiredDungeonField(view, 'held_result', 'dungeon held view'));
     return;
   }
   if (view && view.active) {
     renderDungeonPlay(view);
     return;
   }
-  await renderDungeonEntry();
+  await renderDungeonEntry({ afterEnterFailure });
 }
 
-async function renderDungeonEntry() {
+// ── 入る前: 潜る支度。盤と同じ敷石と灯りの間に、誰と潜るか（駒の姿の二人、ひとりなら同行者は闇に下がる）と何を持って潜るか
+// （床に並べた持ち物）が並び、「潜る」は奥の下り階段の闇へ踏み出す敷居に置かれる。説明の地の文は置かない ──────────────────────
+async function renderDungeonEntry({ afterEnterFailure }) {
   currentDungeonView = null;
   dungeonChatMessages = [];
+  dungeonBoard.signature = null;
   teardownDungeonConsumableTargeting();
-  document.querySelector('#dungeon-play').hidden = true;
-  document.querySelector('#dungeon-result-popup').hidden = true;
-  document.querySelector('#dungeon-entry').hidden = false;
-  closeDungeonPopup();
-  closeDungeonRetreatConfirm();
-  closeDungeonActorDetail();
-  document.querySelector('#dungeon-chat').hidden = true;
-  const availabilityNode = document.querySelector('#dungeon-availability');
-  try {
-    const availability = await getJson('/api/dungeon/availability');
-    availabilityNode.textContent = availability.available
-      ? '同行キャラが現れることがあります（LLM 利用可）。'
-      : dungeonReasonText(availability.reason);
-  } catch (error) {
-    availabilityNode.textContent = dungeonReasonText(null);
-    writeDebugLog({ dungeon_availability_error: error.message });
+  foldDungeonEffects();
+  clearDungeonVoice();
+  for (const modal of DUNGEON_MODALS) modal.hidden = true;
+  dungeonRoot.dataset.scene = 'entry';
+  dungeonRoot.dataset.companion = 'none';
+  delete dungeonRoot.dataset.outcome;
+  dn.result.hidden = true;
+  dn.tiles.replaceChildren();
+  dn.entities.replaceChildren();
+  dn.board.style.transformOrigin = '';
+  dungeonEntityNodes.clear();
+  dungeonEntityTiles.clear();
+  clearDungeonJournal();
+  dungeonPartyCast = null;
+  dn.dive.disabled = true;
+  const origin = dungeonEntryOrigin();
+  dn.entryBack.textContent = origin.backLabel;
+  dn.entryBack.hidden = origin.backOnlyAfterEnterFailure && !afterEnterFailure;
+  dungeonEquipmentTarget = 'player';
+  setDungeonEquipmentStatus('');
+  clearDungeonEquipment();
+  const [availability, snapshot, entry] = await Promise.all([
+    getJson('/api/dungeon/availability'),
+    getJson('/api/equipment'),
+    getJson('/api/dungeon/entry-consumables')
+  ]);
+  dungeonEntryConsumables = requiredDungeonField(entry, 'consumables', '/api/dungeon/entry-consumables');
+  const companion = availability.available ? dungeonEntryCompanion(snapshot) : null;
+  const companionButton = dn.entryCompany.querySelector('[data-with="1"]');
+  companionButton.disabled = !availability.available;
+  dungeonWithCompanion = availability.available;
+  dn.entryCompanion.hidden = !availability.available;
+  dn.entryCompanionToken.classList.toggle('dn-token--unknown', availability.available && !companion);
+  if (companion) {
+    dn.entryFace.hidden = false;
+    dn.entryFace.src = companion.faceUrl;
+    dn.entryCompanionName.textContent = companion.name;
+    dn.entryWithLabel.textContent = `${companion.name}と潜る`;
+  } else {
+    dn.entryFace.hidden = true;
+    dn.entryFace.removeAttribute('src');
+    dn.entryCompanionName.textContent = '';
+    dn.entryWithLabel.textContent = '同行者と潜る';
   }
-  // The equipment section fetches its own authoritative snapshot; its failure surfaces on the equipment
-  // status line (never a placeholder card) without failing the whole entry render (availability already showed).
-  await refreshDungeonEquipment().catch(reportDungeonEquipmentError);
+  dn.entryNote.hidden = availability.available;
+  dn.entryNote.textContent = availability.available ? '' : dungeonUnavailableText(availability.reason);
+  syncDungeonCompanyChoice();
+  renderDungeonEquipment(snapshot);
+  buildDungeonEntryHall();
+  dn.dive.disabled = false;
+  dn.dive.focus({ preventScroll: true });
 }
 
-// ── Practical-dungeon entry equipment section (#dungeon-entry → #dungeon-equipment) ─────────────────────────
+// Who comes when the player dives with a companion. The enter request always brings the buddy when one is set
+// (a selectable buddy or the active homunculus), so that one is shown by face and name; with no buddy an academy
+// character is rolled at enter time, so no one is shown (the shadow token). A homunculus buddy's display_name and
+// face_url travel in the /api/equipment buddy sub-view; a selectable buddy resolves from the loaded roster (a miss is
+// a real desync and throws).
+function dungeonEntryCompanion(snapshot) {
+  const buddy = validateDungeonBuddyEquipment(snapshot.buddy);
+  if (!buddy) return null;
+  if (buddy.displayName !== null) {
+    const faceUrl = snapshot.buddy.face_url;
+    if (typeof faceUrl !== 'string' || faceUrl === '') throw new Error(`homunculus buddy ${buddy.characterId} is missing face_url`);
+    return { name: buddy.displayName, faceUrl };
+  }
+  const character = selectableCharacters.find((entry) => entry.character_id === buddy.characterId);
+  if (!character?.visual_set_id) throw new Error(`dungeon entry: buddy ${buddy.characterId} does not resolve in the selectable roster`);
+  return { name: character.display_name, faceUrl: `/canonical/character_visual_sets/${character.visual_set_id}/face_emotions/neutral.jpg` };
+}
+
+const DUNGEON_UNAVAILABLE_TEXT = {
+  lmstudio_not_configured: 'LM Studio が未設定のため、ひとりで潜ります。',
+  llm_busy: '直前の会話の後処理が実行中のため、今はひとりで潜ります。'
+};
+function dungeonUnavailableText(reason) {
+  if (!Object.hasOwn(DUNGEON_UNAVAILABLE_TEXT, reason)) throw new Error(`dungeon availability: unknown reason ${JSON.stringify(reason)}`);
+  return DUNGEON_UNAVAILABLE_TEXT[reason];
+}
+
+function syncDungeonCompanyChoice() {
+  for (const button of dn.entryCompany.querySelectorAll('.dn-choice')) {
+    const on = (button.dataset.with === '1') === dungeonWithCompanion;
+    button.setAttribute('aria-checked', String(on));
+    button.classList.toggle('is-on', on);
+  }
+  dn.entryParty.classList.toggle('is-solo', !dungeonWithCompanion);
+}
+
+dn.entryCompany.addEventListener('click', (event) => {
+  const button = event.target.closest('.dn-choice');
+  if (!button || button.disabled) return;
+  dungeonWithCompanion = button.dataset.with === '1';
+  syncDungeonCompanyChoice();
+});
+
+// 入る前の間: 盤の升目の描き方（床の敷石・壁の積み石・灯りの段）で、闇の中に灯りの届く所だけを浮かべる。灯りは一行の立つ所と、
+// 奥の下り階段の二か所から広がり、段ごとに暗くなって、届かない升目は盤のまだ見ていない所と同じく地の闇に溶ける（間の縁は見せない）。
+// 「潜る」は奥の壁の敷居に置かれ、その先の通路は階段から段ごとに暗くなって闇へ下る。升目の並びは画面の大きさが変わったときだけ組み直す。
+const DUNGEON_HALL_HALF_WIDTH = 14;
+function buildDungeonEntryHall() {
+  if (dungeonRoot.dataset.scene !== 'entry' || !screens['academy-dungeon'].classList.contains('active')) return;
+  const stage = dungeonLocalRect(dn.stage);
+  const W = stage.width;
+  const H = stage.height;
+  if (W === 0 || H === 0) return;
+  const cell = computeDungeonCellSize({ viewW: W, viewH: H, gap: 0, targetCells: DN_TARGET_CELLS, cellMin: DN_CELL_MIN, cellMax: DN_CELL_MAX });
+  const door = dungeonLocalRect(dn.entryDoor);
+  const party = dungeonLocalRect(dn.entryParty);
+  const kit = dungeonLocalRect(dn.entryKit);
+  const doorX = door.left + door.width / 2 - stage.left;
+  const doorY = door.top + door.height / 2 - stage.top;
+  // 一行の灯りは、二人と足元の持ち物の間から広がり、持ち物の下まで届く大きさにとる。
+  const lightX = party.left + party.width / 2 - stage.left;
+  const lightY = (party.top + kit.bottom) / 2 - stage.top;
+  const partyRadius = Math.max(5.2, (kit.bottom - party.top) / cell / 2 + 2.4);
+  const c0 = Math.ceil(doorX / cell) + 1;
+  const wallRow = Math.ceil(doorY / cell) + 1;
+  const cols = c0 + Math.ceil((W - doorX) / cell) + 2;
+  const rows = wallRow + Math.ceil((H - doorY) / cell) + 2;
+  const inHall = (x, y) => y > wallRow && y < rows && Math.abs(x - c0) <= DUNGEON_HALL_HALF_WIDTH;
+  const inCorridor = (x, y) => y <= wallRow && y >= wallRow - 6 && Math.abs(x - c0) <= 1;
+  const floorAt = (x, y) => inHall(x, y) || inCorridor(x, y);
+  const left = doorX - (c0 + 0.5) * cell;
+  const top = doorY - (wallRow + 0.5) * cell;
+  const stairsY = top + (wallRow - 0.5) * cell;
+  const cells = [];
+  for (let y = 0; y < rows; y += 1) {
+    for (let x = 0; x < cols; x += 1) {
+      const node = document.createElement('div');
+      node.className = dungeonCellClass(floorAt, x, y);
+      const cx = left + (x + 0.5) * cell;
+      const cy = top + (y + 0.5) * cell;
+      let light = null;
+      if (!node.classList.contains('dn-rock')) {
+        const depth = wallRow - y;
+        if (depth >= 0 && Math.abs(x - c0) <= 2) {
+          // 通路（と両脇の壁）: 敷居と階段の升目がいちばん明るく、階段の先は一段ごとに暗くなって、四つ先で闇に消える。
+          const steps = [1, 1, 3, 4];
+          light = depth < steps.length ? Math.min(4, steps[depth] + (Math.abs(x - c0) === 2 ? 1 : 0)) : null;
+        } else {
+          const fromParty = Math.hypot(cx - lightX, cy - lightY) / cell;
+          const fromStairs = Math.hypot(cx - doorX, cy - stairsY) / cell;
+          const byParty = fromParty < partyRadius ? dungeonLightStep(fromParty * (4.5 / partyRadius)) : null;
+          const byStairs = fromStairs < 3 ? Math.min(4, dungeonLightStep(fromStairs) + 1) : null;
+          const lit = [byParty, byStairs].filter((value) => value !== null);
+          light = lit.length ? Math.min(...lit) : null;
+        }
+      }
+      if (light !== null) {
+        node.classList.add('is-lit');
+        node.dataset.l = String(light);
+      }
+      if (x === c0 && y === wallRow - 1) node.append(dungeonFeatureNode('dn-feature--arch', { svg: entryArchSvg(), label: '下り階段' }));
+      cells.push(node);
+    }
+  }
+  dn.entryHall.style.setProperty('--dn-cell', `${cell}px`);
+  dn.entryHall.style.setProperty('--dn-cols', cols);
+  dn.entryHall.style.left = `${left}px`;
+  dn.entryHall.style.top = `${top}px`;
+  // 灯りの縁は升目の角で切らず、二つの灯り（一行・階段）から丸く地の闇へ溶かす。階段の灯りは通路の奥で消える。
+  const glow = partyRadius * cell;
+  dn.entryHall.style.maskImage = [
+    `radial-gradient(circle at ${lightX - left}px ${lightY - top}px, #000 ${Math.round(glow * 0.55)}px, transparent ${Math.round(glow)}px)`,
+    `radial-gradient(ellipse ${Math.round(cell * 2.4)}px ${Math.round(cell * 3.4)}px at ${doorX - left}px ${doorY - top}px, #000 45%, transparent 100%)`
+  ].join(', ');
+  dn.entryHall.replaceChildren(...cells);
+}
+
+let dungeonHallFrame = 0;
+new ResizeObserver(() => {
+  if (dungeonRoot.dataset.scene !== 'entry') return;
+  cancelAnimationFrame(dungeonHallFrame);
+  dungeonHallFrame = requestAnimationFrame(buildDungeonEntryHall);
+}).observe(dn.stage);
+
+// 持っていくもの: 床に並べた支度。持っている物は金の縁の台に絵が灯り、持っていない枠は破線の台に絵の影だけが残って「未装備」「なし」
+// と読める。武器の絵は武器の種類から、護符は護符の絵、消耗品は属性の色の小瓶（描き方）に数を添える。武器と護符の台は押すと付け替えの
+// 窓が開く（付け替えの手順と API は装備の区画のまま）。
+const DUNGEON_WEAPON_MARKS = { sword: swordSvg, staff: staffSvg, short_rod: wandSvg };
+function dungeonKitItem({ svg = null, vial = false, element = null, label, name, count = null, empty = false, onOpen = null }) {
+  const item = document.createElement('li');
+  item.className = `dn-kit${empty ? ' is-empty' : ''}${element ? ` dn-el-${element}` : ''}`;
+  const plate = document.createElement(onOpen ? 'button' : 'span');
+  plate.className = 'dn-kit-plate';
+  if (onOpen) {
+    plate.type = 'button';
+    plate.setAttribute('aria-haspopup', 'dialog');
+    plate.setAttribute('aria-label', `${label}を付け替える`);
+    plate.addEventListener('click', () => { plate.blur(); onOpen(); });
+  }
+  if (svg) plate.insertAdjacentHTML('beforeend', svg);
+  if (vial) {
+    const drawn = document.createElement('span');
+    drawn.className = 'dn-kit-vial';
+    plate.append(drawn);
+  }
+  if (count !== null) {
+    const badge = document.createElement('span');
+    badge.className = 'dn-kit-count';
+    badge.textContent = `×${count}`;
+    plate.append(badge);
+  }
+  const head = document.createElement('span');
+  head.className = 'dn-kit-label';
+  head.textContent = label;
+  const body = document.createElement('span');
+  body.className = 'dn-kit-name';
+  body.textContent = name;
+  item.append(plate, head, body);
+  return item;
+}
+
+// The kit reads the hero's slots from the same validated equipment snapshot the equipment window renders, so an equip
+// or unequip in the window re-lays the kit from the returned snapshot (the one source of truth).
+function renderDungeonEntryKit(view) {
+  const weapon = view.slots.weapon?.instance ?? null;
+  const amulet = view.slots.amulet?.instance ?? null;
+  if (weapon && !(weapon.weapon_type in DUNGEON_WEAPON_MARKS)) throw new Error(`entry kit: unknown weapon_type ${JSON.stringify(weapon.weapon_type)}`);
+  const kit = [
+    dungeonKitItem({ svg: (weapon ? DUNGEON_WEAPON_MARKS[weapon.weapon_type] : wandSvg)(), label: '武器', name: weapon ? weapon.name : '未装備', empty: !weapon, onOpen: openDungeonEquipment }),
+    dungeonKitItem({ svg: charmSvg(), label: '護符', name: amulet ? amulet.name : '未装備', empty: !amulet, onOpen: openDungeonEquipment })
+  ];
+  if (!dungeonEntryConsumables.length) kit.push(dungeonKitItem({ vial: true, label: '消耗品', name: 'なし', empty: true }));
+  for (const row of dungeonEntryConsumables) kit.push(dungeonKitItem({ vial: true, element: row.element ?? null, label: '消耗品', name: row.name, count: row.quantity }));
+  dn.entryKit.replaceChildren(...kit);
+}
+
+function openDungeonEquipment() {
+  dn.equipModal.hidden = false;
+}
+
+// ── Practical-dungeon entry equipment (the kit window #dungeon-equip-modal → #dungeon-equipment) ─────────────────────────
 // The dungeon prep screen carries the hero's two equip slots (weapon / amulet) and the run-correction breakdown.
 // GET /api/equipment, POST /api/equipment/equip { slot, instance_id }, and POST /api/equipment/unequip { slot }
 // ALL return the SAME authoritative snapshot { slots:{weapon,amulet}, instances:[...], run_equipment }, so the
@@ -13880,16 +15316,6 @@ function clearDungeonEquipment() {
   document.querySelector('#dungeon-equipment-run').replaceChildren();
 }
 
-// Fetch this save's equipment snapshot and render the target tabs + the two slots + the run-correction breakdown.
-// A fresh entry render starts on the hero tab. Fail closed: the prior cards are cleared BEFORE the fetch so a
-// failed / malformed refetch leaves NO stale, still-clickable cards.
-async function refreshDungeonEquipment() {
-  setDungeonEquipmentStatus('');
-  clearDungeonEquipment();
-  dungeonEquipmentTarget = 'player';
-  const snapshot = await getJson('/api/equipment');
-  renderDungeonEquipment(snapshot);
-}
 
 // Validate one equipment instance against the shared closed-set vocabulary, returning the instance plus its
 // ordered base / bonus effect entries (workshopEffectEntries throws on an unknown effect key or a non-positive
@@ -14029,6 +15455,7 @@ function renderDungeonEquipment(snapshot) {
   renderDungeonEquipmentTargetTabs(view, owner.target);
   renderDungeonEquipmentSlots(owner.target, owner.slots, view.instances);
   renderDungeonEquipmentRun(owner.runEffects);
+  renderDungeonEntryKit(view);
 }
 
 // Settle which owner the entry surface renders from the freshly-validated snapshot: the hero by default, or the
@@ -14238,7 +15665,7 @@ function renderDungeonEquipmentRun(runEffects) {
   const container = document.querySelector('#dungeon-equipment-run');
   const title = document.createElement('p');
   title.className = 'dungeon-equipment-run-title';
-  title.textContent = 'この run に効く補正';
+  title.textContent = 'この潜りに効く補正';
   const body = document.createElement('div');
   body.className = 'dungeon-equipment-run-body';
   const rows = runEffects ? dungeonRunEquipmentRows(runEffects) : [];
@@ -14319,178 +15746,966 @@ async function dungeonUnequip(target, slot) {
   }
 }
 
-async function enterDungeon() {
-  if (dungeonActionInFlight) return;
-  if (dungeonFinalizationInFlight) {
-    // A prior run's finalize is still landing; the run is held server-side, so block re-entry.
-    showProcessingToast();
+// ── 盤: 升目は階ごとに 1 回だけ作り、手番ごとには状態が変わった升目の class だけを書き換える ─────────────────────────
+const dungeonBoard = {
+  signature: null,
+  width: 0,
+  height: 0,
+  cells: [],
+  light: new Uint8Array(0),
+  itemNodes: new Map(),
+  lastLightAt: 0
+};
+const DUNGEON_LIGHT_CLASS = ['', 'is-seen', 'is-lit'];
+const dungeonLightStep = (distance) => (distance < 1.5 ? 0 : distance < 2.5 ? 1 : distance < 3.5 ? 2 : distance < 4.5 ? 3 : 4);
+// Deadzone camera state, in board pixels: the scroll offset whose negation translates the board inside the clipping
+// viewport. Persists across renders so the deadzone follow has the previous position to scroll from; a new floor
+// centers it and a viewport resize reframes it (see layoutDungeonBoard).
+let dungeonCamera = { x: 0, y: 0 };
+// The viewport size (px) the camera was last laid out for; a reframe responds only to an actual resize.
+let dungeonViewportSize = { w: 0, h: 0 };
+// Persistent board tokens (player / companion / enemy:<uid>) kept across renders so a position change slides, and
+// each one's current logical tile, so an effect finds the token at an event's tile where it is actually drawn.
+const dungeonEntityNodes = new Map();
+const dungeonEntityTiles = new Map();
+
+function dungeonFloorBounds(view) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (let y = 0; y < view.height; y += 1) {
+    for (let x = 0; x < view.width; x += 1) {
+      if (view.tiles[y][x] !== 'floor') continue;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+// 地物は印の SVG（/dungeonMarks.js）か、落ちている物の絵。
+function dungeonFeatureNode(className, { svg = null, imageUrl = null, label }) {
+  if ((svg === null) === (imageUrl === null)) throw new Error(`dungeon feature ${className} needs exactly one of svg / imageUrl`);
+  const node = document.createElement('div');
+  node.className = `dn-feature ${className}`;
+  node.title = label;
+  if (svg) {
+    node.innerHTML = svg;
+  } else {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = imageUrl;
+    node.append(img);
+  }
+  return node;
+}
+
+// 宝箱には絵が無いので、印の宝箱（真上から見た蓋）にする。
+function dungeonItemFeature(item) {
+  if (item.kind === 'treasure_chest') return dungeonFeatureNode('dn-feature--item dn-feature--chest', { svg: chestSvg(), label: item.name });
+  return dungeonFeatureNode('dn-feature--item', { imageUrl: `${DUNGEON_ASSET_BASE}/items/${item.kind}.png`, label: item.name });
+}
+
+// 升目の形は階ごとに 1 回だけ決める: 床は石の割り方（位置から決まる 4 通り）と、北・西・東の壁が落とす影。壁は床に接する所だけが
+// 石組みで、下が床なら手前の面を見せ、床に面した辺に灯りの縁を持つ。床に接しない壁は岩の中（dn-rock）で描かない。
+function dungeonCellClass(floorAt, x, y) {
+  const variant = ((x * 73856093) ^ (y * 19349663)) >>> 0;
+  if (floorAt(x, y)) {
+    const shade = [!floorAt(x, y - 1) && 'sh-n', !floorAt(x - 1, y) && 'sh-w', !floorAt(x + 1, y) && 'sh-e'].filter(Boolean);
+    return ['dn-cell', 'dn-floor', `dn-v${variant % 4}`, ...shade].join(' ');
+  }
+  let touchesFloor = false;
+  for (let dy = -1; dy <= 1 && !touchesFloor; dy += 1) for (let dx = -1; dx <= 1; dx += 1) if (floorAt(x + dx, y + dy)) { touchesFloor = true; break; }
+  if (!touchesFloor) return 'dn-cell dn-wall dn-rock';
+  if (floorAt(x, y + 1)) return ['dn-cell', 'dn-wall', 'dn-face', `dn-v${variant % 4}`].join(' ');
+  const rim = [floorAt(x, y - 1) && 'rim-n', floorAt(x - 1, y) && 'rim-w', floorAt(x + 1, y) && 'rim-e'].filter(Boolean);
+  return ['dn-cell', 'dn-wall', ...rim].join(' ');
+}
+
+function buildDungeonFloor(view) {
+  dungeonBoard.width = view.width;
+  dungeonBoard.height = view.height;
+  dungeonBoard.light = new Uint8Array(view.width * view.height);
+  dungeonBoard.itemNodes.clear();
+  dn.tiles.style.setProperty('--dn-cols', view.width);
+  dn.tiles.style.setProperty('--dn-rows', view.height);
+  const cells = [];
+  const floorAt = (x, y) => view.tiles[y]?.[x] === 'floor';
+  for (let y = 0; y < view.height; y += 1) {
+    for (let x = 0; x < view.width; x += 1) {
+      const cell = document.createElement('div');
+      cell.className = dungeonCellClass(floorAt, x, y);
+      if (view.stairs.x === x && view.stairs.y === y) {
+        cell.append(dungeonFeatureNode('dn-feature--stairs', { svg: stairsDownSvg(), label: '下り階段' }));
+      } else if (view.entrance.x === x && view.entrance.y === y) {
+        cell.append(dungeonFeatureNode('dn-feature--entrance', { svg: stairsUpSvg(), label: '入場地点（撤退可）' }));
+      }
+      cells.push(cell);
+    }
+  }
+  dn.tiles.replaceChildren(...cells);
+  dungeonBoard.cells = cells;
+}
+
+// 灯りの移ろい: 前の移ろいが走っている間に次の手番が来たら、前のものを終わりの姿へ畳んでから次を始める。押し続けで手番が詰まると
+// 移ろいの長さも手番の間隔まで縮め、最後の手番の位置に遅れず揃う。
+function updateDungeonLight(view) {
+  const now = performance.now();
+  const since = now - dungeonBoard.lastLightAt;
+  if (since < DN_LIGHT_MS) {
+    dn.tiles.classList.add('dn-snap');
+    void dn.tiles.offsetWidth;
+    dn.tiles.classList.remove('dn-snap');
+  }
+  dn.tiles.style.setProperty('--dn-light-ms', `${Math.round(Math.max(DN_LIGHT_MIN_MS, Math.min(DN_LIGHT_MS, since)))}ms`);
+  let changed = 0;
+  const { x: px, y: py } = view.player;
+  for (let y = 0; y < view.height; y += 1) {
+    const exploredRow = view.explored[y];
+    const visibleRow = view.visible[y];
+    for (let x = 0; x < view.width; x += 1) {
+      const index = y * view.width + x;
+      // 照らされる升目は、主人公からの距離で灯りの段（0＝足元〜4＝灯りの縁）を持つ。状態＝濃さ×段で比べ、変わった升目だけ書く。
+      const next = visibleRow[x] ? 2 + dungeonLightStep(Math.hypot(x - px, y - py)) : (exploredRow[x] ? 1 : 0);
+      const prev = dungeonBoard.light[index];
+      if (prev === next) continue;
+      const cell = dungeonBoard.cells[index];
+      const prevClass = DUNGEON_LIGHT_CLASS[Math.min(prev, 2)];
+      const nextClass = DUNGEON_LIGHT_CLASS[Math.min(next, 2)];
+      if (prevClass !== nextClass) {
+        if (prevClass) cell.classList.remove(prevClass);
+        if (nextClass) cell.classList.add(nextClass);
+      }
+      if (next >= 2) cell.dataset.l = String(next - 2);
+      else if (prev >= 2) delete cell.dataset.l;
+      dungeonBoard.light[index] = next;
+      changed += 1;
+    }
+  }
+  dungeonBoard.lastLightAt = now;
+  return changed;
+}
+
+function updateDungeonItems(view, freshBoard) {
+  const live = new Set();
+  for (const item of view.items) {
+    live.add(item.uid);
+    if (dungeonBoard.itemNodes.has(item.uid)) continue;
+    const node = dungeonItemFeature(item);
+    dungeonBoard.itemNodes.set(item.uid, node);
+    dungeonBoard.cells[item.y * view.width + item.x].append(node);
+    if (!freshBoard) dungeonFxAnimate(node, [{ opacity: 0, transform: 'scale(0.6)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 220, easing: 'ease-out' });
+  }
+  for (const [uid, node] of dungeonBoard.itemNodes) {
+    if (live.has(uid)) continue;
+    node.remove();
+    dungeonBoard.itemNodes.delete(uid);
+  }
+}
+
+// 体力と魔力の目盛り: 駒と同じ金の縁と黒い地。減った分は淡い削れとして一拍残ってから落ち、増えた分は満ちていく（減っていく重さが
+// 目で読める）。値が変わらない手番では何も書かない。
+function dungeonGaugeNode(kind) {
+  const gauge = document.createElement('div');
+  gauge.className = `dn-gauge dn-gauge--${kind}`;
+  const lag = document.createElement('div');
+  lag.className = 'dn-gauge-lag';
+  const fill = document.createElement('div');
+  fill.className = 'dn-gauge-fill';
+  gauge.append(lag, fill);
+  return gauge;
+}
+
+function setDungeonGauge(gauge, current, max) {
+  if (!Number.isFinite(current) || !Number.isFinite(max) || max <= 0) throw new Error(`dungeon gauge needs a finite value and a positive max, got ${current} / ${max}`);
+  const pct = Math.max(0, Math.min(100, (current / max) * 100));
+  const prev = gauge.dataset.pct === undefined ? null : Number(gauge.dataset.pct);
+  if (prev === pct) return;
+  gauge.dataset.pct = String(pct);
+  gauge.title = `${current} / ${max}`;
+  const [lag, fill] = gauge.children;
+  if (prev === null || dungeonReducedMotion()) {
+    lag.style.transition = 'none';
+    fill.style.transition = 'none';
+  } else if (pct < prev) {
+    fill.style.transition = 'none';
+    lag.style.transition = '';
+  } else {
+    lag.style.transition = 'none';
+    fill.style.transition = '';
+  }
+  lag.style.width = `${pct}%`;
+  fill.style.width = `${pct}%`;
+}
+
+function dungeonTokenNode({ role, element = null, imageUrl = null, glyph = '', crest = false, gauges = [], label = '', elite = false }) {
+  const token = document.createElement('div');
+  token.className = ['dn-token', `dn-token--${role}`, element ? `dn-el-${element}` : '', elite ? 'dn-token--elite' : ''].filter(Boolean).join(' ');
+  if (label) token.title = label;
+  const face = document.createElement('div');
+  face.className = 'dn-token-face';
+  if (crest) {
+    face.innerHTML = heroCrestSvg();
+  } else if (imageUrl) {
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = imageUrl;
+    face.append(img);
+  } else {
+    face.textContent = glyph;
+  }
+  token.append(face);
+  if (gauges.length) {
+    const frame = document.createElement('div');
+    frame.className = 'dn-token-gauges';
+    frame.append(...gauges.map((kind) => dungeonGaugeNode(kind)));
+    token.append(frame);
+  }
+  return token;
+}
+
+// 駒の下の目盛りを、その駒のいまの値に合わせる（hp と、魔力を持つ駒は mp）。
+function updateDungeonTokenGauges(token, actor) {
+  const hp = token.querySelector('.dn-gauge--hp');
+  if (hp) setDungeonGauge(hp, actor.hp, actor.max_hp);
+  const mp = token.querySelector('.dn-gauge--mp');
+  if (mp) setDungeonGauge(mp, actor.mp, actor.max_mp);
+}
+
+// 駒は id（player／companion／enemy:<uid>）で使い回す。駒は一度だけ作り、目盛りは値だけを動かし、位置は transform の滑りで動かす。
+function upsertDungeonEntity(key, live, x, y, actor, build, { appear }) {
+  live.add(key);
+  dungeonEntityTiles.set(key, { x, y });
+  const transform = `translate(calc((var(--dn-cell) + var(--dn-gap)) * ${x}), calc((var(--dn-cell) + var(--dn-gap)) * ${y}))`;
+  let node = dungeonEntityNodes.get(key);
+  if (!node) {
+    node = document.createElement('div');
+    node.className = `dn-entity dn-entity--${key.split(':')[0]}`;
+    node.style.transform = transform;
+    node.append(build());
+    dungeonEntityNodes.set(key, node);
+    dn.entities.append(node);
+    updateDungeonTokenGauges(node.firstChild, actor);
+    if (appear) dungeonFxAnimate(node.firstChild, [{ opacity: 0, filter: 'brightness(0.3)' }, { opacity: 1, filter: 'brightness(1)' }], { duration: 260, easing: 'ease-out' });
     return;
   }
-  dungeonActionInFlight = true;
-  dungeonChatMessages = [];
-  let bufferedView = null;
-  let leftLoading = false;
-  const showPlay = () => {
-    if (leftLoading || !bufferedView) return;
-    leftLoading = true;
-    // Leave the loading screen: activate the dungeon screen (without its auto state-refetch, since
-    // we already hold the board) and reveal the buffered board. renderDungeonPlay only unhides
-    // #dungeon-play WITHIN the dungeon screen, so without this switch the board stays hidden behind
-    // the still-active loading screen and the loader never appears to exit.
-    showScreen('academy-dungeon', { skipDungeonRefresh: true });
-    renderDungeonPlay(bufferedView);
-  };
-  try {
-    setAcademyLoadingDestinationCopy(null, { loadingCopy: DUNGEON_ENTER_LOADING_COPY });
-    showScreen('academy-loading');
-    const minimumDisplay = sleep(ACADEMY_LOADING_MINIMUM_MS);
-    // Enter streams: the board arrives on a dungeon_enter event, then the companion opening
-    // streams token by token into the chat. The first token leaves the loading screen and
-    // reveals the board; the opening keeps streaming into the now-visible panel.
-    await runAssistantSseStream({
-      surface: dungeonChatSurface,
-      endpoint: '/api/dungeon/enter',
-      body: {},
-      statusPrefix: 'dungeon-enter',
-      finalAssistantMode: 'first',
-      refreshAfter: false,
-      onEvent: (event, data) => { if (event === 'dungeon_enter') { bufferedView = data.view; notifyAcademyLoadingProgress(); } },
-      onAssistantStreamStart: () => showPlay()
-    });
-    // Solo / no-companion enter has no opening token: hold the loading its usual minimum, then
-    // reveal the board.
-    await minimumDisplay;
-    showPlay();
-  } catch (error) {
-    // Enter / opening failure returns to the room and surfaces the error — never a silent
-    // drop into a solo run on the loading screen.
-    showScreen('academy-room');
-    reportError(error);
-  } finally {
-    dungeonActionInFlight = false;
+  node.style.transform = transform;
+  updateDungeonTokenGauges(node.firstChild, actor);
+}
+
+function renderDungeonEntities(view, freshBoard) {
+  if (freshBoard) {
+    dungeonEntityNodes.clear();
+    dungeonEntityTiles.clear();
+    dn.entities.replaceChildren();
+  }
+  const live = new Set();
+  if (view.companion && !view.companion.down) {
+    const companion = view.companion;
+    upsertDungeonEntity('companion', live, companion.x, companion.y, companion,
+      () => dungeonTokenNode({ role: 'ally', imageUrl: dungeonCompanionFaceUrl(companion), gauges: ['hp', 'mp'], label: companion.name }), { appear: false });
+  }
+  for (const enemy of view.enemies) {
+    upsertDungeonEntity(`enemy:${enemy.uid}`, live, enemy.x, enemy.y, enemy,
+      () => dungeonTokenNode({ role: 'enemy', element: enemy.element, elite: enemy.elite || enemy.boss, imageUrl: `${DUNGEON_ASSET_BASE}/enemies/${enemy.archetype_id}.png`, glyph: enemy.glyph, gauges: ['hp'], label: `${enemy.name}（${DUNGEON_MAGIC_LABELS[enemy.element] ?? enemy.element}）` }),
+      { appear: !freshBoard });
+  }
+  upsertDungeonEntity('player', live, view.player.x, view.player.y, view.player,
+    () => dungeonTokenNode({ role: 'self', crest: true, gauges: ['hp', 'mp'], label: DUNGEON_PLAYER_NAME }), { appear: false });
+  for (const [key, node] of dungeonEntityNodes) {
+    if (live.has(key)) continue;
+    node.remove();
+    dungeonEntityNodes.delete(key);
+    dungeonEntityTiles.delete(key);
   }
 }
 
-async function dungeonDo(action) {
-  if (dungeonActionInFlight || !currentDungeonView) return;
-  dungeonActionInFlight = true;
-  try {
-    const result = await postJson('/api/dungeon/action', { action });
-    if (result.ended) {
-      // A run-ending turn (e.g. the fatal blow) still gets its combat animation: play it on the
-      // still-visible board, then show the result. Awaited so input stays gated meanwhile.
-      if (result.events?.length) {
-        animateDungeonCombat(result.events);
-        await new Promise((resolve) => window.setTimeout(resolve, DUNGEON_ENDED_ANIM_MS));
-      }
-      renderDungeonResult(result);
-      await dungeonExitToRoom(result);
-    } else {
-      renderDungeonPlay(result);
-      animateDungeonCombat(result.events);
-    }
-  } finally {
-    dungeonActionInFlight = false;
+function renderDungeonBoard(view) {
+  const previousPlayerTile = dungeonEntityTiles.get('player') ?? null;
+  const signature = `${view.run_id}:${view.floor}`;
+  const freshBoard = signature !== dungeonBoard.signature;
+  if (freshBoard) {
+    dungeonBoard.signature = signature;
+    buildDungeonFloor(view);
   }
+  const changed = updateDungeonLight(view);
+  updateDungeonItems(view, freshBoard);
+  renderDungeonEntities(view, freshBoard);
+  const playerMoved = !previousPlayerTile || previousPlayerTile.x !== view.player.x || previousPlayerTile.y !== view.player.y;
+  layoutDungeonBoard(view, { mode: freshBoard ? 'center' : (playerMoved ? 'follow' : 'preserve') });
+  return { freshBoard, changed };
 }
 
-// Builds the result-surface payload for a run held server-side awaiting its finalize (used when
-// resuming an interrupted exit). applied_gains_preview is the clamped deltas the finalize will bank
-// (empty for death), so a resumed exit shows the same gains the action's preview did.
-function dungeonResultFromHeldView(view) {
+// One rule for the camera: a new floor centers on the hero, walking follows with a deadzone, and a window resize keeps
+// the hero at the same place in the window.
+function measureDungeonReframeAnchor() {
+  const node = dungeonEntityNodes.get('player');
+  if (!node) throw new Error('dungeon: reframe needs the rendered player node');
+  const playerRect = dungeonLocalRect(node);
+  const boardRect = dungeonLocalRect(dn.board);
+  const frac = playerViewportFraction({ playerRect, viewportRect: dungeonLocalRect(dn.viewport) });
   return {
-    ended: true,
-    pending_finalize: true,
-    status: view.pending_finalize.outcome,
-    floor_reached: view.floor,
-    max_floors: view.max_floors,
-    applied_gains: view.applied_gains_preview ?? { magic: {}, abilities: {} }
+    fracX: frac.x,
+    fracY: frac.y,
+    boardCenterX: (playerRect.left + playerRect.width / 2) - boardRect.left,
+    boardCenterY: (playerRect.top + playerRect.height / 2) - boardRect.top
   };
 }
 
-// Exit hand-off mirroring the conversation post-flow: show the result a beat, slip through the
-// loading screen, and land in the room. A companion run's finalize -> bank -> clear runs in the
-// background (busy-gated server-side) so the room is reached without waiting on the LLM; a solo
-// run end has already banked synchronously, so there is nothing to background.
-async function dungeonExitToRoom(result) {
-  if (result.pending_finalize) startDungeonBackgroundFinalize();
-  await sleep(DUNGEON_RESULT_HOLD_MS);
-  // The action-ended result carries the mode-resolved next screen (loop -> academy-room, routing ->
-  // interaction). A run resumed from a held-finalize state (dungeonResultFromHeldView) has no
-  // transition — the dungeon state view does not expose it — so the global play mode resolves the
-  // return screen for that recovery case, mirroring the backend's post-dungeon screen.
-  let nextScreen = result.transition?.next_screen ?? null;
-  if (nextScreen == null) {
-    if (currentPlayMode !== 'loop' && currentPlayMode !== 'routing') {
-      throw new Error(`dungeon resume: unknown play mode ${JSON.stringify(currentPlayMode)}`);
-    }
-    nextScreen = currentPlayMode === 'routing' ? 'interaction' : 'academy-room';
-  }
-  // Drain-on-exit for the routing dungeon return: the companion dungeon finalize (POST
-  // /api/dungeon/finalize) is the dungeon's post-processing. The hub it returns to opens on an empty
-  // pending-finalization queue — the hub->dungeon dispatch already drained ルミ's finalization on exit,
-  // and the hub start no longer pre-drains — so the only post-processing left at exit is the companion
-  // finalize. Drain it to completion under the exit loading screen BEFORE opening the hub, so the
-  // companion finalize and the hub opening never race on the LM pipeline (hub return happens only after
-  // the drain completes). Loop returns to academy-room and never enters the hub, so it keeps the
-  // un-awaited background finalize (its room is reached without waiting on the LLM).
-  if (nextScreen === 'interaction' && activeDungeonFinalizationPromise) {
-    await showAcademyLoadingScreenUntilReady({
-      // The companion finalize drain is the observed boundary held under the exit loading screen; advance the
-      // constellation when it completes. The following hub return (navigateToPostContentScreen → enterRoutingHub)
-      // keeps the same loader up and advances again on its own POST/refresh boundaries.
-      readiness: (async () => { await activeDungeonFinalizationPromise; notifyAcademyLoadingProgress(); })(),
-      loadingCopy: DUNGEON_HUB_RETURN_LOADING_COPY
-    });
-  }
-  await navigateToPostContentScreen(nextScreen, { loadingCopy: DUNGEON_EXIT_LOADING_COPY });
+function snapDungeonEntitiesToCell() {
+  if (!dungeonEntityNodes.size) return;
+  for (const node of dungeonEntityNodes.values()) node.style.transition = 'none';
+  void dn.viewport.offsetWidth;
+  for (const node of dungeonEntityNodes.values()) node.style.transition = '';
 }
 
-// Runs the deferred companion finalize -> bank -> clear in the background. The server holds the
-// LLM busy gate for the request's duration, so re-entering the dungeon meanwhile sees llm_busy.
-// A failure surfaces (reportError) and leaves the run held server-side for a later retry.
-function startDungeonBackgroundFinalize() {
-  if (dungeonFinalizationInFlight) return;
-  dungeonFinalizationInFlight = true;
-  const finalization = (async () => {
-    try {
-      const result = await postJson('/api/dungeon/finalize', {});
-      if (result.world?.player_parameters) {
-        currentWorld = { ...(currentWorld ?? {}), player_parameters: result.world.player_parameters };
+function layoutDungeonBoard(view, { mode }) {
+  if (mode === 'preserve') return;
+  const viewW = dn.viewport.clientWidth;
+  const viewH = dn.viewport.clientHeight;
+  if (viewW === 0 || viewH === 0) return;
+  if (mode === 'reframe' && viewW === dungeonViewportSize.w && viewH === dungeonViewportSize.h) return;
+  const anchor = mode === 'reframe' ? measureDungeonReframeAnchor() : null;
+  const style = getComputedStyle(dn.viewport);
+  const fromCell = mode === 'reframe' ? parseFloat(style.getPropertyValue('--dn-cell')) : null;
+  const gap = parseFloat(style.getPropertyValue('--dn-gap'));
+  if (!Number.isFinite(gap)) throw new Error('dungeon: --dn-gap must resolve to a length');
+  const cell = computeDungeonCellSize({ viewW, viewH, gap, targetCells: DN_TARGET_CELLS, cellMin: DN_CELL_MIN, cellMax: DN_CELL_MAX });
+  dn.viewport.style.setProperty('--dn-cell', `${cell}px`);
+  const step = cell + gap;
+  const playerX = view.player.x * step + cell / 2;
+  const playerY = view.player.y * step + cell / 2;
+  const r = view.player_stats.vision_radius;
+  const marginX = computeFollowMargin({ visionRadius: r, step, cell, viewSize: viewW });
+  const marginY = computeFollowMargin({ visionRadius: r, step, cell, viewSize: viewH });
+  // 端止めは「どの床の升目に立っても主人公を窓の中央に置ける広さ」で取り、灯りをいつも窓の中ほどに置く（床の外接矩形で止めると、
+  // 床の端にいると灯りが窓の隅へ寄る）。
+  const bounds = dungeonFloorBounds(view);
+  const contentMinX = bounds.minX * step + cell / 2 - viewW / 2;
+  const contentMinY = bounds.minY * step + cell / 2 - viewH / 2;
+  const contentMaxX = bounds.maxX * step + cell / 2 + viewW / 2;
+  const contentMaxY = bounds.maxY * step + cell / 2 + viewH / 2;
+  let next;
+  if (mode === 'reframe' && cell !== fromCell) {
+    snapDungeonEntitiesToCell();
+    next = reframeDungeonCamera({ playerX, playerY, fracX: anchor.fracX, fracY: anchor.fracY, contentMinX, contentMaxX, contentMinY, contentMaxY, viewW, viewH });
+  } else if (mode === 'reframe') {
+    const anchorX = rescaleBoardPx({ px: anchor.boardCenterX, fromCell, toCell: cell, gap });
+    const anchorY = rescaleBoardPx({ px: anchor.boardCenterY, fromCell, toCell: cell, gap });
+    next = reframeDungeonCamera({ playerX: anchorX, playerY: anchorY, fracX: anchor.fracX, fracY: anchor.fracY, contentMinX, contentMaxX, contentMinY, contentMaxY, viewW, viewH });
+  } else {
+    const seedX = mode === 'center' ? playerX - viewW / 2 : dungeonCamera.x;
+    const seedY = mode === 'center' ? playerY - viewH / 2 : dungeonCamera.y;
+    next = computeDungeonCamera({ playerX, playerY, contentMinX, contentMaxX, contentMinY, contentMaxY, viewW, viewH, marginX, marginY, prevX: seedX, prevY: seedY });
+    if (dungeonCompanionSpeaking()) next = holdDungeonSpeaker(next, { cell, step, viewW, viewH });
+  }
+  dungeonCamera = next;
+  dungeonViewportSize = { w: viewW, h: viewH };
+  const transform = `translate(${-next.x}px, ${-next.y}px)`;
+  if (mode === 'follow') {
+    dn.board.style.transition = '';
+    dn.board.style.transform = transform;
+  } else {
+    dn.board.style.transition = 'none';
+    dn.board.style.transform = transform;
+    void dn.board.offsetWidth;
+    dn.board.style.transition = '';
+  }
+  placeDungeonVoice();
+}
+
+new ResizeObserver(() => {
+  if (!currentDungeonView || dungeonRoot.dataset.scene !== 'play') return;
+  layoutDungeonBoard(currentDungeonView, { mode: 'reframe' });
+}).observe(dn.viewport);
+
+// ── 演出: どれも次の手番を待たせない。新しい手番が来たら、遅れて出る予定のものまで含めて前の演出をすべて畳む ─────────
+const dungeonFx = { timers: new Set(), animations: new Set() };
+
+function dungeonFxLater(ms, run) {
+  const id = setTimeout(() => {
+    dungeonFx.timers.delete(id);
+    run();
+  }, ms);
+  dungeonFx.timers.add(id);
+}
+
+function dungeonFxAnimate(el, keyframes, options, onDone = null) {
+  const animation = el.animate(keyframes, options);
+  dungeonFx.animations.add(animation);
+  animation.onfinish = () => {
+    dungeonFx.animations.delete(animation);
+    onDone?.();
+  };
+  return animation;
+}
+
+// 降りた手番（keepVeil）では、押した瞬間から掛かっている暗がりを残し、その下で下の階を描く。
+function foldDungeonEffects({ keepVeil = false } = {}) {
+  const folded = dungeonFx.timers.size + dungeonFx.animations.size;
+  for (const id of dungeonFx.timers) clearTimeout(id);
+  dungeonFx.timers.clear();
+  for (const animation of dungeonFx.animations) animation.cancel();
+  dungeonFx.animations.clear();
+  dn.effects.replaceChildren();
+  if (!keepVeil) dn.veil.classList.remove('is-dark');
+  dn.floorMark.classList.remove('is-shown');
+  dn.hurt.classList.remove('is-hurt');
+  dungeonRoot.dataset.fxFolded = String(folded);
+  return folded;
+}
+
+function dungeonCellMetrics() {
+  const style = getComputedStyle(dn.viewport);
+  const cell = parseFloat(style.getPropertyValue('--dn-cell'));
+  const gap = parseFloat(style.getPropertyValue('--dn-gap'));
+  return { cell, step: cell + gap };
+}
+
+// 盤の上の位置: その升目にいまいる駒が実際に描かれている中心（滑りの途中ならその途中）か、升目の中心。
+function dungeonTileCenter(x, y) {
+  const { cell, step } = dungeonCellMetrics();
+  for (const [key, tile] of dungeonEntityTiles) {
+    if (tile.x !== x || tile.y !== y) continue;
+    const node = dungeonEntityNodes.get(key);
+    if (!node) continue;
+    const r = dungeonLocalRect(node);
+    const b = dungeonLocalRect(dn.board);
+    return { x: (r.left + r.width / 2) - b.left, y: (r.top + r.height / 2) - b.top };
+  }
+  return { x: x * step + cell / 2, y: y * step + cell / 2 };
+}
+
+// 数字と語は駒の上端から浮いて薄れる（駒の絵と、吸われていく物の絵に重ならない高さ）。
+function dungeonFloatWord(at, text, className) {
+  const { cell } = dungeonCellMetrics();
+  const node = document.createElement('div');
+  node.className = `dn-float ${className}`;
+  node.textContent = text;
+  node.style.left = `${at.x}px`;
+  node.style.top = `${at.y - cell * 0.32}px`;
+  dn.effects.append(node);
+  const rise = dungeonReducedMotion() ? 0 : -26;
+  dungeonFxAnimate(node, [
+    { opacity: 0, transform: 'translate(-50%, -30%)' },
+    { opacity: 1, transform: 'translate(-50%, -80%)', offset: 0.18 },
+    { opacity: 1, transform: `translate(-50%, calc(-80% + ${rise * 0.6}px))`, offset: 0.7 },
+    { opacity: 0, transform: `translate(-50%, calc(-80% + ${rise}px))` }
+  ], { duration: 1100, easing: 'ease-out' }, () => node.remove());
+}
+
+function spawnDungeonBolt(event, from, to, cell, onLand) {
+  if (dungeonReducedMotion()) { onLand(); return; }
+  const bolt = document.createElement(event.element ? 'img' : 'div');
+  bolt.className = event.element ? 'dn-bolt' : 'dn-bolt dn-bolt--melee';
+  if (event.element) {
+    bolt.alt = '';
+    bolt.src = dungeonEffectAssetUrl(event.element, 'bolt');
+    bolt.style.setProperty('--dn-fx-size', `${Math.round(cell * 0.9)}px`);
+  }
+  bolt.style.left = `${from.x}px`;
+  bolt.style.top = `${from.y}px`;
+  dn.effects.append(bolt);
+  dungeonFxAnimate(bolt, [{ left: `${from.x}px`, top: `${from.y}px` }, { left: `${to.x}px`, top: `${to.y}px` }], { duration: 180, easing: 'ease-in' }, () => {
+    bolt.remove();
+    onLand();
+  });
+}
+
+function spawnDungeonImpact(event, to, cell) {
+  if (dungeonReducedMotion()) return;
+  const impact = document.createElement(event.element ? 'img' : 'div');
+  impact.className = event.element ? 'dn-impact' : 'dn-impact dn-impact--melee';
+  if (event.element) {
+    impact.alt = '';
+    impact.src = dungeonEffectAssetUrl(event.element, 'impact');
+  }
+  impact.style.left = `${to.x}px`;
+  impact.style.top = `${to.y}px`;
+  impact.style.setProperty('--dn-fx-size', `${Math.round(cell * 1.05)}px`);
+  dn.effects.append(impact);
+  dungeonFxAnimate(impact, [{ transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0.95 }, { transform: 'translate(-50%, -50%) scale(1)', opacity: 0 }], { duration: 240, easing: 'ease-out' }, () => impact.remove());
+}
+
+// 当たった駒がごく短く身を引く（攻めた側から離れる向きに数 px）。
+function recoilDungeonToken(key, from, to) {
+  const node = dungeonEntityNodes.get(key);
+  if (!node || dungeonReducedMotion()) return;
+  const dx = Math.sign(to.x - from.x) * 5;
+  const dy = Math.sign(to.y - from.y) * 5;
+  dungeonFxAnimate(node.firstChild, [{ transform: 'translate(0, 0)' }, { transform: `translate(${dx}px, ${dy}px)`, offset: 0.35 }, { transform: 'translate(0, 0)' }], { duration: 160, easing: 'ease-out' });
+}
+
+function dungeonEntityKeyAt(x, y) {
+  for (const [key, tile] of dungeonEntityTiles) if (tile.x === x && tile.y === y) return key;
+  return null;
+}
+
+// 倒した敵の絵が属性の色の塵にほどける（描き方の粒）。
+function dissolveDungeonEnemy(enemy, at, cell) {
+  const ghost = document.createElement('img');
+  ghost.className = 'dn-ghost';
+  ghost.alt = '';
+  ghost.src = `${DUNGEON_ASSET_BASE}/enemies/${enemy.archetype_id}.png`;
+  ghost.style.left = `${at.x}px`;
+  ghost.style.top = `${at.y}px`;
+  ghost.style.setProperty('--dn-fx-size', `${Math.round(cell * 0.78)}px`);
+  dn.effects.append(ghost);
+  if (dungeonReducedMotion()) {
+    dungeonFxAnimate(ghost, [{ opacity: 0.8 }, { opacity: 0 }], { duration: 260 }, () => ghost.remove());
+    return;
+  }
+  dungeonFxAnimate(ghost, [{ opacity: 1, filter: 'blur(0)' }, { opacity: 0, filter: 'blur(3px)' }], { duration: 420, easing: 'ease-in' }, () => ghost.remove());
+  for (let index = 0; index < 14; index += 1) {
+    const mote = document.createElement('span');
+    mote.className = `dn-mote dn-el-${enemy.element}`;
+    mote.style.left = `${at.x + (Math.random() - 0.5) * cell * 0.5}px`;
+    mote.style.top = `${at.y + (Math.random() - 0.5) * cell * 0.5}px`;
+    dn.effects.append(mote);
+    const angle = (index / 14) * Math.PI * 2 + Math.random() * 0.4;
+    const reach = cell * (0.35 + Math.random() * 0.35);
+    dungeonFxAnimate(mote, [
+      { opacity: 1, transform: 'translate(-50%, -50%) scale(1)' },
+      { opacity: 0, transform: `translate(calc(-50% + ${Math.cos(angle) * reach}px), calc(-50% + ${Math.sin(angle) * reach - cell * 0.2}px)) scale(0.4)` }
+    ], { duration: 520 + Math.random() * 160, easing: 'ease-out' }, () => mote.remove());
+  }
+}
+
+// 手に入ったものの絵が、出た升目から主人公の駒へ吸われ、柱の持ち物に並ぶ。
+function drawDungeonItemIn(imageUrl, from, to, cell, onArrive) {
+  const icon = document.createElement('img');
+  icon.className = 'dn-draw-in';
+  icon.alt = '';
+  icon.src = imageUrl;
+  icon.style.setProperty('--dn-fx-size', `${Math.round(cell * 0.5)}px`);
+  icon.style.left = `${from.x}px`;
+  icon.style.top = `${from.y}px`;
+  dn.effects.append(icon);
+  if (dungeonReducedMotion()) {
+    dungeonFxAnimate(icon, [{ opacity: 1 }, { opacity: 0 }], { duration: 400 }, () => { icon.remove(); onArrive(); });
+    return;
+  }
+  dungeonFxAnimate(icon, [
+    { left: `${from.x}px`, top: `${from.y}px`, opacity: 0, transform: 'translate(-50%, -50%) scale(0.6)' },
+    { left: `${from.x}px`, top: `${from.y + cell * 0.12}px`, opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.35 },
+    { left: `${to.x}px`, top: `${to.y}px`, opacity: 0.2, transform: 'translate(-50%, -50%) scale(0.4)' }
+  ], { duration: 560, easing: 'ease-in' }, () => { icon.remove(); onArrive(); });
+}
+
+function pulseDungeonCarry(key) {
+  const row = dn.carry.querySelector(`[data-key="${CSS.escape(key)}"]`);
+  if (!row || dungeonReducedMotion()) return;
+  const style = getComputedStyle(dungeonRoot);
+  dungeonFxAnimate(row, [
+    { backgroundColor: style.getPropertyValue('--dungeon-carry-pulse') },
+    { backgroundColor: style.getPropertyValue('--dungeon-carry-pulse-end') }
+  ], { duration: 700, easing: 'ease-out' });
+}
+
+// 下の階は、降りる手を押した瞬間から掛かった暗がりの下で描かれている。暗いまま一拍置いて明け、「N 階」を出す。
+function markDungeonDescent(floor) {
+  dn.veil.classList.add('is-dark');
+  dn.floorMark.textContent = `${floor} 階`;
+  dungeonFxLater(dungeonReducedMotion() ? 0 : DUNGEON_DESCENT_DARK_HOLD_MS, () => {
+    dn.veil.classList.remove('is-dark');
+    dn.floorMark.classList.add('is-shown');
+    dungeonFxLater(1100, () => dn.floorMark.classList.remove('is-shown'));
+  });
+}
+
+function flashDungeonHurt() {
+  dn.hurt.classList.add('is-hurt');
+  dungeonFxLater(260, () => dn.hurt.classList.remove('is-hurt'));
+}
+
+// ── 手番の読み解き: 数字は server の応答の log（新しく足された行の「<名>に N ダメージ。」）から取り、events の to の升目の相手と
+// 名前で結ぶ。log の行に数字が無い出来事（範囲の投げ物の巻き込み・同行者が倒れた）は数字を出さない。 ─────────────────────
+function newDungeonLogLines(prevLog, nextLog) {
+  if (!prevLog) return [...nextLog];
+  for (let shift = 0; shift <= prevLog.length; shift += 1) {
+    const overlap = prevLog.length - shift;
+    let same = true;
+    for (let i = 0; i < overlap; i += 1) {
+      if (prevLog[shift + i] !== nextLog[i]) { same = false; break; }
+    }
+    if (same) return nextLog.slice(overlap);
+  }
+  return [...nextLog];
+}
+
+function dungeonNamesAt(prev, next, x, y) {
+  const names = [];
+  if (next.player.x === x && next.player.y === y) names.push(DUNGEON_PLAYER_NAME);
+  if (next.companion && next.companion.x === x && next.companion.y === y) names.push(next.companion.name);
+  for (const enemy of [...prev.enemies, ...next.enemies]) if (enemy.x === x && enemy.y === y && !names.includes(enemy.name)) names.push(enemy.name);
+  return names;
+}
+
+function takeDungeonDamage(lines, used, names) {
+  for (let index = 0; index < lines.length; index += 1) {
+    if (used.has(index)) continue;
+    for (const name of names) {
+      const match = lines[index].match(new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:に|の防御を貫き)(\\d+)ダメージ。`));
+      if (match) {
+        used.add(index);
+        return Number(match[1]);
       }
-      currentRuntimeState = result.state ?? currentRuntimeState;
-      await refresh();
-      if (screens['academy-room']?.classList.contains('active')) renderAcademyRoomScreen();
-    } catch (error) {
-      reportError(error);
-    } finally {
-      dungeonFinalizationInFlight = false;
-      if (activeDungeonFinalizationPromise === finalization) activeDungeonFinalizationPromise = null;
     }
-  })();
-  activeDungeonFinalizationPromise = finalization;
+  }
+  return null;
 }
 
-async function dungeonRetreat() {
-  if (!currentDungeonView || !currentDungeonView.can_retreat) return;
-  closeDungeonRetreatConfirm();
-  await dungeonDo({ type: 'retreat' });
+function readDungeonTurn(prev, next, lines) {
+  const used = new Set();
+  const strikes = next.events.map((event) => {
+    const names = dungeonNamesAt(prev, next, event.to.x, event.to.y);
+    const damage = event.hit ? takeDungeonDamage(lines, used, names) : null;
+    const onPlayer = event.to.x === next.player.x && event.to.y === next.player.y;
+    return { event, damage, onPlayer };
+  });
+  const kills = [];
+  for (const line of lines) {
+    const match = line.match(/^(.+)を倒した。$/);
+    if (!match) continue;
+    const enemy = prev.enemies.find((candidate) => candidate.name === match[1] && !next.enemies.some((alive) => alive.uid === candidate.uid) && !kills.includes(candidate));
+    if (enemy) kills.push(enemy);
+  }
+  const prevMaterials = new Map(prev.material_buffer.map((item) => [item.item_id, item.quantity]));
+  const materials = next.material_buffer.filter((item) => item.quantity > (prevMaterials.get(item.item_id) ?? 0));
+  const pickedItems = prev.floor === next.floor
+    ? prev.items.filter((item) => !next.items.some((left) => left.uid === item.uid) && item.x === next.player.x && item.y === next.player.y)
+    : [];
+  return { strikes, kills, materials, pickedItems, descended: prev.run_id === next.run_id && next.floor !== prev.floor };
 }
+
+// 潜りが終わる手番の応答は盤を持たないので、直前の盤の上で打ち合いだけを読む。
+function readDungeonEndedTurn(last, events, lines) {
+  const used = new Set();
+  const strikes = events.map((event) => ({
+    event,
+    damage: event.hit ? takeDungeonDamage(lines, used, dungeonNamesAt(last, last, event.to.x, event.to.y)) : null,
+    onPlayer: event.to.x === last.player.x && event.to.y === last.player.y
+  }));
+  return { strikes, kills: [], materials: [], pickedItems: [], descended: false };
+}
+
+function playDungeonTurn(reading, next) {
+  const { cell } = dungeonCellMetrics();
+  if (!Number.isFinite(cell)) return;
+  const reduce = dungeonReducedMotion();
+  const lastLand = Math.min(Math.max(0, reading.strikes.length - 1) * 70, 280) + 180;
+  reading.strikes.forEach((strike, index) => {
+    dungeonFxLater(reduce ? 0 : Math.min(index * 70, 280), () => {
+      const { event } = strike;
+      const from = dungeonTileCenter(event.from.x, event.from.y);
+      const to = dungeonTileCenter(event.to.x, event.to.y);
+      spawnDungeonBolt(event, from, to, cell, () => {
+        if (!event.hit) {
+          dungeonFloatWord(to, 'かわした', 'dn-float--miss');
+          return;
+        }
+        spawnDungeonImpact(event, to, cell);
+        const key = dungeonEntityKeyAt(event.to.x, event.to.y);
+        if (key) recoilDungeonToken(key, from, to);
+        if (strike.damage !== null) dungeonFloatWord(to, String(strike.damage), strike.onPlayer ? 'dn-float--hurt' : 'dn-float--hit');
+        if (strike.onPlayer) flashDungeonHurt();
+      });
+    });
+  });
+  const killAt = new Map();
+  reading.kills.forEach((enemy) => {
+    killAt.set(enemy.uid, dungeonTileCenter(enemy.x, enemy.y));
+    dungeonFxLater(reduce ? 0 : lastLand, () => dissolveDungeonEnemy(enemy, killAt.get(enemy.uid), cell));
+  });
+  const playerAt = () => dungeonTileCenter(next.player.x, next.player.y);
+  reading.materials.forEach((item, index) => {
+    const origin = reading.kills.length ? killAt.get(reading.kills[Math.min(index, reading.kills.length - 1)].uid) : playerAt();
+    dungeonFxLater(reduce ? 0 : lastLand + 520 + index * 90, () => drawDungeonItemIn(`${DUNGEON_ASSET_BASE}/material-icons/${item.item_id}.png`, origin, playerAt(), cell, () => pulseDungeonCarry(`material:${item.item_id}`)));
+  });
+  reading.pickedItems.forEach((item) => {
+    if (item.kind === 'treasure_chest') pulseDungeonCarry(`item:${item.kind}`);
+    else drawDungeonItemIn(`${DUNGEON_ASSET_BASE}/items/${item.kind}.png`, playerAt(), playerAt(), cell, () => pulseDungeonCarry(`item:${item.kind}`));
+  });
+  if (reading.descended) markDungeonDescent(next.floor);
+}
+
+// ── 柱: 上（階と手番・主人公と同行者の札）・中（会話とこれまでの出来事）・下（魔法の札・持ち物） ──────────────────────
+// 札は駒と同じ顔（主人公は紋章）に、駒と同じ金の縁と黒い地の目盛りを添える。札は潜りの顔ぶれが変わったときだけ作り、手番ごとには
+// 目盛りと数だけを動かす。
+function dungeonPartyCard(key, name, { crest = false, imageUrl = null, onOpen }) {
+  const card = document.createElement('div');
+  card.className = `dn-member dn-member--${key}`;
+  const token = dungeonTokenNode({ role: crest ? 'self' : 'ally', crest, imageUrl });
+  token.classList.add('dn-member-token');
+  const head = document.createElement('button');
+  head.type = 'button';
+  head.className = 'dn-member-name';
+  head.textContent = name;
+  head.addEventListener('click', () => { head.blur(); try { onOpen(); } catch (error) { reportError(error); } });
+  const row = (kind, label) => {
+    const wrap = document.createElement('div');
+    wrap.className = `dn-member-gauge dn-member-gauge--${kind}`;
+    const tag = document.createElement('span');
+    tag.className = 'dn-member-tag';
+    tag.textContent = label;
+    const value = document.createElement('span');
+    value.className = 'dn-member-value';
+    wrap.append(tag, dungeonGaugeNode(kind), value);
+    return wrap;
+  };
+  card.append(token, head, row('hp', '体'), row('mp', '魔'));
+  return card;
+}
+
+function updateDungeonPartyCard(card, name, actor, down) {
+  card.classList.toggle('is-down', down);
+  const head = card.querySelector('.dn-member-name');
+  const label = down ? `${name}（戦闘不能）` : name;
+  if (head.textContent !== label) head.textContent = label;
+  for (const kind of ['hp', 'mp']) {
+    const wrap = card.querySelector(`.dn-member-gauge--${kind}`);
+    setDungeonGauge(wrap.querySelector('.dn-gauge'), actor[kind], actor[`max_${kind}`]);
+    const text = String(actor[kind]);
+    const value = wrap.querySelector('.dn-member-value');
+    if (value.textContent !== text) value.textContent = text;
+  }
+}
+
+let dungeonPartyCast = null;
+function renderDungeonPartyAndDepth(view) {
+  dn.depthFloor.textContent = `${view.floor} / ${view.max_floors} 階`;
+  dn.depthTurn.textContent = `${view.turn} 手目`;
+  const cast = JSON.stringify([view.run_id, view.companion?.character_id ?? null]);
+  if (cast !== dungeonPartyCast) {
+    dungeonPartyCast = cast;
+    const cards = [dungeonPartyCard('player', DUNGEON_PLAYER_NAME, { crest: true, onOpen: () => openDungeonHeroDetail() })];
+    if (view.companion) {
+      const companion = view.companion;
+      cards.push(dungeonPartyCard('companion', companion.name, { imageUrl: dungeonCompanionFaceUrl(companion), onOpen: () => openDungeonCompanionDetail(currentDungeonView.companion) }));
+    }
+    dn.party.replaceChildren(...cards);
+  }
+  updateDungeonPartyCard(dn.party.querySelector('.dn-member--player'), DUNGEON_PLAYER_NAME, view.player, false);
+  if (view.companion) updateDungeonPartyCard(dn.party.querySelector('.dn-member--companion'), view.companion.name, view.companion, view.companion.down);
+}
+
+// 札を押したあとは focus を body へ返す（押した直後の方向キーがそのまま歩きになる）。
+function dungeonActButton({ className, label, cost, title, disabled, onPress }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.title = title;
+  button.disabled = disabled;
+  const name = document.createElement('span');
+  name.className = 'dn-card-name';
+  name.textContent = label;
+  button.append(name);
+  if (cost !== null) {
+    const mp = document.createElement('span');
+    mp.className = 'dn-card-cost';
+    mp.textContent = cost;
+    button.append(mp);
+  }
+  button.addEventListener('click', () => {
+    button.blur();
+    onPress();
+  });
+  return button;
+}
+
+let dungeonSpellSignature = null;
+function renderDungeonSpells(view) {
+  const healing = view.healing_spell;
+  const pierce = view.pierce_spell;
+  const evasion = view.evasion_spell;
+  if (!healing || healing.action_type !== 'heal_spell' || typeof healing.can_use !== 'boolean') throw new Error('dungeon view is missing healing_spell');
+  if (!pierce || pierce.action_type !== 'pierce_spell' || typeof pierce.can_use !== 'boolean') throw new Error('dungeon view is missing pierce_spell');
+  if (!evasion || evasion.action_type !== 'evasion_spell' || typeof evasion.can_use !== 'boolean' || typeof evasion.active !== 'boolean') throw new Error('dungeon view is missing evasion_spell');
+  const signature = JSON.stringify([view.player.mp, view.castable_elements, healing, pierce, evasion]);
+  if (signature === dungeonSpellSignature) return;
+  dungeonSpellSignature = signature;
+  const buttons = view.castable_elements.map((spell) => {
+    const button = dungeonActButton({
+      className: `dn-card dn-el-${spell.element}`,
+      label: DUNGEON_MAGIC_LABELS[spell.element] ?? spell.element,
+      cost: `${spell.mp_cost}`,
+      title: `${spell.label} 威力${spell.power} / MP${spell.mp_cost}`,
+      disabled: view.player.mp < spell.mp_cost,
+      onPress: () => dungeonDo({ type: 'cast', element: spell.element }).catch(reportError)
+    });
+    button.dataset.element = spell.element;
+    return button;
+  });
+  buttons.push(dungeonActButton({ className: 'dn-card dn-card--craft', label: '回復', cost: `${healing.mp_cost}`, title: `自己回復 +${healing.heal_amount} / MP${healing.mp_cost}`, disabled: !healing.can_use, onPress: () => dungeonDo({ type: 'heal_spell' }).catch(reportError) }));
+  buttons.push(dungeonActButton({ className: 'dn-card dn-card--craft', label: '貫通', cost: `${pierce.mp_cost}`, title: `貫通魔法（防御無視）威力${pierce.power} / MP${pierce.mp_cost}`, disabled: !pierce.can_use, onPress: () => dungeonDo({ type: 'pierce_spell' }).catch(reportError) }));
+  buttons.push(dungeonActButton({
+    className: `dn-card dn-card--craft${evasion.active ? ' is-active' : ''}`,
+    label: evasion.active ? `回避 残${evasion.turns_remaining}` : '回避',
+    cost: `${evasion.mp_cost}`,
+    title: evasion.active
+      ? `回避魔法（発動中・残り${evasion.turns_remaining}ターン）回避+${evasion.evasion_bonus} / MP${evasion.mp_cost}`
+      : `回避魔法（${evasion.duration}ターン）回避+${evasion.evasion_bonus} / MP${evasion.mp_cost}`,
+    disabled: !evasion.can_use,
+    onPress: () => dungeonDo({ type: 'evasion_spell' }).catch(reportError)
+  }));
+  dn.spells.replaceChildren(...buttons);
+}
+
+// The compact effect summary shown on a consumable chip. effect_kind is a closed engine set — an unknown
+// kind is a desync and throws (no silent generic label).
+function dungeonConsumableSummaryText(row) {
+  const element = DUNGEON_MAGIC_LABELS[row.element] ?? row.element;
+  switch (row.effect_kind) {
+    case 'attack_single': return `${element}・単体 威力${row.power}`;
+    case 'attack_area': return `${element}・範囲${row.radius} 威力${row.power}`;
+    case 'heal': return `HP+${row.heal_amount}`;
+    case 'heal_full': return 'HP全回復';
+    case 'mp_restore': return `MP+${row.mp_amount}`;
+    case 'mp_restore_full': return 'MP全回復';
+    case 'revive': return '同行者を蘇生';
+    default: throw new Error(`unknown consumable effect_kind: ${JSON.stringify(row.effect_kind)}`);
+  }
+}
+
+function dungeonConsumableDisabledReason(view, row) {
+  if (row.target_mode === 'revive') {
+    if (view.revive_used) return 'この探索では蘇生を使い切りました。';
+    if (!view.companion || !view.companion.down) return 'ダウン中の同行者がいません。';
+  }
+  return null;
+}
+
+// 持ち物は中身があるときだけ並ぶ（持ち込んだ消耗品・拾ったアイテム・拾った素材）。
+let dungeonCarrySignature = null;
+// The row contracts of the carry and the result lists: a non-empty name, a finite count. A malformed row throws.
+function requiredDungeonItemName(item, label, field = 'name') {
+  if (typeof item[field] !== 'string' || item[field] === '') throw new Error(`${label} requires a non-empty ${field}, got ${JSON.stringify(item)}`);
+  return item[field];
+}
+
+function requiredDungeonItemCount(item, label, field) {
+  if (typeof item[field] !== 'number' || !Number.isFinite(item[field])) throw new Error(`${label} requires a numeric ${field}, got ${JSON.stringify(item)}`);
+  return item[field];
+}
+
+function renderDungeonCarry(view) {
+  if (!Array.isArray(view.consumables) || !Array.isArray(view.inventory) || !Array.isArray(view.material_buffer)) throw new Error('dungeon view is missing an item list');
+  const signature = JSON.stringify([view.consumables, view.inventory, view.material_buffer, view.revive_used, view.companion?.down ?? null, dungeonConsumableTargeting?.item_id ?? null]);
+  if (signature === dungeonCarrySignature) return;
+  dungeonCarrySignature = signature;
+  const rows = [];
+  for (const row of view.consumables) {
+    const reason = dungeonConsumableDisabledReason(view, row);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `dn-carry-row dn-carry-row--use${row.element ? ` dn-el-${row.element}` : ''}`;
+    button.dataset.key = `consumable:${row.item_id}`;
+    button.dataset.targetMode = row.target_mode;
+    if (dungeonConsumableTargeting?.item_id === row.item_id) button.dataset.armed = 'true';
+    button.disabled = reason !== null;
+    button.title = reason ?? row.description ?? '';
+    button.innerHTML = '<span class="dn-carry-name"></span><span class="dn-carry-note"></span><span class="dn-carry-count"></span>';
+    button.querySelector('.dn-carry-name').textContent = row.name;
+    button.querySelector('.dn-carry-note').textContent = dungeonConsumableSummaryText(row);
+    button.querySelector('.dn-carry-count').textContent = `×${row.quantity}`;
+    button.addEventListener('click', () => { button.blur(); try { onDungeonConsumableClick(row); } catch (error) { reportError(error); } });
+    rows.push(button);
+  }
+  for (const item of view.inventory) {
+    requiredDungeonItemName(item, 'dungeon inventory item', 'kind');
+    requiredDungeonItemName(item, 'dungeon inventory item');
+    requiredDungeonItemCount(item, 'dungeon inventory item', 'count');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dn-carry-row dn-carry-row--use';
+    button.dataset.key = `item:${item.kind}`;
+    button.innerHTML = item.kind === 'treasure_chest'
+      ? `<span class="dn-carry-icon">${chestSvg()}</span><span class="dn-carry-name"></span><span class="dn-carry-count"></span>`
+      : '<img class="dn-carry-icon" alt=""><span class="dn-carry-name"></span><span class="dn-carry-count"></span>';
+    if (item.kind !== 'treasure_chest') button.querySelector('.dn-carry-icon').src = `${DUNGEON_ASSET_BASE}/items/${item.kind}.png`;
+    button.querySelector('.dn-carry-name').textContent = item.name;
+    button.querySelector('.dn-carry-count').textContent = `×${item.count}`;
+    button.addEventListener('click', () => { button.blur(); dungeonDo({ type: 'use_item', item_kind: item.kind }).catch(reportError); });
+    rows.push(button);
+  }
+  for (const item of view.material_buffer) {
+    requiredDungeonItemName(item, 'dungeon material', 'display_name');
+    requiredDungeonItemCount(item, 'dungeon material', 'quantity');
+    const row = document.createElement('div');
+    row.className = 'dn-carry-row';
+    row.dataset.key = `material:${item.item_id}`;
+    row.innerHTML = '<img class="dn-carry-icon" alt=""><span class="dn-carry-name"></span><span class="dn-carry-count"></span>';
+    row.querySelector('.dn-carry-icon').src = `${DUNGEON_ASSET_BASE}/material-icons/${item.item_id}.png`;
+    row.querySelector('.dn-carry-name').textContent = item.display_name;
+    row.querySelector('.dn-carry-count').textContent = `×${item.quantity}`;
+    rows.push(row);
+  }
+  dn.carry.replaceChildren(...rows);
+  dn.carry.hidden = rows.length === 0;
+}
+
+// 記録: 柱の中ほどは、この潜りの会話と出来事が起きた順に並ぶ 1 本の記録で、札のすぐ下から書き始め、溢れたら上へ遡れる。出来事の
+// 行は手番ごとに末尾へ足すだけで、読み返している間（末尾から離れている間）は位置を奪わない。
+const dungeonJournal = { talkCommitted: 0, live: null };
+
+function dungeonJournalAtEnd() {
+  return dn.journal.scrollHeight - dn.journal.scrollTop - dn.journal.clientHeight < 8;
+}
+
+function appendDungeonRecord(lines, errorText) {
+  if (!lines.length && !errorText) return;
+  const stick = dungeonJournalAtEnd();
+  const rows = lines.map((line) => {
+    const p = document.createElement('p');
+    p.className = 'dn-event';
+    p.textContent = line;
+    return p;
+  });
+  if (errorText) {
+    const p = document.createElement('p');
+    p.className = 'dn-event is-note';
+    p.textContent = errorText;
+    rows.push(p);
+  }
+  dn.journal.append(...rows);
+  if (stick) dn.journal.scrollTop = dn.journal.scrollHeight;
+}
+
+dn.journal.addEventListener('keydown', (event) => { if (event.key === 'Escape') { event.preventDefault(); dn.journal.blur(); } });
+dn.journal.addEventListener('scroll', () => { dn.journal.classList.toggle('is-scrolled', dn.journal.scrollTop > 0); }, { passive: true });
+
+// 階が変わるたびに、記録に階の区切りを置く（遡るときの目印）。
+function appendDungeonFloorMark(floor) {
+  const stick = dungeonJournalAtEnd();
+  const mark = document.createElement('p');
+  mark.className = 'dn-event dn-event--floor';
+  mark.textContent = `${floor} 階`;
+  dn.journal.append(mark);
+  if (stick) dn.journal.scrollTop = dn.journal.scrollHeight;
+}
+
+function clearDungeonJournal() {
+  dungeonJournal.talkCommitted = 0;
+  dungeonJournal.live = null;
+  dn.journal.replaceChildren();
+}
+
+// ── 同行者との会話: 共有の runAssistantSseStream が返事を吹き出しごとに cooldown を挟んで揃え、共有の createMessageRows が行を
+// 作る。この区画が持つのは置き場だけ — 会話は記録の末尾に一続きとして書き、書き直すのはまだ確定していない一続き（送った行・流れて
+// いる返事・待ちの点）だけで、commitState で確定する（確定した行は以後の手番の出来事の行より前に残る）。会話の間は手番が進まない
+// ので、一続きはいつも記録の末尾にある。
+let dungeonVoiceSpoken = false;
 
 function dungeonCompanionIdentity() {
   const companion = currentDungeonView?.companion;
   return { character_id: companion?.character_id ?? null, character_name: companion?.name ?? '' };
 }
 
-// A run view companion is a homunculus when it carries a face_url (the B3 schema marker — a selectable companion
-// carries no face_url / parameters). Its face + 11 parameters come from the run view entry snapshot, not the roster.
-function dungeonCompanionIsHomunculus(companion) {
-  return typeof companion?.face_url === 'string' && companion.face_url !== '';
-}
-
-// Maps the run-scoped companion conversation into display messages, carrying each
-// assistant turn's expression so the sidebar shows per-message faces (the conversation
-// pipeline is the source of truth for the full message list).
+// Maps the run-scoped companion conversation into display messages, carrying each assistant turn's expression so the
+// journal shows per-message faces (the conversation pipeline is the source of truth for the full message list).
 function dungeonMessagesFromConversation(conversation) {
   const identity = dungeonCompanionIdentity();
   return (conversation?.messages ?? [])
@@ -14510,64 +16725,115 @@ function dungeonMessagesFromConversation(conversation) {
     });
 }
 
-// Renders the companion chat log using the shared message rows (faces + bubbles) into
-// the dungeon sidebar target. Edits are off here (companion message editing is out of
-// scope), and the sidebar layout/CSS is scoped separately under .dungeon-chat-log.
-function renderDungeonChatLog(messages, { popFromDisplayIndex = -1 } = {}) {
+function renderDungeonTalkLog(messages, { popFromDisplayIndex = -1, settle = false } = {}) {
   dungeonChatMessages = messages;
-  const log = document.querySelector('#dungeon-chat-log');
-  if (!log) return;
-  log.replaceChildren(...createMessageRows(displayMessages(messages), popFromDisplayIndex, false));
-  applyDungeonCompanionMessageFace(log);
-  log.scrollTop = log.scrollHeight;
-}
-
-// A homunculus companion is absent from the selectable roster, so the shared message rows (createMessageRows →
-// sourceSheetImageUrl) cannot resolve its face. When the run view companion carries a face_url (the homunculus
-// marker), override each assistant bubble's message face with it — a dungeon-scoped override that leaves the shared
-// createMessageRows / sourceSheetImageUrl untouched. A selectable companion has no face_url and keeps its roster face.
-function applyDungeonCompanionMessageFace(log) {
+  const displayList = displayMessages(messages);
+  const rows = createMessageRows(displayList, popFromDisplayIndex, false).slice(dungeonJournal.talkCommitted);
+  // A homunculus companion is absent from the selectable roster, so the shared rows cannot resolve its face; the run
+  // view companion's face_url overrides each of its rows here (the shared createMessageRows stays untouched).
   const companion = currentDungeonView?.companion;
-  if (!companion || !dungeonCompanionIsHomunculus(companion)) return;
-  for (const image of log.querySelectorAll('.message-face img')) {
-    setActorImageSource(image, companion.face_url);
+  if (companion && dungeonCompanionIsHomunculus(companion)) {
+    for (const row of rows) for (const image of row.querySelectorAll('.message-face img')) setActorImageSource(image, companion.face_url);
+  }
+  if (dungeonTalkPending && !settle) {
+    const waiting = document.createElement('div');
+    waiting.className = 'dn-line dn-line--waiting';
+    waiting.innerHTML = '<span class="dn-wait-dot"></span><span class="dn-wait-dot"></span><span class="dn-wait-dot"></span>';
+    rows.push(waiting);
+  }
+  if (!dungeonJournal.live) {
+    dungeonJournal.live = document.createElement('div');
+    dungeonJournal.live.className = 'dn-talk-block';
+    dn.journal.append(dungeonJournal.live);
+  }
+  dungeonJournal.live.replaceChildren(...rows);
+  if (settle) {
+    if (!rows.length) dungeonJournal.live.remove();
+    dungeonJournal.live = null;
+    dungeonJournal.talkCommitted = displayList.length;
+  }
+  dn.journal.scrollTop = dn.journal.scrollHeight;
+  // The companion's first reply line of this exchange also rises from its token on the board.
+  const revealed = popFromDisplayIndex >= 0 ? displayList[popFromDisplayIndex] : null;
+  if (revealed?.role === 'assistant' && !dungeonVoiceSpoken) {
+    dungeonVoiceSpoken = true;
+    speakDungeonVoice(revealed.content);
   }
 }
 
-// The dungeon companion mounts the shared streaming chat controller with its own
-// history store, render target, identity, and conversation mapping.
+// The dungeon companion mounts the shared streaming chat controller with its own history store, render target,
+// identity, and conversation mapping.
 const dungeonChatSurface = {
   getHistory: () => dungeonChatMessages,
   setHistory: (messages) => { dungeonChatMessages = messages; },
-  render: (messages, options) => renderDungeonChatLog(messages, options),
+  render: (messages, options) => renderDungeonTalkLog(messages, options),
   mapMessages: (conversation) => dungeonMessagesFromConversation(conversation),
   assistantIdentity: () => dungeonCompanionIdentity(),
-  commitState: (result) => { dungeonChatMessages = dungeonMessagesFromConversation(result.conversation); },
+  commitState: (result) => {
+    dungeonTalkPending = false;
+    syncDungeonSpeaking();
+    renderDungeonTalkLog(dungeonMessagesFromConversation(result.conversation), { settle: true });
+  },
   refresh: async () => {}
 };
 
-function setDungeonChatInputDisabled(disabled) {
-  document.querySelector('#dungeon-talk-send').disabled = disabled;
-  document.querySelector('#dungeon-talk-input').disabled = disabled;
+// A companion exchange starts: the journal shows the waiting dots and the board keeps the speaker in the window.
+function beginDungeonTalk() {
+  dungeonTalkPending = true;
+  dungeonVoiceSpoken = false;
+  frameDungeonSpeaker();
+}
+
+function renderDungeonTalkAvailability(view) {
+  const disabled = !view.companion || view.companion.down;
+  dn.talkInput.disabled = disabled;
+  dn.talkSend.disabled = disabled;
+}
+
+function isDungeonModalOpen() {
+  return DUNGEON_MODALS.some((modal) => !modal.hidden);
+}
+
+// Restore keyboard focus to the talk input once the companion's reply has revealed to its last 吹き出し, so the next
+// utterance is typed and sent without a mouse — unless the screen left, the run has no companion, a window is open, the
+// input is disabled (a downed companion), or a board key was pressed during the reply (the player already chose to
+// walk). preventScroll keeps a scrolled-up read position in place.
+function focusDungeonTalkInputIfContinuing() {
+  if (!screens['academy-dungeon'].classList.contains('active')) return;
+  if (dungeonRoot.dataset.scene !== 'play' || !currentDungeonView?.companion) return;
+  if (isDungeonModalOpen() || dungeonBoardKeyPressedSinceTalk || dn.talkInput.disabled) return;
+  dn.talkInput.focus({ preventScroll: true });
+}
+
+// The talk's error line: a failure the turn survived (its utterances stay shown) is reported here; the next send
+// clears it.
+function setDungeonTalkStatus(message, { tone = null } = {}) {
+  const status = document.querySelector('#dungeon-talk-status');
+  if (!status) throw new Error('dungeon talk status line (#dungeon-talk-status) is missing (broken markup wiring)');
+  const text = String(message ?? '').trim();
+  status.hidden = !text;
+  status.textContent = text;
+  if (text && tone) status.dataset.tone = tone;
+  else delete status.dataset.tone;
 }
 
 async function dungeonTalk() {
-  const input = document.querySelector('#dungeon-talk-input');
-  const text = input.value.trim();
+  const text = dn.talkInput.value.trim();
   if (!text || dungeonActionInFlight || !currentDungeonView?.companion || currentDungeonView.companion.down) return;
+  setDungeonTalkStatus('');
   dungeonActionInFlight = true;
-  setDungeonChatInputDisabled(true);
+  dungeonBoardKeyPressedSinceTalk = false;
+  dn.talkInput.disabled = true;
+  dn.talkSend.disabled = true;
   // Snapshot the committed history so a failed send can roll the optimistic line back out.
   const previousMessages = dungeonChatMessages;
   try {
-    input.value = '';
-    // Show the player's line immediately, then stream the companion reply through the
-    // shared controller (tokens, per-message expression, cooldown-paced reveal).
-    dungeonChatSurface.render([
-      ...previousMessages,
-      { role: 'user', content: text }
-    ]);
-    await runAssistantSseStream({
+    dn.talkInput.value = '';
+    beginDungeonTalk();
+    // Show the player's line immediately, then stream the companion reply through the shared controller (tokens,
+    // per-message expression, cooldown-paced reveal).
+    dungeonChatSurface.render([...previousMessages, { role: 'user', content: text }]);
+    const result = await runAssistantSseStream({
       surface: dungeonChatSurface,
       endpoint: '/api/dungeon/companion/talk/stream',
       body: { player_input: text },
@@ -14575,831 +16841,185 @@ async function dungeonTalk() {
       finalAssistantMode: 'last',
       refreshAfter: false
     });
+    if (result.prompt_prewarm_error) setDungeonTalkStatus(errorDisplayMessage(result.prompt_prewarm_error), { tone: 'error' });
   } catch (error) {
-    // Roll the optimistic (and any partially revealed) line out by restoring the
-    // pre-send history, and put the text back in the input so the player can retry.
-    dungeonChatMessages = previousMessages;
-    input.value = text;
-    renderDungeonChat(currentDungeonView);
+    // Roll the optimistic (and any partially revealed) line out by restoring the pre-send history, and put the text
+    // back in the input so the player can retry.
+    dungeonTalkPending = false;
+    syncDungeonSpeaking();
+    dn.talkInput.value = text;
+    renderDungeonTalkLog(previousMessages, { settle: true });
     reportError(error);
   } finally {
     dungeonActionInFlight = false;
-    setDungeonChatInputDisabled(currentDungeonView?.companion?.down ?? false);
+    if (currentDungeonView) renderDungeonTalkAvailability(currentDungeonView);
+    focusDungeonTalkInputIfContinuing();
   }
 }
 
-// Builds a decorated icon token (frame ring via CSS, optional face/icon image with a
-// glyph fallback so nothing breaks before the art assets land, optional HP microbar).
-function dungeonTokenEl({ roleClass, elementClass = '', imageUrl = null, glyph = '', crest = false, down = false, hp = null, maxHp = null, label = '' }) {
-  const token = document.createElement('div');
-  token.className = ['dn-token', roleClass, elementClass, down ? 'dn-token--down' : ''].filter(Boolean).join(' ');
-  if (label) token.title = label;
-  const inner = document.createElement('div');
-  inner.className = 'dn-token-inner';
-  if (crest) {
-    inner.innerHTML = DUNGEON_CREST_SVG;
-  } else if (imageUrl) {
-    const img = document.createElement('img');
-    img.className = 'dn-token-img';
-    img.alt = '';
-    img.src = imageUrl;
-    img.addEventListener('error', () => {
-      img.remove();
-      const fallback = document.createElement('span');
-      fallback.className = 'dn-token-glyph';
-      fallback.textContent = glyph;
-      inner.append(fallback);
-    });
-    inner.append(img);
-  } else {
-    const fallback = document.createElement('span');
-    fallback.className = 'dn-token-glyph';
-    fallback.textContent = glyph;
-    inner.append(fallback);
-  }
-  token.append(inner);
-  if (hp != null && maxHp != null && maxHp > 0) {
-    const bar = document.createElement('div');
-    bar.className = 'dn-token-hp';
-    const fill = document.createElement('div');
-    fill.className = 'dn-token-hp-fill';
-    fill.style.width = `${Math.max(0, Math.min(100, Math.round((hp / maxHp) * 100)))}%`;
-    bar.append(fill);
-    token.append(bar);
-  }
-  return token;
-}
-
-// Places a map entity over tile (x, y). New nodes get their transform set before they are
-// connected, so they mount at the target with no slide; existing nodes change a connected
-// node's transform, which the CSS transition animates as a tile-to-tile slide.
-function upsertDungeonEntity(overlay, key, live, x, y, tokenEl) {
-  live.add(key);
-  dungeonEntityTiles.set(key, { x, y });
-  const transform = `translate(calc((var(--dn-cell) + var(--dn-gap)) * ${x}), calc((var(--dn-cell) + var(--dn-gap)) * ${y}))`;
-  let node = dungeonEntityNodes.get(key);
-  if (!node) {
-    node = document.createElement('div');
-    node.className = 'dn-entity';
-    node.style.transform = transform;
-    node.replaceChildren(tokenEl);
-    dungeonEntityNodes.set(key, node);
-    overlay.append(node);
+let dungeonTalkIsComposing = false;
+dn.talkInput.addEventListener('compositionstart', () => { dungeonTalkIsComposing = true; });
+dn.talkInput.addEventListener('compositionend', () => { dungeonTalkIsComposing = false; });
+dn.talkInput.addEventListener('keydown', (event) => {
+  if (enterShouldSubmit(event, dungeonTalkIsComposing)) {
+    event.preventDefault();
+    dungeonTalk().catch(reportError);
     return;
   }
-  node.style.transform = transform;
-  node.replaceChildren(tokenEl);
+  // Escape leaves the input so the arrow keys walk again (an IME composition keeps its own Escape).
+  if (event.key === 'Escape' && !event.isComposing && !dungeonTalkIsComposing) {
+    event.preventDefault();
+    dn.talkInput.blur();
+  }
+});
+dn.talkSend.addEventListener('click', () => dungeonTalk().catch(reportError));
+
+// ── 照準と対象選び: auto/revive はすぐ撃ち、aim は盤の升目、ally は主人公か同行者を選ぶ。Esc・同じ札・中止でやめる ───
+function onDungeonConsumableClick(row) {
+  if (dungeonActionInFlight) return;
+  if (dungeonConsumableTargeting?.item_id === row.item_id) { cancelDungeonConsumableTargeting(); return; }
+  cancelDungeonConsumableTargeting();
+  if (row.target_mode === 'auto' || row.target_mode === 'revive') { useDungeonConsumable(row.item_id); return; }
+  if (row.target_mode === 'aim') { enterDungeonAimMode(row); return; }
+  if (row.target_mode === 'ally') { openDungeonAllyTargetPrompt(row); return; }
+  throw new Error(`unknown consumable target_mode: ${JSON.stringify(row.target_mode)}`);
 }
 
-function renderDungeonGrid(view) {
-  // The player's tile from the previous render — read before the entity overlay below overwrites it
-  // and before a fresh board clears it. A same-board re-render where the player has NOT moved keeps
-  // the camera exactly as placed (no follow content-clamp, no jump), so the entry center survives a
-  // re-show / state refresh without any owed-center bookkeeping.
-  const previousPlayerTile = dungeonEntityTiles.get('player') ?? null;
-  const grid = document.querySelector('#dungeon-grid');
-  // The board holds the rebuilt tile grid plus a persistent entity overlay, and sits inside
-  // a clipping viewport so the deadzone camera can scroll the whole board (translate) while
-  // the viewport masks everything outside the window. Only the tiles are rebuilt each render;
-  // the overlay's entity nodes survive so movement animates.
-  let board = grid.querySelector('.dn-board');
-  if (!board) {
-    const viewport = document.createElement('div');
-    viewport.className = 'dn-viewport';
-    board = document.createElement('div');
-    board.className = 'dn-board';
-    const tilesLayer = document.createElement('div');
-    tilesLayer.className = 'dn-tiles';
-    const entitiesLayer = document.createElement('div');
-    entitiesLayer.className = 'dn-entities';
-    // Transient combat effects (cast/melee/enemy-attack) render here; it lives inside the board
-    // so effects scroll with the camera and align to tiles like the entity overlay.
-    const effectsLayer = document.createElement('div');
-    effectsLayer.className = 'dn-effects';
-    board.append(tilesLayer, entitiesLayer, effectsLayer);
-    viewport.append(board);
-    grid.replaceChildren(viewport);
-  }
-  const tiles = board.querySelector('.dn-tiles');
-  const overlay = board.querySelector('.dn-entities');
-  tiles.style.setProperty('--dn-cols', view.width);
-  tiles.style.setProperty('--dn-rows', view.height);
+function useDungeonConsumable(itemId, extra = {}) {
+  teardownDungeonConsumableTargeting();
+  dungeonDo({ type: 'use_consumable', item_id: itemId, ...extra }).catch(reportError);
+}
 
-  // A new run or a new floor is a fresh board: drop the persistent entity nodes so each
-  // entity re-mounts at its position instead of sliding across the screen from the old one,
-  // and snap the camera to the new floor instead of panning across from the old one.
-  const signature = `${view.run_id}:${view.floor}`;
-  const signatureChanged = signature !== dungeonBoardSignature;
-  if (signatureChanged) {
-    dungeonBoardSignature = signature;
-    dungeonEntityNodes.clear();
-    dungeonEntityTiles.clear();
-    overlay.replaceChildren();
+function dungeonHasLineOfSight(view, from, to) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+  for (let step = 1; step < steps; step += 1) {
+    const x = Math.round(from.x + (dx * step) / steps);
+    const y = Math.round(from.y + (dy * step) / steps);
+    if (x < 0 || y < 0 || x >= view.width || y >= view.height || view.tiles[y][x] !== 'floor') return false;
   }
+  return true;
+}
 
-  // Tiles + static features (stairs, items). Moving entities are drawn in the overlay below.
-  const itemAt = new Map(view.items.map((item) => [`${item.x},${item.y}`, item]));
+function dungeonAimTileValid(view, x, y) {
+  if (x < 0 || y < 0 || x >= view.width || y >= view.height) return false;
+  if (!view.explored[y][x] || view.tiles[y][x] !== 'floor') return false;
+  return dungeonHasLineOfSight(view, view.player, { x, y });
+}
+
+function showDungeonTargeting(text, actions) {
+  const message = document.createElement('span');
+  message.textContent = text;
+  const row = document.createElement('span');
+  row.className = 'dn-targeting-actions';
+  for (const action of actions) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'dn-quiet';
+    button.textContent = action.label;
+    if (action.disabled) button.disabled = true;
+    if (action.title) button.title = action.title;
+    button.addEventListener('click', () => { button.blur(); try { action.onClick(); } catch (error) { reportError(error); } });
+    row.append(button);
+  }
+  dn.targeting.replaceChildren(message, row);
+  dn.targeting.hidden = false;
+}
+
+function enterDungeonAimMode(row) {
+  const view = currentDungeonView;
+  dungeonConsumableTargeting = { item_id: row.item_id, mode: 'aim' };
+  const layer = document.createElement('div');
+  layer.className = 'dn-aim';
+  layer.style.setProperty('--dn-cols', view.width);
+  layer.style.setProperty('--dn-rows', view.height);
   const cells = [];
   for (let y = 0; y < view.height; y += 1) {
     for (let x = 0; x < view.width; x += 1) {
       const cell = document.createElement('div');
-      cell.className = 'dn-cell';
-      if (!view.explored[y][x]) {
-        cell.classList.add('dn-fog');
-        cells.push(cell);
-        continue;
-      }
-      if (!view.visible[y][x]) cell.classList.add('dn-dim');
-      cell.classList.add(view.tiles[y][x] === 'floor' ? 'dn-floor' : 'dn-wall');
-      const key = `${x},${y}`;
-      if (view.stairs.x === x && view.stairs.y === y) {
-        cell.append(dungeonTokenEl({ roleClass: 'dn-token--stairs', imageUrl: dungeonStairsIconUrl(), glyph: DUNGEON_GLYPHS.stairs, label: '下り階段' }));
-      } else if (view.entrance.x === x && view.entrance.y === y) {
-        // The floor's arrival point (floor 1 entrance / floor 2+ up-stairs). Retreat only banks from
-        // here or the down-stairs (greed ladder), so it needs a distinct marker: a CSS-only up-stairs
-        // glyph (＜, the mirror of the down-stairs ＞) in the cool ally hue vs the down-stairs' amber.
-        cell.append(dungeonTokenEl({ roleClass: 'dn-token--entrance', glyph: DUNGEON_GLYPHS.entrance, label: '入場地点（撤退可）' }));
-      } else if (itemAt.has(key)) {
-        const item = itemAt.get(key);
-        cell.append(dungeonTokenEl({ roleClass: 'dn-token--item', imageUrl: dungeonItemIconUrl(item.kind), glyph: item.glyph ?? DUNGEON_GLYPHS.item, label: item.name }));
-      }
+      cell.className = 'dn-aim-cell';
+      cell.dataset.x = x;
+      cell.dataset.y = y;
+      if (view.explored[y][x] && view.tiles[y][x] === 'floor') cell.classList.add('is-known');
+      if (dungeonAimTileValid(view, x, y)) cell.classList.add('is-valid');
       cells.push(cell);
     }
   }
-  tiles.replaceChildren(...cells);
-
-  // Moving entities, keyed by identity so a position change animates: player, the companion
-  // (when up), and each currently-visible enemy by its stable uid.
-  const live = new Set();
-  upsertDungeonEntity(overlay, 'player', live, view.player.x, view.player.y,
-    dungeonTokenEl({ roleClass: 'dn-token--self', crest: true, hp: view.player.hp, maxHp: view.player.max_hp, label: '主人公' }));
-  if (view.companion && !view.companion.down) {
-    upsertDungeonEntity(overlay, 'companion', live, view.companion.x, view.companion.y,
-      dungeonTokenEl({ roleClass: 'dn-token--ally', imageUrl: dungeonCompanionTokenFaceUrl(view.companion), glyph: DUNGEON_GLYPHS.companion, hp: view.companion.hp, maxHp: view.companion.max_hp, label: view.companion.name }));
-  }
-  for (const enemy of view.enemies) {
-    upsertDungeonEntity(overlay, `enemy:${enemy.uid}`, live, enemy.x, enemy.y,
-      dungeonTokenEl({ roleClass: `dn-token--enemy${enemy.elite ? ' dn-token--elite' : ''}`, elementClass: `dn-token--el-${enemy.element}`, imageUrl: dungeonEnemyIconUrl(enemy.archetype_id), glyph: enemy.glyph, hp: enemy.hp, maxHp: enemy.max_hp, label: `${enemy.name}（${DUNGEON_MAGIC_LABELS[enemy.element] ?? enemy.element}）` }));
-  }
-  // Remove entities that died, left view, or went down (the companion).
-  for (const [key, node] of dungeonEntityNodes) {
-    if (!live.has(key)) {
-      node.remove();
-      dungeonEntityNodes.delete(key);
-      dungeonEntityTiles.delete(key);
+  layer.replaceChildren(...cells);
+  // 巻き込む範囲は一度でも見た床だけに取り、その外周の辺を data-edge（t・r・b・l）で持たせる。CSS は升目を塗らずに外周の線と
+  // 着弾の点の印だけを描くので、照準の間も灯りと闇の濃さは盤のまま見える。
+  const clearBlast = () => {
+    for (const cell of layer.querySelectorAll('.is-blast, .is-point')) {
+      cell.classList.remove('is-blast', 'is-point');
+      delete cell.dataset.edge;
     }
-  }
-
-  // Camera placement is a function of what changed: a fresh board (new run / floor) centers the
-  // player; a same-board render where the player MOVED is a deadzone follow; a same-board render
-  // where the player did NOT move (a re-show, a state refresh, an enemy-only turn) preserves the
-  // camera as placed. A viewport resize is handled separately by the grid ResizeObserver ('reframe').
-  const playerMoved = !previousPlayerTile
-    || previousPlayerTile.x !== view.player.x || previousPlayerTile.y !== view.player.y;
-  const mode = signatureChanged ? 'center' : (playerMoved ? 'follow' : 'preserve');
-  layoutDungeonBoard(view, { mode });
-}
-
-// Bounding box (tile coords, inclusive) of the floor tiles — the explorable area the camera is
-// allowed to scroll over. The player always stands on a floor tile, so at least one exists.
-function dungeonFloorBounds(view) {
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (let y = 0; y < view.height; y += 1) {
-    for (let x = 0; x < view.width; x += 1) {
-      if (view.tiles[y][x] !== 'floor') continue;
-      if (x < minX) minX = x;
-      if (x > maxX) maxX = x;
-      if (y < minY) minY = y;
-      if (y > maxY) maxY = y;
-    }
-  }
-  return { minX, minY, maxX, maxY };
-}
-
-// The reframe anchor: where the player token is ACTUALLY drawn right now, read from the live rects
-// so it reflects the real displayed frame — a follow pan AND a tile slide still mid-transition.
-// `fracX`/`fracY` are its position as a fraction of the viewport (where to keep it on screen);
-// `boardCenterX`/`boardCenterY` are its center in board pixels (its current, possibly fractional,
-// tile position). Both come from the SAME measured rect, so they never mix a half-slid token with
-// its final logical tile. The reframe path only runs with the play screen up and rendered, so the
-// player node is always present here.
-function measureDungeonReframeAnchor(viewport, board) {
-  const node = dungeonEntityNodes.get('player');
-  if (!node) throw new Error('dungeon: reframe needs the rendered player node');
-  const playerRect = node.getBoundingClientRect();
-  const boardRect = board.getBoundingClientRect();
-  const frac = playerViewportFraction({ playerRect, viewportRect: viewport.getBoundingClientRect() });
-  return {
-    fracX: frac.x,
-    fracY: frac.y,
-    boardCenterX: (playerRect.left + playerRect.width / 2) - boardRect.left,
-    boardCenterY: (playerRect.top + playerRect.height / 2) - boardRect.top
   };
-}
-
-// Commit every entity's transform to the CURRENT --dn-cell with no slide. An entity transform is
-// `translate(calc((--dn-cell + --dn-gap) * tile))`, so when the tile size changes its resolved
-// value changes and the 0.16s transform transition would slide the token to the new size a frame
-// LATER than the CSS-grid tiles (which resize instantly) — a tile-vs-token desync at the switch.
-// Suppressing the transition for one reflow snaps the tokens in the same frame as the tiles, so
-// they rescale together. Called only on a cell-changing reframe (rare: a real viewport resize).
-function snapDungeonEntitiesToCell(grid) {
-  if (!dungeonEntityNodes.size) return;
-  for (const node of dungeonEntityNodes.values()) node.style.transition = 'none';
-  void grid.offsetWidth; // force the transition-less transforms to commit at the new cell
-  for (const node of dungeonEntityNodes.values()) node.style.transition = '';
-}
-
-// Sizes the tiles and positions the deadzone camera for the current view. These are one
-// layout: the cell size is chosen so the player's vision range fits the viewport, and the
-// follow margin (where the camera starts scrolling) is the vision radius itself, so the lit
-// area sits fully on-screen exactly as the camera begins to follow.
-//
-// Camera model: while the player stays inside a central deadzone the camera holds still and
-// only the player moves; once the player reaches the deadzone edge the camera scrolls the
-// board to keep them there, until the board hits a map edge. An axis whose map is smaller
-// than the viewport is centered instead of scrolled.
-//
-// `mode` selects how the camera is placed for this layout:
-//   'follow'   — a normal turn (the player moved): the deadzone follow scrolls from the previous offset.
-//   'center'   — a fresh board (new run / floor): frame the player in the middle, once, against the
-//                settled viewport (renderDungeonPlay lays the surrounding panels out first, so the
-//                map column is already at its final width when this measures — no transient center).
-//   'reframe'  — the viewport changed size (resize, or a HUD reflow): hold the player at the position
-//                it is actually drawn at right now so it does not jump. A reframe whose viewport size
-//                matches the last layout has nothing to do and is skipped.
-//   'preserve' — a same-board re-render where the player did not move (a re-show, a state refresh, an
-//                enemy-only turn): leave the camera exactly as placed.
-function layoutDungeonBoard(view, { mode }) {
-  const grid = document.querySelector('#dungeon-grid');
-  if (!grid) return;
-  const viewport = grid.querySelector('.dn-viewport');
-  const board = viewport?.querySelector('.dn-board');
-  if (!viewport || !board) return;
-  // Nothing changed that moves the camera: keep the board exactly where it is (this is what makes a
-  // pre-move re-show stay dead-centre, and a mid-run state refresh not jump).
-  if (mode === 'preserve') return;
-  const viewW = viewport.clientWidth;
-  const viewH = viewport.clientHeight;
-  // No size yet (the screen was not laid out): bail rather than divide by zero. renderDungeonPlay
-  // shows the screen and the surrounding panels before the grid renders, so a fresh-board center
-  // measures a real viewport here; a 0-size layout is a not-yet-laid-out call, not a lost center.
-  if (viewW === 0 || viewH === 0) return;
-  // A reframe responds to an ACTUAL viewport resize. When the grid ResizeObserver fires with no net
-  // size change — the settle that fires right after a fresh board already centered at the final
-  // width — there is nothing to reframe, so leave the centered frame as placed.
-  if (mode === 'reframe' && viewW === dungeonViewportSize.w && viewH === dungeonViewportSize.h) return;
-
-  // A reframe must hold the player where it is ACTUALLY drawn right now — read it (and the tile
-  // size it was drawn under) before this layout changes the tile size, so a follow pan / tile slide
-  // still in flight is captured (never the final logical tile that a mid-transition resize jumps to).
-  const reframeAnchor = mode === 'reframe' ? measureDungeonReframeAnchor(viewport, board) : null;
-  const reframeFromCell = mode === 'reframe' ? parseFloat(getComputedStyle(grid).getPropertyValue('--dn-cell')) : null;
-
-  const gap = parseFloat(getComputedStyle(grid).getPropertyValue('--dn-gap'));
-  if (!Number.isFinite(gap)) throw new Error('dungeon: --dn-gap must resolve to a length');
-  const r = view.player_stats.vision_radius; // drives the follow margin only; the cell no longer depends on it
-
-  const cell = computeDungeonCellSize({ viewW, viewH, gap, targetCells: DN_TARGET_CELLS, cellMin: DN_CELL_MIN, cellMax: DN_CELL_MAX });
-  grid.style.setProperty('--dn-cell', `${cell}px`);
-
-  const step = cell + gap;
-  const playerX = view.player.x * step + cell / 2;
-  const playerY = view.player.y * step + cell / 2;
-  const marginX = computeFollowMargin({ visionRadius: r, step, cell, viewSize: viewW });
-  const marginY = computeFollowMargin({ visionRadius: r, step, cell, viewSize: viewH });
-
-  // Scroll bounds = the explorable area: the floor bounding box widened by one tile so the
-  // bordering wall shows. Clamping the camera to this (not the full map) means the outermost
-  // reachable floor tile always brings its map edge to the viewport edge, and the all-wall rows
-  // beyond the outermost rooms are never scrolled into.
-  const bounds = dungeonFloorBounds(view);
-  const contentMinX = Math.max(0, bounds.minX - 1) * step;
-  const contentMinY = Math.max(0, bounds.minY - 1) * step;
-  const contentMaxX = (Math.min(view.width - 1, bounds.maxX + 1) + 1) * step - gap;
-  const contentMaxY = (Math.min(view.height - 1, bounds.maxY + 1) + 1) * step - gap;
-
-  let camera;
-  if (mode === 'reframe' && cell !== reframeFromCell) {
-    // The tile size actually changed (a genuine viewport resize). The CSS-grid tiles resize
-    // instantly, so snap the entity tokens to the new size in the same frame (no 0.16s slide lag)
-    // — tiles and tokens move together, no desync at the switch. Snapping commits each token to its
-    // logical tile under the new cell, so anchor the camera on the player's logical tile held at the
-    // screen fraction it was just drawn at: the player keeps its screen position and stays aligned
-    // with its tile.
-    snapDungeonEntitiesToCell(grid);
-    camera = reframeDungeonCamera({
-      playerX, playerY, fracX: reframeAnchor.fracX, fracY: reframeAnchor.fracY,
-      contentMinX, contentMaxX, contentMinY, contentMaxY, viewW, viewH
-    });
-  } else if (mode === 'reframe') {
-    // The tile size is unchanged (a small HUD/log reflow, or a no-op resize). Hold the player at its
-    // actual current on-screen position: anchor on its DISPLAYED board-px center (its current,
-    // possibly mid-slide, tile position) — an identity rescale here — paired with the displayed
-    // fraction. One basis, so a reflow during a tile slide neither yanks the player to centre (the
-    // HUD-reflow fix) nor jumps it a half-tile to its destination (the slide race).
-    const anchorX = rescaleBoardPx({ px: reframeAnchor.boardCenterX, fromCell: reframeFromCell, toCell: cell, gap });
-    const anchorY = rescaleBoardPx({ px: reframeAnchor.boardCenterY, fromCell: reframeFromCell, toCell: cell, gap });
-    camera = reframeDungeonCamera({
-      playerX: anchorX, playerY: anchorY, fracX: reframeAnchor.fracX, fracY: reframeAnchor.fracY,
-      contentMinX, contentMaxX, contentMinY, contentMaxY, viewW, viewH
-    });
-  } else {
-    // 'center' (a fresh board) and 'follow' (a move) use ONE camera rule: the deadzone follow,
-    // content-clamped. They differ only in the deadzone seed — a move continues from the previous
-    // camera, while a fresh-board entry seeds from the player-centred offset so the entry frame is
-    // the centred-then-clamped position the follow would hold. The player thus enters exactly where
-    // the follow keeps them, so the first step (still inside the deadzone) moves the camera by zero:
-    // no jump from a clamp-less center handing off to a content-clamped follow.
-    const seedX = mode === 'center' ? playerX - viewW / 2 : dungeonCamera.x;
-    const seedY = mode === 'center' ? playerY - viewH / 2 : dungeonCamera.y;
-    camera = computeDungeonCamera({
-      playerX, playerY, contentMinX, contentMaxX, contentMinY, contentMaxY,
-      viewW, viewH, marginX, marginY, prevX: seedX, prevY: seedY
-    });
-  }
-  dungeonCamera = camera;
-  // Record the viewport this layout was computed for, so the next reframe can tell a real resize
-  // from a no-net-change ResizeObserver firing (the entry settle) and skip the latter.
-  dungeonViewportSize = { w: viewW, h: viewH };
-
-  const transform = `translate(${-camera.x}px, ${-camera.y}px)`;
-  if (mode === 'follow') {
-    board.style.transition = '';
-    board.style.transform = transform;
-  } else {
-    // A center / reframe commits without a pan: kill the transition, commit, then restore so
-    // later moves animate.
-    board.style.transition = 'none';
-    board.style.transform = transform;
-    void board.offsetWidth;
-    board.style.transition = '';
-  }
-}
-
-// ----- combat effect animations -----
-// Element events (cast / enemy_attack) play per-element asset sprites (a traveling bolt + a hit burst);
-// melee (element: null) has no element sprite and keeps a neutral CSS strike. The six elements are fixed.
-const DUNGEON_EFFECT_ELEMENTS = ['light', 'dark', 'fire', 'water', 'earth', 'wind'];
-// Neutral tint for the melee strike — the only combat effect still drawn from CSS rather than an asset.
-const DUNGEON_MELEE_EFFECT_COLOR = '#fff8e6';
-// How long a run-ending turn's combat plays before the result screen takes over (one beat for
-// the fatal blow; covers a projectile's travel + impact).
-const DUNGEON_ENDED_ANIM_MS = 520;
-// How long the run result stays on screen before slipping into the loading screen on the way
-// back to the room — long enough to read the outcome/gains, short enough to feel snappy.
-const DUNGEON_RESULT_HOLD_MS = 1600;
-const DUNGEON_ENTER_LOADING_COPY = { title: '実践へ潜ります', status: '同行者との合流と最初の階の生成を待っています。' };
-const DUNGEON_EXIT_LOADING_COPY = { title: '自室へ戻ります', status: '探索の後片付けを続けながら自室を開いています。' };
-// Routing hub return: the companion dungeon finalize is drained under this loading copy before the hub
-// opening starts, so the two never race on the LM pipeline. The destination is the hub, not the room.
-const DUNGEON_HUB_RETURN_LOADING_COPY = { title: 'ハブへ戻ります', status: '探索の後片付けを続けながら、ハブへ戻る準備をしています。' };
-
-// Per-element effect sprite URL. The server serves /canonical/* as .png only (no extension/jpg
-// fallback), and the element set is fixed — an unknown element fails fast rather than guessing a sprite.
-function dungeonEffectAssetUrl(element, part) {
-  if (!DUNGEON_EFFECT_ELEMENTS.includes(element)) throw new Error(`dungeon effect: unknown element ${element}`);
-  return `/canonical/dungeon/effects/${element}_${part}.png`;
-}
-
-// The board-px center where the entity currently at logical tile (x, y) is ACTUALLY drawn — its
-// live rect relative to the board, so a token mid tile-slide reports its in-between position rather
-// than its destination. Returns null when no live entity sits on that tile (e.g. an emptied target
-// tile), so the caller can fall back to the logical tile center.
-function dungeonEntityDisplayedCenter(x, y, board) {
-  for (const [key, tile] of dungeonEntityTiles) {
-    if (tile.x !== x || tile.y !== y) continue;
-    const node = dungeonEntityNodes.get(key);
-    if (!node) continue;
-    const r = node.getBoundingClientRect();
-    const b = board.getBoundingClientRect();
-    return { x: (r.left + r.width / 2) - b.left, y: (r.top + r.height / 2) - b.top };
-  }
-  return null;
-}
-
-// Renders the just-resolved turn's combat events as short, non-blocking effects so the player
-// can see who did what to whom: a projectile/strike travels actor->target (tinted by element
-// for casts) and a hit lands a flash on the target. Fire-and-forget; effects self-remove and a
-// new turn clears stale ones, so input is never gated. Respects reduced-motion.
-//
-// Endpoints come from the entity ACTUALLY drawn at the event tile, resolved at spawn time, so a
-// cast/melee fired while the actor is still sliding from its previous tile shoots from the visible
-// token — not the final logical tile a half-tile ahead (the self-action animation-state race).
-function animateDungeonCombat(events) {
-  const grid = document.querySelector('#dungeon-grid');
-  const board = grid?.querySelector('.dn-board');
-  const layer = board?.querySelector('.dn-effects');
-  if (!layer) return;
-  layer.replaceChildren();
-  if (!events || !events.length) return;
-  const gap = parseFloat(getComputedStyle(grid).getPropertyValue('--dn-gap'));
-  const cell = parseFloat(getComputedStyle(grid).getPropertyValue('--dn-cell'));
-  if (!Number.isFinite(gap) || !Number.isFinite(cell)) return;
-  const step = cell + gap;
-  const center = (n) => n * step + cell / 2;
-  // Resolved at spawn time: where the actor/target token is drawn right now (mid-slide), or the
-  // logical tile center when no live entity sits there.
-  const origin = (x, y) => dungeonEntityDisplayedCenter(x, y, board) ?? { x: center(x), y: center(y) };
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  events.forEach((event, index) => {
-    // Stagger so a multi-enemy turn reads as a sequence, capped so tempo stays snappy.
-    window.setTimeout(() => spawnDungeonEffect(layer, event, { origin, cell, reduce }), Math.min(index * 70, 280));
+  layer.addEventListener('pointermove', (event) => {
+    const cell = event.target.closest('.dn-aim-cell');
+    clearBlast();
+    if (!cell || !cell.classList.contains('is-valid')) return;
+    const cx = Number(cell.dataset.x);
+    const cy = Number(cell.dataset.y);
+    const inBlast = (x, y) => x >= 0 && y >= 0 && x < view.width && y < view.height
+      && Math.abs(x - cx) + Math.abs(y - cy) <= row.radius && cells[y * view.width + x].classList.contains('is-known');
+    for (const other of cells) {
+      const x = Number(other.dataset.x);
+      const y = Number(other.dataset.y);
+      if (!inBlast(x, y)) continue;
+      other.classList.add('is-blast');
+      other.dataset.edge = [[0, -1, 't'], [1, 0, 'r'], [0, 1, 'b'], [-1, 0, 'l']].filter(([dx, dy]) => !inBlast(x + dx, y + dy)).map(([, , side]) => side).join('');
+    }
+    cell.classList.add('is-point');
   });
+  layer.addEventListener('pointerleave', clearBlast);
+  layer.addEventListener('click', (event) => {
+    if (dungeonActionInFlight) return;
+    const cell = event.target.closest('.dn-aim-cell');
+    if (!cell || !cell.classList.contains('is-valid')) return;
+    useDungeonConsumable(row.item_id, { aim: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
+  });
+  dn.board.append(layer);
+  dungeonRoot.dataset.aiming = 'true';
+  showDungeonTargeting(`「${row.name}」の着弾点を選んでください（Escで中止）。`, [{ label: '中止', onClick: () => cancelDungeonConsumableTargeting() }]);
+  dungeonCarrySignature = null;
+  renderDungeonCarry(view);
 }
 
-function spawnDungeonEffect(layer, event, { origin, cell, reduce }) {
-  const from = origin(event.from.x, event.from.y);
-  const to = origin(event.to.x, event.to.y);
-  // Element events (cast / enemy_attack) use per-element asset sprites; melee (element: null) keeps the
-  // neutral CSS strike.
-  if (event.element != null) spawnDungeonAssetEffect(layer, event, { from, to, cell, reduce });
-  else spawnDungeonMeleeEffect(layer, event, { from, to, cell, reduce });
+function openDungeonAllyTargetPrompt(row) {
+  const view = currentDungeonView;
+  dungeonConsumableTargeting = { item_id: row.item_id, mode: 'ally' };
+  const usable = !!view.companion && !view.companion.down;
+  showDungeonTargeting(`「${row.name}」を誰に使いますか？`, [
+    { label: DUNGEON_PLAYER_NAME, onClick: () => useDungeonConsumable(row.item_id, { target: 'player' }) },
+    {
+      label: view.companion ? view.companion.name : '同行者',
+      onClick: () => useDungeonConsumable(row.item_id, { target: 'companion' }),
+      disabled: !usable,
+      title: !view.companion ? '同行者がいません。' : (view.companion.down ? '同行者はダウン中です（蘇生が必要）。' : '')
+    },
+    { label: '中止', onClick: () => cancelDungeonConsumableTargeting() }
+  ]);
+  dungeonCarrySignature = null;
+  renderDungeonCarry(view);
 }
 
-// Per-element asset effect: a bolt sprite travels actor->target, then on a hit an impact sprite bursts on
-// the target. A miss lands no impact (kept from the prior contract). The bolt travels without orientation
-// rotation because the source sprites do not share a consistent forward axis.
-function spawnDungeonAssetEffect(layer, event, { from, to, cell, reduce }) {
-  const bolt = document.createElement('img');
-  bolt.className = 'dn-effect-bolt';
-  bolt.alt = '';
-  bolt.src = dungeonEffectAssetUrl(event.element, 'bolt');
-  bolt.style.left = `${from.x}px`;
-  bolt.style.top = `${from.y}px`;
-  bolt.style.setProperty('--dn-effect-size', `${Math.round(cell * 0.9)}px`);
-  layer.append(bolt);
-  const landImpact = () => {
-    bolt.remove();
-    if (!event.hit) return;
-    const impact = document.createElement('img');
-    impact.className = 'dn-effect-burst';
-    impact.alt = '';
-    impact.src = dungeonEffectAssetUrl(event.element, 'impact');
-    impact.style.left = `${to.x}px`;
-    impact.style.top = `${to.y}px`;
-    impact.style.setProperty('--dn-impact-size', `${Math.round(cell * 1.05)}px`);
-    layer.append(impact);
-    if (reduce) { window.setTimeout(() => impact.remove(), 200); return; }
-    impact.animate(
-      [{ transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0.95 }, { transform: 'translate(-50%, -50%) scale(1)', opacity: 0 }],
-      { duration: 240, easing: 'ease-out' }
-    ).onfinish = () => impact.remove();
-  };
-  if (reduce) { window.setTimeout(landImpact, 0); return; }
-  bolt.animate(
-    [{ transform: 'translate(-50%, -50%)', left: `${from.x}px`, top: `${from.y}px` }, { transform: 'translate(-50%, -50%)', left: `${to.x}px`, top: `${to.y}px` }],
-    { duration: 180, easing: 'ease-in' }
-  ).onfinish = landImpact;
+function teardownDungeonConsumableTargeting() {
+  dungeonConsumableTargeting = null;
+  dn.board.querySelector('.dn-aim')?.remove();
+  delete dungeonRoot.dataset.aiming;
+  dn.targeting.hidden = true;
+  dn.targeting.replaceChildren();
 }
 
-// Neutral melee strike (no element): the prior CSS orb + ring, tinted neutral. Same travel/impact timing
-// and the same reduced-motion / miss contracts as the asset path.
-function spawnDungeonMeleeEffect(layer, event, { from, to, cell, reduce }) {
-  const projectile = document.createElement('div');
-  projectile.className = 'dn-effect dn-effect--melee';
-  projectile.style.setProperty('--dn-effect-color', DUNGEON_MELEE_EFFECT_COLOR);
-  projectile.style.left = `${from.x}px`;
-  projectile.style.top = `${from.y}px`;
-  layer.append(projectile);
-  const landImpact = () => {
-    projectile.remove();
-    if (!event.hit) return;
-    const impact = document.createElement('div');
-    impact.className = 'dn-effect-impact dn-effect-impact--melee';
-    impact.style.setProperty('--dn-effect-color', DUNGEON_MELEE_EFFECT_COLOR);
-    impact.style.left = `${to.x}px`;
-    impact.style.top = `${to.y}px`;
-    impact.style.setProperty('--dn-impact-size', `${Math.round(cell * 1.05)}px`);
-    layer.append(impact);
-    if (reduce) { window.setTimeout(() => impact.remove(), 200); return; }
-    impact.animate(
-      [{ transform: 'translate(-50%, -50%) scale(0.3)', opacity: 0.95 }, { transform: 'translate(-50%, -50%) scale(1)', opacity: 0 }],
-      { duration: 240, easing: 'ease-out' }
-    ).onfinish = () => impact.remove();
-  };
-  if (reduce) { window.setTimeout(landImpact, 0); return; }
-  projectile.animate(
-    [{ transform: 'translate(-50%, -50%)', left: `${from.x}px`, top: `${from.y}px` }, { transform: 'translate(-50%, -50%)', left: `${to.x}px`, top: `${to.y}px` }],
-    { duration: 180, easing: 'ease-in' }
-  ).onfinish = landImpact;
-}
-
-function dungeonBarEl(label, current, max, modifier) {
-  const wrap = document.createElement('div');
-  wrap.className = `dn-hud-bar ${modifier}`;
-  const name = document.createElement('span');
-  name.className = 'dn-hud-bar-label';
-  name.textContent = label;
-  const track = document.createElement('div');
-  track.className = 'dn-hud-bar-track';
-  const fill = document.createElement('div');
-  fill.className = 'dn-hud-bar-fill';
-  fill.style.width = `${max > 0 ? Math.max(0, Math.min(100, Math.round((current / max) * 100))) : 0}%`;
-  track.append(fill);
-  const value = document.createElement('span');
-  value.className = 'dn-hud-bar-value';
-  value.textContent = `${current}/${max}`;
-  wrap.append(name, track, value);
-  return wrap;
-}
-
-function dungeonChipEl(label, value) {
-  const chip = document.createElement('div');
-  chip.className = 'dn-hud-chip';
-  const l = document.createElement('span');
-  l.className = 'dn-hud-chip-label';
-  l.textContent = label;
-  const v = document.createElement('strong');
-  v.textContent = value;
-  chip.append(l, v);
-  return chip;
-}
-
-// A party-member card: name + HP/MP bars, so the player's and the companion's vitals read side
-// by side. A downed companion keeps its bars and adds a 戦闘不能 marker (only an absent companion
-// is omitted, by the caller). The name is a clickable button (onNameClick) that opens the actor
-// detail — the sole导線 to the detail now the fixed chat header is gone; errors are surfaced, not
-// swallowed.
-function dungeonActorBars(name, actor, down, onNameClick) {
-  const card = document.createElement('div');
-  card.className = `dn-hud-actor${down ? ' dn-hud-actor--down' : ''}`;
-  // The name and the optional 戦闘不能 marker share one row, so a downed member (or a long name)
-  // never adds a line — the card height is constant, keeping the HUD header reflow-stable.
-  const head = document.createElement('div');
-  head.className = 'dn-hud-actor-head';
-  const nameEl = document.createElement('button');
-  nameEl.type = 'button';
-  nameEl.className = 'dn-hud-actor-name interaction-name-button';
-  nameEl.textContent = name;
-  nameEl.addEventListener('click', () => { try { onNameClick(); } catch (error) { reportError(error); } });
-  head.append(nameEl);
-  if (down) {
-    const state = document.createElement('span');
-    state.className = 'dn-hud-actor-state';
-    state.textContent = '戦闘不能';
-    head.append(state);
-  }
-  card.append(head);
-  card.append(dungeonBarEl('HP', actor.hp, actor.max_hp, 'dn-hud-bar--hp'));
-  card.append(dungeonBarEl('MP', actor.mp, actor.max_mp, 'dn-hud-bar--mp'));
-  return card;
-}
-
-function renderDungeonHud(view) {
-  const node = document.querySelector('#dungeon-hud-status');
-  node.replaceChildren();
-  node.append(dungeonChipEl('実践', `${view.floor}F / ${view.max_floors}`));
-  // The turn climbs every action; tag its chip so the value reserves a digit-count-independent occupancy
-  // width (see .dn-hud-chip--turn in style.css). That keeps the party vitals to its right from shifting
-  // sideways as the turn grows from 1 to multiple digits.
-  const turnChip = dungeonChipEl('ターン', String(view.turn));
-  turnChip.classList.add('dn-hud-chip--turn');
-  node.append(turnChip);
-  // Player and companion vitals in parallel; the companion card is omitted only when solo.
-  const party = document.createElement('div');
-  party.className = 'dn-hud-party';
-  // The party card names are clickable — 主人公 opens the hero detail (能力値＋装備＋獲得予定), a companion
-  // opens the companion detail (画像＋能力値＋装備). This is the only导線 to the actor detail now the fixed
-  // chat header (and its name-click) is gone.
-  party.append(dungeonActorBars('主人公', view.player, false, () => openDungeonHeroDetail()));
-  if (view.companion) party.append(dungeonActorBars(view.companion.name, view.companion, view.companion.down, () => openDungeonCompanionDetail(view.companion)));
-  node.append(party);
-  // Carry-home (pending gains) is intentionally NOT on the header — the hero detail (opened from the 主人公
-  // party card name) carries the 獲得予定 section. The header keeps only the 実践 / ターン chips and the
-  // party cards, so the freed width goes to the vitals (and the header height stays content-independent).
-}
-
-// The full closed set of dungeon action_error codes the engine can surface (move / cast / heal_spell /
-// use_item / use_consumable / descend / retreat), each mapped to a player-readable line. A code outside
-// this set is a real engine⇄frontend desync, so it throws (fail-fast) rather than silently painting a
-// generic message — the new consumable vocabulary is added here alongside the existing movement/combat one.
-const DUNGEON_ACTION_ERROR_MESSAGES = {
-  blocked: 'そちらへは進めません。',
-  not_on_stairs: '階段の上でのみ降りられます。',
-  no_target: '視界内に対象がいません。',
-  insufficient_mp: 'MP が足りません。',
-  hp_full: 'HP はすでに満タンです。',
-  no_item: 'そのアイテムを持っていません。',
-  unknown_item: 'そのアイテムは使えません。',
-  unknown_element: '使えない魔法です。',
-  retreat_not_here: '入口または階段の上でのみ撤退できます。',
-  invalid_aim: 'そこには投げられません（探索済みの床を狙ってください）。',
-  invalid_target: 'その相手には使えません。',
-  revive_used: 'この探索では、もう蘇生させられません。',
-  unknown_consumable: 'その消耗品は使えません。',
-  invalid_consumable: 'その消耗品は使えません。'
-};
-
-function dungeonActionErrorText(code) {
-  if (!Object.prototype.hasOwnProperty.call(DUNGEON_ACTION_ERROR_MESSAGES, code)) {
-    throw new Error(`unknown dungeon action_error code: ${JSON.stringify(code)}`);
-  }
-  return DUNGEON_ACTION_ERROR_MESSAGES[code];
-}
-
-function renderDungeonDock(view) {
-  const spells = document.querySelector('#dungeon-spells');
-  spells.replaceChildren();
-  for (const spell of view.castable_elements ?? []) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `dungeon-spell dn-el-${spell.element}`;
-    button.innerHTML = `<span class="dungeon-spell-el">${DUNGEON_MAGIC_LABELS[spell.element] ?? spell.element}</span><span class="dungeon-spell-mp">MP${spell.mp_cost}</span>`;
-    button.title = `${spell.label} 威力${spell.power} / MP${spell.mp_cost}`;
-    button.disabled = view.player.mp < spell.mp_cost;
-    button.addEventListener('click', () => dungeonDo({ type: 'cast', element: spell.element }).catch(reportError));
-    spells.append(button);
-  }
-  // The action row holds, on a single line, the self-heal plus the composite 貫通/回避 spells (order:
-  // 回復・貫通・回避). renderDungeonDock owns the row: it clears it, appends the self-heal, then defers the
-  // composite pair to renderDungeonCompositeSpells. Every button's label and enabled state come straight from
-  // its engine-supplied view state (view.healing_spell / view.pierce_spell / view.evasion_spell) — the front
-  // end never recomputes the heal amount, MP cost, power or duration. A missing contract fails fast (no silent
-  // fallback) rather than dropping the button quietly.
-  const actionSlot = document.querySelector('#dungeon-actions');
-  actionSlot.replaceChildren();
-  const healing = view.healing_spell;
-  if (!healing) throw new Error('dungeon view is missing healing_spell');
-  // Validate the full engine contract shape (action_type, mp_cost, heal_amount, recoverable_hp, can_use):
-  // a malformed view.healing_spell — even a field the button does not display — fails fast.
-  const { action_type, mp_cost, heal_amount, recoverable_hp, can_use } = healing;
-  if (
-    action_type !== 'heal_spell'
-    || typeof mp_cost !== 'number'
-    || typeof heal_amount !== 'number'
-    || typeof recoverable_hp !== 'number'
-    || typeof can_use !== 'boolean'
-  ) {
-    throw new Error('dungeon healing_spell is missing required fields');
-  }
-  const healButton = document.createElement('button');
-  healButton.type = 'button';
-  healButton.className = 'dungeon-spell dungeon-spell-heal';
-  healButton.innerHTML = `<span class="dungeon-spell-el">回復</span><span class="dungeon-spell-mp">MP${mp_cost}</span>`;
-  healButton.title = `自己回復 +${heal_amount} / MP${mp_cost}`;
-  // can_use already encodes both MP sufficiency and "there is HP to recover" (full HP -> disabled).
-  healButton.disabled = !can_use;
-  healButton.addEventListener('click', () => dungeonDo({ type: action_type }).catch(reportError));
-  actionSlot.append(healButton);
-  // Composite spells (貫通 / 回避) follow the self-heal on the same action row, each rendered straight from its
-  // engine-supplied state (view.pierce_spell / view.evasion_spell) — the front end never recomputes power,
-  // cost or duration. A missing/malformed state fails fast (no silent fallback / dropped button).
-  renderDungeonCompositeSpells(view);
-  // The action log shows the full run history and scrolls; movement, 待機 (Space) and 階段を
-  // 降りる (Enter) are keyboard actions now, so there are no dock buttons to gate.
-  const log = document.querySelector('#dungeon-log');
-  const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 4;
-  log.replaceChildren();
-  for (const entry of view.log ?? []) {
-    const p = document.createElement('p');
-    p.textContent = entry;
-    log.append(p);
-  }
-  if (view.action_error) {
-    const note = document.createElement('p');
-    note.className = 'dungeon-log-note';
-    note.textContent = dungeonActionErrorText(view.action_error);
-    log.append(note);
-  }
-  // Follow the newest line unless the player has scrolled up to read back the history.
-  if (atBottom) log.scrollTop = log.scrollHeight;
-}
-
-// Appends the 貫通 / 回避 composite-spell buttons to the shared action row (after the self-heal), from their
-// engine-supplied view states. renderDungeonDock has already cleared the row and appended the self-heal, so
-// this only appends. Each state's full contract is validated (fail-fast, like the self-heal), and 回避's
-// active state shows the remaining turns.
-function renderDungeonCompositeSpells(view) {
-  const slot = document.querySelector('#dungeon-actions');
-
-  const pierce = view.pierce_spell;
-  if (!pierce) throw new Error('dungeon view is missing pierce_spell');
-  if (
-    pierce.action_type !== 'pierce_spell'
-    || typeof pierce.mp_cost !== 'number'
-    || typeof pierce.power !== 'number'
-    || typeof pierce.can_use !== 'boolean'
-  ) {
-    throw new Error('dungeon pierce_spell is missing required fields');
-  }
-  const pierceButton = document.createElement('button');
-  pierceButton.type = 'button';
-  pierceButton.className = 'dungeon-spell dungeon-spell-pierce';
-  pierceButton.innerHTML = `<span class="dungeon-spell-el">貫通</span><span class="dungeon-spell-mp">MP${pierce.mp_cost}</span>`;
-  pierceButton.title = `貫通魔法（防御無視）威力${pierce.power} / MP${pierce.mp_cost}`;
-  pierceButton.disabled = !pierce.can_use;
-  pierceButton.addEventListener('click', () => dungeonDo({ type: pierce.action_type }).catch(reportError));
-  slot.append(pierceButton);
-
-  const evasion = view.evasion_spell;
-  if (!evasion) throw new Error('dungeon view is missing evasion_spell');
-  if (
-    evasion.action_type !== 'evasion_spell'
-    || typeof evasion.mp_cost !== 'number'
-    || typeof evasion.duration !== 'number'
-    || typeof evasion.evasion_bonus !== 'number'
-    || typeof evasion.turns_remaining !== 'number'
-    || typeof evasion.active !== 'boolean'
-    || typeof evasion.can_use !== 'boolean'
-  ) {
-    throw new Error('dungeon evasion_spell is missing required fields');
-  }
-  const evasionButton = document.createElement('button');
-  evasionButton.type = 'button';
-  evasionButton.className = 'dungeon-spell dungeon-spell-evasion';
-  if (evasion.active) evasionButton.classList.add('is-active');
-  const evasionLabel = evasion.active ? `回避 (残${evasion.turns_remaining})` : '回避';
-  evasionButton.innerHTML = `<span class="dungeon-spell-el">${evasionLabel}</span><span class="dungeon-spell-mp">MP${evasion.mp_cost}</span>`;
-  evasionButton.title = evasion.active
-    ? `回避魔法（発動中・残り${evasion.turns_remaining}ターン）回避+${evasion.evasion_bonus} / MP${evasion.mp_cost}`
-    : `回避魔法（${evasion.duration}ターン）回避+${evasion.evasion_bonus} / MP${evasion.mp_cost}`;
-  evasionButton.disabled = !evasion.can_use;
-  evasionButton.addEventListener('click', () => dungeonDo({ type: evasion.action_type }).catch(reportError));
-  slot.append(evasionButton);
-}
-
-// ----- dungeon consumables (use owned alchemy dungeon_consumable items mid-run) -----
-// view.consumables is the engine-authoritative list of owned dungeon consumables (item_id-sorted, only
-// what is in the inventory — quantity 0 rows are absent by contract). Each row carries {item_id, name,
-// description, effect_kind, target_mode, quantity, …kind tunables}. The band renders one chip per row; the
-// chip's click resolves the row's target_mode: 'auto'/'revive' fire at once, 'aim' arms board targeting,
-// 'ally' opens a self/companion pick. attack effects reuse the existing {kind:'cast'} events (no new
-// animation code); heal/revive land as log lines.
-
-// The compact effect summary shown on a consumable chip. effect_kind is a closed engine set — an unknown
-// kind is a desync and throws (no silent generic label).
-function dungeonConsumableSummaryText(row) {
-  const element = DUNGEON_MAGIC_LABELS[row.element] ?? row.element;
-  switch (row.effect_kind) {
-    case 'attack_single': return `${element}・単体 威力${row.power}`;
-    case 'attack_area': return `${element}・範囲${row.radius} 威力${row.power}`;
-    case 'heal': return `HP+${row.heal_amount}`;
-    case 'heal_full': return 'HP全回復';
-    case 'mp_restore': return `MP+${row.mp_amount}`;
-    case 'mp_restore_full': return 'MP全回復';
-    case 'revive': return '同行者を蘇生';
-    default: throw new Error(`unknown consumable effect_kind: ${JSON.stringify(row.effect_kind)}`);
+function cancelDungeonConsumableTargeting() {
+  const was = dungeonConsumableTargeting !== null;
+  teardownDungeonConsumableTargeting();
+  if (was && currentDungeonView) {
+    dungeonCarrySignature = null;
+    renderDungeonCarry(currentDungeonView);
   }
 }
-
-// Whether a chip is disabled at render time, with the reason (title) and an optional inline note. Only
-// revive is render-gated (needs a downed companion and an unspent per-run revive — view.revive_used). Every
-// other kind stays enabled and lets the server resolve its own guard into a turn-non-consuming action_error.
-function dungeonConsumableDisabledState(view, row) {
-  if (row.target_mode === 'revive') {
-    if (view.revive_used) return { disabled: true, reason: 'この探索では蘇生を使い切りました。', note: '使い切り' };
-    if (!view.companion || !view.companion.down) return { disabled: true, reason: 'ダウン中の同行者がいません。', note: '対象なし' };
-  }
-  return { disabled: false, reason: '', note: '' };
-}
-
-function buildDungeonConsumableChip(view, row) {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'dungeon-consumable';
-  button.dataset.itemId = row.item_id;
-  button.dataset.targetMode = row.target_mode;
-  // Attack consumables carry an element; reuse the shared per-element hue class so the chip border is tinted
-  // by attribute exactly like the spell pills (the .dn-el-* classes only set `color`, which the chip's
-  // currentColor border consumes — the name/summary keep their own ink tokens).
-  if (row.element) button.classList.add(`dn-el-${row.element}`);
-  const state = dungeonConsumableDisabledState(view, row);
-  button.disabled = state.disabled;
-  if (state.reason) button.title = state.reason;
-  if (dungeonConsumableTargeting?.item_id === row.item_id) button.dataset.armed = 'true';
-
-  const name = document.createElement('span');
-  name.className = 'dungeon-consumable-name';
-  name.textContent = row.name;
-  const summary = document.createElement('span');
-  summary.className = 'dungeon-consumable-summary';
-  summary.textContent = dungeonConsumableSummaryText(row);
-  const qty = document.createElement('span');
-  qty.className = 'dungeon-consumable-qty';
-  qty.textContent = `×${row.quantity}`;
-  button.append(name, summary, qty);
-  if (state.disabled && state.note) {
-    const note = document.createElement('span');
-    note.className = 'dungeon-consumable-note';
-    note.textContent = state.note;
-    button.append(note);
-  }
-  button.addEventListener('click', () => { try { onDungeonConsumableClick(view, row); } catch (error) { reportError(error); } });
-  return button;
-}
-
-// ----- dungeon item columns (持ち込んだアイテム / 拾ったアイテム / 拾った素材) -----
-// The play screen keeps all three item columns visible side by side, always-on (no menu needed): the
-// 持ち込んだアイテム column lists view.consumables with the full use flow, the 拾ったアイテム column lists
-// the run's floor pickups (view.inventory) with the use_item flow, and the 拾った素材 column mirrors
-// view.material_buffer (display-only). Every column shares one shape (label + fixed-height, internally
-// scrolling list + quiet empty state), and each is independent of its siblings, so a brought-only surface
-// (e.g. the arena) renders just the consumables column and it still stands alone. A missing view contract
-// on any column fail-fasts.
 
 // Fill one item column's scrolling list: a row per entry, or a single quiet empty note. Shared by every
 // dungeon column and reusable by any brought-only surface (each column is independent of its siblings).
@@ -15414,307 +17034,12 @@ function fillDungeonItemColumn(listEl, rows, buildRow, emptyText) {
   listEl.replaceChildren(...rows.map(buildRow));
 }
 
-// One 拾った素材 row: the server-authoritative display name + picked-up count. Display only — the
-// materials are banked on retreat, not used mid-run. A mis-shaped buffer item is a broken contract and throws.
-function buildDungeonMaterialRow(item) {
-  if (typeof item.display_name !== 'string' || item.display_name === '') {
-    throw new Error(`dungeon material requires a non-empty display_name, got ${JSON.stringify(item)}`);
-  }
-  if (typeof item.quantity !== 'number' || !Number.isFinite(item.quantity)) {
-    throw new Error(`dungeon material requires a numeric quantity, got ${JSON.stringify(item)}`);
-  }
-  const row = document.createElement('div');
-  row.className = 'dungeon-item-row';
-  const name = document.createElement('span');
-  name.className = 'dungeon-item-row-name';
-  name.textContent = item.display_name;
-  const qty = document.createElement('span');
-  qty.className = 'dungeon-item-row-qty';
-  qty.textContent = `×${item.quantity.toLocaleString('ja-JP')}`;
-  row.append(name, qty);
-  return row;
-}
-
-// Renders the 拾った素材 column from view.material_buffer (item_id-sorted, server display names). An empty
-// buffer keeps the column with a quiet empty note. A missing contract is a desync and throws (fail-fast).
-function renderDungeonMaterials(view) {
-  const list = document.querySelector('#dungeon-materials-list');
-  if (!list) return;
-  const buffer = view.material_buffer;
-  if (!Array.isArray(buffer)) throw new Error('dungeon view is missing material_buffer');
-  fillDungeonItemColumn(list, buffer, buildDungeonMaterialRow, 'まだ拾った素材はありません。');
-}
-
-// One 拾ったアイテム row: a floor pickup (癒し草 等) as a use button carrying its owned count. A click uses
-// the item through the shared dungeonDo path (use_item by kind) — the single use route now that the menu
-// inventory popup is gone (turn cost / effect / log stay the engine's existing use_item behavior). A
-// mis-shaped inventory entry is a broken contract and throws (no silent skip of an unusable-looking row).
-function buildDungeonPickupRow(item) {
-  if (typeof item.kind !== 'string' || item.kind === '') {
-    throw new Error(`dungeon inventory item requires a non-empty kind, got ${JSON.stringify(item)}`);
-  }
-  if (typeof item.name !== 'string' || item.name === '') {
-    throw new Error(`dungeon inventory item requires a non-empty name, got ${JSON.stringify(item)}`);
-  }
-  if (typeof item.count !== 'number' || !Number.isFinite(item.count)) {
-    throw new Error(`dungeon inventory item requires a numeric count, got ${JSON.stringify(item)}`);
-  }
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'dungeon-item-use-row';
-  button.dataset.itemKind = item.kind;
-  const name = document.createElement('span');
-  name.className = 'dungeon-item-row-name';
-  name.textContent = item.name;
-  const qty = document.createElement('span');
-  qty.className = 'dungeon-item-row-qty';
-  qty.textContent = `×${item.count.toLocaleString('ja-JP')}`;
-  button.append(name, qty);
-  button.addEventListener('click', () => { dungeonDo({ type: 'use_item', item_kind: item.kind }).catch(reportError); });
-  return button;
-}
-
-// Renders the 拾ったアイテム column from view.inventory (the run's floor pickups, {kind,name,glyph,count}).
-// An empty list keeps the column with a quiet empty note rather than collapsing — the region height is fixed
-// in CSS so its content never changes the stage height (and thus the camera cell size). A missing/mis-typed
-// inventory contract is a desync and throws (fail-fast, never a silent empty column).
-function renderDungeonPickups(view) {
-  const list = document.querySelector('#dungeon-pickups-list');
-  if (!list) return;
-  if (!Array.isArray(view.inventory)) throw new Error('dungeon view is missing inventory');
-  fillDungeonItemColumn(list, view.inventory, buildDungeonPickupRow, 'まだ拾ったアイテムはありません。');
-}
-
-// Renders the 持ち込んだアイテム column from view.consumables. An empty list keeps the column with an explicit
-// empty note rather than collapsing — the region height is fixed in CSS so its content never changes the
-// stage height (and thus the camera cell size). A missing consumables contract is a desync and throws.
-function renderDungeonConsumables(view) {
-  const list = document.querySelector('#dungeon-consumables-list');
-  if (!list) return;
-  if (!Array.isArray(view.consumables)) throw new Error('dungeon view is missing consumables');
-  fillDungeonItemColumn(list, view.consumables, (row) => buildDungeonConsumableChip(view, row), '持ち込んだ消耗品はありません。');
-}
-
-// A chip click: re-clicking the armed chip cancels its targeting; otherwise cancel any active targeting and
-// resolve this chip's target_mode. auto/revive fire immediately (no extra input); aim/ally collect input first.
-function onDungeonConsumableClick(view, row) {
-  if (dungeonActionInFlight) { showProcessingToast(); return; }
-  if (dungeonConsumableTargeting?.item_id === row.item_id) { cancelDungeonConsumableTargeting(); return; }
-  cancelDungeonConsumableTargeting();
-  if (row.target_mode === 'auto' || row.target_mode === 'revive') { useDungeonConsumable(row.item_id); return; }
-  if (row.target_mode === 'aim') { enterDungeonAimMode(view, row); return; }
-  if (row.target_mode === 'ally') { openDungeonAllyTargetPrompt(view, row); return; }
-  throw new Error(`unknown consumable target_mode: ${JSON.stringify(row.target_mode)}`);
-}
-
-// Sends a use_consumable action, folding in any collected target/aim argument, then tears down targeting.
-// dungeonDo re-renders the board (and the consumables band) with the fresh count / action_error.
-function useDungeonConsumable(itemId, extra = {}) {
-  teardownDungeonConsumableTargeting();
-  dungeonDo({ type: 'use_consumable', item_id: itemId, ...extra }).catch(reportError);
-}
-
-// ── attack_area aim mode ─────────────────────────────────────────────────────────────────────────────────
-// Arming an aim consumable lays an interactive tile grid over the board (inside the camera transform, so it
-// aligns to the tiles) that highlights the legal landing tiles and, on hover, the Manhattan-radius blast. A
-// click on a legal tile sends aim:{x,y}; an illegal tile is inert (client-blocked — the server is the final
-// defense). Esc / re-clicking the chip / the 中止 button cancel.
-function enterDungeonAimMode(view, row) {
-  dungeonConsumableTargeting = { item_id: row.item_id, mode: 'aim', radius: row.radius, element: row.element, name: row.name };
-  buildDungeonAimOverlay(view, row);
-  document.querySelector('#dungeon-grid')?.classList.add('dn-aiming');
-  showDungeonConsumablePrompt(`「${row.name}」の着弾点を選んでください（Escで中止）。`, [
-    { label: '中止', onClick: () => cancelDungeonConsumableTargeting() }
-  ]);
-  renderDungeonConsumables(view);
-}
-
-// Mirrors the engine's line-of-sight walk (dungeonEngine.hasLineOfSight): the rounded cells strictly between
-// player and target must all be floor. Kept identical so the client pre-filter matches the server's aim gate.
-function dungeonHasLineOfSight(view, from, to) {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const steps = Math.max(Math.abs(dx), Math.abs(dy));
-  for (let step = 1; step < steps; step += 1) {
-    const x = Math.round(from.x + (dx * step) / steps);
-    const y = Math.round(from.y + (dy * step) / steps);
-    if (x < 0 || y < 0 || x >= view.width || y >= view.height || view.tiles[y][x] !== 'floor') return false;
-  }
-  return true;
-}
-
-// A legal attack_area landing tile: in bounds, explored, walkable (floor), and with clear line of sight from
-// the player — the same set planConsumable accepts (invalid_aim for the first three, blocked for LoS).
-function dungeonAimTileValid(view, x, y) {
-  if (x < 0 || y < 0 || x >= view.width || y >= view.height) return false;
-  if (!view.explored[y][x]) return false;
-  if (view.tiles[y][x] !== 'floor') return false;
-  return dungeonHasLineOfSight(view, view.player, { x, y });
-}
-
-function buildDungeonAimOverlay(view, row) {
-  const board = document.querySelector('#dungeon-grid .dn-board');
-  if (!board) return;
-  removeDungeonAimOverlay();
-  const layer = document.createElement('div');
-  layer.className = 'dn-aim';
-  layer.style.setProperty('--dn-cols', view.width);
-  layer.style.setProperty('--dn-rows', view.height);
-  const cells = [];
-  for (let y = 0; y < view.height; y += 1) {
-    for (let x = 0; x < view.width; x += 1) {
-      const cell = document.createElement('div');
-      cell.className = 'dn-aim-cell';
-      cell.dataset.x = x;
-      cell.dataset.y = y;
-      if (dungeonAimTileValid(view, x, y)) cell.classList.add('dn-aim-valid');
-      cells.push(cell);
-    }
-  }
-  layer.replaceChildren(...cells);
-  layer.addEventListener('pointermove', (event) => onDungeonAimHover(event, row));
-  layer.addEventListener('pointerleave', () => clearDungeonAimBlast());
-  layer.addEventListener('click', (event) => { try { onDungeonAimClick(event, row); } catch (error) { reportError(error); } });
-  board.append(layer);
-}
-
-function removeDungeonAimOverlay() {
-  document.querySelector('#dungeon-grid .dn-aim')?.remove();
-}
-
-// Paint the Manhattan-radius blast preview centered on the hovered legal tile; hovering off a legal tile
-// (a wall, fog, or the gap between cells) clears it.
-function onDungeonAimHover(event, row) {
-  const cell = event.target.closest('.dn-aim-cell');
-  if (!cell || !cell.classList.contains('dn-aim-valid')) { clearDungeonAimBlast(); return; }
-  paintDungeonAimBlast(row, Number(cell.dataset.x), Number(cell.dataset.y));
-}
-
-function paintDungeonAimBlast(row, cx, cy) {
-  clearDungeonAimBlast();
-  const layer = document.querySelector('#dungeon-grid .dn-aim');
-  if (!layer) return;
-  for (const cell of layer.querySelectorAll('.dn-aim-cell')) {
-    const distance = Math.abs(Number(cell.dataset.x) - cx) + Math.abs(Number(cell.dataset.y) - cy);
-    if (distance <= row.radius) cell.classList.add('dn-aim-blast');
-  }
-}
-
-function clearDungeonAimBlast() {
-  const layer = document.querySelector('#dungeon-grid .dn-aim');
-  if (!layer) return;
-  for (const cell of layer.querySelectorAll('.dn-aim-blast')) cell.classList.remove('dn-aim-blast');
-}
-
-// Click a landing tile: an illegal tile is not sent (client-side block); a legal tile fires aim:{x,y}.
-function onDungeonAimClick(event, row) {
-  if (dungeonActionInFlight) return;
-  const cell = event.target.closest('.dn-aim-cell');
-  if (!cell || !cell.classList.contains('dn-aim-valid')) return;
-  useDungeonConsumable(row.item_id, { aim: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
-}
-
-// ── heal / MP ally pick ──────────────────────────────────────────────────────────────────────────────────
-// Arming a heal/MP consumable opens the target prompt: 主人公 is always a valid target; the companion button
-// is offered only when a living (non-down) companion is present — absent/down disables it (revive is the only
-// path for a downed companion). The pick sends target:'player'|'companion'.
-function openDungeonAllyTargetPrompt(view, row) {
-  dungeonConsumableTargeting = { item_id: row.item_id, mode: 'ally', name: row.name };
-  const companionUsable = !!view.companion && !view.companion.down;
-  const companionTitle = !view.companion
-    ? '同行者がいません。'
-    : (view.companion.down ? '同行者はダウン中です（蘇生が必要）。' : '');
-  showDungeonConsumablePrompt(`「${row.name}」を誰に使いますか？`, [
-    { label: '主人公', onClick: () => useDungeonConsumable(row.item_id, { target: 'player' }) },
-    {
-      label: view.companion ? view.companion.name : '同行者',
-      onClick: () => useDungeonConsumable(row.item_id, { target: 'companion' }),
-      disabled: !companionUsable,
-      title: companionTitle
-    },
-    { label: '中止', onClick: () => cancelDungeonConsumableTargeting() }
-  ]);
-  renderDungeonConsumables(view);
-}
-
-// ── prompt banner + teardown ─────────────────────────────────────────────────────────────────────────────
-function showDungeonConsumablePrompt(text, actions) {
-  const prompt = document.querySelector('#dungeon-consumable-prompt');
-  if (!prompt) return;
-  const message = document.createElement('span');
-  message.className = 'dungeon-consumable-prompt-text';
-  message.textContent = text;
-  const actionRow = document.createElement('span');
-  actionRow.className = 'dungeon-consumable-prompt-actions';
-  for (const action of actions) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'dungeon-consumable-prompt-action';
-    button.textContent = action.label;
-    if (action.disabled) button.disabled = true;
-    if (action.title) button.title = action.title;
-    button.addEventListener('click', () => { try { action.onClick(); } catch (error) { reportError(error); } });
-    actionRow.append(button);
-  }
-  prompt.replaceChildren(message, actionRow);
-  prompt.hidden = false;
-}
-
-// Clears targeting state, the aim overlay, the aim cursor, and the prompt — without re-rendering the band.
-// Used by renderDungeonPlay (a fresh view invalidates any in-progress targeting) and by cancel below.
-function teardownDungeonConsumableTargeting() {
-  dungeonConsumableTargeting = null;
-  removeDungeonAimOverlay();
-  document.querySelector('#dungeon-grid')?.classList.remove('dn-aiming');
-  const prompt = document.querySelector('#dungeon-consumable-prompt');
-  if (prompt) { prompt.hidden = true; prompt.replaceChildren(); }
-}
-
-// Cancels active targeting and re-renders the band so the armed marker clears.
-function cancelDungeonConsumableTargeting() {
-  const wasTargeting = dungeonConsumableTargeting !== null;
-  teardownDungeonConsumableTargeting();
-  if (wasTargeting && currentDungeonView) renderDungeonConsumables(currentDungeonView);
-}
-
-function renderDungeonChat(view) {
-  const chat = document.querySelector('#dungeon-chat');
-  if (!view) {
-    chat.hidden = true;
-    return;
-  }
-  // Always-on during a run: the conversation panel keeps its rail slot whether or not a companion is
-  // present (no toggle). The fixed chat header (companion face / name / ability bars) is gone — the
-  // party card names in the HUD open the actor detail now. With no companion the panel shows an explicit
-  // empty, disabled state in the log area (fail-closed: inputs disabled, no silent empty send) rather
-  // than collapsing the layout.
-  chat.hidden = false;
-  const log = document.querySelector('#dungeon-chat-log');
-  if (!view.companion) {
-    const empty = document.createElement('p');
-    empty.className = 'dungeon-chat-empty';
-    empty.textContent = '同行者はいません';
-    log.replaceChildren(empty);
-    document.querySelector('#dungeon-talk-send').disabled = true;
-    document.querySelector('#dungeon-talk-input').disabled = true;
-    return;
-  }
-  // A homunculus companion keeps its per-message avatar override inside renderDungeonChatLog
-  // (applyDungeonCompanionMessageFace); a selectable companion uses the shared row builder. Neither needs a
-  // roster lookup here anymore — the name-click detail (from the HUD) resolves the roster itself.
-  renderDungeonChatLog(dungeonChatMessages);
-  document.querySelector('#dungeon-talk-send').disabled = view.companion.down;
-  document.querySelector('#dungeon-talk-input').disabled = view.companion.down;
-}
-
 // ── unified actor-detail shell ───────────────────────────────────────────────────────────────────────────
-// The shared section grammar for a run-time actor detail, screen-agnostic so the arena mirror can reuse it: an
-// optional image slot (companion only — selectable standee / homunculus face; the hero has none), the 11-value
-// parameters, the read-only equipment, and (dungeon hero only) the 獲得予定 section. The structural class names
-// (actor-detail-*) are shared; each screen scopes its own token layer via the host container (dungeon = the
-// #dungeon-actor-detail #academy-dungeon-screen scope consuming --dungeon-*, arena its own). The caller builds
-// each section's inner nodes with its own builders (so the equipment card can reuse a screen-specific renderer);
-// this shell only lays out the section grammar. A null image / acquisition node omits that section.
+// The section grammar for a run-time actor detail (the arena's actor detail): an optional image slot (companion
+// only — selectable standee / homunculus face; the hero has none), the 11-value parameters, the read-only equipment,
+// and an optional 獲得予定 section. The structural class names (actor-detail-*) are scoped by the host container's
+// token layer. The caller builds each section's inner nodes with its own builders; this shell only lays out the
+// section grammar. A null image / acquisition node omits that section.
 function buildActorDetailBody({ imageNode = null, parameterNodes, equipmentNode, acquisitionNode = null }) {
   const sections = document.createElement('div');
   sections.className = 'actor-detail-sections';
@@ -15754,530 +17079,633 @@ function buildActorDetailImage({ src, alt, shape }) {
   return figure;
 }
 
-// The read-only equipment section for the detail shell: the weapon + amulet slots, each an equipped-instance
-// detail (reusing the shared read-only inner builder — NO 解除 button) or a quiet 未装備 note. runEquipment is the
-// run-view equipment snapshot (null when nothing is equipped, else {slots:{weapon,amulet}, effects}); its slots
-// are validated fail-fast (a malformed slot throws before the DOM is touched — no half-rendered card).
-function buildDungeonDetailEquipment(runEquipment) {
-  const slots = runEquipment === null
-    ? { weapon: null, amulet: null }
-    : validateDungeonEquipmentSlots(runEquipment.slots, 'dungeon detail equipment');
-  const wrap = document.createElement('div');
-  wrap.className = 'actor-detail-equipment';
-  for (const slot of WORKSHOP_EQUIPMENT_KINDS) {
-    const card = document.createElement('div');
-    card.className = 'actor-detail-equipment-slot';
-    card.dataset.slot = slot;
-    const head = document.createElement('p');
-    head.className = 'actor-detail-equipment-slot-head';
-    head.textContent = `${workshopKindLabel(slot)}スロット`;
-    card.append(head);
-    const view = slots[slot];
-    if (view) {
-      card.append(buildDungeonEquipmentInstanceDetail(view));
+// ── 手番 ─────────────────────────────────────────────────────────────────────────────────────────────────
+function renderDungeonPlay(next) {
+  const prev = currentDungeonView;
+  currentDungeonView = next;
+  // A fresh view invalidates any in-progress consumable targeting (its tile coords / armed item may no longer hold).
+  teardownDungeonConsumableTargeting();
+  foldDungeonEffects({ keepVeil: Boolean(prev) && prev.run_id === next.run_id && prev.floor !== next.floor });
+  if (dungeonRoot.dataset.scene === 'entry') dn.entryHall.replaceChildren();
+  dn.result.hidden = true;
+  dn.equipModal.hidden = true;
+  dungeonRoot.dataset.scene = 'play';
+  dungeonRoot.dataset.companion = next.companion ? 'present' : 'none';
+  renderDungeonPartyAndDepth(next);
+  renderDungeonSpells(next);
+  renderDungeonCarry(next);
+  renderDungeonTalkAvailability(next);
+  if (!dungeonCompanionSpeaking()) clearDungeonVoice();
+  const lines = newDungeonLogLines(prev?.run_id === next.run_id ? prev.log : null, next.log);
+  if (!prev || prev.run_id !== next.run_id || prev.floor !== next.floor) appendDungeonFloorMark(next.floor);
+  appendDungeonRecord(lines, next.action_error ? dungeonActionErrorText(next.action_error) : null);
+  renderDungeonBoard(next);
+  if (prev && prev.run_id === next.run_id) playDungeonTurn(readDungeonTurn(prev, next, lines), next);
+  placeDungeonVoice();
+  dungeonRoot.dataset.turn = String(next.turn);
+  dungeonRoot.dataset.render = String(Number(dungeonRoot.dataset.render ?? 0) + 1);
+}
+
+function dungeonActionErrorText(code) {
+  if (!Object.prototype.hasOwnProperty.call(DUNGEON_ACTION_ERROR_MESSAGES, code)) throw new Error(`unknown dungeon action_error code: ${JSON.stringify(code)}`);
+  return DUNGEON_ACTION_ERROR_MESSAGES[code];
+}
+
+// 階段の上に立ち、下にまだ階があるとき（最下層の階段を降りると踏破で潜りが終わる）。
+function dungeonDescentLeadsDown(view) {
+  return view.player.x === view.stairs.x && view.player.y === view.stairs.y && view.floor < view.max_floors;
+}
+
+// 盤を暗くし、暗くなりきる移ろいの終わりで解ける Promise を返す（動きを減らす設定では移ろいが無く、すぐ解ける）。
+function darkenDungeonForDescent() {
+  dn.veil.classList.add('is-dark');
+  return Promise.all(dn.veil.getAnimations().map((animation) => animation.finished));
+}
+
+// 要求が飛んでいる間に来た入力は捨てる。下の階へ降りる手は押した瞬間に盤を暗くし、応答と暗くなりきるのを両方待ってから
+// 下の階を描く。要求が失敗したら、暗いまま止めずにいまの階へ明ける。
+async function dungeonDo(action) {
+  if (dungeonActionInFlight || !currentDungeonView) return;
+  dungeonActionInFlight = true;
+  const veiled = action.type === 'descend' && dungeonDescentLeadsDown(currentDungeonView) ? darkenDungeonForDescent() : null;
+  try {
+    const request = postJson('/api/dungeon/action', { action });
+    const result = veiled ? (await Promise.all([request, veiled]))[0] : await request;
+    if (result.ended) {
+      // A run-ending turn (e.g. the fatal blow) still plays its strikes on the still-visible board, then the result.
+      const lines = newDungeonLogLines(currentDungeonView.log, requiredDungeonField(result, 'log', 'dungeon result'));
+      appendDungeonRecord(lines, null);
+      foldDungeonEffects();
+      if (requiredDungeonField(result, 'events', 'dungeon result').length) {
+        playDungeonTurn(readDungeonEndedTurn(currentDungeonView, result.events, lines), currentDungeonView);
+        await sleep(DUNGEON_ENDED_ANIM_MS);
+      }
+      await showDungeonResult(result);
     } else {
-      const empty = document.createElement('p');
-      empty.className = 'actor-detail-equipment-empty';
-      empty.textContent = '未装備';
-      card.append(empty);
+      renderDungeonPlay(result);
     }
-    wrap.append(card);
+  } catch (error) {
+    if (veiled) dn.veil.classList.remove('is-dark');
+    throw error;
+  } finally {
+    dungeonActionInFlight = false;
   }
-  return wrap;
 }
 
-// The hero's 獲得予定 section (dungeon only): the pending stat gains (上昇能力) and the boss-chest equipment banked
-// this run (獲得予定装備). Same grammar the removed 持ち帰り popup used, now folded into the hero detail. The
-// equipment buffer is a required run-view field (throws if missing — fail-fast).
-function buildDungeonDetailAcquisition(view) {
-  const wrap = document.createElement('div');
-  wrap.className = 'actor-detail-acquisition';
+// ── 盤の上の声: 同行者が話している間（返事が流れている間と、最初の一言が出ている間）は、盤の追従がその人を窓の内側に保ち、
+// 最初の一言がその人の駒のそばから立ちのぼって消える。一言は敵・階段・主人公の升目を隠さない側に置く。 ─────────────────────
+let dungeonVoice = null;
+const DUNGEON_VOICE_LIFE_MS = 3200;
 
-  const preview = view.pending_gains_preview ?? { magic: {}, abilities: {} };
-  const gainEntries = [
-    ...Object.entries(preview.magic).map(([key, value]) => ({ label: DUNGEON_MAGIC_LABELS[key] ?? key, value })),
-    ...Object.entries(preview.abilities).map(([key, value]) => ({ label: DUNGEON_ABILITY_LABELS[key] ?? key, value }))
-  ];
-  const gains = document.createElement('div');
-  gains.className = 'dungeon-gains-section';
-  const gainsHead = document.createElement('p');
-  gainsHead.className = 'dungeon-gains-subhead';
-  gainsHead.textContent = '上昇能力';
-  gains.append(gainsHead);
-  if (gainEntries.length) {
-    const grid = document.createElement('div');
-    grid.className = 'dungeon-gains-grid';
-    for (const entry of gainEntries) {
-      const row = document.createElement('div');
-      row.className = 'dungeon-gains-row';
-      const name = document.createElement('span');
-      name.className = 'dungeon-gains-name';
-      name.textContent = entry.label;
-      const amount = document.createElement('strong');
-      amount.className = 'dungeon-gains-amount';
-      amount.textContent = `+${entry.value}`;
-      row.append(name, amount);
-      grid.append(row);
-    }
-    gains.append(grid);
-  } else {
-    const empty = document.createElement('p');
-    empty.className = 'dungeon-gains-empty';
-    empty.textContent = 'まだ持ち帰る能力上昇はありません。';
-    gains.append(empty);
-  }
-  wrap.append(gains);
-
-  const equipmentBuffer = view.equipment_buffer;
-  if (!Array.isArray(equipmentBuffer)) throw new Error('dungeon view is missing equipment_buffer');
-  const equipment = document.createElement('div');
-  equipment.className = 'dungeon-gains-section';
-  const equipmentHead = document.createElement('p');
-  equipmentHead.className = 'dungeon-gains-subhead';
-  equipmentHead.textContent = '獲得予定装備';
-  equipment.append(equipmentHead);
-  equipment.append(...buildDungeonEquipmentRows(equipmentBuffer, 'まだ手に入れた装備はありません。'));
-  wrap.append(equipment);
-
-  return wrap;
+function dungeonFirstPhrase(content) {
+  const match = content.match(/^[^。！？!?…]*[。！？!?…]*/);
+  const phrase = (match?.[0] ?? content).trim() || content.trim();
+  return [...phrase].length > 28 ? `${[...phrase].slice(0, 27).join('')}…` : phrase;
 }
 
-// Opens the unified actor-detail shell. The body is built (which validates the equipment slots / acquisition
-// contract) BEFORE the shell is shown, so a broken contract throws without leaving a half-open dialog; the
-// click handler's reportError surfaces it. Missing shell markup is broken wiring — fail fast.
-function openDungeonActorDetail(title, bodyNode) {
-  const popup = document.querySelector('#dungeon-actor-detail');
-  const titleEl = document.querySelector('#dungeon-actor-detail-title');
-  const body = document.querySelector('#dungeon-actor-detail-body');
-  if (!popup || !titleEl || !body) {
-    throw new Error('dungeon actor detail shell nodes are missing (broken markup wiring)');
-  }
-  titleEl.textContent = title;
-  body.replaceChildren(bodyNode);
-  popup.hidden = false;
+function clearDungeonVoice() {
+  dungeonVoice?.node.remove();
+  dungeonVoice = null;
+  dungeonSpeakerFrame = { afar: null };
+  syncDungeonSpeaking();
 }
 
-function closeDungeonActorDetail() {
-  const popup = document.querySelector('#dungeon-actor-detail');
-  if (!popup) {
-    throw new Error('dungeon actor detail shell node #dungeon-actor-detail is missing (broken markup wiring)');
-  }
-  popup.hidden = true;
+function dungeonCompanionSpeaking() {
+  return Boolean(currentDungeonView?.companion && !currentDungeonView.companion.down && (dungeonVoice || dungeonTalkPending));
 }
 
-// The hero (主人公) detail: no image, the 11 raw parameters (currentWorld.player_parameters — the same source the
-// old stats popup used), the read-only equipment, and the 獲得予定 section (上昇能力 + 獲得予定装備). No HP/MP,
-// no combat-reflected values (per the confirmed layout). All from the run view / page world state — no fetch.
-function openDungeonHeroDetail() {
+function syncDungeonSpeaking() {
+  const speaking = dungeonCompanionSpeaking();
+  if (speaking) dungeonRoot.dataset.speaking = 'companion';
+  else delete dungeonRoot.dataset.speaking;
+  return speaking;
+}
+
+function speakDungeonVoice(content) {
+  clearDungeonVoice();
+  if (!currentDungeonView?.companion || currentDungeonView.companion.down) return;
+  const node = document.createElement('p');
+  node.className = 'dn-voice';
+  const face = document.createElement('img');
+  face.className = 'dn-voice-face';
+  face.alt = '';
+  face.src = dungeonCompanionFaceUrl(currentDungeonView.companion);
+  const text = document.createElement('span');
+  text.className = 'dn-voice-text';
+  text.textContent = dungeonFirstPhrase(content);
+  node.append(face, text);
+  dn.voices.append(node);
+  dungeonVoice = { node };
+  frameDungeonSpeaker();
+  node.animate(dungeonReducedMotion()
+    ? [{ opacity: 1 }, { opacity: 1, offset: 0.85 }, { opacity: 0 }]
+    : [{ opacity: 0, translate: '0 6px' }, { opacity: 1, translate: '0 0', offset: 0.1 }, { opacity: 1, translate: '0 -4px', offset: 0.8 }, { opacity: 0, translate: '0 -12px' }],
+  { duration: DUNGEON_VOICE_LIFE_MS, easing: 'ease-out' }).onfinish = () => {
+    if (dungeonVoice?.node === node) clearDungeonVoice();
+    else node.remove();
+  };
+}
+
+// 話している間の盤の置き方。駒の箱（目盛りを含む）と一言の箱を盤の px で取り、窓の縁から余白を空けて収める。盤はいまの位置から
+// 収まる範囲までのいちばん小さな動きで置く（収まっていれば動かさない）:
+// 1. 同行者と一言・主人公・見えている敵（主人公の先の危険）がそろって収まるなら、その組を収める。一言の分だけ収まらないなら、
+//    駒の組を収め、一言は駒の横か下の空いた側に出す。
+// 2. 同行者の駒も収まらない向きでは、主人公と先の危険を先に取って窓に収め、同行者はその向きで窓の外へ出す（縁で切れない所まで押し出す）。
+//    そのとき一言は、同行者のいる向きの窓の縁から余白を空けた内側に、同行者の小さな顔を添えて出し、尾は同行者のいる向きを指す。
+// 向き（横・縦）ごとに独立に決める。返す afar は、同行者が窓の外に出た向き（null なら窓の中）。
+const DUNGEON_VOICE_EST = { w: 230, h: 34 };
+const DUNGEON_VOICE_TAIL = 12;
+let dungeonSpeakerFrame = { afar: null };
+
+// 駒の箱は升目そのもの（顔と下の目盛りは升目の中に収まる）。
+function dungeonTokenBox(at, { cell, step }) {
+  return { left: at.x * step, right: at.x * step + cell, top: at.y * step, bottom: at.y * step + cell };
+}
+
+function holdDungeonSpeaker(next, { cell, step, viewW, viewH }) {
   const view = currentDungeonView;
-  if (!view) return;
-  const params = currentWorld?.player_parameters ?? {};
-  const body = buildActorDetailBody({
-    parameterNodes: buildParameterGroups(params),
-    equipmentNode: buildDungeonDetailEquipment(view.equipment),
-    acquisitionNode: buildDungeonDetailAcquisition(view)
-  });
-  openDungeonActorDetail('主人公', body);
+  const margin = Math.max(24, cell * 0.5);
+  const voiceH = dungeonVoice ? dungeonVoice.node.offsetHeight : DUNGEON_VOICE_EST.h;
+  const voiceW = dungeonVoice ? dungeonVoice.node.offsetWidth : DUNGEON_VOICE_EST.w;
+  const danger = [dungeonTokenBox(view.player, { cell, step }), ...view.enemies.map((enemy) => dungeonTokenBox(enemy, { cell, step }))];
+  const token = dungeonTokenBox(view.companion, { cell, step });
+  const centre = (token.left + token.right) / 2;
+  const speaker = { left: Math.min(token.left, centre - voiceW / 2), right: Math.max(token.right, centre + voiceW / 2), top: token.top - voiceH - DUNGEON_VOICE_TAIL, bottom: token.bottom };
+  const range = (boxes, lowKey, highKey, size) => {
+    const lo = Math.max(...boxes.map((box) => box[highKey])) + margin - size;
+    const hi = Math.min(...boxes.map((box) => box[lowKey])) - margin;
+    return lo <= hi ? { lo, hi } : null;
+  };
+  const within = ({ lo, hi }, from) => Math.max(lo, Math.min(hi, from));
+  const axis = (lowKey, highKey, size, from) => {
+    const all = range([...danger, speaker], lowKey, highKey, size);
+    if (all) return { at: within(all, from), afar: null };
+    const withToken = range([...danger, token], lowKey, highKey, size);
+    if (withToken) return { at: within(withToken, from), afar: null };
+    const kept = range(danger, lowKey, highKey, size) ?? range(danger.slice(0, 1), lowKey, highKey, size);
+    if (!kept) return { at: from, afar: null };
+    // 危険の組を収め、同行者の駒が縁にかかるなら窓の外へ出し切る位置まで押す（危険の組は窓に残る範囲で）。
+    const beyondHigh = token[lowKey] > (danger[0][lowKey] + danger[0][highKey]) / 2;
+    const outAt = beyondHigh ? token[lowKey] - size - 1 : token[highKey] + 1;
+    let at = within(kept, from);
+    const touches = beyondHigh ? at + size > token[lowKey] : at < token[highKey];
+    if (touches) at = Math.max(kept.lo, Math.min(kept.hi, outAt));
+    return { at, afar: beyondHigh ? 'high' : 'low' };
+  };
+  const x = axis('left', 'right', viewW, next.x);
+  const y = axis('top', 'bottom', viewH, next.y);
+  dungeonSpeakerFrame = { afar: y.afar === 'high' ? 'down' : y.afar === 'low' ? 'up' : x.afar === 'high' ? 'right' : x.afar === 'low' ? 'left' : null };
+  return { x: x.at, y: y.at };
 }
 
-// The companion detail: its image (selectable = scene standee resolved from the roster; homunculus = the
-// entry-snapshot face_url), the 11 parameters, and the read-only equipment — no 獲得予定 (the carry-home is the
-// hero's). A selectable companion resolves its roster character (a miss is a real desync — fail fast, same
-// message as before); a homunculus draws its face + parameters from the run view companion (no extra fetch).
-function openDungeonCompanionDetail(companion) {
-  const homunculus = dungeonCompanionIsHomunculus(companion);
-  let parameters;
-  let image;
-  if (homunculus) {
-    parameters = companion.parameters;
-    image = { src: companion.face_url, alt: `${companion.name}の顔`, shape: 'face' };
-  } else {
-    const character = selectableCharacters.find((item) => item.character_id === companion.character_id);
-    if (!character) throw new Error(`dungeon companion not found in character roster: ${companion.character_id}`);
-    parameters = character.parameters;
-    image = { src: characterSceneStandeeUrl(character), alt: `${character.display_name ?? character.character_id}の一枚絵`, shape: 'standee' };
+// 話し始めた（返事を待つ間を含む）ときに盤を動かす。動きは歩く追従より少しゆっくり。
+function frameDungeonSpeaker() {
+  if (!syncDungeonSpeaking() || dungeonRoot.dataset.scene !== 'play') return;
+  const { cell, step } = dungeonCellMetrics();
+  const viewW = dn.viewport.clientWidth;
+  const viewH = dn.viewport.clientHeight;
+  if (!Number.isFinite(cell) || viewW === 0) return;
+  const next = holdDungeonSpeaker(dungeonCamera, { cell, step, viewW, viewH });
+  if (next.x !== dungeonCamera.x || next.y !== dungeonCamera.y) {
+    dungeonCamera = next;
+    dn.board.style.transition = dungeonReducedMotion() ? 'none' : 'transform 0.42s ease-in-out';
+    dn.board.style.transform = `translate(${-next.x}px, ${-next.y}px)`;
   }
-  const body = buildActorDetailBody({
-    imageNode: buildActorDetailImage(image),
-    parameterNodes: buildParameterGroups(parameters),
-    equipmentNode: buildDungeonDetailEquipment(companion.equipment),
-    acquisitionNode: null
-  });
-  openDungeonActorDetail(companion.name, body);
+  placeDungeonVoice();
 }
 
-// ----- popups (menu / inventory / stats / help / retreat / full log) -----
-
-function showDungeonPopup(title, bodyEl) {
-  document.querySelector('#dungeon-popup-title').textContent = title;
-  document.querySelector('#dungeon-popup-body').replaceChildren(bodyEl);
-  document.querySelector('#dungeon-popup').hidden = false;
+function dungeonVoiceBlockedCells(view) {
+  const cells = new Set(view.enemies.map((enemy) => `${enemy.x},${enemy.y}`));
+  cells.add(`${view.stairs.x},${view.stairs.y}`);
+  cells.add(`${view.player.x},${view.player.y}`);
+  return cells;
 }
 
-function closeDungeonPopup() {
-  document.querySelector('#dungeon-popup').hidden = true;
-}
-
-// Builds the 獲得装備 rows (銘 + meta line) for an equipment instance list, or an explicit empty note.
-// Shared by the hero detail's 獲得予定 section (mid-run buffer) and the run-end result (retained/lost) so both
-// render the same row grammar. A non-array items input is a broken contract and throws.
-function buildDungeonEquipmentRows(items, emptyText) {
-  if (!Array.isArray(items)) throw new Error(`dungeon equipment rows require an items array, got ${JSON.stringify(items)}`);
-  if (items.length === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'dungeon-gains-empty';
-    empty.textContent = emptyText;
-    return [empty];
+function placeDungeonVoice() {
+  const view = currentDungeonView;
+  if (!dungeonVoice || !view?.companion) return;
+  const { node } = dungeonVoice;
+  const { cell, step } = dungeonCellMetrics();
+  if (!Number.isFinite(cell)) return;
+  const token = dungeonEntityNodes.get('companion')?.firstChild;
+  if (!token) return;
+  const viewW = dn.viewport.clientWidth;
+  const viewH = dn.viewport.clientHeight;
+  node.classList.toggle('is-afar', dungeonSpeakerFrame.afar !== null);
+  const w = node.offsetWidth;
+  const h = node.offsetHeight;
+  const edge = Math.max(24, cell * 0.5);
+  if (dungeonSpeakerFrame.afar !== null) {
+    // 同行者が窓の外: 一言はその向きの縁から余白を空けた内側に、同行者の駒の位置へ寄せて置く（尾が同行者の向きを指す）。
+    const at = dungeonTokenBox(view.companion, { cell, step });
+    const cx = (at.left + at.right) / 2 - dungeonCamera.x;
+    const cy = (at.top + at.bottom) / 2 - dungeonCamera.y;
+    const clampX = (value) => Math.max(edge, Math.min(viewW - edge - w, value));
+    const clampY = (value) => Math.max(edge, Math.min(viewH - edge - h, value));
+    const box = dungeonSpeakerFrame.afar === 'down' ? { left: clampX(cx - w / 2), top: viewH - edge - h }
+      : dungeonSpeakerFrame.afar === 'up' ? { left: clampX(cx - w / 2), top: edge }
+        : dungeonSpeakerFrame.afar === 'right' ? { left: viewW - edge - w, top: clampY(cy - h / 2) }
+          : { left: edge, top: clampY(cy - h / 2) };
+    node.style.left = `${box.left + dungeonCamera.x}px`;
+    node.style.top = `${box.top + dungeonCamera.y}px`;
+    node.dataset.side = `toward-${dungeonSpeakerFrame.afar}`;
+    return;
   }
-  const grid = document.createElement('div');
-  grid.className = 'dungeon-gains-grid dungeon-equipment-grid';
-  for (const item of items) {
-    if (typeof item.name !== 'string' || item.name === '') {
-      throw new Error(`dungeon equipment row requires a non-empty name, got ${JSON.stringify(item)}`);
-    }
-    const row = document.createElement('div');
-    row.className = 'dungeon-gains-row dungeon-equipment-row';
-    const name = document.createElement('span');
-    name.className = 'dungeon-gains-name dungeon-equipment-name';
-    name.textContent = item.name;
-    const meta = document.createElement('span');
-    meta.className = 'dungeon-gains-amount dungeon-equipment-meta';
-    meta.textContent = dungeonEquipmentInstanceMetaText(item);
-    row.append(name, meta);
-    grid.append(row);
-  }
-  return [grid];
+  const tokenRect = dungeonLocalRect(token);
+  const boardRect = dungeonLocalRect(dn.board);
+  const at = { x: tokenRect.left + tokenRect.width / 2 - boardRect.left, y: tokenRect.top + tokenRect.height / 2 - boardRect.top };
+  const blocked = dungeonVoiceBlockedCells(view);
+  // 候補: 上・右・左・下。一言が覆う升目に敵・階段・主人公がいない最初の向きを選び、どれも塞がるなら上に置く。
+  // 一言の尾が駒の縁に届くよう、升目ではなく駒そのものの縁から 8px 離して置く。下に置くときは目盛りの下から離す。
+  const half = tokenRect.width / 2;
+  const candidates = [
+    { side: 'above', left: at.x - w / 2, top: at.y - half - h - 8 },
+    { side: 'right', left: at.x + half + 8, top: at.y - h / 2 },
+    { side: 'left', left: at.x - half - w - 8, top: at.y - h / 2 },
+    { side: 'below', left: at.x - w / 2, top: at.y + half + 24 }
+  ];
+  const covers = (box) => {
+    const x0 = Math.floor(box.left / step);
+    const x1 = Math.floor((box.left + w) / step);
+    const y0 = Math.floor(box.top / step);
+    const y1 = Math.floor((box.top + h) / step);
+    for (let y = y0; y <= y1; y += 1) for (let x = x0; x <= x1; x += 1) if (blocked.has(`${x},${y}`)) return true;
+    return false;
+  };
+  const inside = (box) => box.left - dungeonCamera.x >= edge && box.left + w - dungeonCamera.x <= viewW - edge && box.top - dungeonCamera.y >= edge && box.top + h - dungeonCamera.y <= viewH - edge;
+  const chosen = candidates.find((box) => !covers(box) && inside(box)) ?? candidates.find((box) => inside(box)) ?? candidates[0];
+  node.style.left = `${chosen.left}px`;
+  node.style.top = `${chosen.top}px`;
+  node.dataset.side = chosen.side;
+}
+
+// ── ヘルプ・撤退・詳細・装備の窓 ─────────────────────────────────────────────────────────────────────────
+for (const modal of DUNGEON_MODALS) {
+  modal.addEventListener('click', (event) => { if (event.target === modal || event.target.closest('[data-close]')) modal.hidden = true; });
 }
 
 function openDungeonHelp() {
-  const body = document.createElement('div');
-  body.className = 'dungeon-help';
-  body.innerHTML = `
-    <p>矢印キー / 方向ボタンで移動。敵に向かって進むと攻撃します。</p>
-    <p>魔法は視界内の最も近い敵に当たります（MP 消費）。階段の上で「降りる」と次の階へ。</p>
-    <p><strong>撤退</strong>は各階の入口か階段の上でのみ可能で、道中の経験を能力として持ち帰ります。<strong>全滅</strong>すると道中の経験は失われます（greed ladder）。</p>
-    <p>深い階ほど敵が強く報酬も大きくなります。同行者がいる時は 💬 で会話できます。</p>`;
-  showDungeonPopup('ヘルプ', body);
+  const keys = document.createElement('dl');
+  keys.className = 'dn-help-keys';
+  for (const [key, meaning] of DUNGEON_HELP_KEYS) {
+    const dt = document.createElement('dt');
+    dt.textContent = key;
+    const dd = document.createElement('dd');
+    dd.textContent = meaning;
+    keys.append(dt, dd);
+  }
+  dn.helpBody.replaceChildren(keys);
+  dn.helpModal.hidden = false;
 }
 
-// The retreat confirm is its own dedicated dungeon-styled modal (the run-end result sibling: obsidian panel +
-// amber inner-ring, centered) — no longer the generic popup + entry action row. The body (eyebrow + title +
-// message + the 撤退する / 続ける chip-pill pair) is built here since the message depends on can_retreat; the
-// confirm is disabled off the entrance/stairs (can_retreat 契約 unchanged). Missing markup is broken wiring —
-// fail fast.
+// The retreat confirm: the confirm is disabled off the entrance/stairs (can_retreat 契約 unchanged), and the one line
+// said there is what the player is told on the spot.
 function openDungeonRetreatConfirm() {
-  const view = currentDungeonView;
-  const body = document.querySelector('#dungeon-retreat-confirm-body');
-  const popup = document.querySelector('#dungeon-retreat-confirm');
-  if (!body || !popup) {
-    throw new Error('dungeon retreat confirm nodes are missing (broken markup wiring)');
-  }
-  const eyebrow = document.createElement('p');
-  eyebrow.className = 'eyebrow';
-  eyebrow.textContent = 'Retreat';
-  const title = document.createElement('h3');
-  title.id = 'dungeon-retreat-confirm-title';
-  title.textContent = '撤退の確認';
-  const message = document.createElement('p');
-  message.className = 'dungeon-retreat-confirm-message';
-  message.textContent = view?.can_retreat
+  dn.retreatMessage.textContent = currentDungeonView?.can_retreat
     ? '撤退して、道中で得た経験を能力として持ち帰りますか？'
     : 'ここでは撤退できません。各階の入口か階段の上まで戻ってください。';
-  const actions = document.createElement('div');
-  actions.className = 'dungeon-retreat-confirm-actions';
-  const confirm = document.createElement('button');
-  confirm.type = 'button';
-  confirm.className = 'academy-map-action-button primary';
-  confirm.textContent = '撤退する';
-  confirm.disabled = !view?.can_retreat;
-  confirm.addEventListener('click', () => dungeonRetreat().catch(reportError));
-  const cancel = document.createElement('button');
-  cancel.type = 'button';
-  cancel.className = 'academy-map-action-button secondary';
-  cancel.textContent = '続ける';
-  cancel.addEventListener('click', () => closeDungeonRetreatConfirm());
-  actions.append(confirm, cancel);
-  body.replaceChildren(eyebrow, title, message, actions);
-  popup.hidden = false;
+  dn.retreatYes.disabled = !currentDungeonView?.can_retreat;
+  dn.retreatModal.hidden = false;
 }
 
-function closeDungeonRetreatConfirm() {
-  const popup = document.querySelector('#dungeon-retreat-confirm');
-  if (!popup) {
-    throw new Error('dungeon retreat confirm node #dungeon-retreat-confirm is missing (broken markup wiring)');
+dn.help.addEventListener('click', () => { dn.help.blur(); openDungeonHelp(); });
+dn.retreat.addEventListener('click', () => { dn.retreat.blur(); openDungeonRetreatConfirm(); });
+dn.retreatYes.addEventListener('click', () => {
+  if (!currentDungeonView?.can_retreat) return;
+  dn.retreatModal.hidden = true;
+  dungeonDo({ type: 'retreat' }).catch(reportError);
+});
+
+// The run equipment of the hero or the companion: null is nothing equipped (both slots empty); anything else is the
+// validated two-slot shape (a malformed slot throws).
+function dungeonEquipmentList(runEquipment) {
+  if (runEquipment === undefined) throw new Error('dungeon detail equipment is required (null when nothing is equipped)');
+  const slots = runEquipment === null ? { weapon: null, amulet: null } : validateDungeonEquipmentSlots(runEquipment.slots, 'dungeon detail equipment');
+  const list = document.createElement('dl');
+  list.className = 'dn-detail-list';
+  for (const slot of WORKSHOP_EQUIPMENT_KINDS) {
+    const dt = document.createElement('dt');
+    dt.textContent = workshopKindLabel(slot);
+    const dd = document.createElement('dd');
+    dd.textContent = slots[slot] ? slots[slot].instance.name : '未装備';
+    list.append(dt, dd);
   }
-  popup.hidden = true;
+  return list;
 }
 
-function renderDungeonPlay(view) {
-  currentDungeonView = view;
-  // A fresh view invalidates any in-progress consumable targeting (its tile coords / armed item may no
-  // longer hold), so tear it down before re-rendering the band below.
+function dungeonDetailSection(title, ...nodes) {
+  const wrap = document.createElement('section');
+  wrap.className = 'dn-detail-section';
+  const h = document.createElement('h3');
+  h.textContent = title;
+  wrap.append(h, ...nodes);
+  return wrap;
+}
+
+function openDungeonHeroDetail() {
+  const view = currentDungeonView;
+  if (!view) return;
+  const preview = requiredDungeonField(view, 'pending_gains_preview', 'dungeon view');
+  const gains = [
+    ...Object.entries(preview.magic).map(([key, value]) => `${DUNGEON_MAGIC_LABELS[key] ?? key}+${value}`),
+    ...Object.entries(preview.abilities).map(([key, value]) => `${DUNGEON_ABILITY_LABELS[key] ?? key}+${value}`)
+  ];
+  if (!Array.isArray(view.equipment_buffer)) throw new Error('dungeon view is missing equipment_buffer');
+  const gainText = document.createElement('p');
+  gainText.textContent = gains.length ? gains.join('、') : 'まだ持ち帰る能力上昇はありません。';
+  const gearText = document.createElement('p');
+  gearText.textContent = view.equipment_buffer.length ? view.equipment_buffer.map((item) => requiredDungeonItemName(item, 'dungeon equipment_buffer item')).join('、') : 'まだ手に入れた装備はありません。';
+  dn.detailTitle.textContent = DUNGEON_PLAYER_NAME;
+  dn.detailBody.replaceChildren(dungeonDetailSection('装備', dungeonEquipmentList(view.equipment)), dungeonDetailSection('上昇能力', gainText), dungeonDetailSection('獲得予定装備', gearText));
+  dn.detailModal.hidden = false;
+}
+
+function openDungeonCompanionDetail(companion) {
+  const face = document.createElement('img');
+  face.className = 'dn-detail-face';
+  face.alt = `${companion.name}の顔`;
+  face.src = dungeonCompanionFaceUrl(companion);
+  dn.detailTitle.textContent = companion.name;
+  dn.detailBody.replaceChildren(face, dungeonDetailSection('装備', dungeonEquipmentList(companion.equipment)));
+  dn.detailModal.hidden = false;
+}
+
+// ── 盤のキー: 方向キーで移動・スペースで待機・エンターで降りる。開いた窓・照準中・入力欄や札や記録に focus があるときは盤に渡さない ──
+const DUNGEON_ARROW_DIRS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+window.addEventListener('keydown', (event) => {
+  if (!screens['academy-dungeon'].classList.contains('active')) return;
+  if (dungeonRoot.dataset.scene !== 'play' || !currentDungeonView) return;
+  if (isDungeonModalOpen()) return;
+  // While a consumable is being targeted (an aim tile or an ally pick), the board is a target picker, not a movement
+  // surface: Escape cancels, and no key drives a move / 待機 / 階段.
+  if (dungeonConsumableTargeting) {
+    if (event.key === 'Escape') { event.preventDefault(); cancelDungeonConsumableTargeting(); }
+    return;
+  }
+  // Never steal keys from a focused control (the talk input, a card, a button) or from the focused journal.
+  const active = document.activeElement;
+  if (active && (active === dn.journal || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(active.tagName))) return;
+  // The Enter that sends a talk line disables the input mid-dispatch, so focus may already be on the body here; it is
+  // still the input's key, not a board key.
+  if (event.target === dn.talkInput) return;
+  const direction = DUNGEON_ARROW_DIRS[event.key];
+  if (direction) {
+    event.preventDefault();
+    dungeonBoardKeyPressedSinceTalk = true;
+    dungeonDo({ type: 'move', direction }).catch(reportError);
+    return;
+  }
+  if (event.key === ' ' || event.code === 'Space') {
+    event.preventDefault();
+    dungeonBoardKeyPressedSinceTalk = true;
+    dungeonDo({ type: 'wait' }).catch(reportError);
+    return;
+  }
+  if (event.key === 'Enter') {
+    // Descend; off the stairs the engine returns a clear "stairs only" message in the journal.
+    event.preventDefault();
+    dungeonBoardKeyPressedSinceTalk = true;
+    dungeonDo({ type: 'descend' }).catch(reportError);
+  }
+});
+
+// ── 潜る: 入場は読み込みの画面の下で流れ、盤は入場の盤が届いて同行者の第一声が流れ始めた瞬間（ひとりなら読み込みの最短の
+// 表示のあと）に出る ─────────────────────────────────────────────────────────────────────────────────────
+async function enterDungeon() {
+  if (dungeonActionInFlight) return;
+  if (dungeonFinalizationInFlight) {
+    // A prior run's finalize is still landing; the run is held server-side, so block re-entry.
+    showProcessingToast();
+    return;
+  }
+  dungeonActionInFlight = true;
+  dungeonChatMessages = [];
+  let bufferedView = null;
+  let leftLoading = false;
+  const showPlay = () => {
+    if (leftLoading || !bufferedView) return;
+    leftLoading = true;
+    // Leave the loading screen: activate the dungeon screen (without its auto state-refetch, since the board is
+    // already held) and reveal the buffered board.
+    showScreen('academy-dungeon', { skipDungeonRefresh: true });
+    renderDungeonPlay(bufferedView);
+    frameDungeonSpeaker();
+  };
+  try {
+    setAcademyLoadingDestinationCopy(null, { loadingCopy: DUNGEON_ENTER_LOADING_COPY });
+    showScreen('academy-loading');
+    const minimumDisplay = sleep(ACADEMY_LOADING_MINIMUM_MS);
+    beginDungeonTalk();
+    // Enter streams: the board arrives on a dungeon_enter event, then the companion opening streams token by token
+    // into the journal. The first token leaves the loading screen and reveals the board.
+    await runAssistantSseStream({
+      surface: dungeonChatSurface,
+      endpoint: '/api/dungeon/enter',
+      body: { with_companion: dungeonWithCompanion },
+      statusPrefix: 'dungeon-enter',
+      finalAssistantMode: 'first',
+      refreshAfter: false,
+      onEvent: (event, data) => { if (event === 'dungeon_enter') { bufferedView = data.view; notifyAcademyLoadingProgress(); } },
+      onAssistantStreamStart: () => showPlay()
+    });
+    // Solo / no-companion enter has no opening token: hold the loading its usual minimum, then reveal the board.
+    await minimumDisplay;
+    showPlay();
+  } catch (error) {
+    // Enter / opening failure leaves the loading screen for the mode's landing (routing: the prep screen, whose refresh
+    // resumes a held run or renders the entry to retry or go back; loop: the room) and surfaces the error — never a
+    // silent drop into a solo run on the loading screen.
+    dungeonTalkPending = false;
+    dungeonEnterFailed = true;
+    showScreen(dungeonEntryOrigin().enterFailedScreen);
+    reportError(error);
+  } finally {
+    dungeonActionInFlight = false;
+  }
+}
+
+dn.dive.addEventListener('click', () => enterDungeon().catch(reportError));
+document.querySelector('#academy-training-open-dungeon').addEventListener('click', () => showScreen('academy-dungeon'));
+dn.entryBack.addEventListener('click', () => dungeonEntryOrigin().back().catch(reportError));
+
+// ── 終わり: 持ち帰って終わる潜り（踏破・撤退）は灯りが戻る中に持ち帰るものが並び、力尽きた潜りは灯りが落ちた中に失ったものが薄く
+// 並ぶ。並びが出揃ってから「戻る」が出て、押すとこの画面の戻り先（loop は自室・routing は案内人）へ進む ────────────────────
+function dungeonResultLine(text, className = '') {
+  const p = document.createElement('p');
+  p.className = `dn-result-line ${className}`.trim();
+  p.textContent = text;
+  return p;
+}
+
+function dungeonResultLines(result) {
+  const lines = [];
+  const kept = result.status !== 'dead';
+  const applied = requiredDungeonField(result, 'applied_gains', 'dungeon result');
+  const parts = [
+    ...Object.entries(applied.magic).map(([key, value]) => `${DUNGEON_MAGIC_LABELS[key] ?? key}+${value}`),
+    ...Object.entries(applied.abilities).map(([key, value]) => `${DUNGEON_ABILITY_LABELS[key] ?? key}+${value}`)
+  ];
+  lines.push(dungeonResultLine(kept ? (parts.length ? `能力上昇: ${parts.join('、')}` : '今回は能力上昇はありませんでした。') : '道中の経験は失われました。', 'is-gain'));
+  const materials = result.materials;
+  if (!materials || typeof materials.retained !== 'boolean' || !Array.isArray(materials.items)) throw new Error('dungeon result requires a materials manifest');
+  if (materials.items.length) {
+    lines.push(dungeonResultLine(materials.retained ? '持ち帰った素材' : '失った素材', 'is-head'));
+    for (const item of materials.items) {
+      requiredDungeonItemName(item, 'dungeon result material', 'display_name');
+      requiredDungeonItemCount(item, 'dungeon result material', 'quantity');
+      const row = dungeonResultLine(`${item.display_name} ×${item.quantity}`, 'is-item');
+      const icon = document.createElement('img');
+      icon.alt = '';
+      icon.src = `${DUNGEON_ASSET_BASE}/material-icons/${item.item_id}.png`;
+      row.prepend(icon);
+      lines.push(row);
+    }
+  }
+  const equipment = result.equipment;
+  if (!equipment || typeof equipment.retained !== 'boolean' || !Array.isArray(equipment.items)) throw new Error('dungeon result requires an equipment manifest');
+  if (equipment.items.length) {
+    lines.push(dungeonResultLine(equipment.retained ? '手に入れた装備' : '失った装備', 'is-head'));
+    for (const item of equipment.items) lines.push(dungeonResultLine(requiredDungeonItemName(item, 'dungeon result equipment'), 'is-item'));
+  }
+  return lines;
+}
+
+// 持ち帰って終わる潜りの盤: 一度見た所の全体が窓に収まるまで引き、歩いた所の地図として見せる（盤の追従は終わっている）。
+function fitDungeonExploredBoard(view) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (let y = 0; y < view.height; y += 1) {
+    for (let x = 0; x < view.width; x += 1) {
+      if (!view.explored[y][x]) continue;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  if (minX === Infinity) throw new Error('dungeon result: the last board has no explored cell');
+  const { cell, step } = dungeonCellMetrics();
+  const viewW = dn.viewport.clientWidth;
+  const viewH = dn.viewport.clientHeight;
+  const boxW = (maxX - minX) * step + cell;
+  const boxH = (maxY - minY) * step + cell;
+  const scale = Math.min(1, (viewW - step) / boxW, (viewH - step) / boxH);
+  const tx = viewW / 2 - scale * (minX * step + boxW / 2);
+  const ty = viewH / 2 - scale * (minY * step + boxH / 2);
+  dn.board.style.transition = '';
+  dn.board.style.transformOrigin = '0 0';
+  dn.board.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+}
+
+// The result the way back reads (its transition carries the mode-resolved next screen).
+let dungeonEndedResult = null;
+
+async function showDungeonResult(result) {
+  if (!(result.status in DUNGEON_RESULT_HEADINGS)) throw new Error(`unknown dungeon result status: ${result.status}`);
+  const kept = result.status !== 'dead';
   teardownDungeonConsumableTargeting();
-  document.querySelector('#dungeon-entry').hidden = true;
-  document.querySelector('#dungeon-result-popup').hidden = true;
-  closeDungeonRetreatConfirm();
-  closeDungeonActorDetail();
-  document.querySelector('#dungeon-play').hidden = false;
-  // Lay the surrounding panels out BEFORE the grid so the map column (.dungeon-stage) is already at its
-  // final size when the grid measures and centers. The HUD spans the top, and the right rail
-  // (.dungeon-side: the chat — shown whether or not a companion is present — over the item region and the
-  // dock) claims the row's 5-share; rendering the grid last means a fresh board's entry center is computed
-  // once against the settled viewport, instead of at the transient width it had before the rail un-hid
-  // (which a later reframe would then content-clamp off-centre).
-  renderDungeonHud(view);
-  renderDungeonDock(view);
-  // The item columns are laid out before the grid (like the HUD / dock / chat) so their fixed region height
-  // is settled when renderDungeonGrid measures the viewport to center the camera. Rendered in DOM order:
-  // 持ち込んだアイテム (consumables) / 拾ったアイテム (pickups) / 拾った素材 (materials).
-  renderDungeonConsumables(view);
-  renderDungeonPickups(view);
-  renderDungeonMaterials(view);
-  renderDungeonChat(view);
-  renderDungeonGrid(view);
-}
-
-// Builds the single run-result content (eyebrow, heading, floor reached, gains line) for all three
-// outcomes (踏破 / 撤退 / 全滅). There is exactly one result surface now — the popup floated over the
-// board — so this is the sole content generator: the outcome difference is carried here, in the eyebrow
-// and heading text and the gains line, not duplicated across surfaces. 踏破 reads as a 祝勝 (「ダンジョン
-// 制覇」); the `data-status` marker on the heading lets the stylesheet tone the cleared victory accent
-// declaratively. The heading owns the id the popup's aria-labelledby resolves to.
-function buildDungeonResultNodes(result) {
-  const eyebrows = { retreated: 'Retreat', cleared: 'Dungeon Cleared', dead: 'Defeat' };
-  const headings = { retreated: '撤退しました', cleared: 'ダンジョン制覇', dead: '力尽きました' };
-  // status is server-authored and constrained to the three run outcomes; an unexpected value is a real
-  // desync, so fail fast rather than paint a generic label (no default-value fallback).
-  if (!(result.status in headings)) throw new Error(`unknown dungeon result status: ${result.status}`);
-  const eyebrow = document.createElement('p');
-  eyebrow.className = 'eyebrow';
-  eyebrow.textContent = eyebrows[result.status];
-  const title = document.createElement('h3');
-  title.id = 'dungeon-result-popup-title';
-  title.dataset.status = result.status;
-  title.textContent = headings[result.status];
-  const summary = document.createElement('p');
-  summary.textContent = `到達 ${result.floor_reached} / ${result.max_floors} 階`;
-  const applied = result.applied_gains ?? { magic: {}, abilities: {} };
-  const parts = [];
-  for (const [key, value] of Object.entries(applied.magic)) parts.push(`${DUNGEON_MAGIC_LABELS[key] ?? key}+${value}`);
-  for (const [key, value] of Object.entries(applied.abilities)) parts.push(`${DUNGEON_ABILITY_LABELS[key] ?? key}+${value}`);
-  const gains = document.createElement('p');
-  gains.textContent = result.status === 'dead'
-    ? '道中の経験は失われました。'
-    : (parts.length ? `能力上昇: ${parts.join('、')}` : '今回は能力上昇はありませんでした。');
-  const nodes = [eyebrow, title, summary, gains];
-  // The run-end result always carries a materials manifest; append the 持ち帰り / ロスト section when the run
-  // picked up any (an empty pickup renders none). A missing/mis-shaped manifest fails fast inside the builder.
-  const materials = buildDungeonResultMaterials(result.materials);
-  if (materials) nodes.push(materials);
-  // The run-end result also carries a boss-chest equipment manifest; append the 手に入れた / 失った装備
-  // section when the run opened any (an empty manifest renders none). Same greed-ladder toning as materials.
-  const equipment = buildDungeonResultEquipment(result.equipment);
-  if (equipment) nodes.push(equipment);
-  return nodes;
-}
-
-// Build the run-end equipment section (手に入れた / 失った装備), or null when the run opened no chest. The
-// result always carries an equipment manifest: retained=true (踏破 / 撤退) reads as 手に入れた, retained=false
-// (敗北) reads as その run で開けて失った — the same instances, toned as a loss. An empty items list renders no
-// section; a missing/mis-shaped manifest is a broken server contract and throws (never silently skipped).
-function buildDungeonResultEquipment(equipment) {
-  if (typeof equipment !== 'object' || equipment === null || Array.isArray(equipment)) {
-    throw new Error(`dungeon result requires an equipment object, got ${JSON.stringify(equipment)}`);
-  }
-  if (typeof equipment.retained !== 'boolean') {
-    throw new Error(`dungeon result equipment requires a boolean retained, got ${JSON.stringify(equipment.retained)}`);
-  }
-  if (!Array.isArray(equipment.items)) {
-    throw new Error(`dungeon result equipment requires an items array, got ${JSON.stringify(equipment.items)}`);
-  }
-  if (equipment.items.length === 0) return null;
-  const section = document.createElement('div');
-  section.className = 'dungeon-result-materials dungeon-result-equipment';
-  section.dataset.retained = String(equipment.retained);
-  const heading = document.createElement('p');
-  heading.className = 'dungeon-result-materials-heading';
-  heading.textContent = equipment.retained ? '手に入れた装備' : '失った装備';
-  const list = document.createElement('ul');
-  list.className = 'dungeon-result-materials-list';
-  for (const item of equipment.items) {
-    if (typeof item.name !== 'string' || item.name === '') {
-      throw new Error(`dungeon result equipment requires a non-empty name, got ${JSON.stringify(item)}`);
-    }
-    const row = document.createElement('li');
-    row.className = 'dungeon-result-materials-row dungeon-result-equipment-row';
-    const name = document.createElement('span');
-    name.className = 'dungeon-result-materials-name';
-    name.textContent = item.name;
-    const meta = document.createElement('span');
-    meta.className = 'dungeon-result-materials-quantity';
-    meta.textContent = dungeonEquipmentInstanceMetaText(item);
-    row.append(name, meta);
-    list.append(row);
-  }
-  section.append(heading, list);
-  return section;
-}
-
-// Build the run-end materials section (持ち帰った / 失った素材), or null when the run picked up nothing. The
-// result always carries a materials manifest: retained=true (踏破 / 撤退) reads as 持ち帰った, retained=false
-// (敗北) reads as その run で拾って失った — the same items, toned as a loss. An empty items list is a legitimate
-// "拾わなかった" run and renders no section; a missing/mis-shaped manifest is a broken server contract and
-// throws (contractually required, never silently skipped). The run-end items carry only item_id / display_name
-// / quantity (no element/tier), so this section shows the server-authored display name and count.
-function buildDungeonResultMaterials(materials) {
-  if (typeof materials !== 'object' || materials === null || Array.isArray(materials)) {
-    throw new Error(`dungeon result requires a materials object, got ${JSON.stringify(materials)}`);
-  }
-  if (typeof materials.retained !== 'boolean') {
-    throw new Error(`dungeon result materials requires a boolean retained, got ${JSON.stringify(materials.retained)}`);
-  }
-  if (!Array.isArray(materials.items)) {
-    throw new Error(`dungeon result materials requires an items array, got ${JSON.stringify(materials.items)}`);
-  }
-  if (materials.items.length === 0) return null;
-  const section = document.createElement('div');
-  section.className = 'dungeon-result-materials';
-  section.dataset.retained = String(materials.retained);
-  const heading = document.createElement('p');
-  heading.className = 'dungeon-result-materials-heading';
-  heading.textContent = materials.retained ? '持ち帰った素材' : '失った素材';
-  const list = document.createElement('ul');
-  list.className = 'dungeon-result-materials-list';
-  for (const item of materials.items) {
-    if (typeof item.display_name !== 'string' || item.display_name === '') {
-      throw new Error(`dungeon result material requires a non-empty display_name, got ${JSON.stringify(item)}`);
-    }
-    if (typeof item.quantity !== 'number' || !Number.isFinite(item.quantity)) {
-      throw new Error(`dungeon result material requires a numeric quantity, got ${JSON.stringify(item)}`);
-    }
-    const row = document.createElement('li');
-    row.className = 'dungeon-result-materials-row';
-    const name = document.createElement('span');
-    name.className = 'dungeon-result-materials-name';
-    name.textContent = item.display_name;
-    const quantity = document.createElement('span');
-    quantity.className = 'dungeon-result-materials-quantity';
-    quantity.textContent = `×${item.quantity.toLocaleString('ja-JP')}`;
-    row.append(name, quantity);
-    list.append(row);
-  }
-  section.append(heading, list);
-  return section;
-}
-
-function renderDungeonResult(result) {
+  for (const modal of DUNGEON_MODALS) modal.hidden = true;
+  clearDungeonVoice();
+  if (kept && currentDungeonView) fitDungeonExploredBoard(currentDungeonView);
   currentDungeonView = null;
   dungeonChatMessages = [];
-  teardownDungeonConsumableTargeting();
-  closeDungeonPopup();
-  closeDungeonRetreatConfirm();
-  closeDungeonActorDetail();
-  // Every run-end (踏破 / 撤退 / 全滅) floats the result as a dungeon-styled modal popup over the board —
-  // one path, no surface swap. #dungeon-play and #dungeon-chat are NEVER hidden, so the board and chat
-  // stay put behind the scrim and nothing reflows (the flex ratio is untouched, so the camera never
-  // reframes). Only the entry card is force-hidden so it can never coexist with the popup. On a live end
-  // the play surface stays as last rendered; on a held-finalize resume it was never rendered, so the
-  // popup simply floats over the dungeon shell. The exit hand-off is unchanged — dungeonExitToRoom holds
-  // the beat, then advances to the same return screen for every outcome.
-  document.querySelector('#dungeon-entry').hidden = true;
-  document.querySelector('#dungeon-result-popup-body').replaceChildren(...buildDungeonResultNodes(result));
-  document.querySelector('#dungeon-result-popup').hidden = false;
-  // For a synchronous (solo) end the banked parameters arrive here; a deferred companion end shows the
-  // preview now and banks in the background, so it carries no world yet. No manual buttons: the result
-  // is a transient beat — dungeonExitToRoom auto-advances through the loading screen back to the room.
+  dungeonEndedResult = result;
+  dungeonRoot.dataset.scene = 'result';
+  dungeonRoot.dataset.outcome = kept ? 'kept' : 'lost';
+  dn.resultTitle.textContent = DUNGEON_RESULT_HEADINGS[result.status];
+  dn.resultTitle.dataset.status = result.status;
+  dn.resultReach.textContent = `到達 ${result.floor_reached} / ${result.max_floors} 階`;
+  const lines = dungeonResultLines(result);
+  dn.resultLines.replaceChildren(...lines);
+  dn.resultBack.hidden = true;
+  dn.result.hidden = false;
+  // For a synchronous (solo) end the banked parameters arrive here; a deferred companion end banks in the background
+  // (started now, the same moment the result shows), so it carries no world yet.
   if (result.world?.player_parameters) {
     currentWorld = { ...(currentWorld ?? {}), player_parameters: result.world.player_parameters };
     renderTrainingPlayerParameters(result.world.player_parameters);
     renderPlayerParametersEditor(result.world.player_parameters);
   }
   if (currentRuntimeState) currentRuntimeState = result.state ?? currentRuntimeState;
+  if (result.pending_finalize) startDungeonBackgroundFinalize();
+  const reduce = dungeonReducedMotion();
+  const entrances = lines.map((line, index) => line.animate([{ opacity: 0, translate: '0 6px' }, { opacity: kept ? 1 : 0.5, translate: '0 0' }], { duration: reduce ? 1 : 420, delay: reduce ? 0 : 1000 + index * 140, easing: 'ease-out', fill: 'both' }).finished);
+  // 「戻る」は並びが出揃ってから、並びの最後に出す。
+  await Promise.all(entrances);
+  dn.resultBack.hidden = false;
 }
 
-document.querySelector('#academy-training-open-dungeon').addEventListener('click', () => showScreen('academy-dungeon'));
-document.querySelector('#dungeon-enter').addEventListener('click', () => enterDungeon().catch(reportError));
-document.querySelector('#dungeon-back-to-map').addEventListener('click', () => showScreen('academy-map'));
-document.querySelector('#dungeon-retreat-button').addEventListener('click', () => { try { openDungeonRetreatConfirm(); } catch (error) { reportError(error); } });
-document.querySelector('#dungeon-help-button').addEventListener('click', () => openDungeonHelp());
-document.querySelector('#dungeon-popup-close').addEventListener('click', () => closeDungeonPopup());
-document.querySelector('#dungeon-popup').addEventListener('click', (event) => { if (event.target.id === 'dungeon-popup') closeDungeonPopup(); });
-// The retreat confirm + actor detail modals close on a backdrop click (matching the generic popup); the actor
-// detail also closes via its × / backdrop [data-*-close] hooks wired above.
-document.querySelector('#dungeon-retreat-confirm').addEventListener('click', (event) => { if (event.target.id === 'dungeon-retreat-confirm') closeDungeonRetreatConfirm(); });
-document.querySelector('#dungeon-talk-send').addEventListener('click', () => dungeonTalk().catch(reportError));
-const dungeonTalkInput = document.querySelector('#dungeon-talk-input');
-let dungeonTalkIsComposing = false;
-dungeonTalkInput.addEventListener('compositionstart', () => { dungeonTalkIsComposing = true; });
-dungeonTalkInput.addEventListener('compositionend', () => { dungeonTalkIsComposing = false; });
-dungeonTalkInput.addEventListener('keydown', (event) => {
-  if (enterShouldSubmit(event, dungeonTalkIsComposing)) {
-    event.preventDefault();
-    dungeonTalk().catch(reportError);
+// The way back: the action-ended result carries the mode-resolved next screen (loop -> academy-room, routing ->
+// interaction). A run resumed from a held-finalize state (the held view's held_result) has no transition — the dungeon
+// state view does not expose it — so the global play mode resolves the return screen for that recovery case, mirroring
+// the backend's post-dungeon screen.
+async function dungeonExitToRoom(result) {
+  let nextScreen = result.transition?.next_screen ?? null;
+  if (nextScreen == null) {
+    if (currentPlayMode !== 'loop' && currentPlayMode !== 'routing') {
+      throw new Error(`dungeon resume: unknown play mode ${JSON.stringify(currentPlayMode)}`);
+    }
+    nextScreen = currentPlayMode === 'routing' ? 'interaction' : 'academy-room';
   }
+  // Drain-on-exit for the routing dungeon return: the companion dungeon finalize (POST /api/dungeon/finalize) is the
+  // dungeon's post-processing. Drain it to completion under the exit loading screen BEFORE opening the hub, so the
+  // companion finalize and the hub opening never race on the LM pipeline. Loop returns to academy-room and never
+  // enters the hub, so it keeps the un-awaited background finalize (its room is reached without waiting on the LLM).
+  if (nextScreen === 'interaction' && activeDungeonFinalizationPromise) {
+    await showAcademyLoadingScreenUntilReady({
+      readiness: (async () => { await activeDungeonFinalizationPromise; notifyAcademyLoadingProgress(); })(),
+      loadingCopy: DUNGEON_HUB_RETURN_LOADING_COPY
+    });
+  }
+  await navigateToPostContentScreen(nextScreen, { loadingCopy: DUNGEON_EXIT_LOADING_COPY });
+}
+
+dn.resultBack.addEventListener('click', () => {
+  dn.resultBack.blur();
+  if (!dungeonEndedResult) throw new Error('dungeon: the way back needs the ended result');
+  dn.resultBack.hidden = true;
+  dungeonExitToRoom(dungeonEndedResult).catch(reportError);
 });
-// The dungeon is driven entirely from the keyboard (the dock has no movement/action buttons):
-// arrow keys move, Space waits, Enter descends.
-const DUNGEON_ARROW_DIRS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
-window.addEventListener('keydown', (event) => {
-  if (!screens['academy-dungeon'].classList.contains('active')) return;
-  if (!currentDungeonView) return;
-  // Any open dungeon modal (help popup, retreat confirm, actor detail) makes the board keyboard-inert.
-  if (!document.querySelector('#dungeon-popup').hidden) return;
-  if (!document.querySelector('#dungeon-retreat-confirm').hidden) return;
-  if (!document.querySelector('#dungeon-actor-detail').hidden) return;
-  // While a consumable is being targeted (an aim tile or an ally pick), the board is a target picker, not a
-  // movement surface: Escape cancels, and no key drives a move / 待機 / 階段.
-  if (dungeonConsumableTargeting) {
-    if (event.key === 'Escape') { event.preventDefault(); cancelDungeonConsumableTargeting(); }
-    return;
-  }
-  // Never steal keys from a focused control (the chat input, the menu button, etc.) or from the
-  // focused action log — so typing, Space/Enter on a focused button, and scrolling the log with
-  // the keyboard keep working instead of firing an accidental move/wait/descend.
-  const active = document.activeElement;
-  if (active && (active.id === 'dungeon-log' || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(active.tagName))) return;
-  const direction = DUNGEON_ARROW_DIRS[event.key];
-  if (direction) {
-    event.preventDefault();
-    dungeonDo({ type: 'move', direction }).catch(reportError);
-    return;
-  }
-  if (event.key === ' ' || event.code === 'Space') {
-    event.preventDefault();
-    dungeonDo({ type: 'wait' }).catch(reportError);
-    return;
-  }
-  if (event.key === 'Enter') {
-    // Descend; off the stairs the engine returns a clear "stairs only" message in the log.
-    event.preventDefault();
-    dungeonDo({ type: 'descend' }).catch(reportError);
-  }
-});
+
+// Runs the deferred companion finalize -> bank -> clear in the background. The server holds the
+// LLM busy gate for the request's duration, so re-entering the dungeon meanwhile sees llm_busy.
+// A failure surfaces (reportError) and leaves the run held server-side for a later retry.
+function startDungeonBackgroundFinalize() {
+  if (dungeonFinalizationInFlight) return;
+  dungeonFinalizationInFlight = true;
+  const finalization = (async () => {
+    try {
+      const result = await postJson('/api/dungeon/finalize', {});
+      if (result.world?.player_parameters) {
+        currentWorld = { ...(currentWorld ?? {}), player_parameters: result.world.player_parameters };
+      }
+      currentRuntimeState = result.state ?? currentRuntimeState;
+      await refresh();
+      if (screens['academy-room']?.classList.contains('active')) renderAcademyRoomScreen();
+    } catch (error) {
+      reportError(error);
+    } finally {
+      dungeonFinalizationInFlight = false;
+      if (activeDungeonFinalizationPromise === finalization) activeDungeonFinalizationPromise = null;
+    }
+  })();
+  activeDungeonFinalizationPromise = finalization;
+}
 
 renderMessageStream();
 updateViewportMetrics();
 window.addEventListener('resize', updateViewportMetrics);
 if ('ResizeObserver' in window) {
   new ResizeObserver(updateViewportMetrics).observe(document.querySelector('.topbar'));
-  // Re-fit the dungeon tiles and re-frame the camera whenever the map viewport actually resizes
-  // (a window resize or the narrow-screen bottom-sheet switch that stacks the chat below the map).
-  // The reframe holds the player at its current relative screen position rather than re-centering,
-  // so a resize never jumps the player; a firing with no net size change is skipped in layoutDungeonBoard.
-  const dungeonGridEl = document.querySelector('#dungeon-grid');
-  if (dungeonGridEl) {
-    new ResizeObserver(() => {
-      if (!currentDungeonView || document.querySelector('#dungeon-play').hidden) return;
-      layoutDungeonBoard(currentDungeonView, { mode: 'reframe' });
-    }).observe(dungeonGridEl);
-  }
 }
 // ===== 闘技会 (arena) screen =====
 // A routing destination screen: the participate-form selection, the weekly 16-slot single-elimination bracket,
 // the player's interactive matches (the dungeon combat grammar over a fixed all-visible board), and spectator
 // replays. Presentation is the dungeon's obsidian chrome recolored to a crimson arena accent — a screen-scoped
 // --arena-* token layer, no dungeon byte changes. The board renderer and combat animation are arena-scoped
-// mirrors (renderDungeonGrid / animateDungeonCombat stay untouched); the item column (fillDungeonItemColumn),
+// (the dungeon's board code is not shared); the item column (fillDungeonItemColumn),
 // the consumable effect summary (dungeonConsumableSummaryText), and the per-element effect asset URL
 // (dungeonEffectAssetUrl) are shared pure helpers reused directly (no double definition).
 
@@ -17184,7 +18612,7 @@ function arenaNameButton(actor) {
 function openArenaActorDetail(actor) {
   const body = buildActorDetailBody({
     imageNode: arenaActorDetailImage(actor),
-    parameterNodes: buildParameterGroups(actor.parameters),
+    parameterNodes: buildParameterGroups(actor.parameters, parameterTextLabel),
     equipmentNode: buildArenaDetailEquipment(actor.equipment ?? null),
     acquisitionNode: null
   });
@@ -17714,7 +19142,7 @@ if ('ResizeObserver' in window) {
 }
 
 // ── Dev-only drag calibration (frame-decoration corners + map pins) ────────────────────────────────────
-// Opened with ?calibrate=<screen> (e.g. ?calibrate=routing-hub / ?calibrate=academy-map). It shows the target
+// Opened with ?calibrate=<screen> (e.g. ?calibrate=conversation-day / ?calibrate=academy-map). It shows the target
 // screen and lays a draggable handle over each registered target, of which there are two kinds read from the
 // declarative registries (frameDecorationCalibration.js):
 //   • corner ornament — dragging updates a pair of translate-offset CSS custom properties in px (set on the
@@ -19031,16 +20459,24 @@ function resetAuctionScreenView() {
 // state: a closed week renders the closed view; a selection (未開催) / in-progress week enters-or-resumes and runs
 // the session under an entry loading cover that releases on the first opening 口上 stream (M-2026-07-06-001). The
 // auctionFlowInFlight guard makes the trailing showScreen('academy-auction') from the loading interstitial a no-op
-// re-entry (so the reset runs once per genuine entry, never mid-session).
-async function enterOrResumeAuctionScreen() {
+// re-entry (so the reset runs once per genuine entry, never mid-session). A failed state GET leaves the screen with
+// nothing to go on with, so it returns to the hub whatever the entrance (the hub dispatch's arrival, the dev
+// ?initialScreen entry, the reload resume of an auction in progress).
+async function enterOrResumeAuctionScreen({ routingArrival }) {
   if (auctionFlowInFlight) return;
   resetAuctionScreenView();
-  const state = await getJson('/api/auction/state');
+  let state;
+  try {
+    state = await getJson('/api/auction/state');
+  } catch (error) {
+    returnToRoutingHubAfterArrivalFailure(error, routingFailedArrival(routingArrival, 'academy-auction'));
+    return;
+  }
   if (state.phase === 'closed') { renderAuctionClosed(state); return; }
-  await runAuctionSession();
+  await runAuctionSession({ routingArrival });
 }
 
-async function runAuctionSession() {
+async function runAuctionSession({ routingArrival }) {
   auctionFlowInFlight = true;
   showAuctionLive();
   auctionMoney = Number.isInteger(currentInventory?.money) ? currentInventory.money : null;
@@ -19101,12 +20537,12 @@ async function runAuctionSession() {
     await sessionPromise;
   } catch (error) {
     // Loading-residual defense: a failed auction entry / resume must not strand the player on the loading screen.
-    // Auction is routing-only content, so un-strand to the routing hub — the same origin the dungeon direct entry
-    // un-strands to — with the cause on the hub status, then re-raise so the caller's reportAuctionScreenError logs
-    // it once. A settings-redirect error already left the loader (reportLoadingError → settings), so the guard skips.
+    // Auction is routing-only content, so un-strand to the routing hub opened anew whatever the entrance — the same
+    // landing a failed routing arrival takes, with the failure notice naming the destination — then re-raise so the
+    // caller's reportAuctionScreenError logs it once. A settings-redirect error already left the loader
+    // (reportLoadingError → settings), so the guard skips.
     if (isAcademyLoadingScreenActive() && settingsRedirectErrorMessage(error) == null) {
-      showScreen('routing-hub');
-      routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(routingArrival, 'academy-auction') });
     }
     throw error;
   } finally {
@@ -19429,14 +20865,48 @@ async function revealLoungeUtterance({ speaker, id, cursor, onStreamStart = null
   return result;
 }
 
+// The lounge's modal popups: the stage-detail popup and the clicked speaker's detail popup. While either is open the
+// player is reading it, so the player-turn focus must not pull focus behind it.
+const LOUNGE_OVERLAY_SELECTORS = Object.freeze([
+  '#academy-lounge-stage-popup',
+  '#academy-lounge-character-popup'
+]);
+
+function isLoungeOverlayOpen() {
+  return LOUNGE_OVERLAY_SELECTORS.some((selector) => {
+    const overlay = document.querySelector(selector);
+    if (!overlay) throw new Error(`lounge overlay ${selector} is missing (broken markup wiring)`);
+    return !overlay.hidden;
+  });
+}
+
+// True while a lounge group talk is the active conversation. Requires a concrete conversation id string (the same
+// discipline as isRoutingHubActive).
+function isLoungeConversationActive() {
+  return typeof loungeConversation?.id === 'string' && loungeConversation.id !== '';
+}
+
+// Put keyboard focus into `#academy-lounge-input` when the player's turn opens, so the next utterance is typed and
+// sent without a mouse. The same gate as the routing hub's focusRoutingHubInputIfContinuing, all required, no silent
+// fallback: the lounge screen is active, the lounge conversation is live, no lounge popup is open, the input is
+// present and not disabled. A player turn that opens while the entry loading cover is still up leaves the lounge
+// screen inactive, so this is a no-op there. preventScroll keeps a scrolled-up read position in place.
+function focusLoungeInputIfContinuing() {
+  if (!screens['academy-lounge'].classList.contains('active')) return;
+  if (!isLoungeConversationActive()) return;
+  if (isLoungeOverlayOpen()) return;
+  const input = document.querySelector('#academy-lounge-input');
+  if (!input || input.disabled) return;
+  input.focus({ preventScroll: true });
+}
+
 // The suspended player round-closing turn: opens the input at the round boundary and resolves when 送信
 // (submitLoungePlayerTurn → { ended:false, conversation }) or 退出 (exitLounge → { ended:true }) is pressed.
 function runLoungePlayerTurn() {
   return new Promise((resolve) => {
     loungePlayerResolve = resolve;
     loungeStage.setControlsDisabled(false);
-    const input = document.querySelector('#academy-lounge-input');
-    if (input) input.focus();
+    focusLoungeInputIfContinuing();
   });
 }
 
@@ -19566,10 +21036,10 @@ async function runLoungeAutoCompletion(result) {
     } else {
       // Post-promote failure: the backend already promoted the record before sending the terminal result, so we
       // cannot go back to the lounge (the finalizer would reject a re-finalization). Un-strand to the routing hub
-      // with the cause on the hub status through the shared loading-covered hub return (matches exitLounge's
-      // post-promote un-strand).
-      await returnToRoutingHubThroughLoadingScreen();
-      routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+      // with the failure notice naming the lounge through the shared loading-covered hub return (matches exitLounge's
+      // post-promote un-strand); the cause stays on the console.
+      console.error(error);
+      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(loungeVisitRoutingArrival, 'academy-lounge') });
     }
   } finally {
     routingContentReturnInFlight = false;
@@ -19602,13 +21072,18 @@ function renderLoungeScreenChrome() {
 // Called by showScreen('academy-lounge'). Resets the view, then enters + drives the weekly group talk under an
 // entry loading cover that releases on the first NPC utterance stream (M-2026-07-06-001). The loungeFlowInFlight
 // guard makes the trailing showScreen('academy-lounge') from the loading interstitial a no-op re-entry.
-async function enterLoungeScreen() {
+// The routing arrival of the lounge visit in progress ({ destinationLabel } when a routing hub dispatch landed on it,
+// null on the dev entry; set once per genuine entry): a failure after the promote names the destination by it.
+let loungeVisitRoutingArrival = null;
+
+async function enterLoungeScreen({ routingArrival }) {
   if (loungeFlowInFlight) return;
+  loungeVisitRoutingArrival = routingArrival;
   resetLoungeScreenView();
-  await runLoungeSession();
+  await runLoungeSession({ routingArrival });
 }
 
-async function runLoungeSession() {
+async function runLoungeSession({ routingArrival }) {
   loungeFlowInFlight = true;
   try {
     let openingStartedResolve = null;
@@ -19638,12 +21113,11 @@ async function runLoungeSession() {
     await sessionPromise;
   } catch (error) {
     // Loading-residual defense: a failed lounge entry / drive must not strand the player on the loading screen.
-    // The lounge is routing-only content, so un-strand to the routing hub with the cause on its status, then
-    // re-raise so the caller's reportLoungeScreenError logs it once. A settings-redirect error already left the
-    // loader (reportLoadingError → settings), so the guard skips.
+    // The lounge is routing-only content, so un-strand to the routing hub opened anew whatever the entrance, with the
+    // failure notice naming the destination, then re-raise so the caller's reportLoungeScreenError logs it once. A
+    // settings-redirect error already left the loader (reportLoadingError → settings), so the guard skips.
     if (isAcademyLoadingScreenActive() && settingsRedirectErrorMessage(error) == null) {
-      showScreen('routing-hub');
-      routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(routingArrival, 'academy-lounge') });
     }
     throw error;
   } finally {
@@ -19756,11 +21230,11 @@ async function exitLounge() {
       reportLoungeScreenError(error);
     } else {
       // Post-atomic-promote failure: the marker was written and the finalizer would reject a re-finalization, so
-      // we cannot go back to the lounge. Un-strand to the routing hub with the cause on the hub status through the
-      // shared loading-covered hub return (the loader is still up from the loading-covered end; the shared helper
-      // handles a still-active loader by showing routing-hub with the error on its status line).
-      await returnToRoutingHubThroughLoadingScreen();
-      routingHubStage.setStatus(errorDisplayMessage(error), { tone: 'error' });
+      // we cannot go back to the lounge. Un-strand to the routing hub with the failure notice naming the lounge
+      // through the shared loading-covered hub return (the loader is still up from the loading-covered end; a hub
+      // start failure lands on the hub without a conversation); the cause stays on the console.
+      console.error(error);
+      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(loungeVisitRoutingArrival, 'academy-lounge') });
     }
   } finally {
     routingContentReturnInFlight = false;
@@ -19852,18 +21326,1320 @@ for (const closer of document.querySelectorAll('#academy-lounge-character-popup 
   closer.addEventListener('click', () => closeLoungeCharacterPopup());
 }
 
-// Boot loads persisted state then applies the initial-screen override. Dev calibration (?calibrate=<screen>)
-// chains AFTER (so the target screen has its runtime state), and runs whether or not the refresh above
-// succeeded because the reportError catch resolves the chain. Its fail-fasts (invalid registry / unknown
-// screen / missing target selector / undefined offset custom property) are intentionally NOT caught: a broken
-// calibration registration must propagate and abort calibration setup, never be swallowed into a degraded
-// dev mode that keeps running.
+// ===== 星見の窓 (overlook) screen =====
+// A routing-only content destination (hub dispatch overlook → academy-overlook). Two faces share the section:
+//   - the field (構成表 状態 3〜6・10〜14・17〜19): the whole map at scale 1.0 under a top shade, the week/moon/
+//     academy-time bar, the 「顔ぶれ」 and exit buttons; the twelve children drawn as DOM face comas where the server
+//     walks them (polled field, one GET at a time, played back between samples along each child's route — the
+//     children sent off and their newcomers too, on the road outside the gate), the hover say label / relation lines
+//     (lines in the module worker), the pair ring, the traces / writing marks, the writing frame, the roster list
+//     (a frame over the field, open only on the field / hover / pair states);
+//   - the talk (状態 7〜9): the lounge's conversation-day screen with the four changes of 構成表 0.7 (the window
+//     stage art, the encounter's seed line first, no input, one 「次へ」 that becomes 「フィールドへ戻る」).
+// The server owns the field, the focus choice and the talk; the screen draws and forwards the viewer's acts
+// (pick, write, next, return, exit). Every payload goes through overlookClient.js validators, every state change
+// through its closed machine (mirrored on #academy-overlook-screen[data-state]).
+
+const overlookStageDeps = {
+  displayMessages,
+  createMessageRows,
+  messagesFromConversation: (conversation) => overlookTalkMessages(conversation),
+  conversationPopupCooldownMs,
+  sleep,
+  setActorImageSource
+};
+
+const overlookWeekConfig = {
+  weekTotal: CONVERSATION_DAY_TOTAL_WEEKS,
+  moonPhaseCount: 8,
+  weekLabel: (week, total) => `第${week}週 / ${total}`,
+  moonAriaLabel: (phase, count) => `月相 ${phase + 1} / ${count}`,
+  currentWeek: () => conversationStageWeek(currentRuntimeState?.elapsed_weeks)
+};
+
+// The talk face: the lounge's stage config with the overlook's own nodes (no input, one control: 次へ).
+const overlookTalkStage = createConversationStage({
+  ...overlookWeekConfig,
+  screenSelector: '#academy-overlook-screen',
+  streamSelector: '#academy-overlook-message-stream',
+  statusSelector: '#academy-overlook-status',
+  controlSelectors: ['#academy-overlook-next'],
+  weekSelector: '#academy-overlook-talk-week',
+  moonSelector: '#academy-overlook-talk-moon-phase',
+  respondingClass: 'is-day-responding',
+  playerSpokeClass: 'is-day-player-spoke',
+  dispatchClimaxClass: 'is-day-dispatch-climax',
+  playerSpokeMs: 600,
+  dispatchClimaxMs: 900,
+  personaVisual: () => null,
+  assistantIdentity: () => ({ character_id: null, character_name: '' }),
+  refresh: () => refresh(),
+  ambient: createConversationDayAmbient({ canvasSelector: '#academy-overlook-motes', moteColorRgb: '255, 236, 179', moteCount: 70 }),
+  infoPopupSelector: '#academy-overlook-info-popup',
+  infoTitleSelector: '#academy-overlook-info-popup-title',
+  infoBodySelector: '#academy-overlook-info-popup-body',
+  infoIconSelector: '#academy-overlook-info-popup-icon',
+  categoryButtonSelector: '.academy-overlook-category-button',
+  categoryDataKey: 'overlookCategory',
+  categoryTitles: {},
+  categoryIconUrl: () => '',
+  categoryRenderers: {}
+}, overlookStageDeps);
+
+// The field bar's moon + week are the same stage part (renderWeekAndMoon only); the field face has no chat.
+const overlookFieldBar = createConversationStage({
+  ...overlookWeekConfig,
+  weekSelector: '#academy-overlook-week',
+  moonSelector: '#academy-overlook-moon-phase'
+}, overlookStageDeps);
+
+let overlookSession = null;       // the live entry (null when none)
+let overlookFlowInFlight = false; // guards the re-entrant showScreen during the entry loading cover
+let overlookLayoutWorker = null;  // the module worker for the relation lines (created on first use)
+
+function overlookNode(selector) {
+  const node = document.querySelector(selector);
+  if (!node) throw new Error(`overlook markup node is missing: ${selector}`);
+  return node;
+}
+
+function overlookSeedMessage(seedLine) {
+  return { role: 'narration', content: seedLine, face_emotion_variant_id: 'narration_face', expression: 'narration' };
+}
+
+function overlookTalkMessages(conversation) {
+  return conversation.messages.map((message) => ({
+    role: 'assistant',
+    character_id: message.character_id,
+    character_name: message.character_name,
+    content: message.content,
+    expression: message.expression,
+    face_emotion_variant_id: message.face_emotion_variant_id
+  }));
+}
+
+function overlookTalkHistory(conversation) {
+  return [overlookSeedMessage(conversation.seed_line), ...overlookTalkMessages(conversation)];
+}
+
+// The face coma's image: the child's neutral face from the selectable roster (the arena / dungeon form).
+function overlookFaceUrl(characterId) {
+  const character = selectableCharacters.find((entry) => entry.character_id === characterId);
+  if (!character) throw new Error(`overlook child is not in the selectable roster: ${characterId}`);
+  if (!character.visual_set_id) throw new Error(`overlook child has no visual_set_id: ${characterId}`);
+  return `/canonical/character_visual_sets/${character.visual_set_id}/face_emotions/neutral.jpg`;
+}
+
+function overlookViewport() {
+  const rect = overlookNode('#academy-overlook-screen').getBoundingClientRect();
+  return { width: rect.width, height: rect.height };
+}
+
+// The screen parts (上部バー・「顔ぶれ」・出るボタン、開いていれば顔ぶれの一覧の枠) as screen rects — the layout
+// module's `parts`. A coma under a part belongs to the part (no hover).
+function overlookParts(session) {
+  const origin = overlookNode('#academy-overlook-screen').getBoundingClientRect();
+  const selectors = ['#academy-overlook-topbar', '#academy-overlook-roster-button', '#academy-overlook-exit'];
+  if (session.roster.open) selectors.push('#academy-overlook-roster');
+  return selectors.map((selector) => {
+    const rect = overlookNode(selector).getBoundingClientRect();
+    return { left: rect.left - origin.left, top: rect.top - origin.top, right: rect.right - origin.left, bottom: rect.bottom - origin.top };
+  });
+}
+
+function overlookTransition(session, to) {
+  session.machine.transition(to);
+  overlookNode('#academy-overlook-screen').dataset.state = session.machine.state;
+  // The roster list is a frame over the field: any state it cannot stay open on closes it (寄る・書き込み・ハブへ・止まる).
+  if (session.roster.open && !overlookRosterMayOpen(session.machine.state)) closeOverlookRoster(session);
+}
+
+function overlookPollWanted(session) {
+  const { state } = session.machine;
+  return isOverlookFieldState(state) || state === 'focusing' || state === 'awaiting-first-line';
+}
+
+function overlookFieldVisible(session) {
+  const { state } = session.machine;
+  return isOverlookFieldState(state) || state === 'focusing' || state === 'returning';
+}
+
+// ---------- entry / resume / leave ----------
+
+function createOverlookSessionView(entered) {
+  const { field, places } = entered;
+  const session = {
+    machine: createOverlookStateMachine(),
+    places,
+    map: field.map,
+    postContentScreen: entered.post_content_screen,
+    samples: [],
+    latest: null,
+    receivedAt: 0,
+    // Placed on the fountain once the screen is shown and has its size (resumeOverlookScreen).
+    camera: null,
+    fountain: places.find((place) => place.place_id === OVERLOOK_FOUNTAIN_PLACE_ID),
+    cameraAnim: null,
+    comas: new Map(),
+    positions: new Map(),
+    marksKey: '',
+    markRects: new Map(),
+    marksDirty: true,
+    pointer: null,
+    drag: null,
+    hover: null,
+    pair: null,
+    writing: null,
+    // 顔ぶれの一覧: open or not, the rendered rows' key, and the rows whose 「送り出す」 request is in flight.
+    roster: { open: false, key: '', sending: new Set() },
+    focus: null,
+    talk: null,
+    lines: { requestId: 0, pending: false, result: null, key: null },
+    polling: false,
+    raf: 0
+  };
+  const world = overlookNode('#academy-overlook-world');
+  world.style.width = `${field.map.width}px`;
+  world.style.height = `${field.map.height}px`;
+  overlookNode('#academy-overlook-comas').replaceChildren();
+  overlookNode('#academy-overlook-marks').replaceChildren();
+  overlookNode('#academy-overlook-mark-labels').replaceChildren();
+  overlookNode('#academy-overlook-hover').replaceChildren();
+  overlookNode('#academy-overlook-writing').hidden = true;
+  overlookNode('#academy-overlook-roster').replaceChildren();
+  overlookNode('#academy-overlook-roster').hidden = true;
+  overlookNode('#academy-overlook-roster-button').setAttribute('aria-expanded', 'false');
+  overlookNode('#academy-overlook-talk').hidden = true;
+  overlookNode('#academy-overlook-field').hidden = false;
+  overlookNode('.academy-overlook-vignette').style.opacity = '0';
+  overlookTalkStage.surface.setHistory([]);
+  overlookTalkStage.renderStream([]);
+  overlookTalkStage.setStatus('');
+  applyOverlookField(session, field);
+  return session;
+}
+
+async function enterOrResumeOverlookScreen() {
+  if (overlookFlowInFlight) return;
+  const session = overlookSession;
+  if (session && session.machine.state !== 'failed' && session.machine.state !== 'exiting') {
+    resumeOverlookScreen(session);
+    return;
+  }
+  await runOverlookEntry();
+}
+
+// Enter under the shared loading cover (状態 2): the cover holds until the entry's first field arrives.
+async function runOverlookEntry() {
+  overlookFlowInFlight = true;
+  try {
+    let entered = null;
+    const readiness = postJson('/api/overlook/enter', {}).then((payload) => { entered = validateOverlookEnterResponse(payload); });
+    await showAcademyLoadingScreenUntilReady({ readiness, nextScreen: null, refreshBeforeNextScreen: false, loadingCopy: OVERLOOK_ENTRY_LOADING_COPY });
+    overlookSession = createOverlookSessionView(entered);
+    overlookTransition(overlookSession, 'field');
+    showScreen('academy-overlook');
+    resumeOverlookScreen(overlookSession);
+  } finally {
+    overlookFlowInFlight = false;
+  }
+}
+
+function resumeOverlookScreen(session) {
+  if (!session.camera) session.camera = overlookCameraCentredOn(session.fountain, overlookViewport(), session.map);
+  overlookFieldBar.renderWeekAndMoon();
+  if (overlookFieldVisible(session)) {
+    startOverlookFrameLoop(session);
+    ensureOverlookPoll(session);
+  }
+  if (['talk', 'talk-generating', 'talk-closed'].includes(session.machine.state)) overlookTalkStage.startAmbient();
+}
+
+function suspendOverlookScreen() {
+  overlookTalkStage.stopAmbient();
+  if (!overlookSession) return;
+  cancelAnimationFrame(overlookSession.raf);
+  overlookSession.raf = 0;
+}
+
+// Any failure ends this entry: an LM failure (503 or a strict-gate violation) goes to the settings screen by the
+// shared path (状態 15); anything else returns to the hub with the failure notice naming 星見の窓 (the hub never
+// dispatches to it, so the hub start names it from the catalog). The cause stays on the console.
+function reportOverlookScreenError(error) {
+  const session = overlookSession;
+  overlookSession = null;
+  if (session) {
+    if (session.machine.state !== 'failed') overlookTransition(session, 'failed');
+    cancelAnimationFrame(session.raf);
+  }
+  overlookTalkStage.stopAmbient();
+  console.error(error);
+  if (settingsRedirectErrorMessage(error) != null) {
+    if (!screens.settings.classList.contains('active')) handleRuntimeApiError(error, { allowSettingsRedirect: true });
+    return;
+  }
+  returnToRoutingHubThroughLoadingScreen({ failedArrival: { screen: 'academy-overlook' } }).catch(reportError);
+}
+
+// ---------- the field poll ----------
+
+function ensureOverlookPoll(session) {
+  if (session.polling || !overlookPollWanted(session)) return;
+  session.polling = true;
+  runOverlookPoll(session).catch((error) => {
+    session.polling = false;
+    if (overlookSession === session) reportOverlookScreenError(error);
+  });
+}
+
+// One field GET at a time: the next is sent OVERLOOK_FIELD_POLL_MS after the previous answer arrived.
+async function runOverlookPoll(session) {
+  while (overlookSession === session && overlookPollWanted(session)) {
+    const payload = await getJson('/api/overlook/field');
+    if (overlookSession !== session) return;
+    applyOverlookField(session, validateOverlookFieldResponse(payload, { places: session.places }).field);
+    await sleep(OVERLOOK_FIELD_POLL_MS);
+  }
+  session.polling = false;
+}
+
+function overlookMarksOf(field) {
+  const traces = [...field.traces]
+    .sort((a, b) => overlookAcademyMinute(a.academy_time) - overlookAcademyMinute(b.academy_time))
+    .map((trace) => ({ id: `trace:${trace.place_id}:${trace.academy_time}:${trace.text}`, kind: 'trace', ...trace }));
+  const marks = field.writing_marks.map((mark) => ({ id: `writing:${mark.writing_id}`, kind: 'writing', ...mark }));
+  return [...traces, ...marks];
+}
+
+// Every field the server sends (poll, enter, focus, return, writings) lands here.
+function applyOverlookField(session, field) {
+  if (session.latest && field.clock.tick < session.latest.clock.tick) return;
+  // A field at the same tick replaces the newest sample but keeps its arrival time: the playback clock is anchored
+  // to when that tick first arrived, so a clock that stands still (15:00) never pulls the drawing back.
+  const sameTick = session.latest && field.clock.tick === session.latest.clock.tick;
+  if (sameTick) session.samples.pop();
+  session.samples.push(field);
+  session.latest = field;
+  if (!sameTick) session.receivedAt = performance.now();
+  overlookNode('#academy-overlook-time').textContent = field.clock.academy_time;
+  syncOverlookComas(session, field);
+  renderOverlookRoster(session);
+  const marks = overlookMarksOf(field);
+  const marksKey = marks.map((mark) => mark.id).join('|');
+  if (marksKey !== session.marksKey) {
+    session.marksKey = marksKey;
+    renderOverlookMarks(session, marks);
+  }
+  const { state } = session.machine;
+  if (state === 'writing-limited' && field.writing.available) {
+    overlookTransition(session, 'writing');
+    renderOverlookWritingFrame(session);
+  }
+  if ((state === 'focusing' || state === 'awaiting-first-line') && session.focus && !session.focus.conversationId && field.focus?.encounter_id === session.focus.encounterId && field.focus.conversation_id) {
+    session.focus.conversationId = field.focus.conversation_id;
+    startOverlookFirstLine(session, session.focus);
+  }
+  if (!isOverlookFieldState(session.machine.state)) return;
+  if (field.clock.ended) {
+    exitOverlookToHub(session).catch(reportOverlookScreenError);
+    return;
+  }
+  if (field.focus) beginOverlookFocus(session, field.focus);
+}
+
+function syncOverlookComas(session, field) {
+  const layer = overlookNode('#academy-overlook-comas');
+  const ids = new Set(field.children.map((child) => child.character_id));
+  for (const [id, node] of session.comas) {
+    if (!ids.has(id)) {
+      node.remove();
+      session.comas.delete(id);
+    }
+  }
+  for (const child of field.children) {
+    if (session.comas.has(child.character_id)) continue;
+    const node = document.createElement('div');
+    node.className = 'academy-overlook-coma';
+    node.dataset.characterId = child.character_id;
+    const image = document.createElement('img');
+    image.alt = child.character_name;
+    image.draggable = false;
+    setActorImageSource(image, overlookFaceUrl(child.character_id));
+    node.append(image);
+    layer.append(node);
+    session.comas.set(child.character_id, node);
+  }
+}
+
+function overlookChild(session, characterId) {
+  const child = session.latest.children.find((entry) => entry.character_id === characterId);
+  if (!child) throw new Error(`overlook child is not on the field: ${characterId}`);
+  return child;
+}
+
+// ---------- the frame loop ----------
+
+function startOverlookFrameLoop(session) {
+  if (session.raf) return;
+  const frame = () => {
+    session.raf = 0;
+    if (overlookSession !== session || !overlookFieldVisible(session)) return;
+    try {
+      renderOverlookFrame(session);
+    } catch (error) {
+      reportOverlookScreenError(error);
+      return;
+    }
+    session.raf = requestAnimationFrame(frame);
+  };
+  session.raf = requestAnimationFrame(frame);
+}
+
+function overlookCameraFrame(session, viewport) {
+  const anim = session.cameraAnim;
+  if (!anim) return overlookFrameOfCamera(session.camera, viewport);
+  return overlookFocusCameraFrame({
+    from: anim.from,
+    target: anim.target,
+    viewport,
+    map: session.map,
+    elapsedMs: performance.now() - anim.startedAt,
+    reverse: anim.reverse
+  });
+}
+
+function renderOverlookFrame(session) {
+  const viewport = overlookViewport();
+  const now = performance.now();
+  const latestMs = overlookSampleMs(session.latest);
+  const moment = Math.min(latestMs + (now - session.receivedAt) - OVERLOOK_PLAYBACK_DELAY_MS, latestMs);
+  session.samples = overlookTrimSamples(session.samples, moment);
+  session.positions = overlookPlaybackPositions(session.samples, moment);
+  const frame = overlookCameraFrame(session, viewport);
+  overlookNode('#academy-overlook-world').style.transform = `translate(${viewport.width / 2 - frame.centre.x * frame.scale}px, ${viewport.height / 2 - frame.centre.y * frame.scale}px) scale(${frame.scale})`;
+  overlookNode('.academy-overlook-vignette').style.opacity = String(frame.dim ?? 0);
+  for (const [id, node] of session.comas) {
+    const point = session.positions.get(id);
+    // A newcomer's coma exists from the newest sample on but is drawn only once the playback reaches it.
+    node.style.visibility = point ? '' : 'hidden';
+    if (point) node.style.transform = `translate(${point.x}px, ${point.y}px)`;
+  }
+  const anim = session.cameraAnim;
+  if (anim && frame.done) {
+    session.cameraAnim = null;
+    session.camera = clampOverlookCamera({ x: frame.centre.x - viewport.width / 2, y: frame.centre.y - viewport.height / 2 }, viewport, session.map);
+    session.marksDirty = true;
+    anim.onDone();
+    return;
+  }
+  if (anim) return;
+  const comas = [...session.positions].map(([id, point]) => ({ id, ...overlookScreenPoint(point, frame, viewport) }));
+  const parts = overlookParts(session);
+  if (isOverlookFieldState(session.machine.state)) updateOverlookHover(session, { viewport, frame, comas, parts, now });
+  renderOverlookWritingFrame(session, { frame, viewport });
+  if (session.marksDirty) {
+    session.marksDirty = false;
+    layoutOverlookMarkLabels(session, { frame, viewport, comas, parts });
+  }
+  drawOverlookLines(session, viewport);
+}
+
+// ---------- traces and writing marks (状態 10・12) ----------
+
+function renderOverlookMarks(session, marks) {
+  const dots = overlookNode('#academy-overlook-marks');
+  const labels = overlookNode('#academy-overlook-mark-labels');
+  dots.replaceChildren();
+  labels.replaceChildren();
+  const liveIds = new Set(marks.map((mark) => mark.id));
+  for (const id of [...session.markRects.keys()]) if (!liveIds.has(id)) session.markRects.delete(id);
+  for (const mark of marks) {
+    const dot = document.createElement('span');
+    dot.className = 'academy-overlook-dot';
+    dot.dataset.kind = mark.kind;
+    dot.style.left = `${mark.x}px`;
+    dot.style.top = `${mark.y}px`;
+    dots.append(dot);
+    const label = document.createElement('p');
+    label.className = 'academy-overlook-label academy-overlook-mark-label';
+    label.dataset.kind = mark.kind;
+    label.dataset.markId = mark.id;
+    const time = document.createElement('span');
+    time.className = 'academy-overlook-mark-time';
+    time.textContent = mark.academy_time;
+    label.append(time, `　${mark.text}`);
+    labels.append(label);
+  }
+  session.marks = marks;
+  session.marksDirty = true;
+}
+
+// 跡の札の置き場 (状態 10): placed in screen px at scale 1 and kept on the map; a label is re-placed only when a
+// later label / the writing frame / the say label comes within 4 px of it.
+function layoutOverlookMarkLabels(session, { frame, viewport, comas, parts }) {
+  const marks = session.marks ?? [];
+  if (marks.length === 0) return;
+  const toScreen = (rect) => ({ left: rect.left - session.camera.x, top: rect.top - session.camera.y, right: rect.right - session.camera.x, bottom: rect.bottom - session.camera.y });
+  const rects = [];
+  if (session.writing?.rect) rects.push(session.writing.rect);
+  if (session.hover?.say) rects.push(session.hover.say.rect);
+  const nodes = new Map([...document.querySelectorAll('#academy-overlook-mark-labels [data-mark-id]')].map((node) => [node.dataset.markId, node]));
+  const placed = placeTraceLabels({
+    parts,
+    comaRadius: OVERLOOK_COMA_RADIUS,
+    comas: comas.map(({ x, y }) => ({ x, y })),
+    rects,
+    labels: marks.map((mark) => {
+      const node = nodes.get(mark.id);
+      const point = overlookScreenPoint(mark, frame, viewport);
+      const previous = session.markRects.get(mark.id);
+      return { id: mark.id, x: point.x, y: point.y, width: node.offsetWidth, height: node.offsetHeight, ...(previous ? { rect: toScreen(previous) } : {}) };
+    })
+  });
+  for (const entry of placed) {
+    const mapRect = { left: entry.rect.left + session.camera.x, top: entry.rect.top + session.camera.y, right: entry.rect.right + session.camera.x, bottom: entry.rect.bottom + session.camera.y };
+    session.markRects.set(entry.id, mapRect);
+    const node = nodes.get(entry.id);
+    node.style.left = `${mapRect.left}px`;
+    node.style.top = `${mapRect.top}px`;
+  }
+}
+
+function overlookMarkDotsOnScreen(session, frame, viewport) {
+  return (session.marks ?? []).map((mark) => ({ ...overlookScreenPoint(mark, frame, viewport), radius: 4 }));
+}
+
+function overlookMarkLabelRectsOnScreen(session) {
+  return [...session.markRects.values()].map((rect) => ({ left: rect.left - session.camera.x, top: rect.top - session.camera.y, right: rect.right - session.camera.x, bottom: rect.bottom - session.camera.y }));
+}
+
+// ---------- hover: say label, relation lines, the pair ring (状態 4・5・14) ----------
+
+function overlookHoverTarget(session, { comas, parts, viewport }) {
+  if (!session.pointer || session.drag) return null;
+  const id = overlookComaAt(session.pointer, comas);
+  if (!id) return null;
+  const coma = comas.find((entry) => entry.id === id);
+  if (!isOverlookComaHoverable(coma, { screen: viewport, parts })) return null;
+  // The playback runs behind the newest field, so a child sent off may still be drawn after it left the field.
+  const child = session.latest.children.find((entry) => entry.character_id === id);
+  if (!child || !isOverlookChildPointable(child)) return null;
+  const encounter = session.latest.encounters.find((entry) => entry.pickable && entry.participants.some((participant) => participant.character_id === id));
+  if (encounter) return { kind: 'pair', id, encounter };
+  if (child.wish_line === null) return null;
+  return { kind: 'say', id };
+}
+
+function clearOverlookHover(session) {
+  session.hover = null;
+  session.pair = null;
+  session.lines = { requestId: session.lines.requestId, pending: false, result: null, key: null };
+  overlookNode('#academy-overlook-hover').replaceChildren();
+  session.marksDirty = true;
+}
+
+function overlookLabelNode(text, kind) {
+  const node = document.createElement('p');
+  node.className = 'academy-overlook-label';
+  node.dataset.kind = kind;
+  node.textContent = text;
+  overlookNode('#academy-overlook-hover').append(node);
+  return node;
+}
+
+function placeOverlookNode(node, rect) {
+  node.style.left = `${rect.left}px`;
+  node.style.top = `${rect.top}px`;
+}
+
+function updateOverlookHover(session, { viewport, frame, comas, parts, now }) {
+  const { state } = session.machine;
+  if (state === 'writing' || state === 'writing-limited') return;
+  const target = overlookHoverTarget(session, { comas, parts, viewport });
+  const current = session.hover?.id ?? session.pair?.id ?? null;
+  const currentKind = session.hover ? 'say' : session.pair ? 'pair' : null;
+  if (!target || target.id !== current || target.kind !== currentKind) {
+    if (current !== null) {
+      clearOverlookHover(session);
+      if (session.machine.state !== 'field') overlookTransition(session, 'field');
+    }
+    if (target?.kind === 'say') session.hover = { id: target.id, since: now, say: null, sayNode: null, feelingNodes: new Map() };
+    if (target?.kind === 'pair') {
+      session.pair = { id: target.id, encounter: target.encounter, ring: null, ringNode: null, labelNode: null };
+      overlookTransition(session, 'pair');
+    }
+  }
+  if (session.hover) updateOverlookSay(session, { viewport, comas, parts, now });
+  if (session.pair) updateOverlookPair(session, { viewport, frame, comas, parts });
+}
+
+function updateOverlookSay(session, { viewport, comas, parts, now }) {
+  const hover = session.hover;
+  const child = overlookChild(session, hover.id);
+  const coma = comas.find((entry) => entry.id === hover.id);
+  const since = now - hover.since;
+  if (since < OVERLOOK_SAY_DELAY_MS) return;
+  if (!hover.say) {
+    hover.sayNode = overlookLabelNode(child.wish_line, 'say');
+    const targetIds = child.feelings.map((feeling) => feeling.character_id);
+    hover.say = placeSayLabel({
+      screen: viewport,
+      parts,
+      comaRadius: OVERLOOK_COMA_RADIUS,
+      comas,
+      hoverId: hover.id,
+      targetIds,
+      width: hover.sayNode.offsetWidth,
+      height: hover.sayNode.offsetHeight
+    });
+    // Measured before they show (the worker needs their size), so they wait invisible rather than hidden.
+    for (const feeling of child.feelings) {
+      const node = overlookLabelNode(feeling.label, 'feeling');
+      node.style.visibility = 'hidden';
+      hover.feelingNodes.set(feeling.character_id, node);
+    }
+    overlookTransition(session, 'say');
+    session.marksDirty = true;
+  } else {
+    hover.say = { side: hover.say.side, rect: overlookSayLabelRectAt(coma, hover.say.side, { width: hover.sayNode.offsetWidth, height: hover.sayNode.offsetHeight }) };
+  }
+  placeOverlookNode(hover.sayNode, hover.say.rect);
+  requestOverlookLines(session, { viewport, comas, parts, child });
+  if (since >= OVERLOOK_LINES_DELAY_MS && session.lines.result && session.machine.state === 'say') overlookTransition(session, 'lines');
+  if (session.machine.state === 'lines' && session.lines.result) {
+    for (const [id, node] of hover.feelingNodes) {
+      const label = session.lines.result.feelingLabels.find((entry) => entry.targetId === id);
+      node.style.visibility = label ? 'visible' : 'hidden';
+      if (label) placeOverlookNode(node, label.rect);
+    }
+  }
+}
+
+// The relation lines run in the module worker from the say label onward (0.3 秒), one request at a time; while
+// the hover lasts each answer is followed by a request for the comas where they are now.
+function requestOverlookLines(session, { viewport, comas, parts, child }) {
+  if (session.lines.pending) return;
+  if (!overlookLayoutWorker) {
+    overlookLayoutWorker = new Worker(new URL('./overlookLayoutWorker.js', import.meta.url), { type: 'module' });
+    overlookLayoutWorker.addEventListener('message', (event) => {
+      const live = overlookSession;
+      if (!live) return;
+      try {
+        const reply = validateOverlookLayoutReply(event.data);
+        if (reply.id !== live.lines.requestId || !live.hover) return;
+        if (!reply.ok) throw new Error(`overlook relation lines failed in the worker: ${reply.error}`);
+        live.lines.pending = false;
+        live.lines.result = reply.result;
+      } catch (error) {
+        reportOverlookScreenError(error);
+      }
+    });
+    overlookLayoutWorker.addEventListener('error', (event) => reportOverlookScreenError(new Error(`overlook layout worker error: ${event.message}`)));
+  }
+  const hover = session.hover;
+  session.lines.requestId += 1;
+  session.lines.pending = true;
+  overlookLayoutWorker.postMessage({
+    id: session.lines.requestId,
+    input: {
+      screen: viewport,
+      parts,
+      comaRadius: OVERLOOK_COMA_RADIUS,
+      comas,
+      hoverId: hover.id,
+      targets: child.feelings.map((feeling) => {
+        const node = hover.feelingNodes.get(feeling.character_id);
+        return { id: feeling.character_id, width: node.offsetWidth, height: node.offsetHeight };
+      }),
+      sayLabel: hover.say
+    }
+  });
+}
+
+function overlookCssColor(token) {
+  const value = getComputedStyle(overlookNode('#academy-overlook-screen')).getPropertyValue(token).trim();
+  if (!value) throw new Error(`overlook color token is not declared: ${token}`);
+  return value;
+}
+
+// 線: 芯は琥珀 3 px、その下に黒曜の縁取り 7 px（構成表 状態 5）。
+function drawOverlookLines(session, viewport) {
+  const canvas = overlookNode('#academy-overlook-lines');
+  const ratio = window.devicePixelRatio || 1;
+  const width = Math.round(viewport.width * ratio);
+  const height = Math.round(viewport.height * ratio);
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+  if (session.machine.state !== 'lines' || !session.lines.result) return;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const trace = (line) => {
+    ctx.beginPath();
+    ctx.moveTo(line.path[0].from.x, line.path[0].from.y);
+    for (const piece of line.path) {
+      if (piece.type === 'line') ctx.lineTo(piece.to.x, piece.to.y);
+      else ctx.arc(piece.center.x, piece.center.y, piece.radius, piece.startAngle, piece.endAngle, piece.anticlockwise);
+    }
+  };
+  const layers = [
+    { width: OVERLOOK_LINE_WIDTH.casing, color: overlookCssColor('--cd-night-bg-0') },
+    { width: OVERLOOK_LINE_WIDTH.core, color: overlookCssColor('--cd-night-amber') }
+  ];
+  for (const layer of layers) {
+    ctx.lineWidth = layer.width;
+    ctx.strokeStyle = layer.color;
+    for (const line of session.lines.result.lines) {
+      trace(line);
+      ctx.stroke();
+    }
+  }
+}
+
+function updateOverlookPair(session, { viewport, frame, comas, parts }) {
+  const pair = session.pair;
+  const [initiator, partner] = pair.encounter.participants.map((participant) => comas.find((coma) => coma.id === participant.character_id));
+  const ring = overlookPairRing(initiator, partner);
+  if (!pair.ringNode) {
+    pair.ringNode = document.createElement('div');
+    pair.ringNode.className = 'academy-overlook-pair-ring';
+    overlookNode('#academy-overlook-hover').append(pair.ringNode);
+    pair.labelNode = overlookLabelNode(overlookChild(session, initiator.id).wish_line, 'say');
+  }
+  pair.ringNode.style.width = `${ring.width}px`;
+  pair.ringNode.style.height = `${ring.height}px`;
+  pair.ringNode.style.borderRadius = `${ring.cornerRadius}px`;
+  pair.ringNode.style.transform = `translate(${ring.x - ring.width / 2}px, ${ring.y - ring.height / 2}px) rotate(${ring.angleDeg}deg)`;
+  const placed = placePairSayLabel({
+    screen: viewport,
+    parts,
+    comaRadius: OVERLOOK_COMA_RADIUS,
+    comas,
+    pairIds: [initiator.id, partner.id],
+    ring,
+    width: pair.labelNode.offsetWidth,
+    height: pair.labelNode.offsetHeight,
+    dots: overlookMarkDotsOnScreen(session, frame, viewport),
+    rects: overlookMarkLabelRectsOnScreen(session)
+  });
+  placeOverlookNode(pair.labelNode, placed.rect);
+}
+
+// ---------- pointer: drag the camera, hover, click ----------
+
+function overlookPointerPoint(event) {
+  const origin = overlookNode('#academy-overlook-screen').getBoundingClientRect();
+  return { x: event.clientX - origin.left, y: event.clientY - origin.top };
+}
+
+function onOverlookPointerDown(event) {
+  const session = overlookSession;
+  if (!session || !isOverlookFieldState(session.machine.state) && session.machine.state !== 'focusing') return;
+  // A click outside the open roster list only closes it (no place, no pair, no drag).
+  if (session.roster.open) {
+    closeOverlookRoster(session);
+    return;
+  }
+  const point = overlookPointerPoint(event);
+  session.drag = { start: point, camera: { ...session.camera }, moved: false, pointerId: event.pointerId };
+  overlookNode('#academy-overlook-viewport').setPointerCapture(event.pointerId);
+}
+
+function onOverlookPointerMove(event) {
+  const session = overlookSession;
+  if (!session) return;
+  const point = overlookPointerPoint(event);
+  session.pointer = point;
+  const drag = session.drag;
+  if (!drag || session.machine.state === 'focusing') return;
+  const dx = point.x - drag.start.x;
+  const dy = point.y - drag.start.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+  if (!drag.moved) {
+    drag.moved = true;
+    clearOverlookHover(session);
+    if (session.machine.state === 'say' || session.machine.state === 'lines' || session.machine.state === 'pair') overlookTransition(session, 'field');
+    overlookNode('#academy-overlook-viewport').classList.add('is-dragging');
+  }
+  session.camera = clampOverlookCamera({ x: drag.camera.x - dx, y: drag.camera.y - dy }, overlookViewport(), session.map);
+  session.marksDirty = true;
+}
+
+function onOverlookPointerUp(event) {
+  const session = overlookSession;
+  if (!session || !session.drag) return;
+  const drag = session.drag;
+  session.drag = null;
+  overlookNode('#academy-overlook-viewport').classList.remove('is-dragging');
+  if (drag.moved) return;
+  onOverlookClick(session, overlookPointerPoint(event)).catch(reportOverlookScreenError);
+}
+
+function onOverlookPointerLeave() {
+  if (overlookSession) overlookSession.pointer = null;
+}
+
+// A click on the map: a meeting pair → pick that focus (状態 14 → 6); a coma → nothing; a place's radius →
+// the writing frame (状態 11, or 13 while the limit holds); an open writing frame closes on an outside click.
+async function onOverlookClick(session, point) {
+  const { state } = session.machine;
+  if (state === 'writing' || state === 'writing-limited') {
+    closeOverlookWritingFrame(session);
+    return;
+  }
+  const viewport = overlookViewport();
+  const frame = overlookCameraFrame(session, viewport);
+  const comas = [...session.positions].map(([id, position]) => ({ id, ...overlookScreenPoint(position, frame, viewport) }));
+  const comaId = overlookComaAt(point, comas);
+  if (comaId) {
+    const encounter = session.latest.encounters.find((entry) => entry.pickable && entry.participants.some((participant) => participant.character_id === comaId));
+    if (encounter && (isOverlookFieldState(state) || state === 'focusing')) await pickOverlookEncounter(session, encounter);
+    return;
+  }
+  if (!isOverlookFieldState(state)) return;
+  const mapPoint = { x: (point.x - viewport.width / 2) / frame.scale + frame.centre.x, y: (point.y - viewport.height / 2) / frame.scale + frame.centre.y };
+  const place = overlookPlaceAt(session.places, session.map, mapPoint);
+  if (place) openOverlookWritingFrame(session, place);
+}
+
+async function pickOverlookEncounter(session, encounter) {
+  try {
+    const payload = await postJson('/api/overlook/focus', { encounter_id: encounter.encounter_id });
+    if (overlookSession !== session) return;
+    const answer = validateOverlookFocusResponse(payload, { places: session.places });
+    const redirect = session.machine.state === 'focusing';
+    applyOverlookField(session, answer.field);
+    if (redirect) beginOverlookFocus(session, answer.field.focus);
+  } catch (error) {
+    // The server's 409 is the screen's truth (the encounter is gone, or a talk is already on screen): read the
+    // field again and let it drive the state.
+    if (error.statusCode !== 409) throw error;
+    const payload = await getJson('/api/overlook/field');
+    if (overlookSession !== session) return;
+    applyOverlookField(session, validateOverlookFieldResponse(payload, { places: session.places }).field);
+  }
+}
+
+// ---------- writing (状態 11〜13) ----------
+
+function openOverlookWritingFrame(session, place) {
+  clearOverlookHover(session);
+  overlookTransition(session, session.latest.writing.available ? 'writing' : 'writing-limited');
+  session.writing = { place, rect: null, ringNode: null, limitedUntil: session.latest.writing.next_available_at };
+  const input = overlookNode('#academy-overlook-writing-input');
+  input.value = '';
+  overlookNode('#academy-overlook-writing-place').textContent = place.name;
+  overlookNode('#academy-overlook-writing').hidden = false;
+  renderOverlookWritingFrame(session);
+  if (session.machine.state === 'writing') input.focus();
+}
+
+function closeOverlookWritingFrame(session) {
+  session.writing = null;
+  overlookNode('#academy-overlook-writing').hidden = true;
+  overlookNode('#academy-overlook-hover').replaceChildren();
+  session.marksDirty = true;
+  overlookTransition(session, 'field');
+}
+
+function renderOverlookWritingFrame(session, placement = null) {
+  const writing = session.writing;
+  if (!writing) return;
+  const limited = session.machine.state === 'writing-limited';
+  const input = overlookNode('#academy-overlook-writing-input');
+  const submit = overlookNode('#academy-overlook-writing-submit');
+  const status = overlookNode('#academy-overlook-writing-status');
+  input.disabled = limited;
+  submit.disabled = limited || !isValidOverlookWritingText(input.value);
+  status.hidden = !limited;
+  status.textContent = limited ? `次の書き込みは ${writing.limitedUntil ?? session.latest.writing.next_available_at} から` : '';
+  if (!placement) return;
+  const point = overlookScreenPoint(writing.place, placement.frame, placement.viewport);
+  if (!writing.ringNode) {
+    writing.ringNode = document.createElement('div');
+    writing.ringNode.className = 'academy-overlook-place-ring';
+    overlookNode('#academy-overlook-hover').append(writing.ringNode);
+  }
+  writing.ringNode.style.transform = `translate(${point.x}px, ${point.y}px)`;
+  const frameNode = overlookNode('#academy-overlook-writing');
+  const ringRadius = writing.ringNode.offsetWidth / 2;
+  const rect = overlookWritingFrameRect(point, { height: frameNode.offsetHeight, ringRadius });
+  if (!writing.rect || writing.rect.left !== rect.left || writing.rect.top !== rect.top) session.marksDirty = true;
+  writing.rect = rect;
+  placeOverlookNode(frameNode, rect);
+}
+
+async function submitOverlookWriting(session) {
+  if (session.machine.state !== 'writing' || !session.writing) return;
+  const input = overlookNode('#academy-overlook-writing-input');
+  const text = input.value.trim();
+  if (!isValidOverlookWritingText(text)) return;
+  overlookNode('#academy-overlook-writing-submit').disabled = true;
+  try {
+    const payload = await postJson('/api/overlook/writings', { place_id: session.writing.place.place_id, text });
+    if (overlookSession !== session) return;
+    const answer = validateOverlookWritingResponse(payload, { places: session.places });
+    closeOverlookWritingFrame(session);
+    applyOverlookField(session, answer.field);
+  } catch (error) {
+    if (error.statusCode !== 409 || error.errorCode !== 'OVERLOOK_WRITING_LIMITED') throw error;
+    session.writing.limitedUntil = validateOverlookWritingLimited(error.payload);
+    overlookTransition(session, 'writing-limited');
+    renderOverlookWritingFrame(session);
+  }
+}
+
+// ---------- the roster: the 「顔ぶれ」 button, the list, sending a child off (状態 17〜19) ----------
+
+// The list's 12 rows follow field.roster (the order the children joined; a newcomer takes its leaver's row). A row's
+// 「送り出す」 is dead while the child is a newcomer before the gate, and while its own request is in flight.
+function renderOverlookRoster(session) {
+  const { roster } = session.latest;
+  const key = roster.map((row) => `${row.character_id}:${row.swappable}:${session.roster.sending.has(row.character_id)}`).join('|');
+  if (key === session.roster.key) return;
+  session.roster.key = key;
+  const list = overlookNode('#academy-overlook-roster');
+  if (list.children.length === 0) {
+    for (let index = 0; index < roster.length; index += 1) {
+      const item = document.createElement('li');
+      item.className = 'academy-overlook-roster-row';
+      const face = document.createElement('img');
+      face.className = 'academy-overlook-roster-face';
+      face.alt = '';
+      face.draggable = false;
+      const name = document.createElement('span');
+      name.className = 'academy-overlook-roster-name';
+      const send = document.createElement('button');
+      send.type = 'button';
+      send.className = 'conversation-day-action-button conversation-day-action-secondary academy-overlook-roster-send';
+      send.textContent = '送り出す';
+      item.append(face, name, send);
+      list.append(item);
+    }
+  }
+  if (list.children.length !== roster.length) throw new Error(`overlook roster list holds ${list.children.length} rows for ${roster.length}`);
+  roster.forEach((row, index) => {
+    const item = list.children[index];
+    if (item.dataset.characterId !== row.character_id) {
+      item.dataset.characterId = row.character_id;
+      setActorImageSource(item.querySelector('.academy-overlook-roster-face'), overlookFaceUrl(row.character_id));
+      item.querySelector('.academy-overlook-roster-name').textContent = row.character_name;
+    }
+    item.querySelector('.academy-overlook-roster-send').disabled = !row.swappable || session.roster.sending.has(row.character_id);
+  });
+}
+
+function openOverlookRoster(session) {
+  if (session.writing) closeOverlookWritingFrame(session);
+  if (!overlookRosterMayOpen(session.machine.state)) return;
+  const list = overlookNode('#academy-overlook-roster');
+  session.roster.open = true;
+  list.hidden = false;
+  // Every opening starts from the first row.
+  list.scrollTop = 0;
+  overlookNode('#academy-overlook-roster-button').setAttribute('aria-expanded', 'true');
+  session.marksDirty = true;
+}
+
+function closeOverlookRoster(session) {
+  session.roster.open = false;
+  overlookNode('#academy-overlook-roster').hidden = true;
+  overlookNode('#academy-overlook-roster-button').setAttribute('aria-expanded', 'false');
+  session.marksDirty = true;
+}
+
+// 「送り出す」: the server swaps the row at once and walks the two through the gate; the field it answers carries
+// the newcomer's row and both walkers. No confirmation, no undo, no count (the board's three disclosed points).
+async function sendOffOverlookChild(session, characterId) {
+  const row = session.latest.roster.find((entry) => entry.character_id === characterId);
+  if (!session.roster.open || !row?.swappable || session.roster.sending.has(characterId)) return;
+  session.roster.sending.add(characterId);
+  renderOverlookRoster(session);
+  try {
+    const payload = await postJson('/api/overlook/roster/swap', { character_id: characterId });
+    if (overlookSession !== session) return;
+    applyOverlookField(session, validateOverlookSwapResponse(payload, { places: session.places }).field);
+  } catch (error) {
+    // The server's 409 is the screen's truth (the day ended, a talk took the screen, the child cannot go now):
+    // read the field again and let it drive the list and the state.
+    if (error.statusCode !== 409) throw error;
+    const payload = await getJson('/api/overlook/field');
+    if (overlookSession !== session) return;
+    applyOverlookField(session, validateOverlookFieldResponse(payload, { places: session.places }).field);
+  } finally {
+    session.roster.sending.delete(characterId);
+    if (overlookSession === session) renderOverlookRoster(session);
+  }
+}
+
+// ---------- focus: the camera move, the first line, the talk (状態 6〜9) ----------
+
+function beginOverlookFocus(session, focus) {
+  if (session.writing) {
+    session.writing = null;
+    overlookNode('#academy-overlook-writing').hidden = true;
+  }
+  clearOverlookHover(session);
+  // A redirect during the move starts from where the camera is looking now.
+  const viewport = overlookViewport();
+  const from = overlookCameraFrame(session, viewport).centre;
+  const [a, b] = focus.participants.map((participant) => session.positions.get(participant.character_id) ?? overlookChild(session, participant.character_id));
+  const target = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  let startedResolve;
+  const token = {
+    encounterId: focus.encounter_id,
+    participants: focus.participants,
+    conversationId: null,
+    target,
+    started: false,
+    startedPromise: new Promise((resolve) => { startedResolve = resolve; }),
+    markStarted: () => {
+      if (token.started) return;
+      token.started = true;
+      startedResolve();
+    }
+  };
+  session.focus = token;
+  overlookTransition(session, 'focusing');
+  session.cameraAnim = { from, target, startedAt: performance.now(), reverse: false, onDone: () => finishOverlookFocusMove(session, token) };
+  startOverlookFrameLoop(session);
+  ensureOverlookPoll(session);
+  if (focus.conversation_id) {
+    token.conversationId = focus.conversation_id;
+    startOverlookFirstLine(session, token);
+  }
+}
+
+// The first line: read the talk (seed line, the two), then open the next stream. The first delta (or the line
+// arriving whole) is "the stream has started" for the 1.1 s check.
+function startOverlookFirstLine(session, token) {
+  (async () => {
+    const payload = await getJson(`/api/overlook/conversation?conversation_id=${encodeURIComponent(token.conversationId)}`);
+    if (session.focus !== token) return;
+    const { conversation } = validateOverlookConversationResponse(payload);
+    session.talk = { conversationId: conversation.conversation_id, conversation, line: null, token };
+    await streamOverlookLine(session, session.talk, { onStarted: token.markStarted });
+  })().catch((error) => {
+    // A focus the viewer redirected elsewhere drops its talk (the server answers its stream with an error).
+    if (session.focus !== token || overlookSession !== session) return;
+    reportOverlookScreenError(error);
+  });
+}
+
+function finishOverlookFocusMove(session, token) {
+  if (session.focus !== token) return;
+  if (token.started) {
+    openOverlookTalk(session, { crossfade: true });
+    return;
+  }
+  overlookTransition(session, 'awaiting-first-line');
+  (async () => {
+    await showAcademyLoadingScreenUntilReady({
+      readiness: token.startedPromise,
+      nextScreen: null,
+      refreshBeforeNextScreen: false,
+      loadingCopy: overlookFocusLoadingCopy(token.participants)
+    });
+    if (overlookSession !== session || session.focus !== token) return;
+    showScreen('academy-overlook');
+    openOverlookTalk(session, { crossfade: false });
+  })().catch(reportOverlookScreenError);
+}
+
+function openOverlookTalk(session, { crossfade }) {
+  const talk = session.talk;
+  if (!talk) throw new Error('overlook talk opened before the conversation was read');
+  const talkNode = overlookNode('#academy-overlook-talk');
+  overlookNode('#academy-overlook-stage-image').style.backgroundImage = `url('${OVERLOOK_STAGE_IMAGE_URL}')`;
+  overlookTalkStage.renderWeekAndMoon();
+  overlookTalkStage.setStatus('');
+  const history = overlookTalkHistory(talk.conversation);
+  overlookTalkStage.surface.setHistory(history);
+  overlookTalkStage.renderStream(history);
+  talkNode.hidden = false;
+  talkNode.classList.toggle('is-crossfading', crossfade);
+  overlookTalkStage.startAmbient();
+  if (talk.line) {
+    overlookTransition(session, 'talk-generating');
+    attachOverlookLineReveal(talk);
+  } else {
+    overlookTransition(session, talk.conversation.closed ? 'talk-closed' : 'talk');
+  }
+  syncOverlookTalkControls(session);
+  setTimeout(() => {
+    if (overlookSession !== session || overlookNode('#academy-overlook-talk').hidden) return;
+    talkNode.classList.remove('is-crossfading');
+    overlookNode('#academy-overlook-field').hidden = true;
+  }, crossfade ? OVERLOOK_TALK_CROSSFADE_MS : 0);
+}
+
+function syncOverlookTalkControls(session) {
+  const { state } = session.machine;
+  const next = overlookNode('#academy-overlook-next');
+  next.textContent = state === 'talk-closed' ? 'フィールドへ戻る' : '次へ';
+  overlookTalkStage.setControlsDisabled(state === 'talk-generating');
+  overlookTalkStage.setResponding(state === 'talk-generating');
+}
+
+// The line being generated is shown as the next speaker's rows as their text arrives. The stream carries no
+// expression before the line is complete, so these rows use the speaker's neutral face; the completed line is
+// redrawn from the server's conversation with its own expression.
+function overlookLineSegments(line, text) {
+  return displayMessages([{
+    role: 'assistant',
+    character_id: line.speaker.character_id,
+    character_name: line.speaker.character_name,
+    content: text,
+    expression: 'neutral',
+    face_emotion_variant_id: 'neutral'
+  }]).filter((segment) => (segment.content ?? '').trim());
+}
+
+function enqueueOverlookLine(line, text) {
+  if (!line.reveal || !text.trim()) return;
+  const fresh = overlookLineSegments(line, text).slice(line.segCount);
+  line.segCount += fresh.length;
+  line.reveal.enqueue(fresh);
+}
+
+function attachOverlookLineReveal(talk) {
+  const line = talk.line;
+  if (!line || line.reveal) return;
+  line.reveal = overlookTalkStage.createTurnReveal(overlookTalkHistory(talk.conversation));
+  enqueueOverlookLine(line, completedAssistantPrefix(line.text));
+}
+
+async function readOverlookNextSse(conversationId, { onDelta }) {
+  const endpoint = '/api/overlook/conversation/next';
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ conversation_id: conversationId })
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw createApiError({ url: endpoint, status: response.status, payload: parseJsonText(text), fallbackText: text });
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let conversation = null;
+  const handleBlock = (block) => {
+    if (conversation) throw new Error('overlook next stream sent an event after its message');
+    const { event, data } = parseOverlookSseBlock(block);
+    if (event === 'assistant_delta') { notifyAcademyLoadingProgress(); onDelta(data.delta); }
+    if (event === 'message') { notifyAcademyLoadingProgress(); conversation = data.conversation; }
+    if (event === 'error') throw createApiError({ url: endpoint, status: 503, payload: data, fallbackText: data.error });
+  };
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+    const blocks = buffer.split('\n\n');
+    buffer = blocks.pop() ?? '';
+    for (const block of blocks) if (block.trim()) handleBlock(block);
+    if (done) break;
+  }
+  if (buffer.trim()) handleBlock(buffer);
+  if (!conversation) throw new Error('overlook next stream ended without its message');
+  return conversation;
+}
+
+// Shows the next line (状態 7 → 7 when it was generated ahead, 7 → 8 → 7/9 when it streams).
+async function streamOverlookLine(session, talk, { onStarted = null } = {}) {
+  const shown = talk.conversation.messages.length;
+  const line = { speaker: talk.conversation.participants[shown % 2], text: '', segCount: 0, reveal: null };
+  talk.line = line;
+  const conversation = await readOverlookNextSse(talk.conversationId, {
+    onDelta: (delta) => {
+      onStarted?.();
+      line.text += delta;
+      if (session.machine.state === 'talk') {
+        overlookTransition(session, 'talk-generating');
+        attachOverlookLineReveal(talk);
+        syncOverlookTalkControls(session);
+      }
+      enqueueOverlookLine(line, completedAssistantPrefix(line.text));
+    }
+  });
+  onStarted?.();
+  if (overlookSession !== session || session.talk !== talk) return;
+  if (conversation.conversation_id !== talk.conversationId || conversation.messages.length !== shown + 1) {
+    throw new Error(`overlook next stream answered ${conversation.messages.length} lines for ${shown} shown`);
+  }
+  const fresh = conversation.messages[shown];
+  if (fresh.character_id !== line.speaker.character_id) throw new Error('overlook next line came from the other speaker');
+  if (line.reveal) {
+    enqueueOverlookLine(line, fresh.content);
+    await line.reveal.drain();
+  }
+  talk.conversation = conversation;
+  const onTalkFace = ['talk', 'talk-generating'].includes(session.machine.state);
+  if (!onTalkFace) {
+    talk.line = null;
+    return;
+  }
+  const history = overlookTalkHistory(conversation);
+  if (line.reveal) {
+    overlookTalkStage.surface.setHistory(history);
+    overlookTalkStage.renderStream(history);
+  } else {
+    const reveal = overlookTalkStage.createTurnReveal(overlookTalkHistory({ ...conversation, messages: conversation.messages.slice(0, shown) }));
+    reveal.enqueue(displayMessages(overlookTalkMessages({ messages: [fresh] })).filter((segment) => (segment.content ?? '').trim()));
+    await reveal.drain();
+    overlookTalkStage.surface.setHistory(history);
+    overlookTalkStage.renderStream(history);
+  }
+  talk.line = null;
+  overlookTransition(session, conversation.closed ? 'talk-closed' : 'talk');
+  syncOverlookTalkControls(session);
+}
+
+function advanceOverlookTalk() {
+  const session = overlookSession;
+  if (!session) return;
+  const { state } = session.machine;
+  if (state === 'talk' && !session.talk.line) {
+    streamOverlookLine(session, session.talk).catch(reportOverlookScreenError);
+    return;
+  }
+  if (state === 'talk-closed') returnOverlookToField(session).catch(reportOverlookScreenError);
+}
+
+// 「フィールドへ戻る」: the server records the return (and may choose the next focus), then the camera runs the
+// focus move backwards to the talk's place at scale 1.0 (状態 9 → 10).
+async function returnOverlookToField(session) {
+  const talk = session.talk;
+  overlookTransition(session, 'returning');
+  overlookTalkStage.setControlsDisabled(true);
+  const payload = await postJson('/api/overlook/conversation/return', { conversation_id: talk.conversationId });
+  if (overlookSession !== session) return;
+  const { field } = validateOverlookReturnResponse(payload, { places: session.places });
+  session.samples = [];
+  session.latest = null;
+  applyOverlookField(session, field);
+  const target = talk.token.target;
+  session.focus = null;
+  session.talk = null;
+  overlookTalkStage.stopAmbient();
+  overlookNode('#academy-overlook-talk').hidden = true;
+  overlookNode('#academy-overlook-field').hidden = false;
+  session.cameraAnim = {
+    from: target,
+    target,
+    startedAt: performance.now(),
+    reverse: true,
+    onDone: () => {
+      overlookTransition(session, 'field');
+      ensureOverlookPoll(session);
+      if (session.latest.clock.ended) exitOverlookToHub(session).catch(reportOverlookScreenError);
+      else if (session.latest.focus) beginOverlookFocus(session, session.latest.focus);
+    }
+  };
+  startOverlookFrameLoop(session);
+}
+
+// ---------- leaving: the exit button or 15:00 (状態 16) ----------
+
+async function exitOverlookToHub(session) {
+  if (routingContentReturnInFlight) {
+    showProcessingToast();
+    return;
+  }
+  overlookTransition(session, 'exiting');
+  clearOverlookHover(session);
+  routingContentReturnInFlight = true;
+  try {
+    let result = null;
+    const exitRequest = postJson('/api/overlook/exit', {}).then((payload) => { result = validateOverlookExitResponse(payload); });
+    await showAcademyLoadingScreenUntilReady({ readiness: exitRequest, nextScreen: null, refreshBeforeNextScreen: false, loadingCopy: ROUTING_HUB_ENTRY_LOADING_COPY });
+    if (overlookSession === session) overlookSession = null;
+    await returnToRoutingHubFromContent(result.post_content_screen);
+  } finally {
+    routingContentReturnInFlight = false;
+  }
+}
+
+const overlookViewportElement = document.querySelector('#academy-overlook-viewport');
+overlookViewportElement.addEventListener('pointerdown', onOverlookPointerDown);
+overlookViewportElement.addEventListener('pointermove', onOverlookPointerMove);
+overlookViewportElement.addEventListener('pointerup', onOverlookPointerUp);
+overlookViewportElement.addEventListener('pointerleave', onOverlookPointerLeave);
+document.querySelector('#academy-overlook-exit').addEventListener('click', () => {
+  const session = overlookSession;
+  if (!session || !isOverlookFieldState(session.machine.state)) return;
+  exitOverlookToHub(session).catch(reportOverlookScreenError);
+});
+document.querySelector('#academy-overlook-roster-button').addEventListener('click', () => {
+  const session = overlookSession;
+  if (!session || !isOverlookFieldState(session.machine.state)) return;
+  if (session.roster.open) closeOverlookRoster(session);
+  else openOverlookRoster(session);
+});
+document.querySelector('#academy-overlook-roster').addEventListener('click', (event) => {
+  const send = event.target.closest('.academy-overlook-roster-send');
+  const session = overlookSession;
+  if (!send || send.disabled || !session) return;
+  sendOffOverlookChild(session, send.closest('.academy-overlook-roster-row').dataset.characterId).catch(reportOverlookScreenError);
+});
+document.querySelector('#academy-overlook-writing').addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (overlookSession) submitOverlookWriting(overlookSession).catch(reportOverlookScreenError);
+});
+const overlookWritingInput = document.querySelector('#academy-overlook-writing-input');
+overlookWritingInput.addEventListener('input', () => {
+  if (overlookSession?.writing) renderOverlookWritingFrame(overlookSession);
+});
+overlookWritingInput.addEventListener('compositionstart', () => { playerInputIsComposing = true; });
+overlookWritingInput.addEventListener('compositionend', () => { playerInputIsComposing = false; });
+overlookWritingInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && playerInputIsComposing) event.preventDefault();
+});
+document.querySelector('#academy-overlook-next').addEventListener('click', advanceOverlookTalk);
+document.querySelector('#academy-overlook-message-stream').addEventListener('click', () => {
+  if (overlookSession?.machine.state === 'talk') advanceOverlookTalk();
+});
+document.addEventListener('keydown', (event) => {
+  const session = overlookSession;
+  if (!session || !screens['academy-overlook'].classList.contains('active')) return;
+  const { state } = session.machine;
+  if (event.key === 'Escape' && session.roster.open) {
+    event.preventDefault();
+    closeOverlookRoster(session);
+    return;
+  }
+  if (event.key === 'Escape' && (state === 'writing' || state === 'writing-limited')) {
+    event.preventDefault();
+    closeOverlookWritingFrame(session);
+    return;
+  }
+  if (event.key === 'Enter' && !event.isComposing && (state === 'talk' || state === 'talk-closed')) {
+    event.preventDefault();
+    advanceOverlookTalk();
+  }
+});
+
+// Boot loads persisted state and the hub's ability sigils (hubTerrace.js) then applies the initial-screen
+// override. Dev calibration (?calibrate=<screen>) chains AFTER (so the target screen has its runtime state), and
+// runs whether or not the refresh above succeeded because the reportError catch resolves the chain. Its
+// fail-fasts (invalid registry / unknown screen / missing target selector / undefined offset custom property)
+// are intentionally NOT caught: a broken calibration registration must propagate and abort calibration setup,
+// never be swallowed into a degraded dev mode that keeps running.
 // Apply the persisted audio settings to the BGM controller once at boot (its own chain so it never gates the
 // initial-screen override, and its failure is handled inside initAudioSettings by dropping to silence).
 initAudioSettings();
 
+// The night journey layer over the title / slot-load / settings / loading screens and the arrival at the hub. It
+// takes the gate choices only once the boot below has run applyInitialScreenOverride.
+const metaJourney = startMetaJourney({ refreshSettings: refreshSettingsScreen });
+
 Promise.all([
   refreshSaveSlots(),
-  refresh(),
-  loadConversationPopupSettings()
-]).then(() => applyInitialScreenOverride()).catch(reportError).then(() => applyFrameDecorationCalibrationOverride());
+  refresh({ noSaveYet: true }),
+  loadConversationPopupSettings(),
+  loadAbilitySigils()
+]).then(() => applyInitialScreenOverride()).catch(reportError).then(() => metaJourney.bootFinished()).then(() => applyFrameDecorationCalibrationOverride());

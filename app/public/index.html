@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>STARFALL MAGIC ACADEMY</title>
     <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/hubTerrace.css" />
   </head>
   <body>
     <header class="topbar">
@@ -31,19 +32,7 @@
 
     <main class="layout">
       <section id="title-screen" class="screen title-hero-screen" aria-labelledby="title-title">
-        <div class="title-backdrop" aria-hidden="true">
-          <canvas id="title-starfield" class="title-starfield"></canvas>
-          <div class="title-decor-layer">
-            <img class="title-decor title-decor-1" src="/canonical/routing/decor/decor_01.png" alt="" aria-hidden="true" />
-            <img class="title-decor title-decor-2" src="/canonical/routing/decor/decor_02.png" alt="" aria-hidden="true" />
-            <img class="title-decor title-decor-3" src="/canonical/routing/decor/decor_03.png" alt="" aria-hidden="true" />
-          </div>
-        </div>
         <div class="title-screen-shell">
-          <img class="title-corner title-corner-tl" src="/canonical/routing/ui/corner_01.png" alt="" aria-hidden="true" />
-          <img class="title-corner title-corner-tr" src="/canonical/routing/ui/corner_02.png" alt="" aria-hidden="true" />
-          <img class="title-corner title-corner-bl" src="/canonical/routing/ui/corner_02.png" alt="" aria-hidden="true" />
-          <img class="title-corner title-corner-br" src="/canonical/routing/ui/corner_01.png" alt="" aria-hidden="true" />
           <h2 id="title-title">STARFALL MAGIC ACADEMY</h2>
           <div class="title-action-layout">
             <div class="title-primary-actions">
@@ -59,10 +48,6 @@
       </section>
 
       <section id="slot-load-screen" class="screen" aria-labelledby="slot-load-title">
-        <div class="slot-load-backdrop" aria-hidden="true">
-          <div class="slot-load-background"></div>
-          <canvas id="slot-load-starfield" class="slot-load-starfield"></canvas>
-        </div>
         <div class="slot-load-content">
           <div class="screen-heading slot-load-screen-heading">
             <h2 id="slot-load-title">ロードするデータを選ぶ</h2>
@@ -143,14 +128,9 @@
       </section>
 
       <section id="settings-screen" class="screen" aria-labelledby="settings-title">
-        <div class="settings-backdrop" aria-hidden="true">
-          <div class="settings-background"></div>
-          <canvas id="settings-starfield" class="settings-starfield"></canvas>
-        </div>
         <div class="settings-content">
           <div class="academy-map-hero settings-screen-hero">
             <div class="settings-screen-hero-copy">
-              <p class="eyebrow">Settings</p>
               <h2 id="settings-title">設定</h2>
             </div>
             <div class="settings-screen-hero-actions">
@@ -161,54 +141,36 @@
             <nav class="settings-category-nav" aria-label="設定カテゴリ">
               <button id="settings-category-lmstudio" type="button" class="settings-category-tab is-active" data-settings-category="lmstudio" aria-controls="settings-panel-lmstudio" aria-pressed="true">接続設定</button>
               <button id="settings-category-conversation-popup" type="button" class="settings-category-tab" data-settings-category="conversation-popup" aria-controls="settings-panel-conversation-popup" aria-pressed="false">セリフの出かた</button>
-              <button id="settings-category-conversation-finalize" type="button" class="settings-category-tab" data-settings-category="conversation-finalize" aria-controls="settings-panel-conversation-finalize" aria-pressed="false">会話後処理</button>
               <button id="settings-category-audio" type="button" class="settings-category-tab" data-settings-category="audio" aria-controls="settings-panel-audio" aria-pressed="false">サウンド</button>
-              <button id="settings-category-save-data-repair" type="button" class="settings-category-tab" data-settings-category="save-data-repair" aria-controls="settings-panel-save-data-repair" aria-pressed="false">セーブデータ修正</button>
             </nav>
             <div class="settings-category-panels">
             <section id="settings-panel-lmstudio" class="settings-card settings-category-panel" data-settings-category="lmstudio" aria-labelledby="lmstudio-settings-title">
               <div class="panel-title-row settings-card-heading">
                 <div>
-                  <p class="eyebrow">LM Studio</p>
                   <h3 id="lmstudio-settings-title">接続設定</h3>
                 </div>
                 <p id="lmstudio-settings-status" class="settings-inline-status" aria-live="polite">現在の接続先を読み込みます。</p>
               </div>
               <form id="lmstudio-settings-form" class="settings-form">
-                <fieldset class="settings-radio-group">
-                  <legend>接続方式</legend>
-                  <label class="settings-radio-option" for="lmstudio-connection-mode-localhost">
-                    <input id="lmstudio-connection-mode-localhost" type="radio" name="lmstudio-connection-mode" value="localhost" />
-                    <span>ローカルホスト</span>
-                  </label>
-                  <label class="settings-radio-option" for="lmstudio-connection-mode-lan">
-                    <input id="lmstudio-connection-mode-lan" type="radio" name="lmstudio-connection-mode" value="lan" />
-                    <span>ローカルネットワーク</span>
-                  </label>
-                </fieldset>
                 <div class="settings-field-grid">
                   <label class="character-description-editor settings-field">
                     接続先ホスト
-                    <input id="lmstudio-host" type="text" inputmode="url" placeholder="127.0.0.1 または 192.168.x.x" />
+                    <input id="lmstudio-host" type="text" inputmode="url" />
                   </label>
                   <label class="character-description-editor settings-field">
                     ポート
                     <input id="lmstudio-port" type="number" min="1" max="65535" step="1" placeholder="1234" />
                   </label>
                 </div>
-                <p id="lmstudio-base-url" class="settings-base-url">接続URL: 読み込み中…</p>
                 <div class="settings-model-block">
                   <div class="settings-model-heading">
-                    <div>
-                      <p class="eyebrow">Model</p>
-                      <h4>使用モデル</h4>
-                    </div>
+                    <h4>使用モデル</h4>
                     <button id="fetch-lmstudio-models" type="button" class="academy-map-action-button secondary">モデル一覧を取得</button>
                   </div>
                   <label class="character-description-editor settings-field settings-model-field">
                     モデル
                     <select id="lmstudio-model">
-                      <option value="">モデル一覧を取得してください</option>
+                      <option value="">未選択</option>
                     </select>
                   </label>
                   <label class="character-description-editor settings-field settings-model-field">
@@ -220,7 +182,6 @@
                       <option value="high">High</option>
                     </select>
                   </label>
-                  <p class="settings-model-status">None を選ぶと、LM Studio へのリクエストでシンキングを無効化します。</p>
                   <p id="lmstudio-model-status" class="settings-model-status" aria-live="polite">現在モデルを読み込みます。</p>
                 </div>
               </form>
@@ -228,7 +189,6 @@
             <section id="settings-panel-conversation-popup" class="settings-card settings-category-panel" data-settings-category="conversation-popup" aria-labelledby="conv-popup-settings-title" hidden>
               <div class="panel-title-row settings-card-heading">
                 <div>
-                  <p class="eyebrow">会話ポップアップ</p>
                   <h3 id="conv-popup-settings-title">セリフの出かた</h3>
                 </div>
                 <p id="conv-popup-settings-status" class="settings-inline-status" aria-live="polite">現在の設定を読み込みます。</p>
@@ -245,27 +205,11 @@
                     </select>
                   </label>
                 </div>
-                <p class="settings-model-status">クールタイムは次のセリフが出るまでの間隔です。標準のクールタイムは 500ms です。</p>
               </form>
-            </section>
-            <section id="settings-panel-conversation-finalize" class="settings-card settings-category-panel" data-settings-category="conversation-finalize" aria-labelledby="conversation-finalize-settings-title" hidden>
-              <div class="panel-title-row settings-card-heading">
-                <div>
-                  <p class="eyebrow">会話後処理</p>
-                  <h3 id="conversation-finalize-settings-title">会話後処理の復旧</h3>
-                </div>
-                <p id="conversation-finalize-settings-status" class="settings-inline-status" aria-live="polite">後処理の状態を確認します。</p>
-              </div>
-              <div id="routing-finalize-panel" class="routing-finalize-panel" hidden>
-                <h4 class="routing-finalize-panel-title">後処理の失敗（再試行できます）</h4>
-                <p class="settings-model-status">同行者ごとの会話後処理が失敗すると、ここに残ります。原因（LM Studio の接続など）を直したうえで再試行してください。</p>
-                <ul id="routing-finalize-failed-list" class="routing-finalize-failed-list"></ul>
-              </div>
             </section>
             <section id="settings-panel-audio" class="settings-card settings-category-panel" data-settings-category="audio" aria-labelledby="audio-settings-title" hidden>
               <div class="panel-title-row settings-card-heading">
                 <div>
-                  <p class="eyebrow">サウンド</p>
                   <h3 id="audio-settings-title">BGM</h3>
                 </div>
                 <p id="audio-settings-status" class="settings-inline-status" aria-live="polite">現在の設定を読み込みます。</p>
@@ -281,32 +225,12 @@
                     <input id="audio-bgm-volume" type="range" min="0" max="1" step="0.01" />
                   </label>
                 </div>
-                <p class="settings-model-status">BGMのオン/オフと音量はすぐに反映されます（再生中の曲は止まりません）。</p>
               </form>
-            </section>
-            <section id="settings-panel-save-data-repair" class="settings-card settings-category-panel" data-settings-category="save-data-repair" aria-labelledby="save-data-repair-settings-title" hidden>
-              <div class="panel-title-row settings-card-heading">
-                <div>
-                  <p class="eyebrow">セーブデータ修正</p>
-                  <h3 id="save-data-repair-settings-title">既存セーブデータへの修正</h3>
-                </div>
-                <p id="save-data-repair-settings-status" class="settings-inline-status" aria-live="polite">既存のセーブデータへ後付けが必要な修正をここから実行できます。何度実行しても副作用ありません。</p>
-              </div>
-              <ul id="save-data-repair-entries" class="save-data-repair-entries">
-                <li class="save-data-repair-entry" data-save-data-repair-entry="unconsumed-routing-conversation-pointer">
-                  <div class="save-data-repair-entry-copy">
-                    <h4 class="save-data-repair-entry-title">案内人注入寿命の設定を追加</h4>
-                    <p class="save-data-repair-entry-description">案内人が hub 会話で参照する記憶を 1 回消費で忘れる形にするために、既存セーブデータへ設定を追加します。何度実行しても副作用ありません。</p>
-                  </div>
-                  <div class="save-data-repair-entry-actions">
-                    <button id="save-data-repair-unconsumed-routing-conversation-pointer-button" type="button" class="academy-map-action-button">実行する</button>
-                    <p id="save-data-repair-unconsumed-routing-conversation-pointer-result" class="save-data-repair-entry-result" aria-live="polite"></p>
-                  </div>
-                </li>
-              </ul>
             </section>
             </div>
           </div>
+          <!-- 部屋から出る道（門へ・ゲームの中なら元の画面へ）。部屋の中身がこの画面なので、夜の道行きの層より上に出る。 -->
+          <button type="button" class="journey-path journey-way journey-room-way" data-journey-action="room-back">戻る</button>
         </div>
       </section>
 
@@ -595,77 +519,87 @@
       </section>
 
       <section id="routing-hub-screen" class="screen routing-hub-screen" aria-label="ルーティングハブ">
-        <!-- 星の揺り籠 entrance: the drifting 天球儀 decor (decor-1) itself, promoted above the frame so it takes the
-             click / keyboard focus that opens the garden overlay. It keeps the shared .routing-hub-decor drift /
-             position / size; its accessible name is on the button (the globe art is decorative). Placed before the
-             backdrop so the decor_01 → decor_02 → decor_03 source order is preserved. -->
-        <button type="button" id="routing-hub-cradle-globe" class="routing-hub-decor routing-hub-decor-1 routing-hub-cradle-globe" title="星の揺り籠" aria-label="星の揺り籠を開く" aria-haspopup="dialog">
+        <!-- 星の揺り籠の入口: 露台の左上の夜に浮かぶ天球儀そのもの。名前は aria-label だけに持つ。 -->
+        <button type="button" id="routing-hub-cradle-globe" class="routing-hub-cradle-globe" aria-label="星の揺り籠を開く" aria-haspopup="dialog">
           <img class="routing-hub-cradle-globe-img" src="/canonical/routing/decor/decor_01.png" alt="" aria-hidden="true" />
         </button>
         <div class="routing-hub-backdrop" aria-hidden="true">
           <div class="routing-hub-background"></div>
           <canvas id="routing-hub-starfield" class="routing-hub-starfield"></canvas>
-          <div class="routing-hub-decor-layer">
-            <img class="routing-hub-decor routing-hub-decor-2" src="/canonical/routing/decor/decor_02.png" alt="" aria-hidden="true" />
-            <img class="routing-hub-decor routing-hub-decor-3" src="/canonical/routing/decor/decor_03.png" alt="" aria-hidden="true" />
+          <!-- 露台の向こう: 覗いた場所・戻った場所・送り出しで開く場所の絵を置く（hubTerrace.js が描く）。 -->
+          <div class="terrace-beyond">
+            <div class="terrace-place-art" data-terrace-art="peek"></div>
+            <div class="terrace-place-art" data-terrace-art="return"></div>
+            <div class="terrace-place-art" data-terrace-art="opening"></div>
           </div>
+          <!-- 能力の紋の置き場: hubTerraceSigils.svg の symbol を起動時に写し、帯の紋が <use> で引く（hubTerrace.js）。 -->
+          <svg id="terrace-sigil-symbols" class="terrace-sigil-symbols" aria-hidden="true" focusable="false"></svg>
         </div>
         <div class="routing-hub-frame">
+          <div class="terrace-hush" aria-hidden="true"></div>
           <header class="routing-hub-topbar">
-            <span class="routing-hub-moon-glyph" id="routing-hub-moon-phase"></span>
             <span class="routing-hub-week" id="routing-hub-week">第1週 / 50</span>
+            <button type="button" class="journey-path journey-hub-room-entry" data-journey-action="room-in-play" aria-label="設定">
+              <svg class="terrace-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"> <defs><linearGradient id="terrace-icon-settings-fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#525aa6" /><stop offset="1" stop-color="#20245a" /></linearGradient></defs> <path d="M13.69 6.68 L14.00 3.97 L18.00 3.97 L18.31 6.68 L20.95 7.78 L23.09 6.07 L25.93 8.91 L24.22 11.05 L25.32 13.69 L28.03 14.00 L28.03 18.00 L25.32 18.31 L24.22 20.95 L25.93 23.09 L23.09 25.93 L20.95 24.22 L18.31 25.32 L18.00 28.03 L14.00 28.03 L13.69 25.32 L11.05 24.22 L8.91 25.93 L6.07 23.09 L7.78 20.95 L6.68 18.31 L3.97 18.00 L3.97 14.00 L6.68 13.69 L7.78 11.05 L6.07 8.91 L8.91 6.07 L11.05 7.78 Z" fill="url(#terrace-icon-settings-fill)" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" /> <circle cx="16" cy="16" r="5.4" fill="#141735" stroke="#dde3f6" stroke-width="1.1" /> <path d="M16.00 12.40 L16.94 15.06 L19.60 16.00 L16.94 16.94 L16.00 19.60 L15.06 16.94 L12.40 16.00 L15.06 15.06 Z" fill="#e8c877" /> </svg>
+            </button>
           </header>
-          <div class="routing-hub-body">
-            <nav class="routing-hub-category-rail" aria-label="情報メニュー">
-              <button type="button" class="routing-hub-category-button" data-routing-category="self" aria-haspopup="dialog">
-                <img class="routing-hub-category-icon" src="/canonical/routing/icons/self.png" alt="" aria-hidden="true" />
-                <span class="routing-hub-category-label">自分</span>
-              </button>
-              <button type="button" class="routing-hub-category-button" data-routing-category="buddy" aria-haspopup="dialog">
-                <img class="routing-hub-category-icon" src="/canonical/routing/icons/buddy.png" alt="" aria-hidden="true" />
-                <span class="routing-hub-category-label">バディー</span>
-              </button>
-              <button type="button" class="routing-hub-category-button" data-routing-category="enemy" aria-haspopup="dialog">
-                <img class="routing-hub-category-icon" src="/canonical/routing/icons/enemy.png" alt="" aria-hidden="true" />
-                <span class="routing-hub-category-label">エネミー</span>
-              </button>
-              <button type="button" class="routing-hub-category-button" data-routing-category="inventory" aria-haspopup="dialog">
-                <img class="routing-hub-category-icon" src="/canonical/routing/icons/inventory.png" alt="" aria-hidden="true" />
-                <span class="routing-hub-category-label">持ち物</span>
-              </button>
-              <button type="button" class="routing-hub-category-button" data-routing-category="money" aria-haspopup="dialog">
-                <img class="routing-hub-category-icon" src="/canonical/routing/icons/money.png" alt="" aria-hidden="true" />
-                <span class="routing-hub-category-label">お金</span>
-              </button>
-              <button type="button" class="routing-hub-category-button" data-routing-category="diary" aria-haspopup="dialog">
-                <img class="routing-hub-category-icon" src="/canonical/routing/icons/diary.png" alt="" aria-hidden="true" />
-                <span class="routing-hub-category-label">日記</span>
-              </button>
-              <button type="button" class="routing-hub-category-button" data-routing-category="library" aria-haspopup="dialog">
-                <img class="routing-hub-category-icon" src="/canonical/routing/icons/library.png" alt="" aria-hidden="true" />
-                <span class="routing-hub-category-label">収蔵庫</span>
-              </button>
-            </nav>
-            <div class="routing-hub-stage">
-              <figure class="routing-hub-standee-frame">
-                <img id="routing-hub-standee" class="routing-hub-standee" alt="ルーティング案内役の立ち絵" />
-              </figure>
-              <div class="routing-hub-chat-panel">
-                <img class="routing-hub-corner routing-hub-corner-tl" src="/canonical/routing/ui/corner_01.png" alt="" aria-hidden="true" />
-                <img class="routing-hub-corner routing-hub-corner-br" src="/canonical/routing/ui/corner_01.png" alt="" aria-hidden="true" />
-                <div id="routing-hub-message-stream" class="routing-hub-message-stream" aria-live="polite"></div>
-                <p id="routing-hub-status" class="routing-hub-status" aria-live="polite" hidden></p>
-                <label class="routing-hub-composer">
-                  <span class="routing-hub-composer-label">あなた</span>
-                  <textarea id="routing-hub-input" placeholder="案内人に話しかける。Enterで送信、Shift+Enterで改行"></textarea>
-                </label>
-                <div class="routing-hub-button-row">
-                  <button id="routing-hub-send" type="button" class="routing-hub-action-button">送信</button>
-                  <button id="routing-hub-end" type="button" class="routing-hub-action-button routing-hub-action-secondary">今日はここまで</button>
-                </div>
-              </div>
-            </div>
+          <nav class="routing-hub-category-rail" aria-label="情報メニュー">
+            <button type="button" class="routing-hub-category-button" data-routing-category="self" aria-haspopup="dialog" aria-label="自分">
+              <img class="routing-hub-category-icon" src="/canonical/routing/icons/self.png" alt="" aria-hidden="true" />
+            </button>
+            <button type="button" class="routing-hub-category-button" data-routing-category="buddy" aria-haspopup="dialog" aria-label="バディー">
+              <img class="routing-hub-category-icon" src="/canonical/routing/icons/buddy.png" alt="" aria-hidden="true" />
+            </button>
+            <button type="button" class="routing-hub-category-button" data-routing-category="enemy" aria-haspopup="dialog" aria-label="エネミー">
+              <img class="routing-hub-category-icon" src="/canonical/routing/icons/enemy.png" alt="" aria-hidden="true" />
+            </button>
+            <button type="button" class="routing-hub-category-button" data-routing-category="inventory" aria-haspopup="dialog" aria-label="持ち物">
+              <img class="routing-hub-category-icon" src="/canonical/routing/icons/inventory.png" alt="" aria-hidden="true" />
+            </button>
+            <button type="button" class="routing-hub-category-button" data-routing-category="money" aria-haspopup="dialog" aria-label="お金">
+              <img class="routing-hub-category-icon" src="/canonical/routing/icons/money.png" alt="" aria-hidden="true" />
+            </button>
+            <button type="button" class="routing-hub-category-button" data-routing-category="diary" aria-haspopup="dialog" aria-label="日記">
+              <img class="routing-hub-category-icon" src="/canonical/routing/icons/diary.png" alt="" aria-hidden="true" />
+            </button>
+            <button type="button" class="routing-hub-category-button" data-routing-category="library" aria-haspopup="dialog" aria-label="収蔵庫">
+              <img class="routing-hub-category-icon" src="/canonical/routing/icons/library.png" alt="" aria-hidden="true" />
+            </button>
+          </nav>
+          <figure class="routing-hub-standee-frame">
+            <img id="routing-hub-standee" class="routing-hub-standee" alt="ルーティング案内役の立ち絵" />
+          </figure>
+          <div id="routing-hub-message-stream" class="routing-hub-message-stream" aria-live="polite"></div>
+          <p id="routing-hub-status" class="routing-hub-status" aria-live="polite" hidden></p>
+          <!-- 書く口: 札も枠も置かず、羽根ペンの紋と下の一本の線で示す。 -->
+          <label class="routing-hub-composer">
+            <svg class="terrace-icon terrace-write-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"> <defs><linearGradient id="terrace-icon-write-fill" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#525aa6" /><stop offset="1" stop-color="#20245a" /></linearGradient></defs> <path d="M26.5 4 C17.5 6 11.5 13 9 22 L10.5 23.5 C19.5 21 25.5 14 26.5 4 Z" fill="url(#terrace-icon-write-fill)" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" /> <path d="M24.4 7 C18.6 11 13.6 16 10.2 22.6" fill="none" stroke="#dde3f6" stroke-width="0.8" /> <path d="M9 22 L5.2 27.6" fill="none" stroke="#dde3f6" stroke-width="1.4" stroke-linecap="round" /> <path d="M24.50 23.80 L25.07 25.43 L26.70 26.00 L25.07 26.57 L24.50 28.20 L23.93 26.57 L22.30 26.00 L23.93 25.43 Z" fill="#e8c877" /> </svg>
+            <textarea id="routing-hub-input" aria-label="案内人に話しかける"></textarea>
+          </label>
+          <div class="routing-hub-button-row">
+            <!-- ハブへの戻しをやり直す紋の釦: ハブの会話の開始が失敗した着地にだけ出る。名は aria-label だけに持ち、文字は出さない。 -->
+            <button id="routing-hub-start-retry" type="button" class="routing-hub-start-retry" aria-label="もう一度" hidden>
+              <svg class="routing-hub-start-retry-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path class="routing-hub-start-retry-orbit" d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
+                <path class="routing-hub-start-retry-head" d="M18.6 3.2 17.8 7.2 13.8 6.6" />
+                <path class="routing-hub-start-retry-star" d="M12 8.6 12.9 11.1 15.4 12 12.9 12.9 12 15.4 11.1 12.9 8.6 12 11.1 11.1z" />
+              </svg>
+            </button>
+            <button id="routing-hub-send" type="button" class="routing-hub-action-button" aria-label="送信">
+              <svg class="terrace-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"> <defs><linearGradient id="terrace-icon-send-fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#525aa6" /><stop offset="1" stop-color="#20245a" /></linearGradient></defs> <path d="M4 15.4 L27.6 5 L21 27.4 L15.3 18.7 Z" fill="url(#terrace-icon-send-fill)" stroke="#dde3f6" stroke-width="1.4" stroke-linejoin="round" /> <path d="M15.3 18.7 L27.6 5" fill="none" stroke="#dde3f6" stroke-width="1.1" /> <path d="M9.00 20.80 L9.83 23.17 L12.20 24.00 L9.83 24.83 L9.00 27.20 L8.17 24.83 L5.80 24.00 L8.17 23.17 Z" fill="#e8c877" /> </svg>
+            </button>
+            <button id="routing-hub-end" type="button" class="routing-hub-action-button" aria-label="今日はここまで">
+              <svg class="terrace-icon" viewBox="0 0 32 32" aria-hidden="true" focusable="false"> <defs><linearGradient id="terrace-icon-end-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#525aa6" /><stop offset="1" stop-color="#20245a" /></linearGradient></defs> <path d="M8.5 27.5 V13.5 a7.5 7.5 0 0 1 15 0 V27.5 Z" fill="url(#terrace-icon-end-fill)" stroke="#dde3f6" stroke-width="1.4" stroke-linejoin="round" /> <path d="M5 27.5 H27" fill="none" stroke="#dde3f6" stroke-width="1.4" stroke-linecap="round" /> <path d="M17.2 9.4 A4.4 4.4 0 1 0 20.4 16.6 A3.5 3.5 0 1 1 17.2 9.4 Z" fill="#e8c877" /> <circle cx="20.2" cy="21.4" r="0.95" fill="#dde3f6" /> </svg>
+            </button>
           </div>
+        </div>
+        <!-- 会話後処理の非常口: ハブの出口が後片づけの詰まり（pending_finalizations_blocked）で断られたときだけ、ハブの上に出る。 -->
+        <div id="routing-hub-finalize-notice" class="routing-hub-finalize-notice" role="status" hidden>
+          <div class="routing-hub-finalize-notice-row">
+            <p class="routing-hub-finalize-notice-line">さっきの会話の後片づけが、まだ終わっていません。</p>
+            <button id="routing-hub-finalize-retry" type="button" class="routing-hub-action-button">もう一度</button>
+          </div>
+          <p id="routing-hub-finalize-notice-reason" class="routing-hub-finalize-notice-reason" hidden></p>
         </div>
         <div id="routing-hub-info-popup" class="routing-hub-info-popup" hidden>
           <div class="routing-hub-info-popup-backdrop" data-routing-popup-close="true"></div>
@@ -675,7 +609,7 @@
                 <img id="routing-hub-info-popup-icon" class="routing-hub-info-popup-icon" alt="" aria-hidden="true" />
                 <h3 id="routing-hub-info-popup-title" class="routing-hub-info-popup-title">情報</h3>
               </div>
-              <button type="button" class="routing-hub-info-popup-close" data-routing-popup-close="true" aria-label="閉じる">×</button>
+              <button type="button" class="routing-hub-info-popup-close terrace-sigil-button" data-routing-popup-close="true" aria-label="閉じる"><svg class="terrace-sigil terrace-sigil-close" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="11" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" /><path d="M11.5 11.5 L20.5 20.5 M20.5 11.5 L11.5 20.5" fill="none" stroke="#dde3f6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /><path d="M25.50 4.10 L26.17 5.83 L27.90 6.50 L26.17 7.17 L25.50 8.90 L24.83 7.17 L23.10 6.50 L24.83 5.83 Z" fill="#e8c877" /></svg></button>
             </div>
             <div id="routing-hub-info-popup-body" class="routing-hub-info-popup-body"></div>
           </div>
@@ -700,23 +634,21 @@
           <div class="routing-hub-equipment-popup-card" role="dialog" aria-modal="true" aria-labelledby="routing-hub-equipment-popup-title">
             <div class="routing-hub-equipment-popup-header">
               <div class="routing-hub-equipment-popup-heading">
-                <p class="routing-hub-equipment-popup-eyebrow">Equipment</p>
                 <h3 id="routing-hub-equipment-popup-title" class="routing-hub-equipment-popup-title">装備</h3>
               </div>
-              <button type="button" class="routing-hub-info-popup-close" data-routing-popup-close="true" aria-label="閉じる">×</button>
+              <button type="button" class="routing-hub-info-popup-close terrace-sigil-button" data-routing-popup-close="true" aria-label="閉じる"><svg class="terrace-sigil terrace-sigil-close" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="11" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" /><path d="M11.5 11.5 L20.5 20.5 M20.5 11.5 L11.5 20.5" fill="none" stroke="#dde3f6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /><path d="M25.50 4.10 L26.17 5.83 L27.90 6.50 L26.17 7.17 L25.50 8.90 L24.83 7.17 L23.10 6.50 L24.83 5.83 Z" fill="#e8c877" /></svg></button>
             </div>
             <div id="routing-hub-equipment-popup-body" class="routing-hub-equipment-popup-body"></div>
           </div>
         </div>
         <div id="routing-hub-star-cradle" class="routing-hub-star-cradle" hidden>
           <div class="routing-hub-star-cradle-backdrop" data-routing-popup-close="true"></div>
-          <div class="routing-hub-star-cradle-card" role="dialog" aria-modal="true" aria-labelledby="routing-hub-star-cradle-title">
+          <div class="routing-hub-star-cradle-card" role="dialog" aria-modal="true" aria-label="星の揺り籠">
             <div class="routing-hub-star-cradle-header">
               <div class="routing-hub-star-cradle-heading">
                 <img class="routing-hub-star-cradle-icon" src="/canonical/star_cradle/cradle_icon.png" alt="" aria-hidden="true" />
-                <h3 id="routing-hub-star-cradle-title" class="routing-hub-star-cradle-title">星の揺り籠</h3>
               </div>
-              <button type="button" class="routing-hub-info-popup-close" data-routing-popup-close="true" aria-label="閉じる">×</button>
+              <button type="button" class="routing-hub-info-popup-close terrace-sigil-button" data-routing-popup-close="true" aria-label="閉じる"><svg class="terrace-sigil terrace-sigil-close" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><circle cx="16" cy="16" r="11" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" /><path d="M11.5 11.5 L20.5 20.5 M20.5 11.5 L11.5 20.5" fill="none" stroke="#dde3f6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /><path d="M25.50 4.10 L26.17 5.83 L27.90 6.50 L26.17 7.17 L25.50 8.90 L24.83 7.17 L23.10 6.50 L24.83 5.83 Z" fill="#e8c877" /></svg></button>
             </div>
             <p id="routing-hub-star-cradle-status" class="routing-hub-star-cradle-status" role="status" aria-live="polite" hidden></p>
             <div id="routing-hub-star-cradle-body" class="routing-hub-star-cradle-body"></div>
@@ -770,111 +702,123 @@
         <div id="academy-training-day-transition" class="academy-training-day-transition training-day-transition" role="status" aria-live="polite"></div>
       </section>
 
-      <section id="academy-dungeon-screen" class="screen dungeon-screen" aria-labelledby="academy-dungeon-title">
-        <h2 id="academy-dungeon-title" class="dungeon-a11y-title">実践（自動生成ダンジョン）</h2>
+      <section id="academy-dungeon-screen" class="screen dungeon-screen" aria-labelledby="academy-dungeon-title" data-scene="entry" data-companion="none" data-motion="full">
+        <h2 id="academy-dungeon-title" class="dungeon-a11y-title">実践</h2>
 
-        <div id="dungeon-entry" class="dungeon-entry app-card">
-          <div class="dungeon-entry-copy">
-            <p class="eyebrow">Practical Dungeon</p>
-            <h3>実践（自動生成ダンジョン）</h3>
-            <p>自動生成のダンジョンに潜り、ターン制で探索・戦闘します。撤退すると道中の経験を能力として持ち帰り、全滅すると道中の経験は失われます。深い階ほど危険と報酬が増します。</p>
-            <p id="dungeon-availability" class="dungeon-availability" aria-live="polite"></p>
+        <div class="dn-stage" id="dungeon-stage" aria-label="盤">
+          <div class="dn-viewport" id="dungeon-viewport">
+            <div class="dn-board" id="dungeon-board">
+              <div class="dn-tiles" id="dungeon-tiles"></div>
+              <div class="dn-entities" id="dungeon-entities"></div>
+              <div class="dn-effects" id="dungeon-effects" aria-hidden="true"></div>
+              <div class="dn-voices" id="dungeon-voices" aria-hidden="true"></div>
+            </div>
+            <div class="dn-veil" id="dungeon-veil" aria-hidden="true"></div>
+            <p class="dn-floor-mark" id="dungeon-floor-mark" aria-hidden="true"></p>
           </div>
-          <div class="dungeon-entry-actions">
-            <button id="dungeon-enter" type="button" class="academy-map-action-button primary">ダンジョンに潜る</button>
-            <button id="dungeon-back-to-map" type="button" class="academy-map-action-button secondary">学院マップに戻る</button>
-          </div>
-          <div id="dungeon-equipment" class="dungeon-equipment">
-            <p class="eyebrow">Equipment</p>
-            <h3 class="dungeon-equipment-title">装備</h3>
-            <p id="dungeon-equipment-status" class="dungeon-equipment-status" role="status" aria-live="polite" hidden></p>
-            <div id="dungeon-equipment-targets" class="dungeon-equipment-targets" role="tablist" aria-label="装備対象"></div>
-            <div id="dungeon-equipment-slots" class="dungeon-equipment-slots" aria-label="装備スロット"></div>
-            <div id="dungeon-equipment-run" class="dungeon-equipment-run" aria-label="この run に効く補正"></div>
+          <div class="dn-hurt" id="dungeon-hurt" aria-hidden="true"></div>
+
+          <div class="dn-entry" id="dungeon-entry">
+            <div class="dn-entry-hall" id="dungeon-entry-hall" aria-hidden="true"></div>
+            <button type="button" class="dn-quiet dn-entry-back" id="dungeon-back-to-map">学院マップに戻る</button>
+            <div class="dn-entry-scene" id="dungeon-entry-scene">
+              <h1 class="dn-entry-title">実践</h1>
+              <div class="dn-entry-door" id="dungeon-entry-door">
+                <button type="button" class="dn-dive" id="dungeon-dive" disabled>潜る</button>
+              </div>
+              <div class="dn-entry-party" id="dungeon-entry-party">
+                <figure class="dn-entry-member dn-entry-member--hero">
+                  <div class="dn-token dn-token--self"><div class="dn-token-face" data-crest></div></div>
+                  <figcaption class="dn-entry-name">主人公</figcaption>
+                </figure>
+                <figure class="dn-entry-member dn-entry-member--companion" id="dungeon-entry-companion">
+                  <div class="dn-token dn-token--ally" id="dungeon-entry-companion-token"><div class="dn-token-face"><img id="dungeon-entry-face" alt=""></div></div>
+                  <figcaption class="dn-entry-name" id="dungeon-entry-companion-name"></figcaption>
+                </figure>
+              </div>
+              <div class="dn-entry-company" id="dungeon-entry-company" role="radiogroup" aria-label="同行">
+                <button type="button" class="dn-choice" data-with="1" role="radio"><span class="dn-choice-mark" aria-hidden="true"></span><span class="dn-choice-label" id="dungeon-entry-with-label">同行者と潜る</span></button>
+                <button type="button" class="dn-choice" data-with="0" role="radio"><span class="dn-choice-mark" aria-hidden="true"></span><span class="dn-choice-label">ひとりで潜る</span></button>
+              </div>
+              <p class="dn-entry-note" id="dungeon-entry-note" hidden></p>
+              <ul class="dn-entry-kit" id="dungeon-entry-kit" aria-label="持っていくもの"></ul>
+            </div>
           </div>
         </div>
 
-        <div id="dungeon-play" class="dungeon-play" hidden>
-          <header class="dungeon-hud">
-            <div id="dungeon-hud-status" class="dungeon-hud-status" aria-label="ダンジョン状況"></div>
-            <div class="dungeon-hud-buttons">
-              <button id="dungeon-retreat-button" type="button" class="dungeon-hud-button" aria-haspopup="dialog">撤退</button>
-              <button id="dungeon-help-button" type="button" class="dungeon-icon-button" aria-label="ヘルプ" aria-haspopup="dialog">?</button>
+        <aside class="dn-rail" id="dungeon-rail" aria-label="主人公と同行者">
+          <header class="dn-rail-head">
+            <p class="dn-depth"><span class="dn-depth-floor" id="dungeon-depth-floor"></span><span class="dn-depth-turn" id="dungeon-depth-turn"></span></p>
+            <div class="dn-rail-buttons">
+              <button type="button" class="dn-quiet" id="dungeon-retreat-button" aria-haspopup="dialog">撤退</button>
+              <button type="button" class="dn-help-mark" id="dungeon-help-button" aria-label="ヘルプ" aria-haspopup="dialog">?</button>
             </div>
           </header>
+          <div class="dn-party" id="dungeon-party"></div>
 
-          <div class="dungeon-body">
-            <div class="dungeon-stage">
-              <div id="dungeon-grid" class="dungeon-grid" role="grid" aria-label="ダンジョンマップ"></div>
-              <div id="dungeon-consumable-prompt" class="dungeon-consumable-prompt" hidden role="status" aria-live="polite"></div>
+          <section class="dn-talk" id="dungeon-talk" aria-label="会話とこれまでの出来事">
+            <div class="dn-journal" id="dungeon-journal" aria-live="polite" tabindex="0"></div>
+            <p id="dungeon-talk-status" class="dungeon-equipment-status" role="status" aria-live="polite" hidden></p>
+            <div class="dn-talk-input-row" id="dungeon-talk-input-row">
+              <input id="dungeon-talk-input" type="text" maxlength="200" placeholder="話しかける" autocomplete="off">
+              <button type="button" id="dungeon-talk-send" class="dn-quiet">送る</button>
             </div>
+          </section>
 
-            <div class="dungeon-side">
-              <aside id="dungeon-chat" class="dungeon-chat" hidden aria-label="同行者との会話">
-                <div id="dungeon-chat-log" class="dungeon-chat-log" aria-live="polite"></div>
-                <div class="dungeon-chat-input-row">
-                  <input id="dungeon-talk-input" type="text" maxlength="200" placeholder="同行者に話しかける" />
-                  <button id="dungeon-talk-send" type="button" class="dungeon-spell dungeon-talk-send">送信</button>
-                </div>
-              </aside>
+          <section class="dn-hand" aria-label="魔法と持ち物">
+            <p class="dn-targeting" id="dungeon-targeting" hidden role="status" aria-live="polite"></p>
+            <div class="dn-spells" id="dungeon-spells" aria-label="魔法"></div>
+            <div class="dn-carry" id="dungeon-carry" aria-label="持ち物"></div>
+          </section>
 
-              <div id="dungeon-items" class="dungeon-items" aria-label="アイテム">
-                <div id="dungeon-brought" class="dungeon-item-column" aria-label="持ち込んだアイテム">
-                  <p class="dungeon-item-column-label">持ち込んだアイテム</p>
-                  <div id="dungeon-consumables-list" class="dungeon-item-column-list"></div>
-                </div>
-                <div id="dungeon-pickups" class="dungeon-item-column" aria-label="拾ったアイテム">
-                  <p class="dungeon-item-column-label">拾ったアイテム</p>
-                  <div id="dungeon-pickups-list" class="dungeon-item-column-list"></div>
-                </div>
-                <div id="dungeon-materials" class="dungeon-item-column" aria-label="拾った素材">
-                  <p class="dungeon-item-column-label">拾った素材</p>
-                  <div id="dungeon-materials-list" class="dungeon-item-column-list"></div>
-                </div>
-              </div>
+          <section class="dn-result" id="dungeon-result" hidden aria-labelledby="dungeon-result-title">
+            <h2 class="dn-result-title" id="dungeon-result-title"></h2>
+            <p class="dn-result-reach" id="dungeon-result-reach"></p>
+            <div class="dn-result-lines" id="dungeon-result-lines"></div>
+            <button type="button" class="dn-result-back" id="dungeon-result-back" hidden>戻る</button>
+          </section>
+        </aside>
 
-              <div class="dungeon-dock">
-                <div class="dungeon-dock-main">
-                  <div id="dungeon-spells" class="dungeon-spells" aria-label="魔法"></div>
-                  <div id="dungeon-actions" class="dungeon-actions" aria-label="回復・複合魔法"></div>
-                  <p class="dungeon-controls-hint">移動：方向キー　／　待機：スペース　／　階段を降りる：エンター</p>
-                </div>
-                <div id="dungeon-log" class="dungeon-log" aria-label="行動ログ" aria-live="polite" tabindex="0"></div>
-              </div>
+        <div class="dn-modal" id="dungeon-help-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-help-title">
+          <div class="dn-modal-panel">
+            <header class="dn-modal-head">
+              <h2 id="dungeon-help-title">ヘルプ</h2>
+              <button type="button" class="dn-quiet" data-close aria-label="閉じる">×</button>
+            </header>
+            <div class="dn-help-body" id="dungeon-help-body"></div>
+          </div>
+        </div>
+        <div class="dn-modal" id="dungeon-retreat-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-retreat-title">
+          <div class="dn-modal-panel">
+            <h2 id="dungeon-retreat-title">撤退の確認</h2>
+            <p class="dn-retreat-message" id="dungeon-retreat-message"></p>
+            <div class="dn-modal-actions">
+              <button type="button" class="dn-dive" id="dungeon-retreat-yes">撤退する</button>
+              <button type="button" class="dn-quiet" data-close>続ける</button>
             </div>
           </div>
         </div>
-
-        <div id="dungeon-popup" class="dungeon-popup" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-popup-title">
-          <div class="dungeon-popup-panel app-card">
-            <header class="dungeon-popup-head">
-              <h3 id="dungeon-popup-title"></h3>
-              <button id="dungeon-popup-close" type="button" class="dungeon-icon-button" aria-label="閉じる">×</button>
+        <div class="dn-modal" id="dungeon-detail-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-detail-title">
+          <div class="dn-modal-panel">
+            <header class="dn-modal-head">
+              <h2 id="dungeon-detail-title"></h2>
+              <button type="button" class="dn-quiet" data-close aria-label="閉じる">×</button>
             </header>
-            <div id="dungeon-popup-body" class="dungeon-popup-body"></div>
+            <div class="dn-detail-body" id="dungeon-detail-body"></div>
           </div>
         </div>
-
-        <div id="dungeon-result-popup" class="dungeon-popup dungeon-result-popup" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-result-popup-title">
-          <div class="dungeon-popup-panel app-card dungeon-result-popup-panel">
-            <div id="dungeon-result-popup-body" class="dungeon-result-popup-body"></div>
-          </div>
-        </div>
-
-        <div id="dungeon-retreat-confirm" class="dungeon-popup dungeon-retreat-confirm-popup" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-retreat-confirm-title">
-          <div class="dungeon-popup-panel app-card dungeon-retreat-confirm-panel">
-            <div id="dungeon-retreat-confirm-body" class="dungeon-retreat-confirm-body"></div>
-          </div>
-        </div>
-
-        <div id="dungeon-actor-detail" class="dungeon-actor-detail actor-detail-shell" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-actor-detail-title">
-          <div class="actor-detail-backdrop" data-dungeon-actor-detail-close="true"></div>
-          <div class="actor-detail-panel">
-            <header class="actor-detail-head">
-              <h3 id="dungeon-actor-detail-title" class="actor-detail-title">詳細</h3>
-              <button type="button" class="dungeon-icon-button" data-dungeon-actor-detail-close="true" aria-label="閉じる">×</button>
+        <div class="dn-modal" id="dungeon-equip-modal" hidden role="dialog" aria-modal="true" aria-labelledby="dungeon-equip-title">
+          <div class="dn-modal-panel dn-modal-panel--equip">
+            <header class="dn-modal-head">
+              <h2 id="dungeon-equip-title">装備</h2>
+              <button type="button" class="dn-quiet" data-close aria-label="閉じる">×</button>
             </header>
-            <div id="dungeon-actor-detail-body" class="actor-detail-body"></div>
+            <div id="dungeon-equipment" class="dungeon-equipment">
+              <p id="dungeon-equipment-status" class="dungeon-equipment-status" role="status" aria-live="polite" hidden></p>
+              <div id="dungeon-equipment-targets" class="dungeon-equipment-targets" role="tablist" aria-label="装備対象"></div>
+              <div id="dungeon-equipment-slots" class="dungeon-equipment-slots" aria-label="装備スロット"></div>
+              <div id="dungeon-equipment-run" class="dungeon-equipment-run" aria-label="この潜りに効く補正"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -1355,48 +1299,160 @@
         </div>
       </section>
 
-      <section id="academy-library-screen" class="screen academy-library-screen" aria-labelledby="academy-library-title">
-        <div class="academy-library-frame">
-          <div class="academy-library-stage">
-            <div class="academy-library-stage-image" aria-hidden="true"></div>
-            <span class="academy-library-corner academy-library-corner-tl" aria-hidden="true"></span>
-            <span class="academy-library-corner academy-library-corner-tr" aria-hidden="true"></span>
-            <span class="academy-library-corner academy-library-corner-bl" aria-hidden="true"></span>
-            <span class="academy-library-corner academy-library-corner-br" aria-hidden="true"></span>
-            <header class="academy-library-hero">
-              <p class="eyebrow academy-library-eyebrow">Great Library</p>
-              <h2 id="academy-library-title" class="academy-library-title">大書庫</h2>
-              <p id="academy-library-week" class="academy-library-week">第1週 / 50</p>
-              <p class="academy-library-lead">読みたい本のテーマを告げると、司書が奥の書架から見繕います。何冊でも読めます。</p>
-              <p id="academy-library-status" class="academy-library-status" role="status" aria-live="polite" hidden></p>
+      <section id="academy-concert-hall-screen" class="screen academy-concert-hall-screen" aria-labelledby="academy-concert-hall-title">
+        <div class="academy-concert-hall-frame">
+          <div class="academy-concert-hall-stage">
+            <div class="academy-concert-hall-stage-ground" aria-hidden="true"></div>
+            <header class="academy-concert-hall-hero">
+              <p class="eyebrow academy-concert-hall-eyebrow">Concert Hall</p>
+              <h2 id="academy-concert-hall-title" class="academy-concert-hall-title">奏楽堂</h2>
+              <p id="academy-concert-hall-week" class="academy-concert-hall-week">第1週 / 50</p>
+              <p id="academy-concert-hall-status" class="academy-concert-hall-status" role="status" aria-live="polite" hidden></p>
             </header>
           </div>
-          <div class="academy-library-controls">
-            <form id="academy-library-search-form" class="academy-library-search" role="search">
-              <input type="text" id="academy-library-search-input" class="academy-library-search-input" placeholder="読みたい本を探す（例：星の伝承、薬草、古い料理）" aria-label="読みたい本のテーマ" autocomplete="off" />
-              <button type="submit" id="academy-library-search-button" class="academy-library-search-button">探す</button>
-            </form>
-            <button type="button" id="academy-library-exit" class="academy-library-exit">書庫を出る</button>
+          <div class="academy-concert-hall-controls">
+            <input type="text" id="academy-concert-hall-input" class="academy-concert-hall-input" autocomplete="off" maxlength="200" aria-label="曲の願い" placeholder="">
+            <button type="button" id="academy-concert-hall-compose" class="academy-concert-hall-compose" disabled>奏でてもらう</button>
+            <button type="button" id="academy-concert-hall-exit" class="academy-concert-hall-exit">奏楽堂を出る</button>
           </div>
-          <div class="academy-library-board">
-            <p id="academy-library-shelf-empty" class="academy-library-shelf-empty">テーマを告げると、司書が奥の書架から見繕った本が並びます。鎖の掛かった格子扉の奥は、まだ手が届きません。</p>
-            <ul id="academy-library-shelf" class="academy-library-shelf" aria-label="見繕われた本"></ul>
-          </div>
-        </div>
-        <div id="academy-library-reading-popup" class="academy-library-reading-popup" hidden role="dialog" aria-modal="true" aria-labelledby="academy-library-reading-title">
-          <div class="academy-library-reading-frame">
-            <div class="academy-library-reading-spread" aria-hidden="true"></div>
-            <div class="academy-library-reading-page">
-              <header class="academy-library-reading-head">
-                <h3 id="academy-library-reading-title" class="academy-library-reading-title"></h3>
-                <p id="academy-library-reading-category" class="academy-library-reading-category"></p>
-              </header>
-              <div id="academy-library-reading-text" class="academy-library-reading-text"></div>
+          <div class="academy-concert-hall-board" data-face="shelf">
+            <div id="academy-concert-hall-shelf-face" class="academy-concert-hall-face academy-concert-hall-shelf-face">
+              <p id="academy-concert-hall-greeting" class="academy-concert-hall-greeting"></p>
+              <h3 class="academy-concert-hall-shelf-heading">収蔵の曲</h3>
+              <ul id="academy-concert-hall-shelf" class="academy-concert-hall-shelf" aria-label="収蔵の曲"></ul>
+              <p id="academy-concert-hall-shelf-empty" class="academy-concert-hall-shelf-empty" hidden></p>
             </div>
-            <span id="academy-library-reading-stamp" class="academy-library-reading-stamp" aria-hidden="true"></span>
-            <button type="button" id="academy-library-reading-close" class="academy-library-reading-close">本を閉じる</button>
+            <div id="academy-concert-hall-narrative-face" class="academy-concert-hall-face academy-concert-hall-narrative-face" hidden>
+              <div id="academy-concert-hall-narration-cards" class="academy-concert-hall-cards"></div>
+              <button type="button" id="academy-concert-hall-perform" class="academy-concert-hall-perform" hidden>演奏を始める</button>
+            </div>
+            <div id="academy-concert-hall-performance-face" class="academy-concert-hall-face academy-concert-hall-performance-face" hidden>
+              <div class="academy-concert-hall-head">
+                <div class="academy-concert-hall-head-text">
+                  <p id="academy-concert-hall-head-title" class="academy-concert-hall-head-title"></p>
+                  <p id="academy-concert-hall-head-meta" class="academy-concert-hall-head-meta"></p>
+                  <div class="academy-concert-hall-progress" role="progressbar" aria-label="演奏の進み" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div id="academy-concert-hall-progress-bar" class="academy-concert-hall-progress-bar"></div>
+                  </div>
+                  <p id="academy-concert-hall-head-section" class="academy-concert-hall-head-section"></p>
+                </div>
+                <button type="button" id="academy-concert-hall-stop" class="academy-concert-hall-stop">止める</button>
+              </div>
+              <div id="academy-concert-hall-performance-cards" class="academy-concert-hall-cards academy-concert-hall-performance-cards"></div>
+            </div>
           </div>
         </div>
+      </section>
+
+      <section id="academy-library-screen" class="screen academy-library-screen" aria-label="大書庫" data-scene="arrival">
+        <div class="academy-library-art">
+          <img class="academy-library-art-image" src="/canonical/library/stage.jpg" alt="">
+          <div class="academy-library-art-depth" aria-hidden="true"></div>
+          <section class="academy-library-shelf" aria-label="棚"></section>
+          <div class="academy-library-lamps" aria-hidden="true"></div>
+          <div class="academy-library-seeker" aria-hidden="true"></div>
+          <div class="academy-library-seek-spot academy-library-seek-spot-a" aria-hidden="true"></div>
+          <div class="academy-library-seek-spot academy-library-seek-spot-b" aria-hidden="true"></div>
+          <div class="academy-library-seek-spot academy-library-seek-spot-c" aria-hidden="true"></div>
+        </div>
+        <canvas class="academy-library-dust" aria-hidden="true"></canvas>
+        <div class="academy-library-night" aria-hidden="true"></div>
+
+        <form class="academy-library-slip" autocomplete="off">
+          <h2 class="academy-library-slip-heading">請求票</h2>
+          <textarea class="academy-library-slip-input" rows="2" maxlength="120" aria-label="請求票"></textarea>
+          <button class="academy-library-slip-hand" type="submit">渡す</button>
+          <p class="academy-library-slip-note" role="status" hidden></p>
+        </form>
+        <div class="academy-library-slip-shade" aria-hidden="true"></div>
+        <div class="academy-library-desk-light" aria-hidden="true"></div>
+
+        <button class="academy-library-exit" type="button">書庫を出る</button>
+
+        <div class="academy-library-reading" hidden>
+          <div class="academy-library-book">
+            <div class="academy-library-spread">
+              <svg class="academy-library-more" viewBox="0 0 2000 1250" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="academy-library-more-edge" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#e9d3a4"/>
+                    <stop offset="1" stop-color="#b8945c"/>
+                  </linearGradient>
+                  <linearGradient id="academy-library-more-curl" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#f0dcae"/>
+                    <stop offset="0.55" stop-color="#dcc08a"/>
+                    <stop offset="1" stop-color="#a98450"/>
+                  </linearGradient>
+                  <filter id="academy-library-more-soft" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="5"/>
+                  </filter>
+                </defs>
+                <g class="academy-library-more-stack">
+                  <polygon points="1760.2,127.6 1768.4,210.9 1776.6,294.2 1784.9,377.4 1793.3,460.7 1801.7,544.0 1810.1,627.3 1818.6,710.6 1827.1,793.9 1835.7,877.1 1844.4,960.4 1853.1,1043.7 1861.8,1127.0 1855.0,1125.0 1846.8,1041.8 1838.7,958.7 1830.5,875.5 1822.3,792.3 1814.2,709.2 1806.0,626.0 1797.8,542.8 1789.7,459.7 1781.5,376.5 1773.3,293.3 1765.2,210.2 1757.0,127.0" fill="url(#academy-library-more-edge)" opacity="0.87"/>
+                  <polyline points="1760.2,127.6 1768.4,210.9 1776.6,294.2 1784.9,377.4 1793.3,460.7 1801.7,544.0 1810.1,627.3 1818.6,710.6 1827.1,793.9 1835.7,877.1 1844.4,960.4 1853.1,1043.7 1861.8,1127.0" fill="none" stroke="#5a4020" stroke-opacity="0.43" stroke-width="1.4"/>
+                  <polygon points="1763.4,128.2 1771.6,211.6 1779.9,295.0 1788.3,378.4 1796.9,461.8 1805.5,545.2 1814.2,628.6 1823.0,712.0 1831.9,795.4 1841.0,878.8 1850.1,962.2 1859.3,1045.6 1868.6,1129.0 1861.8,1127.0 1853.1,1043.7 1844.4,960.4 1835.7,877.1 1827.1,793.9 1818.6,710.6 1810.1,627.3 1801.7,544.0 1793.3,460.7 1784.9,377.4 1776.6,294.2 1768.4,210.9 1760.2,127.6" fill="url(#academy-library-more-edge)" opacity="0.82"/>
+                  <polyline points="1763.4,128.2 1771.6,211.6 1779.9,295.0 1788.3,378.4 1796.9,461.8 1805.5,545.2 1814.2,628.6 1823.0,712.0 1831.9,795.4 1841.0,878.8 1850.1,962.2 1859.3,1045.6 1868.6,1129.0" fill="none" stroke="#5a4020" stroke-opacity="0.38" stroke-width="1.4"/>
+                  <polygon points="1766.6,128.8 1774.8,212.3 1783.2,295.8 1791.8,379.4 1800.5,462.9 1809.3,546.4 1818.3,629.9 1827.4,713.4 1836.7,796.9 1846.2,880.5 1855.8,964.0 1865.5,1047.5 1875.4,1131.0 1868.6,1129.0 1859.3,1045.6 1850.1,962.2 1841.0,878.8 1831.9,795.4 1823.0,712.0 1814.2,628.6 1805.5,545.2 1796.9,461.8 1788.3,378.4 1779.9,295.0 1771.6,211.6 1763.4,128.2" fill="url(#academy-library-more-edge)" opacity="0.77"/>
+                  <polyline points="1766.6,128.8 1774.8,212.3 1783.2,295.8 1791.8,379.4 1800.5,462.9 1809.3,546.4 1818.3,629.9 1827.4,713.4 1836.7,796.9 1846.2,880.5 1855.8,964.0 1865.5,1047.5 1875.4,1131.0" fill="none" stroke="#5a4020" stroke-opacity="0.43" stroke-width="1.4"/>
+                  <polygon points="1769.8,129.4 1778.1,213.0 1786.5,296.7 1795.2,380.3 1804.1,463.9 1813.1,547.6 1822.4,631.2 1831.9,714.8 1841.5,798.5 1851.4,882.1 1861.5,965.7 1871.7,1049.4 1882.2,1133.0 1875.4,1131.0 1865.5,1047.5 1855.8,964.0 1846.2,880.5 1836.7,796.9 1827.4,713.4 1818.3,629.9 1809.3,546.4 1800.5,462.9 1791.8,379.4 1783.2,295.8 1774.8,212.3 1766.6,128.8" fill="url(#academy-library-more-edge)" opacity="0.72"/>
+                  <polyline points="1769.8,129.4 1778.1,213.0 1786.5,296.7 1795.2,380.3 1804.1,463.9 1813.1,547.6 1822.4,631.2 1831.9,714.8 1841.5,798.5 1851.4,882.1 1861.5,965.7 1871.7,1049.4 1882.2,1133.0" fill="none" stroke="#5a4020" stroke-opacity="0.38" stroke-width="1.4"/>
+                  <polygon points="1773.0,130.0 1781.3,213.8 1789.8,297.5 1798.6,381.2 1807.7,465.0 1817.0,548.8 1826.5,632.5 1836.3,716.3 1846.3,800.0 1856.6,883.8 1867.2,967.5 1878.0,1051.2 1889.0,1135.0 1882.2,1133.0 1871.7,1049.4 1861.5,965.7 1851.4,882.1 1841.5,798.5 1831.9,714.8 1822.4,631.2 1813.1,547.6 1804.1,463.9 1795.2,380.3 1786.5,296.7 1778.1,213.0 1769.8,129.4" fill="url(#academy-library-more-edge)" opacity="0.67"/>
+                  <polyline points="1773.0,130.0 1781.3,213.8 1789.8,297.5 1798.6,381.2 1807.7,465.0 1817.0,548.8 1826.5,632.5 1836.3,716.3 1846.3,800.0 1856.6,883.8 1867.2,967.5 1878.0,1051.2 1889.0,1135.0" fill="none" stroke="#5a4020" stroke-opacity="0.43" stroke-width="1.4"/>
+                  <polygon points="1776.2,130.6 1784.5,214.5 1793.1,298.3 1802.0,382.2 1811.3,466.1 1820.8,549.9 1830.6,633.8 1840.7,717.7 1851.1,801.5 1861.8,885.4 1872.9,969.3 1884.2,1053.1 1895.8,1137.0 1889.0,1135.0 1878.0,1051.2 1867.2,967.5 1856.6,883.8 1846.3,800.0 1836.3,716.3 1826.5,632.5 1817.0,548.8 1807.7,465.0 1798.6,381.2 1789.8,297.5 1781.3,213.8 1773.0,130.0" fill="url(#academy-library-more-edge)" opacity="0.62"/>
+                  <polyline points="1776.2,130.6 1784.5,214.5 1793.1,298.3 1802.0,382.2 1811.3,466.1 1820.8,549.9 1830.6,633.8 1840.7,717.7 1851.1,801.5 1861.8,885.4 1872.9,969.3 1884.2,1053.1 1895.8,1137.0" fill="none" stroke="#5a4020" stroke-opacity="0.38" stroke-width="1.4"/>
+                  <polygon points="1779.4,131.2 1787.7,215.2 1796.4,299.2 1805.5,383.1 1814.9,467.1 1824.6,551.1 1834.7,635.1 1845.1,719.1 1855.9,803.1 1867.1,887.0 1878.6,971.0 1890.4,1055.0 1902.6,1139.0 1895.8,1137.0 1884.2,1053.1 1872.9,969.3 1861.8,885.4 1851.1,801.5 1840.7,717.7 1830.6,633.8 1820.8,549.9 1811.3,466.1 1802.0,382.2 1793.1,298.3 1784.5,214.5 1776.2,130.6" fill="url(#academy-library-more-edge)" opacity="0.57"/>
+                  <polyline points="1779.4,131.2 1787.7,215.2 1796.4,299.2 1805.5,383.1 1814.9,467.1 1824.6,551.1 1834.7,635.1 1845.1,719.1 1855.9,803.1 1867.1,887.0 1878.6,971.0 1890.4,1055.0 1902.6,1139.0" fill="none" stroke="#5a4020" stroke-opacity="0.43" stroke-width="1.4"/>
+                  <polygon points="1782.6,131.8 1791.0,215.9 1799.7,300.0 1808.9,384.1 1818.5,468.2 1828.4,552.3 1838.8,636.4 1849.6,720.5 1860.7,804.6 1872.3,888.7 1884.3,972.8 1896.6,1056.9 1909.4,1141.0 1902.6,1139.0 1890.4,1055.0 1878.6,971.0 1867.1,887.0 1855.9,803.1 1845.1,719.1 1834.7,635.1 1824.6,551.1 1814.9,467.1 1805.5,383.1 1796.4,299.2 1787.7,215.2 1779.4,131.2" fill="url(#academy-library-more-edge)" opacity="0.52"/>
+                  <polyline points="1782.6,131.8 1791.0,215.9 1799.7,300.0 1808.9,384.1 1818.5,468.2 1828.4,552.3 1838.8,636.4 1849.6,720.5 1860.7,804.6 1872.3,888.7 1884.3,972.8 1896.6,1056.9 1909.4,1141.0" fill="none" stroke="#5a4020" stroke-opacity="0.38" stroke-width="1.4"/>
+                </g>
+                <g class="academy-library-more-corner">
+                  <path d="M1843 1012 C 1851 1056, 1866 1100, 1866 1136 C 1820 1140, 1772 1140, 1732 1133 Z" fill="#000" opacity="0.38" filter="url(#academy-library-more-soft)"/>
+                  <path d="M1843 1012 C 1848 1052, 1852 1088, 1845 1112 C 1808 1121, 1770 1126, 1733 1130 Z" fill="url(#academy-library-more-curl)"/>
+                  <path d="M1843 1012 C 1848 1052, 1852 1088, 1845 1112 C 1808 1121, 1770 1126, 1733 1130" fill="none" stroke="#fff4d8" stroke-opacity="0.55" stroke-width="2"/>
+                  <path d="M1843 1012 L 1733 1130" fill="none" stroke="#6a4a24" stroke-opacity="0.22" stroke-width="3"/>
+                </g>
+              </svg>
+              <div class="academy-library-sketch academy-library-sketch-left" aria-hidden="true"></div>
+              <div class="academy-library-sketch academy-library-sketch-right" aria-hidden="true"></div>
+              <div class="academy-library-page academy-library-page-left"></div>
+              <div class="academy-library-page academy-library-page-right"></div>
+              <div class="academy-library-brush" aria-hidden="true">
+                <span class="academy-library-brush-shadow"></span>
+                <svg class="academy-library-brush-body" viewBox="0 0 40 200">
+                  <defs>
+                    <linearGradient id="academy-library-brush-shaft" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0" stop-color="#3a2414"/>
+                      <stop offset="0.45" stop-color="#8a5a32"/>
+                      <stop offset="1" stop-color="#2a180c"/>
+                    </linearGradient>
+                    <linearGradient id="academy-library-brush-hair" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#4a3522"/>
+                      <stop offset="0.35" stop-color="#1a120b"/>
+                      <stop offset="1" stop-color="#050302"/>
+                    </linearGradient>
+                  </defs>
+                  <rect x="15" y="0" width="10" height="138" rx="4" fill="url(#academy-library-brush-shaft)"/>
+                  <rect x="14" y="40" width="12" height="3" rx="1.5" fill="#2a180c" opacity="0.7"/>
+                  <rect x="14" y="92" width="12" height="3" rx="1.5" fill="#2a180c" opacity="0.7"/>
+                  <rect x="13.5" y="134" width="13" height="10" rx="2" fill="#b88a3e"/>
+                  <path d="M13.5 144 C 12 162, 16 184, 20 200 C 24 184, 28 162, 26.5 144 Z" fill="url(#academy-library-brush-hair)"/>
+                </svg>
+              </div>
+            </div>
+            <div class="academy-library-cover-leaf" aria-hidden="true">
+              <div class="academy-library-cover-face"></div>
+              <div class="academy-library-ex-libris"></div>
+            </div>
+          </div>
+          <button class="academy-library-close" type="button">本を閉じる</button>
+        </div>
+
+        <div class="academy-library-corner academy-library-corner-tl" aria-hidden="true"></div>
+        <div class="academy-library-corner academy-library-corner-tr" aria-hidden="true"></div>
+        <div class="academy-library-corner academy-library-corner-br" aria-hidden="true"></div>
+        <div class="academy-library-corner academy-library-corner-bl" aria-hidden="true"></div>
+        <div class="academy-library-sleep" aria-hidden="true"></div>
+        <div class="academy-library-measure" aria-hidden="true"></div>
       </section>
 
       <section id="academy-study-circle-screen" class="screen academy-study-circle-screen" aria-labelledby="academy-study-circle-title">
@@ -1851,6 +1907,69 @@
         </div>
       </section>
 
+      <section id="academy-overlook-screen" class="screen conversation-day-screen academy-overlook-screen" aria-label="星見の窓" data-state="entering">
+        <div id="academy-overlook-field" class="academy-overlook-field">
+          <div id="academy-overlook-viewport" class="academy-overlook-viewport">
+            <div id="academy-overlook-world" class="academy-overlook-world">
+              <img class="academy-overlook-map" src="/canonical/academy_overlook/field_map.jpg" alt="学院の地図" draggable="false" />
+              <div id="academy-overlook-marks" class="academy-overlook-marks"></div>
+              <div id="academy-overlook-comas" class="academy-overlook-comas"></div>
+              <div id="academy-overlook-mark-labels" class="academy-overlook-mark-labels"></div>
+            </div>
+            <canvas id="academy-overlook-lines" class="academy-overlook-lines" aria-hidden="true"></canvas>
+            <div id="academy-overlook-hover" class="academy-overlook-hover"></div>
+          </div>
+          <div class="academy-overlook-vignette" aria-hidden="true"></div>
+          <div class="academy-overlook-shade" aria-hidden="true"></div>
+          <header id="academy-overlook-topbar" class="conversation-day-topbar academy-overlook-topbar">
+            <span class="conversation-day-moon-glyph" id="academy-overlook-moon-phase"></span>
+            <span class="conversation-day-week" id="academy-overlook-week">第1週 / 50</span>
+            <span class="academy-overlook-time" id="academy-overlook-time">9:00</span>
+          </header>
+          <div class="academy-overlook-actions">
+            <ol id="academy-overlook-roster" class="academy-overlook-roster" aria-label="顔ぶれ" hidden></ol>
+            <button id="academy-overlook-roster-button" type="button" class="conversation-day-action-button conversation-day-action-secondary academy-overlook-roster-button" aria-controls="academy-overlook-roster" aria-expanded="false">顔ぶれ</button>
+            <button id="academy-overlook-exit" type="button" class="conversation-day-action-button conversation-day-action-secondary academy-overlook-exit">星見の窓を出る</button>
+          </div>
+          <form id="academy-overlook-writing" class="academy-overlook-writing" hidden>
+            <p id="academy-overlook-writing-place" class="academy-overlook-writing-place"></p>
+            <div class="academy-overlook-writing-row">
+              <input id="academy-overlook-writing-input" class="academy-overlook-writing-input" type="text" maxlength="40" autocomplete="off" aria-labelledby="academy-overlook-writing-place" />
+              <button id="academy-overlook-writing-submit" type="submit" class="conversation-day-action-button">書き込む</button>
+            </div>
+            <p id="academy-overlook-writing-status" class="academy-overlook-writing-status" hidden></p>
+          </form>
+        </div>
+        <div id="academy-overlook-talk" class="academy-overlook-talk" hidden>
+          <div class="conversation-day-backdrop" aria-hidden="true">
+            <div class="conversation-day-background"></div>
+            <canvas id="academy-overlook-motes" class="conversation-day-motes"></canvas>
+          </div>
+          <div class="conversation-day-frame">
+            <header class="conversation-day-topbar">
+              <span class="conversation-day-moon-glyph" id="academy-overlook-talk-moon-phase"></span>
+              <span class="conversation-day-week" id="academy-overlook-talk-week">第1週 / 50</span>
+            </header>
+            <div class="conversation-day-body">
+              <div class="conversation-day-stage">
+                <div class="conversation-day-standee-frame">
+                  <div id="academy-overlook-stage-image" class="conversation-day-stage-image academy-overlook-stage-image" role="img" aria-label="星見の窓"></div>
+                </div>
+                <div class="conversation-day-chat-panel">
+                  <img class="conversation-day-corner conversation-day-corner-tl" src="/canonical/conversation_day/ui/corner_01.png" alt="" aria-hidden="true" />
+                  <img class="conversation-day-corner conversation-day-corner-br" src="/canonical/conversation_day/ui/corner_01.png" alt="" aria-hidden="true" />
+                  <div id="academy-overlook-message-stream" class="conversation-day-message-stream" aria-live="polite"></div>
+                  <p id="academy-overlook-status" class="conversation-day-status" aria-live="polite" hidden></p>
+                  <div class="conversation-day-button-row">
+                    <button id="academy-overlook-next" type="button" class="conversation-day-action-button">次へ</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <dialog id="llm-request-detail-dialog" class="interaction-detail-dialog" aria-labelledby="llm-request-detail-title">
@@ -1897,6 +2016,54 @@
 
     <div id="conversation-processing-toast" class="processing-toast" role="status" aria-live="polite">処理中です。しばらくお待ちください。</div>
     <div id="economy-message-box" class="economy-message-box" role="status" aria-live="polite"></div>
+
+    <!-- 夜の道行きの層（metaJourney.js）: 門・広間・星の道・天文の部屋・露台を、製品の画面の上に一つの夜の場所として見せる。
+         押された選択肢は下の製品の画面のボタンを押す。 -->
+    <div id="journey" class="journey" data-scene="gate" data-journey-ready="false">
+      <div class="journey-places" aria-hidden="true">
+        <div class="journey-place" data-place="gate"></div>
+        <div class="journey-place" data-place="hall"></div>
+        <div class="journey-place" data-place="road"></div>
+        <div class="journey-place" data-place="room"></div>
+        <div class="journey-place" data-place="terrace"></div>
+      </div>
+      <canvas id="journey-sky" class="journey-sky" aria-hidden="true"></canvas>
+      <canvas id="journey-constellation" class="journey-constellation" aria-hidden="true"></canvas>
+      <div class="journey-flash" aria-hidden="true"></div>
+
+      <section class="journey-scene journey-gate" data-scene-panel="gate" aria-labelledby="journey-title">
+        <h1 id="journey-title" class="journey-title">STARFALL MAGIC ACADEMY</h1>
+        <nav class="journey-gate-paths" aria-label="はじまり">
+          <button type="button" class="journey-path" data-journey-action="new-game">最初から始める</button>
+          <button type="button" class="journey-path" data-journey-action="load">ロード</button>
+        </nav>
+        <button type="button" class="journey-path journey-gate-side" data-journey-action="settings">設定</button>
+        <p class="journey-gate-status" role="status" aria-live="polite" hidden></p>
+      </section>
+
+      <section class="journey-scene journey-hall" data-scene-panel="hall" aria-label="セーブを選ぶ">
+        <svg class="journey-hall-trail" aria-hidden="true">
+          <path class="journey-hall-trail-line" d="" pathLength="1" />
+        </svg>
+        <ol class="journey-footprints"></ol>
+        <div class="journey-hall-ways">
+          <button type="button" class="journey-path journey-way" data-journey-action="hall-back">門へ戻る</button>
+          <button type="button" class="journey-path journey-way" data-journey-action="hall-resume" hidden>プレイに戻る</button>
+        </div>
+      </section>
+
+      <section class="journey-scene journey-road" data-scene-panel="road" aria-live="polite">
+        <div class="journey-road-copy">
+          <p class="journey-road-title"></p>
+          <p class="journey-road-status"></p>
+        </div>
+      </section>
+    </div>
+
+    <!-- 露台の送り出しの幕: 行き先が決まると露台の向こうで開いた場所（絵の無い行き先は夜）が画面を満たし、製品はその下で行き先へ進む。 -->
+    <div id="terrace-opened" class="terrace-opened" aria-hidden="true" hidden>
+      <div class="terrace-opened-art"></div>
+    </div>
 
     <script type="module" src="/app.js"></script>
   </body>

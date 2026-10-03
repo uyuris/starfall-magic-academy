@@ -41,19 +41,29 @@ import {
 } from '../graduationEnding.mjs';
 import { selectableCharacterChoice } from '../characterCatalog.mjs';
 import {
+  assertNoFailedPendingFinalizations,
   drainAllPendingFinalizations,
   enqueuePendingFinalization,
   enqueuePendingFinalizationInState,
+  removePendingFinalizationInState,
   retryPendingFinalizationForCharacter,
   runOutsideRoutingReadScope,
   runRoutingReadScopeIfActive
 } from '../routingFinalizeQueue.mjs';
 import { isRoutingTitleDispatch, resolveRoutingDestinationDispatch, resolveRoutingHubDispatch } from '../routingDispatch.mjs';
+import { ensureLmStudioConversationConfig } from './lmStudioSettingsApi.mjs';
+import {
+  buildFootprintSummaryMaterial,
+  generateFootprintSummary,
+  mockFootprintSummary,
+  withFootprintSummary,
+  withoutFootprintSummary
+} from '../llm/footprintSummary.mjs';
+import { runExclusiveConversationWork } from './conversationTurnExclusion.mjs';
 
 const CONVERSATION_LIFECYCLE_ROUTES = new Set([
   'POST /api/conversation/opening',
   'POST /api/conversation',
-  'POST /api/conversation/edit-user-message',
   'POST /api/conversation/finalize/retry',
   'POST /api/conversation/end'
 ]);
@@ -302,7 +312,7 @@ function routingActiveRootRequiredError() {
 // instead of silently falling back to context.root, which would read the parent baseline runtime_state
 // and report a slot-queue endpoint as a false "idle". Loop mode has no slot queue here and keeps the
 // parent-root resolution.
-function resolveConversationLifecycleRoot(context, activePlayMode) {
+export function resolveConversationLifecycleRoot(context, activePlayMode) {
   if (activePlayMode?.mode === 'routing') {
     if (!context.activeRoot) throw routingActiveRootRequiredError();
     return context.activeRoot;
@@ -391,6 +401,30 @@ async function routingErrandMoneyUpdateForResponse({ root, readJsonIfExists, dra
     throw new Error('routing errand finalization money update reward mismatch');
   }
   return moneyUpdate;
+}
+
+// 足跡のまとめ（title wrap-up の drain の後に LM 1 本）。まとめの 1 本（LM 呼び出しと出力の gate）だけが
+// 落ちたときは、その足跡のまとめを消して wrap-up は成功で返す（札は日時だけになる）。材料組みと LM 設定の
+// 失敗は wrap-up ごと throw する。drain そのものの失敗はここへ来る前に throw している。
+// provider=mock のときは mock のまとめ（LM も LM 設定も使わない）。
+async function applyFootprintSummary({ root, context, requestedProvider, state, hubConversation }) {
+  const material = await buildFootprintSummaryMaterial({ root, authoringRoot: context.root, state, hubConversation });
+  const config = requestedProvider === 'mock' ? null : await ensureLmStudioConversationConfig(context);
+  try {
+    const text = requestedProvider === 'mock'
+      ? mockFootprintSummary(material)
+      : await generateFootprintSummary({ config, material });
+    const writtenAt = new Date().toISOString();
+    return {
+      state: withFootprintSummary(state, { text, writtenAt }),
+      footprintSummary: { status: 'written', text, written_at: writtenAt }
+    };
+  } catch (error) {
+    return {
+      state: withoutFootprintSummary(state),
+      footprintSummary: { status: 'failed', error: error.message }
+    };
+  }
 }
 
 function drainResponsePayload(result, extra = {}) {
@@ -544,6 +578,9 @@ async function buildConversationEndPayload({
           graduation_guide: { phase: 'guide', candidate_character_ids: activeGuide.candidate_character_ids }
         };
       }
+      // A hub exit (wrap-up or send-off) refuses on a failed job before it writes anything — the week commit, this
+      // conversation's enqueue, the cleared interaction — so the same exit passes once the retry clears the job.
+      if (routingDispatch) assertNoFailedPendingFinalizations(state);
       const nextState = {
         ...state,
         current_screen: fallbackScreen,
@@ -585,12 +622,21 @@ async function buildConversationEndPayload({
             });
           }
         });
+        // The footprint summary is written after the drain (it reads the hub conversation's own memory the
+        // drain just wrote) and lands in the same final write as the title screen.
+        const summarized = await applyFootprintSummary({
+          root,
+          context,
+          requestedProvider: body.provider,
+          state: drainResult.state,
+          hubConversation: conversation
+        });
         // Re-confirm the title screen + interaction cleanup as the authoritative final state after the
         // drain: a drained finalization can rewrite current_screen / interaction context, so the wrap-up
         // owns the last write. A failed/blocked job leaves drainAllPendingFinalizations throwing, so we
         // never reach here half-drained (fail-fast, retryable).
         const titleState = {
-          ...drainResult.state,
+          ...summarized.state,
           current_screen: fallbackScreen,
           current_interaction_character_id: null,
           pending_interaction_context: null
@@ -602,7 +648,8 @@ async function buildConversationEndPayload({
           character_id: characterId,
           state: titleState,
           transition,
-          routing_dispatch: routingDispatch
+          routing_dispatch: routingDispatch,
+          footprint_summary: summarized.footprintSummary
         };
       }
       if (routingDispatch) {
@@ -914,6 +961,9 @@ export async function attachRoutingGraduationGuideSelection({
   // Read the post-turn state in the ambient routing read scope (the same place buildConversationEndPayload
   // reads it); the enqueue/drain/character-event work then runs outside the scope like every other routing exit.
   const state = await readJson(root, 'game_data/runtime_state.json');
+  // Refuse on a failed job before this turn writes its waiting state, so the guide goes on untouched and the
+  // player can name the partner again once the retry clears the job.
+  assertNoFailedPendingFinalizations(state);
   return await runOutsideRoutingReadScope(async () => {
     const now = new Date().toISOString();
     const hubConversationId = turnResult.conversation.id;
@@ -922,28 +972,49 @@ export async function attachRoutingGraduationGuideSelection({
     // the whole pending queue, the same full-drain the destination dispatch and title wrap-up use. A
     // failed/blocked job leaves drainAllPendingFinalizations throwing (fail-fast, retryable).
     let queuedState = { ...state, current_interaction_character_id: null, pending_interaction_context: null };
+    let enqueuedHubJob = false;
     if (!turnResult.conversation.discarded_after_work_record_id) {
-      queuedState = enqueuePendingFinalizationInState(queuedState, {
+      const enqueuedState = enqueuePendingFinalizationInState(queuedState, {
         conversation_id: hubConversationId,
         character_id: hubCharacterId,
         enqueued_at: now
       });
+      enqueuedHubJob = enqueuedState !== queuedState;
+      queuedState = enqueuedState;
     }
     await writeJson(root, 'game_data/runtime_state.json', queuedState);
     let finalizationProviders = null;
-    await drainAllPendingFinalizations({
-      root,
-      finalizeJob: async (job) => {
-        finalizationProviders ??= await resolveRuntimeProviders({ requestedProvider: body.provider, context });
-        return await runConversationFinalization({
-          root,
-          conversationId: job.conversation_id,
-          characterId: job.character_id,
-          providers: finalizationProviders,
-          progressReporter
+    try {
+      await drainAllPendingFinalizations({
+        root,
+        finalizeJob: async (job) => {
+          finalizationProviders ??= await resolveRuntimeProviders({ requestedProvider: body.provider, context });
+          return await runConversationFinalization({
+            root,
+            conversationId: job.conversation_id,
+            characterId: job.character_id,
+            providers: finalizationProviders,
+            progressReporter
+          });
+        }
+      });
+    } catch (error) {
+      // When the failed drain did not finalize the guide conversation, the guide goes on: take back what this
+      // turn wrote before the drain (this turn's enqueue of the guide conversation, whether it failed or still
+      // waits behind a failed job, and the cleared interaction) so the next turn of the same guide conversation
+      // passes and the player can name the partner again. The other jobs keep whatever the drain did to them.
+      const failedState = await runRoutingReadScopeIfActive({ root }, () => readJson(root, 'game_data/runtime_state.json'));
+      const guideJobFinalized = enqueuedHubJob && !findPendingFinalization(failedState, hubConversationId);
+      if (!guideJobFinalized) {
+        const restoredState = enqueuedHubJob ? removePendingFinalizationInState(failedState, hubConversationId) : failedState;
+        await writeJson(root, 'game_data/runtime_state.json', {
+          ...restoredState,
+          current_interaction_character_id: state.current_interaction_character_id,
+          pending_interaction_context: state.pending_interaction_context
         });
       }
-    });
+      throw error;
+    }
     // The selected character's graduation event lands on the fixed daytime conversation screen — the same
     // landing every event conversation follows — so both the interaction's persisted current_screen (via the
     // startEventFlagInteraction screen arg) and this response's transition next_screen stay truthful to where the
@@ -1100,7 +1171,6 @@ export async function handleConversationLifecycleApi({
   writeJson,
   runConversationOpening,
   runConversationTurn,
-  editConversationUserMessage,
   runConversationFinalization,
   markGraduationEndingComplete,
   isGraduationEndingContext,
@@ -1137,149 +1207,139 @@ export async function handleConversationLifecycleApi({
 
   if (req.method === 'POST' && url.pathname === '/api/conversation') {
     const body = await readBody(req);
-    const turnRequest = await resolveConversationTurnRequest({
-      root,
-      body,
-      activePlayMode,
-      readJson,
-      readJsonIfExists
-    });
-    const turnState = await readJson(root, 'game_data/runtime_state.json');
-    const activeErrand = activePlayMode?.mode === 'routing'
-      ? matchingActiveErrandForConversation({
-          state: turnState,
-          conversationId: turnRequest.conversationId,
-          characterId: turnRequest.characterId
-        })
-      : null;
-    const activeStudyCircle = activePlayMode?.mode === 'routing'
-      ? matchingActiveStudyCircleForConversation({
-          state: turnState,
-          conversationId: turnRequest.conversationId,
-          characterId: turnRequest.characterId
-        })
-      : null;
-    // The atelier conversation (錬成室のうちの子) is a non-field companion conversation: its 舞台 (the atelier
-    // injected scene) must be re-supplied each turn like errand/study, and it takes the companion post-turn
-    // policy (no academy-field side effects). It carries no achievement judgment.
-    const activeAtelierConversation = activePlayMode?.mode === 'routing'
-      ? matchingActiveAtelierConversation({
-          state: turnState,
-          conversationId: turnRequest.conversationId,
-          characterId: turnRequest.characterId
-        })
-      : null;
-    if (activeErrand && activeStudyCircle) {
-      throw routingStudyCircleContextMismatch('routing errand and study circle are both active');
-    }
-    // Graduation guide (routing week 50): a hub turn while the guide phase is active presents the top-N
-    // characters and judges the player's chosen graduation partner instead of a routing destination. Only a
-    // routing hub turn resolves it; every other turn leaves it undefined and stays byte-equivalent.
-    const routingGraduationGuideContext = activePlayMode?.mode === 'routing' && turnRequest.routingHubContext !== undefined
-      ? await resolveRoutingGraduationGuideContext({ root, authoringRoot: context.root, state: turnState })
-      : undefined;
-    const providers = await resolveRuntimeProviders({ requestedProvider: body.provider, context });
-    const now = new Date().toISOString();
-    const result = await runConversationTurn({
-      root,
-      id: turnRequest.conversationId,
-      characterId: turnRequest.characterId,
-      playerInput: body.player_input,
-      now,
-      ...providers,
-      dungeonSceneContext: activeErrand
-        ? buildRoutingErrandSceneContext(activeErrand)
-        : activeStudyCircle
-          ? buildRoutingStudyCircleSceneContext(activeStudyCircle)
-          : activeAtelierConversation
-            ? atelierInjectedSceneContext()
-            : undefined,
-      errandJudgmentContext: activeErrand ? { condition_text: activeErrand.condition_text } : undefined,
-      studyCircleJudgmentContext: activeStudyCircle ? { condition_text: activeStudyCircle.condition_text } : undefined,
-      routingHubContext: turnRequest.routingHubContext,
-      routingGraduationGuideContext,
-      graduationPersonaVariant: graduationPersonaVariantForActivePlayMode(activePlayMode),
-      postTurnStatePolicy: activeErrand || activeStudyCircle || activeAtelierConversation ? companionPostTurnStatePolicy : academyPostTurnStatePolicy
-    });
-    const dispatched = await attachRoutingTurnDispatch({
-      root,
-      context,
-      body,
-      turnResult: result,
-      resolveRuntimeProviders,
-      readJson,
-      readJsonIfExists,
-      writeJson,
-      runConversationFinalization,
-      markGraduationEndingComplete,
-      isGraduationEndingContext,
-      activePlayMode
-    });
-    const completedErrand = await attachRoutingErrandCompletion({
-      root,
-      context,
-      body,
-      turnResult: dispatched,
-      resolveRuntimeProviders,
-      readJson,
-      readJsonIfExists,
-      writeJson,
-      runConversationFinalization,
-      markGraduationEndingComplete,
-      isGraduationEndingContext,
-      activePlayMode
-    });
-    const response = await attachRoutingStudyCircleCompletion({
-      root,
-      context,
-      body,
-      turnResult: completedErrand,
-      resolveRuntimeProviders,
-      readJson,
-      readJsonIfExists,
-      writeJson,
-      runConversationFinalization,
-      markGraduationEndingComplete,
-      isGraduationEndingContext,
-      activePlayMode
-    });
-    const finalResponse = await attachRoutingGraduationGuideSelection({
-      root,
-      context,
-      body,
-      turnResult: response,
-      resolveRuntimeProviders,
-      readJson,
-      writeJson,
-      runConversationFinalization,
-      activePlayMode
-    });
-    return sendJson(res, finalResponse);
-  }
-
-  if (req.method === 'POST' && url.pathname === '/api/conversation/edit-user-message') {
-    const body = await readBody(req);
-    try {
-      const providers = await resolveRuntimeProviders({ requestedProvider: body.provider, context });
-      return sendJson(res, await editConversationUserMessage({
+    // A turn holds the conversation it continues: the explicit id, else the active conversation the turn resolves to.
+    const { last_conversation_id: activeConversationId } = await readJson(root, 'game_data/runtime_state.json');
+    const heldConversationId = assertValidConversationIdForApi(body.id, 'id')
+      ?? assertValidConversationIdForApi(activeConversationId, 'last_conversation_id');
+    return await runExclusiveConversationWork({ root, conversationId: heldConversationId }, async () => {
+      const turnRequest = await resolveConversationTurnRequest({
         root,
-        characterId: body.character_id ?? 'lina',
-        messageIndex: body.message_index,
-        content: body.content,
-        now: new Date().toISOString(),
-        ...providers
-      }));
-    } catch (error) {
-      const payload = { error: error.message };
-      if (error?.errorCode) payload.error_code = error.errorCode;
-      return sendJson(res, payload, error?.statusCode ?? 400);
-    }
+        body,
+        activePlayMode,
+        readJson,
+        readJsonIfExists
+      });
+      const turnState = await readJson(root, 'game_data/runtime_state.json');
+      const activeErrand = activePlayMode?.mode === 'routing'
+        ? matchingActiveErrandForConversation({
+            state: turnState,
+            conversationId: turnRequest.conversationId,
+            characterId: turnRequest.characterId
+          })
+        : null;
+      const activeStudyCircle = activePlayMode?.mode === 'routing'
+        ? matchingActiveStudyCircleForConversation({
+            state: turnState,
+            conversationId: turnRequest.conversationId,
+            characterId: turnRequest.characterId
+          })
+        : null;
+      // The atelier conversation (錬成室のうちの子) is a non-field companion conversation: its 舞台 (the atelier
+      // injected scene) must be re-supplied each turn like errand/study, and it takes the companion post-turn
+      // policy (no academy-field side effects). It carries no achievement judgment.
+      const activeAtelierConversation = activePlayMode?.mode === 'routing'
+        ? matchingActiveAtelierConversation({
+            state: turnState,
+            conversationId: turnRequest.conversationId,
+            characterId: turnRequest.characterId
+          })
+        : null;
+      if (activeErrand && activeStudyCircle) {
+        throw routingStudyCircleContextMismatch('routing errand and study circle are both active');
+      }
+      // Graduation guide (routing week 50): a hub turn while the guide phase is active presents the top-N
+      // characters and judges the player's chosen graduation partner instead of a routing destination. Only a
+      // routing hub turn resolves it; every other turn leaves it undefined and stays byte-equivalent.
+      const routingGraduationGuideContext = activePlayMode?.mode === 'routing' && turnRequest.routingHubContext !== undefined
+        ? await resolveRoutingGraduationGuideContext({ root, authoringRoot: context.root, state: turnState })
+        : undefined;
+      const providers = await resolveRuntimeProviders({ requestedProvider: body.provider, context });
+      const now = new Date().toISOString();
+      const result = await runConversationTurn({
+        root,
+        id: turnRequest.conversationId,
+        characterId: turnRequest.characterId,
+        playerInput: body.player_input,
+        now,
+        ...providers,
+        dungeonSceneContext: activeErrand
+          ? buildRoutingErrandSceneContext(activeErrand)
+          : activeStudyCircle
+            ? buildRoutingStudyCircleSceneContext(activeStudyCircle)
+            : activeAtelierConversation
+              ? atelierInjectedSceneContext()
+              : undefined,
+        errandJudgmentContext: activeErrand ? { condition_text: activeErrand.condition_text } : undefined,
+        studyCircleJudgmentContext: activeStudyCircle ? { condition_text: activeStudyCircle.condition_text } : undefined,
+        routingHubContext: turnRequest.routingHubContext,
+        routingGraduationGuideContext,
+        graduationPersonaVariant: graduationPersonaVariantForActivePlayMode(activePlayMode),
+        postTurnStatePolicy: activeErrand || activeStudyCircle || activeAtelierConversation ? companionPostTurnStatePolicy : academyPostTurnStatePolicy
+      });
+      const dispatched = await attachRoutingTurnDispatch({
+        root,
+        context,
+        body,
+        turnResult: result,
+        resolveRuntimeProviders,
+        readJson,
+        readJsonIfExists,
+        writeJson,
+        runConversationFinalization,
+        markGraduationEndingComplete,
+        isGraduationEndingContext,
+        activePlayMode
+      });
+      const completedErrand = await attachRoutingErrandCompletion({
+        root,
+        context,
+        body,
+        turnResult: dispatched,
+        resolveRuntimeProviders,
+        readJson,
+        readJsonIfExists,
+        writeJson,
+        runConversationFinalization,
+        markGraduationEndingComplete,
+        isGraduationEndingContext,
+        activePlayMode
+      });
+      const response = await attachRoutingStudyCircleCompletion({
+        root,
+        context,
+        body,
+        turnResult: completedErrand,
+        resolveRuntimeProviders,
+        readJson,
+        readJsonIfExists,
+        writeJson,
+        runConversationFinalization,
+        markGraduationEndingComplete,
+        isGraduationEndingContext,
+        activePlayMode
+      });
+      const finalResponse = await attachRoutingGraduationGuideSelection({
+        root,
+        context,
+        body,
+        turnResult: response,
+        resolveRuntimeProviders,
+        readJson,
+        writeJson,
+        runConversationFinalization,
+        activePlayMode
+      });
+      return sendJson(res, finalResponse);
+    });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/conversation/finalize/retry') {
     const playMode = assertActivePlayMode(activePlayMode);
     if (playMode.mode !== 'routing') throw routingModeRequiredError();
     const body = await readBody(req);
+    // Retrying an older conversation's finalization leaves last_conversation_id on the conversation the player is
+    // in now (the hub), so every route that defaults to it keeps naming the current conversation.
+    const { last_conversation_id: currentConversationId } = await readJson(root, 'game_data/runtime_state.json');
     let finalizationProviders = null;
     const finalizeJob = async (job) => {
       finalizationProviders ??= await resolveRuntimeProviders({ requestedProvider: body.provider, context });
@@ -1287,7 +1347,8 @@ export async function handleConversationLifecycleApi({
         root,
         conversationId: job.conversation_id,
         characterId: job.character_id,
-        providers: finalizationProviders
+        providers: finalizationProviders,
+        finalStateTransform: (state) => ({ ...state, last_conversation_id: currentConversationId })
       });
     };
     const characterId = String(body.character_id ?? '').trim();
@@ -1297,27 +1358,33 @@ export async function handleConversationLifecycleApi({
 
   if (req.method === 'POST' && url.pathname === '/api/conversation/end') {
     const body = await readBody(req);
-    // A manual /api/conversation/end is always an unachieved exit: an achieved errand / study circle auto-ends
-    // inside its own turn (attachRoutingErrandCompletion / attachRoutingStudyCircleCompletion) and never reaches
-    // the end button, so a manual end applies no reward (errandAchieved / studyCircleAchieved: false → errand
-    // delta 0 & record achieved:false; study circle no parameter grant & record achieved:false). The week is
-    // consumed regardless.
-    const payload = await buildConversationEndPayload({
-      root,
-      context,
-      body,
-      resolveRuntimeProviders,
-      readJson,
-      readJsonIfExists,
-      writeJson,
-      runConversationFinalization,
-      markGraduationEndingComplete,
-      isGraduationEndingContext,
-      activePlayMode,
-      errandAchieved: false,
-      studyCircleAchieved: false
+    // The end holds the conversation it ends (the same resolution buildConversationEndPayload makes), so it is
+    // refused while a turn of that conversation is still post-processing.
+    const { last_conversation_id: activeConversationId } = await readJson(root, 'game_data/runtime_state.json');
+    const endedConversationId = assertValidConversationIdForApi(body.conversation_id ?? activeConversationId, 'conversation_id');
+    return await runExclusiveConversationWork({ root, conversationId: endedConversationId }, async () => {
+      // A manual /api/conversation/end is always an unachieved exit: an achieved errand / study circle auto-ends
+      // inside its own turn (attachRoutingErrandCompletion / attachRoutingStudyCircleCompletion) and never reaches
+      // the end button, so a manual end applies no reward (errandAchieved / studyCircleAchieved: false → errand
+      // delta 0 & record achieved:false; study circle no parameter grant & record achieved:false). The week is
+      // consumed regardless.
+      const payload = await buildConversationEndPayload({
+        root,
+        context,
+        body,
+        resolveRuntimeProviders,
+        readJson,
+        readJsonIfExists,
+        writeJson,
+        runConversationFinalization,
+        markGraduationEndingComplete,
+        isGraduationEndingContext,
+        activePlayMode,
+        errandAchieved: false,
+        studyCircleAchieved: false
+      });
+      return sendJson(res, payload);
     });
-    return sendJson(res, payload);
   }
 
   return false;

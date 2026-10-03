@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import { faceExpressions } from '../faceExpressions.mjs';
 import { conversationFinalizationStageFields } from '../routingMetaContext.mjs';
 import { recordLlmRequest } from './llmRequestLog.mjs';
+import { runWithLmRequestSlot } from './llmConcurrency.mjs';
 
 function trimSlash(value) {
   return String(value ?? '').replace(/\/+$/, '');
@@ -34,13 +35,36 @@ function lmStudioConfigRequiredError() {
   return error;
 }
 
-function lmStudioConnectionUnavailableError(cause) {
+// A transport failure names its cause by the OS/undici code (`EHOSTUNREACH`, `ECONNREFUSED`, ...) when the
+// rejecting error nests one under `cause`; otherwise only the message is available and `causeCode` is
+// deliberately absent rather than null. A rejection carrying neither is not a nameable cause and fails
+// fast instead of degrading to an unnamed failure.
+function lmStudioTransportCause(cause) {
+  const code = String(cause?.cause?.code ?? '').trim();
+  if (code) return { causeCode: code };
+  const message = String(cause?.cause?.message ?? cause?.message ?? '').trim();
+  if (message) return { causeMessage: message };
+  throw new Error('LM Studio transport failure carries neither a cause code nor a cause message');
+}
+
+// Stamps the failed request's `target` and exactly one of `causeCode` / `causeMessage` on the error the
+// server serializes, and writes the one stderr line per transport failure; the success path stays silent.
+export function attachLmStudioTransportDiagnostics(error, { target, cause }) {
+  const { causeCode, causeMessage } = lmStudioTransportCause(cause);
+  console.error(`lmstudio transport failed target=${target} cause=${causeCode ?? causeMessage}`);
+  error.target = target;
+  if (causeCode) error.causeCode = causeCode;
+  else error.causeMessage = causeMessage;
+  return error;
+}
+
+function lmStudioConnectionUnavailableError(cause, { target }) {
   const error = new Error(LMSTUDIO_CONNECTION_UNAVAILABLE_MESSAGE);
   error.code = 'LMSTUDIO_CONNECTION_UNAVAILABLE';
   error.errorCode = 'LMSTUDIO_CONNECTION_UNAVAILABLE';
   error.statusCode = 503;
   error.cause = cause;
-  return error;
+  return attachLmStudioTransportDiagnostics(error, { target, cause });
 }
 
 function isLmStudioTransportError(error) {
@@ -58,20 +82,20 @@ function isLmStudioTransportError(error) {
     || /fetch failed|failed to fetch|connection refused|connect timeout|timed out|bad port|terminated/i.test(message);
 }
 
-async function readLmStudioJsonBody(response, contentType) {
+async function readLmStudioJsonBody(response, contentType, { target }) {
   try {
     return contentType.includes('application/json') ? await response.json() : JSON.parse(await response.text());
   } catch (error) {
-    if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error);
+    if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error, { target });
     throw error;
   }
 }
 
-async function readLmStudioTextBody(response) {
+async function readLmStudioTextBody(response, { target }) {
   try {
     return await response.text();
   } catch (error) {
-    if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error);
+    if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error, { target });
     throw error;
   }
 }
@@ -215,11 +239,20 @@ const stageFlagJudgmentResponseFormat = {
   }
 };
 
+// The sole inference transport. Every chat completion this process sends to LM Studio goes through here, and
+// the HTTP issue-and-read runs inside the process-wide LM request slot (`llmConcurrency.mjs`), so the
+// conversation main line, prompt prewarm, and the independent bundles all share the one concurrency ceiling.
+// Config validation happens before taking the slot; the request timeout starts only once the slot is held, so
+// time spent waiting for a slot never counts against the request itself.
 async function postChatCompletion({ config, model, messages, stream = false, responseFormat, fetchImpl = fetch, onDelta, title = 'LM Studio request', kind = 'unknown' }) {
   const baseUrl = trimSlash(config.base_url);
   if (!baseUrl) throw lmStudioConfigRequiredError();
   const modelId = String(model ?? '').trim();
   if (!modelId) throw lmStudioConfigRequiredError();
+  return await runWithLmRequestSlot(() => issueChatCompletion({ config, baseUrl, modelId, messages, stream, responseFormat, fetchImpl, onDelta, title, kind }));
+}
+
+async function issueChatCompletion({ config, baseUrl, modelId, messages, stream, responseFormat, fetchImpl, onDelta, title, kind }) {
   const timeoutMs = Number(config.timeout_ms ?? 120000);
   const timeout = timeoutSignal(timeoutMs);
   try {
@@ -238,12 +271,12 @@ async function postChatCompletion({ config, model, messages, stream = false, res
         })
       });
     } catch (error) {
-      if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error);
+      if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error, { target: baseUrl });
       throw error;
     }
     const contentType = response.headers?.get?.('content-type') ?? '';
     if (!response.ok) {
-      const errorText = await readLmStudioTextBody(response);
+      const errorText = await readLmStudioTextBody(response, { target: baseUrl });
       throw new Error(`LM Studio ${response.status}: ${errorText}`);
     }
     if (stream) {
@@ -251,13 +284,13 @@ async function postChatCompletion({ config, model, messages, stream = false, res
       try {
         streamedText = await readSseText(response, onDelta);
       } catch (error) {
-        if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error);
+        if (isLmStudioTransportError(error)) throw lmStudioConnectionUnavailableError(error, { target: baseUrl });
         throw error;
       }
       recordLlmRequest({ title, kind, input: messages.map((message) => message.content ?? '').join('\n\n'), output: streamedText });
       return streamedText;
     }
-    const body = await readLmStudioJsonBody(response, contentType);
+    const body = await readLmStudioJsonBody(response, contentType, { target: baseUrl });
     const text = body.choices?.[0]?.message?.content ?? '';
     recordLlmRequest({ title, kind, input: messages.map((message) => message.content ?? '').join('\n\n'), output: text });
     return text;

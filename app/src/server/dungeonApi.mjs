@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 
 import { prepareDungeonRun, commitEnteredRun, dungeonRunView, dungeonAction, dungeonFinalizeRun, getDungeonView, loadDungeonRun } from '../dungeon/dungeonEngine.mjs';
 import { evaluateDungeonLlmAvailability } from '../dungeon/dungeonAvailability.mjs';
+import { loadRunConsumables } from '../dungeon/combatConsumables.mjs';
 import { isLlmBusy } from '../llm/llmActivity.mjs';
 import { companionPostTurnStatePolicy } from '../llm/conversationPipeline.mjs';
 import { DUNGEON_SOURCE_TYPE } from '../routingMetaContext.mjs';
@@ -12,10 +13,12 @@ import { resolveActiveHomunculusActor } from '../buddyResolution.mjs';
 import { createStorageApi } from '../storage.mjs';
 import { isRoutingActivePlayMode, resolvePostContentScreen } from '../playMode.mjs';
 import { streamConversationTurnSse, serializeStreamError } from './conversationStreamingApi.mjs';
+import { runExclusiveConversationWork } from './conversationTurnExclusion.mjs';
 
 const ROUTES = new Set([
   'GET /api/dungeon/state',
   'GET /api/dungeon/availability',
+  'GET /api/dungeon/entry-consumables',
   'POST /api/dungeon/enter',
   'POST /api/dungeon/action',
   'POST /api/dungeon/finalize',
@@ -107,6 +110,12 @@ export async function handleDungeonApi({
 
   if (req.method === 'GET' && url.pathname === '/api/dungeon/availability') {
     return sendJson(res, await currentAvailability(context));
+  }
+
+  // The consumables the next run would carry in (the same list the run view shows once entered), read for the
+  // pre-entry kit. Read-only: it writes nothing and rolls nothing.
+  if (req.method === 'GET' && url.pathname === '/api/dungeon/entry-consumables') {
+    return sendJson(res, { consumables: await loadRunConsumables(root) });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/dungeon/state') {
@@ -224,53 +233,56 @@ export async function handleDungeonApi({
 
   if (req.method === 'POST' && url.pathname === '/api/dungeon/companion/talk') {
     const body = await readBody(req);
-    const run = await loadDungeonRun({ root });
-    if (!run?.companion?.conversation_id) {
-      return sendJson(res, { error: 'no_companion' }, 409);
-    }
-    const providers = await resolveRuntimeProviders({ requestedProvider: body.provider, context });
-    const result = await runConversationTurn({
-      root,
-      id: run.companion.conversation_id,
-      characterId: run.companion.character_id,
-      playerInput: body.player_input,
-      now: new Date().toISOString(),
-      ...providers,
-      dungeonSceneContext: dungeonExplorationSceneContext(run.floor),
-      postTurnStatePolicy: companionPostTurnStatePolicy
+    const run = await loadCompanionRun(root);
+    return await runExclusiveConversationWork({ root, conversationId: run.companion.conversation_id }, async () => {
+      const providers = await resolveRuntimeProviders({ requestedProvider: body.provider, context });
+      const result = await runConversationTurn({
+        root,
+        id: run.companion.conversation_id,
+        characterId: run.companion.character_id,
+        playerInput: body.player_input,
+        now: new Date().toISOString(),
+        ...providers,
+        dungeonSceneContext: dungeonExplorationSceneContext(run.floor),
+        postTurnStatePolicy: companionPostTurnStatePolicy
+      });
+      return sendJson(res, { conversation: result.conversation, state: result.state });
     });
-    return sendJson(res, { conversation: result.conversation, state: result.state });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/dungeon/companion/talk/stream') {
     const body = await readBody(req);
-    let run = null;
-    const loadCompanionRun = async () => {
-      run ??= await loadDungeonRun({ root });
-      if (!run?.companion?.conversation_id) {
-        const error = new Error('no_companion');
-        error.errorCode = 'no_companion';
-        error.statusCode = 409;
-        throw error;
-      }
-      return run;
-    };
-    openSse(res);
-    await streamConversationTurnSse({
-      res,
-      root,
-      context,
-      body,
-      resolveConversationId: async () => (await loadCompanionRun()).companion.conversation_id,
-      resolveCharacterId: async () => (await loadCompanionRun()).companion.character_id,
-      resolveDungeonSceneContext: async () => dungeonExplorationSceneContext((await loadCompanionRun()).floor),
-      postTurnStatePolicy: companionPostTurnStatePolicy,
-      resolveRuntimeProviders,
-      runConversationTurn,
-      sendSseEvent
+    // The companion conversation is resolved before the stream opens: the turn holds it from acceptance.
+    const run = await loadCompanionRun(root);
+    return await runExclusiveConversationWork({ root, conversationId: run.companion.conversation_id }, async () => {
+      openSse(res);
+      await streamConversationTurnSse({
+        res,
+        root,
+        context,
+        body,
+        resolveConversationId: async () => run.companion.conversation_id,
+        resolveCharacterId: async () => run.companion.character_id,
+        resolveDungeonSceneContext: async () => dungeonExplorationSceneContext(run.floor),
+        postTurnStatePolicy: companionPostTurnStatePolicy,
+        resolveRuntimeProviders,
+        runConversationTurn,
+        sendSseEvent
+      });
+      return true;
     });
-    return true;
   }
 
   return sendJson(res, { error: 'not found' }, 404);
+}
+
+async function loadCompanionRun(root) {
+  const run = await loadDungeonRun({ root });
+  if (!run?.companion?.conversation_id) {
+    const error = new Error('no_companion');
+    error.errorCode = 'no_companion';
+    error.statusCode = 409;
+    throw error;
+  }
+  return run;
 }

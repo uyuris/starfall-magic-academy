@@ -6,8 +6,11 @@
 // are returned as-is with no LLM call. Otherwise the offers are (re)generated:
 //   1. drawWeeklyErrandSkeletons fixes the deterministic skeleton — three distinct
 //      types, a band-bounded reward each, and a unique client each (no LLM).
-//   2. per offer, sequentially, the client's memory materials are read and the offer
-//      text (title / situation / motivation) is generated and gated.
+//   2. per offer, the client's memory materials are read and the offer text
+//      (title / situation / motivation) is generated and gated. The three offers are
+//      mutually independent, so they run as one bundle through `runIndependentBundle`
+//      (bundle concurrency bound in llm/llmConcurrency.mjs); retry stays per offer, and
+//      the results are assembled in skeleton order regardless of completion order.
 //   3. only once ALL three pass the gate is the slot written in one commit.
 //
 // Any generation or gate failure throws with NOTHING persisted — no partial slot, no
@@ -20,6 +23,7 @@ import {
   ERRAND_GENERATION_FAILED_ERROR_CODE
 } from './llm/errandOffer.mjs';
 import { generateGatedOfferTextWithRetry } from './llm/offerGenerationRetry.mjs';
+import { runIndependentBundle } from './llm/llmConcurrency.mjs';
 import {
   ROUTING_WEEKLY_ERRAND_OFFERS_STATE_KEY,
   drawWeeklyErrandSkeletons,
@@ -76,12 +80,18 @@ export async function buildOrLoadWeeklyErrandOffers({
   const { skeletons } = drawWeeklyErrandSkeletons({ state, catalog, characters });
   const characterById = charactersById(characters);
 
-  const offers = [];
-  for (const skeleton of skeletons) {
+  // Every skeleton is resolved to its client before any generation starts, so a skeleton naming an
+  // unknown client fails before a single LM request is spent.
+  const resolvedSkeletons = skeletons.map((skeleton) => {
     const character = characterById.get(skeleton.client_character_id);
     if (!character) throw new Error(`errand client is not a selectable character: ${skeleton.client_character_id}`);
     const clientDisplayName = String(character.display_name ?? '').trim();
     if (!clientDisplayName) throw new Error(`errand client has no display name: ${skeleton.client_character_id}`);
+    return { skeleton, character, clientDisplayName };
+  });
+
+  // One bundle item = one offer (structured → chat, retried as a unit); results land in skeleton order.
+  const offers = await runIndependentBundle(resolvedSkeletons, { run: async ({ skeleton, character, clientDisplayName }) => {
     const memories = await memoriesFor(skeleton.client_character_id);
     // The persona (name / standing / character description / speaking basis) drives both the
     // character-fit skeleton and the own-voice appeal. The character summary from
@@ -106,7 +116,7 @@ export async function buildOrLoadWeeklyErrandOffers({
       validate: validateErrandOfferText,
       generationErrorCode: ERRAND_GENERATION_FAILED_ERROR_CODE
     });
-    offers.push({
+    return {
       errand_id: skeleton.type_id,
       type_id: skeleton.type_id,
       title: text.title,
@@ -116,8 +126,8 @@ export async function buildOrLoadWeeklyErrandOffers({
       condition_text: skeleton.condition_text,
       reward_money: skeleton.reward_money,
       client_character_id: skeleton.client_character_id
-    });
-  }
+    };
+  } });
 
   const persisted = validateWeeklyErrandOffers({ week, offers });
 

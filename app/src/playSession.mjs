@@ -1,11 +1,14 @@
 import { existsSync, promises as fs } from 'node:fs';
 import path from 'node:path';
-import { createStorageApi } from './storage.mjs';
+import { createStorageApi, writeJsonFileAtomic } from './storage.mjs';
 import { createRuntimePaths } from './runtimePaths.mjs';
 import { ensureCharacterMutableSurface, resetSlotGameDataRoot, writeRuntimePathsManifest } from './runtimeSlotBootstrap.mjs';
 import { ensureSelectableCharacterStorage, isSelectableCharacterId } from './characterCatalog.mjs';
 import { normalizeParameters } from './parameters.mjs';
 import { validatePlayMode, validateRoutingPersonaVariant } from './playMode.mjs';
+import { emptyLibraryCollection } from './libraryCollection.mjs';
+import { emptyConcertHallPieces } from './concertHallPieces.mjs';
+import { OVERLOOK_CHILDREN_PATH, OVERLOOK_ROSTER_PATH, emptyOverlookChildren, emptyOverlookRoster } from './overlookState.mjs';
 import { addRoutingOpeningEvent } from './routingOpeningEvent.mjs';
 
 export const playAreaRelativeRoot = 'game_data/play';
@@ -140,9 +143,7 @@ async function readJsonIfExists(fullPath) {
 }
 
 async function writeJson(root, relativePath, value) {
-  const fullPath = path.join(root, relativePath);
-  await fs.mkdir(path.dirname(fullPath), { recursive: true });
-  await fs.writeFile(fullPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  await writeJsonFileAtomic(path.join(root, relativePath), value);
 }
 
 async function pathExists(targetPath) {
@@ -395,9 +396,7 @@ export async function readSlotMeta(root, slotId) {
 }
 
 export async function writeSlotMeta(root, slotId, meta) {
-  const slotRoot = resolveSlotProjectRoot(root, slotId);
-  await fs.mkdir(slotRoot, { recursive: true });
-  await fs.writeFile(resolveSlotMetaPath(root, slotId), `${JSON.stringify(meta, null, 2)}\n`, 'utf8');
+  await writeJsonFileAtomic(resolveSlotMetaPath(root, slotId), meta);
 }
 
 export async function setActiveSlot(root, slotId) {
@@ -408,11 +407,11 @@ export async function setActiveSlot(root, slotId) {
   await fs.rm(resolveActiveGameDataLink(root), { recursive: true, force: true });
   await writeRuntimePathsManifest({ root: playRoot, sourceRoot: root, mutableRoot: path.join(slotRoot, 'game_data') });
   const meta = await readSlotMeta(root, slotId);
-  await fs.writeFile(resolveActiveSlotFile(root), `${JSON.stringify({
+  await writeJsonFileAtomic(resolveActiveSlotFile(root), {
     slot_id: slotId,
     activated_at: new Date().toISOString(),
     label: meta?.label ?? slotLabelFor(slotId)
-  }, null, 2)}\n`, 'utf8');
+  });
 }
 
 export async function refreshSlotMetaFromRuntime(root, slotId) {
@@ -478,16 +477,20 @@ export async function initializeNewPlayArea({ root, slotId, label, playMode, rou
   // exist in both loop and routing, so unlike the routing-only library / homunculi surfaces this seeds
   // in both modes (an empty surface reads every character at the initial line anyway).
   await writeJson(slotRoot, 'game_data/mp_reserve.json', { version: 1, reserves: {} });
-  // The library collection and homunculi surfaces are routing-only (大書庫 / 錬成室 are routing
-  // destinations). Seeding them in loop mode would add routing surfaces to the loop mutable set, so a loop
-  // new game leaves them absent — absence reads as the empty surface anyway.
+  // The library collection, concert hall pieces and homunculi surfaces are routing-only (大書庫 / 奏楽堂 /
+  // 錬成室 are routing destinations). Seeding them in loop mode would add routing surfaces to the loop
+  // mutable set, so a loop new game leaves them absent — absence reads as the empty surface anyway.
   if (activePlayMode.mode === 'routing') {
-    await writeJson(slotRoot, 'game_data/library_collection.json', { version: 1, entries: [] });
+    await writeJson(slotRoot, 'game_data/library_collection.json', emptyLibraryCollection());
+    await writeJson(slotRoot, 'game_data/concert_hall_pieces.json', emptyConcertHallPieces());
     await writeJson(slotRoot, 'game_data/homunculi.json', { version: 1, active: [], nameplates: [] });
     // The star cradle (ハブの箱庭) is a routing-only hub side-activity: its garden and its caged-creature
     // item surfaces seed empty here, matching the library / homunculi routing-only surfaces.
     await writeJson(slotRoot, 'game_data/star_cradle.json', { version: 1, pots: [], creatures: [] });
     await writeJson(slotRoot, 'game_data/star_cradle_creatures.json', { version: 1, instances: [] });
+    // The 星見の窓 surface (the 12 children and their states) is routing-only too and starts empty.
+    await writeJson(slotRoot, OVERLOOK_ROSTER_PATH, emptyOverlookRoster());
+    await writeJson(slotRoot, OVERLOOK_CHILDREN_PATH, emptyOverlookChildren());
   }
   await fs.mkdir(path.join(slotRoot, 'game_data/logs'), { recursive: true });
   const meta = buildSlotMeta({

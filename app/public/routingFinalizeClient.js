@@ -182,17 +182,6 @@ export function planPlayModeSaveErrorReaction(error) {
   return { kind: 'error' };
 }
 
-// Interpret a finalize-retry outcome into a display state: 'idle' (nothing to retry), 'completed' (the
-// failed record was reset and drained), or 'unresolved' (it was retried but re-failed and still
-// needs attention). Pure, so the retry result→message decision is verifiable without the DOM.
-export function describeRetryOutcome({ retryStatus, drainedCount }) {
-  if (retryStatus === 'idle') return 'idle';
-  if (retryStatus !== 'retried') {
-    throw new Error(`describeRetryOutcome: unexpected retryStatus ${JSON.stringify(retryStatus)}`);
-  }
-  return drainedCount > 0 ? 'completed' : 'unresolved';
-}
-
 // The confirmation message shown after a SUCCESSFUL play-mode save. A routing success means a persona
 // variant was already chosen (planPlayModeSave gated the save on it), so the confirmation must not
 // re-prompt the selection — the "案内役のペルソナを1つ選んでください。" prompt belongs only to the

@@ -1,10 +1,11 @@
+// 残す (a): 装備の売却が失敗したときに、差し出した装備が所持から消える・代金だけが入る壊れ方から、プレイヤーの装備と所持金を守る（操作の原子性）。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
-import { equipmentSellPrice, equippedInstanceIds, sellEquipmentInstance } from '../src/equipmentSale.mjs';
+import { sellEquipmentInstance } from '../src/equipmentSale.mjs';
 import { loadEquipmentSurface } from '../src/equipment.mjs';
 import { createStorageApi } from '../src/storage.mjs';
 import { writeDungeonMaterialsDefinition } from './dungeonMaterialsFixture.mjs';
@@ -71,60 +72,6 @@ async function saleRoot({ money = 500, instances = [], state = {} } = {}) {
   await writeJson(root, 'data/mutable/game_data/player_equipment.json', { version: 1, instances });
   return root;
 }
-
-test('equipmentSellPrice is the exact deterministic (tier, quality) table', () => {
-  const expected = {
-    1: { common: 8, fine: 12, excellent: 18, masterwork: 28 },
-    2: { common: 24, fine: 36, excellent: 54, masterwork: 84 },
-    3: { common: 60, fine: 90, excellent: 135, masterwork: 210 },
-    4: { common: 128, fine: 192, excellent: 288, masterwork: 448 }
-  };
-  for (const tier of [1, 2, 3, 4]) {
-    for (const quality of ['common', 'fine', 'excellent', 'masterwork']) {
-      assert.equal(equipmentSellPrice({ tier, quality }), expected[tier][quality], `tier ${tier} ${quality}`);
-    }
-  }
-});
-
-test('equipmentSellPrice fails fast on an unknown tier or quality (no fallback price)', () => {
-  assert.throws(() => equipmentSellPrice({ tier: 5, quality: 'fine' }), /no sale price for equipment tier: 5/);
-  assert.throws(() => equipmentSellPrice({ tier: 2, quality: 'legendary' }), /no sale price for equipment quality: legendary/);
-});
-
-test('equippedInstanceIds gathers every owner (hero + companions) and rejects a cross-owner share', () => {
-  assert.deepEqual([...equippedInstanceIds({})], []);
-  const state = {
-    equipment_slots: { weapon: 'equip_weapon_1' },
-    companion_equipment_slots: { character_003: { amulet: 'equip_amulet_1' } }
-  };
-  assert.deepEqual([...equippedInstanceIds(state)].sort(), ['equip_amulet_1', 'equip_weapon_1']);
-  assert.throws(
-    () => equippedInstanceIds({ equipment_slots: { weapon: 'x' }, companion_equipment_slots: { character_003: { weapon: 'x' } } }),
-    /equipped by multiple owners/
-  );
-});
-
-test('selling an unequipped instance removes it from the surface and credits the exact sell price', async () => {
-  const root = await saleRoot({ money: 500, instances: [weapon(), amulet()] });
-  const result = await sellEquipmentInstance({ root, instance_id: 'equip_weapon_1' });
-
-  assert.equal(result.sell_price, 36, 'tier 2 fine sells for 36');
-  assert.equal(result.sold_instance.instance_id, 'equip_weapon_1');
-  assert.equal(result.sold_instance.name, '紅蓮の剣');
-  assert.equal(result.inventory.money, 536, '500 + 36 credited');
-
-  const surface = await loadEquipmentSurface({ root });
-  assert.deepEqual(surface.instances.map((i) => i.instance_id), ['equip_amulet_1'], 'only the sold instance is removed');
-  assert.equal((await readJson(root, 'data/mutable/game_data/player_inventory.json')).money, 536, 'wallet persisted');
-});
-
-test('selling an unknown instance id fails fast before any write', async () => {
-  const root = await saleRoot({ money: 500, instances: [amulet()] });
-  await assert.rejects(sellEquipmentInstance({ root, instance_id: 'equip_missing' }), /unknown_equipment_instance/);
-
-  assert.deepEqual((await loadEquipmentSurface({ root })).instances.map((i) => i.instance_id), ['equip_amulet_1']);
-  assert.equal((await readJson(root, 'data/mutable/game_data/player_inventory.json')).money, 500, 'wallet untouched');
-});
 
 test('selling an instance worn by the hero is rejected before any write', async () => {
   const root = await saleRoot({

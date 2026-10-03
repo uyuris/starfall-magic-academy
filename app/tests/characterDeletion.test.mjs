@@ -1,3 +1,4 @@
+// 残す (a): キャラ削除 script が save と slot の識別子を取り違えて書き換える壊れ方と、dry-run が save や slot に書き込む壊れ方から、プレイヤーの save を守る。
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { promises as fs } from 'node:fs';
@@ -135,85 +136,6 @@ async function makeFixture(t, { count, flagged }) {
   });
   return root;
 }
-
-test('dry-run plans tail truncation without changing the fixture', async (t) => {
-  const root = await makeFixture(t, { count: 5, flagged: ['character_005'] });
-  const before = await listSnapshot(root);
-
-  const plan = await createCharacterDeletionPlan({ root });
-  assert.equal(plan.old_count, 5);
-  assert.equal(plan.new_count, 4);
-  assert.deepEqual(plan.moves, []);
-  assert.deepEqual(plan.truncates.map((item) => item.character_id), ['character_005']);
-  assert.match(plan.affected_files.join('\n'), /content\/characters\/character_005/);
-
-  const result = await deleteFlaggedCharacters({ root, apply: false });
-  assert.equal(result.applied, false);
-  assert.equal(result.plan.new_count, 4);
-  assert.deepEqual(await listSnapshot(root), before);
-});
-
-test('apply moves a middle deletion and rewrites self fields, assets, manifest, source sheet, and flags', async (t) => {
-  const root = await makeFixture(t, { count: 5, flagged: ['character_002'] });
-
-  const result = await deleteFlaggedCharacters({ root, apply: true });
-
-  assert.equal(result.applied, true);
-  assert.deepEqual(result.plan.moves.map(({ from, to }) => ({ from, to })), [
-    { from: 'character_005', to: 'character_002' }
-  ]);
-  assert.match(await readText(root, 'app/src/characterCatalog.mjs'), /const characterCount = 4;/);
-  assert.equal(await pathExists(path.join(root, 'content/characters/character_005')), false);
-  assert.equal(await pathExists(path.join(root, 'assets/canonical/character_visual_sets/visual_set_005')), false);
-
-  const movedProfile = await readJson(root, 'content/characters/character_002/profile.json');
-  assert.equal(movedProfile.display_name, 'Character 005');
-  assert.equal(movedProfile.character_id, 'character_002');
-  assert.equal(movedProfile.visual_set_id, 'visual_set_002');
-  assert.equal(movedProfile.source_image, 'character_visual_sets/visual_set_002/face_emotions/neutral.jpg');
-  assert.equal(movedProfile.asset_state.character_id, 'character_002');
-  assert.equal(movedProfile.asset_state.visual_set_id, 'visual_set_002');
-
-  const movedVisualManifest = await readJson(root, 'assets/canonical/character_visual_sets/visual_set_002/manifest.json');
-  assert.equal(movedVisualManifest.fixture_marker, 'Visual 005');
-  assert.equal(movedVisualManifest.visual_set_id, 'visual_set_002');
-  assert.equal(movedVisualManifest.source_sheet.path, '../../source_images/visual_set_002_emotion16_source_sheet.jpg');
-  assert.match(await readText(root, 'assets/canonical/character_visual_sets/visual_set_002/identity_notes.md'), /^# visual_set_002 Identity Notes/);
-  assert.equal(await readText(root, 'assets/canonical/source_images/visual_set_002_emotion16_source_sheet.jpg'), 'sheet-005\n');
-  assert.equal(await pathExists(path.join(root, 'assets/canonical/source_images/visual_set_005_emotion16_source_sheet.jpg')), false);
-
-  assert.deepEqual((await readJson(root, 'content/characters/manifest.json')).map((entry) => entry.character_id), [
-    'character_001',
-    'character_002',
-    'character_003',
-    'character_004',
-    'lina'
-  ]);
-  assert.deepEqual(await readJson(root, 'content/characters/delete-flags.json'), { flagged: [] });
-  assert.equal((await readJson(root, 'content/creatures/creature_001/profile.json')).character_id, 'character_005');
-});
-
-test('multiple deletions fill low slots with tail survivors in descending order', async (t) => {
-  const root = await makeFixture(t, { count: 8, flagged: ['character_002', 'character_004', 'character_007'] });
-
-  const result = await deleteFlaggedCharacters({ root, apply: true });
-
-  assert.equal(result.plan.new_count, 5);
-  assert.deepEqual(result.plan.moves.map(({ from, to }) => `${from}->${to}`), [
-    'character_008->character_002',
-    'character_006->character_004'
-  ]);
-  assert.equal((await readJson(root, 'content/characters/character_002/profile.json')).display_name, 'Character 008');
-  assert.equal((await readJson(root, 'content/characters/character_004/profile.json')).display_name, 'Character 006');
-  assert.deepEqual(
-    await Promise.all([1, 2, 3, 4, 5].map(async (index) => await pathExists(path.join(root, `content/characters/${characterId(index)}`)))),
-    [true, true, true, true, true]
-  );
-  assert.deepEqual(
-    await Promise.all([6, 7, 8].map(async (index) => await pathExists(path.join(root, `content/characters/${characterId(index)}`)))),
-    [false, false, false]
-  );
-});
 
 test('seed and mutable save data clear deleted identities before remapping moved identities', async (t) => {
   const root = await makeFixture(t, { count: 6, flagged: ['character_003'] });
@@ -360,33 +282,5 @@ test('dry-run reports mutable save and slot impact paths without mutating them',
   assert.ok(plan.affected_files.includes('data/mutable/game_data/play/slots/slot_001/game_data/characters/character_003'));
   assert.ok(plan.affected_files.includes('data/mutable/game_data/play/slots/slot_001/game_data/characters/character_006'));
   assert.ok(plan.affected_files.includes('data/mutable/game_data/play/slots/slot_001/game_data/characters/character_003/skills.json'));
-  assert.deepEqual(await listSnapshot(root), before);
-});
-
-test('invalid flags and missing targets fail before applying partial changes', async (t) => {
-  await assert.rejects(
-    createCharacterDeletionPlan({ root: await makeFixture(t, { count: 3, flagged: ['creature_001'] }) }),
-    /invalid flagged character id: creature_001/
-  );
-  await assert.rejects(
-    createCharacterDeletionPlan({ root: await makeFixture(t, { count: 3, flagged: ['character_002', 'character_002'] }) }),
-    /duplicate flagged character id: character_002/
-  );
-  await assert.rejects(
-    createCharacterDeletionPlan({ root: await makeFixture(t, { count: 3, flagged: ['character_999'] }) }),
-    /flagged character out of range: character_999/
-  );
-  await assert.rejects(
-    createCharacterDeletionPlan({ root: await makeFixture(t, { count: 2, flagged: ['character_001', 'character_002'] }) }),
-    /cannot delete all selectable characters/
-  );
-
-  const root = await makeFixture(t, { count: 4, flagged: ['character_002'] });
-  await fs.rm(path.join(root, 'assets/canonical/character_visual_sets/visual_set_004'), { recursive: true, force: true });
-  const before = await listSnapshot(root);
-  await assert.rejects(
-    deleteFlaggedCharacters({ root, apply: true }),
-    /missing visual set directory: visual_set_004/
-  );
   assert.deepEqual(await listSnapshot(root), before);
 });

@@ -432,35 +432,13 @@ function serializePromptPrewarmError(error) {
   };
 }
 
-async function updatePromptPrewarmCache({ root, conversation, update }) {
-  const current = await readJsonIfExists(root, conversationLogPath(conversation.id));
-  if (!current) throw new Error(`conversation not found for prompt prewarm update: ${conversation.id}`);
-  if (current.updated_at !== conversation.updated_at || (current.messages?.length ?? 0) !== conversation.messages.length) {
-    await writeJson(root, `game_data/logs/prompt_prewarm_skipped/${conversation.id}.json`, {
-      conversation_id: conversation.id,
-      character_id: conversation.character_id,
-      skipped_at: new Date().toISOString(),
-      reason: 'conversation_advanced_before_prompt_prewarm_completed',
-      expected_updated_at: conversation.updated_at,
-      current_updated_at: current.updated_at,
-      expected_message_count: conversation.messages.length,
-      current_message_count: current.messages?.length ?? 0
-    });
-    return;
-  }
-  const currentCache = current.next_prompt_cache && typeof current.next_prompt_cache === 'object'
-    ? current.next_prompt_cache
-    : {};
-  await writeJson(root, conversationLogPath(conversation.id), {
-    ...current,
-    next_prompt_cache: {
-      ...currentCache,
-      ...update
-    }
-  });
-}
+const PROMPT_PREWARM_FAILED_ERROR_CODE = 'PROMPT_PREWARM_FAILED';
 
-async function runPostVisiblePromptPrewarm({
+// The prompt prewarm is the last stage of a turn's post-processing: the turn awaits it before it returns, so the
+// turn's response marks the end of everything the turn runs. The turn is already written when the prewarm runs, so
+// a failed prewarm keeps the turn: the outcome is recorded on the written conversation and returned as `failure`
+// for the turn to raise as PROMPT_PREWARM_FAILED.
+async function runPromptPrewarm({
   root,
   conversation,
   prewarmPrompt,
@@ -470,20 +448,20 @@ async function runPostVisiblePromptPrewarm({
   recalledWorkRecords,
   promptPrewarmProvider
 }) {
+  let update;
+  let failure = null;
   try {
-    const prewarmText = await promptPrewarmProvider({
-      prompt: prewarmPrompt,
-      state,
-      profile,
-      currentConversation,
-      recalledWorkRecords
-    });
-    await updatePromptPrewarmCache({
-      root,
-      conversation,
-      update: { prewarm_text: prewarmText }
-    });
+    update = {
+      prewarm_text: await promptPrewarmProvider({
+        prompt: prewarmPrompt,
+        state,
+        profile,
+        currentConversation,
+        recalledWorkRecords
+      })
+    };
   } catch (error) {
+    failure = error;
     const failedAt = new Date().toISOString();
     const serializedError = serializePromptPrewarmError(error);
     await writeJson(root, `game_data/logs/prompt_prewarm_errors/${conversation.id}.json`, {
@@ -493,26 +471,28 @@ async function runPostVisiblePromptPrewarm({
       recalled_work_record_ids: recalledWorkRecords.map((record) => record.id),
       error: serializedError
     });
-    await updatePromptPrewarmCache({
-      root,
-      conversation,
-      update: {
-        prewarm_text: null,
-        prewarm_error: {
-          failed_at: failedAt,
-          message: serializedError.message
-        }
+    update = {
+      prewarm_text: null,
+      prewarm_error: {
+        failed_at: failedAt,
+        message: serializedError.message
       }
-    });
+    };
   }
+  const prewarmedConversation = {
+    ...conversation,
+    next_prompt_cache: { ...conversation.next_prompt_cache, ...update }
+  };
+  await writeJson(root, conversationLogPath(conversation.id), prewarmedConversation);
+  return { conversation: prewarmedConversation, failure };
 }
 
-function startPostVisiblePromptPrewarm(args) {
-  runOutsideRoutingReadScope(() => {
-    void runPostVisiblePromptPrewarm(args).catch((error) => {
-      console.error('prompt prewarm background task failed', error);
-    });
-  });
+function promptPrewarmFailedError(cause, turnResult) {
+  const error = new Error(`prompt prewarm failed after the turn was written: ${cause instanceof Error ? cause.message : String(cause)}`, { cause });
+  error.statusCode = 503;
+  error.errorCode = PROMPT_PREWARM_FAILED_ERROR_CODE;
+  error.turnResult = turnResult;
+  return error;
 }
 
 function uniqueExistingWorkRecordIds(ids, allWorkRecords, limit = Infinity) {
@@ -1272,7 +1252,9 @@ export async function editConversationUserMessage({
   stageMoveDestinationProvider = defaultStageMoveDestinationProvider,
   stageMoveCutoffProvider = defaultStageMoveCutoffProvider,
   stageMoveOpeningProvider = defaultStageMoveOpeningProvider,
-  characterSpeechConstraints = []
+  characterSpeechConstraints = [],
+  onEmotion,
+  onAssistantComplete
 }) {
   if (!root) throw new Error('root is required');
   const normalizedIndex = Math.trunc(Number(messageIndex));
@@ -1318,7 +1300,9 @@ export async function editConversationUserMessage({
     stageMoveCutoffProvider,
     stageMoveOpeningProvider,
     postTurnStatePolicy: academyPostTurnStatePolicy,
-    characterSpeechConstraints
+    characterSpeechConstraints,
+    onEmotion,
+    onAssistantComplete
   });
   return {
     ...result,
@@ -2011,6 +1995,7 @@ export async function runConversationTurn({
           content: stageMoveOpeningAssistantText,
           ...emotion
         };
+        onAssistantComplete?.({ content: stageMoveOpeningAssistantText, emotion });
         nextMessages = [
           ...stageMoveContextMessages,
           stageMoveOpeningMessage
@@ -2055,7 +2040,11 @@ export async function runConversationTurn({
     .filter((id) => allowedRecallIds.has(id));
   const recalledWorkRecords = allWorkRecords.filter((record) => recalledWorkRecordIds.includes(record.id));
   const enrichedWorkRecords = mergeWorkRecordsById(continuityPromptContext.workRecordsForPrompt, recalledWorkRecords);
-  const prewarmPrompt = recalledWorkRecords.length > 0
+  // The prewarm serves the next turn of this conversation, so a turn that closes the conversation (a character
+  // cutoff, an achieved errand / study circle, a chosen graduation partner, a decided routing send-off) has no
+  // user for it and does not run it.
+  const conversationContinuesAfterTurn = continueConversation && !routingDestinationResult;
+  const prewarmPrompt = conversationContinuesAfterTurn && recalledWorkRecords.length > 0
     ? buildCharacterPrompt({
       ...recallPromptArgs,
       workRecords: enrichedWorkRecords,
@@ -2141,8 +2130,8 @@ export async function runConversationTurn({
   if (!nextState || typeof nextState !== 'object') throw new Error('postTurnStatePolicy must return state');
   await writeJson(root, 'game_data/runtime_state.json', nextState);
 
-  if (prewarmPrompt) {
-    startPostVisiblePromptPrewarm({
+  const prewarm = prewarmPrompt
+    ? await runPromptPrewarm({
       root,
       conversation,
       prewarmPrompt,
@@ -2151,14 +2140,19 @@ export async function runConversationTurn({
       currentConversation: nextMessages,
       recalledWorkRecords,
       promptPrewarmProvider
-    });
-  }
+    })
+    : { conversation, failure: null };
+  const turnResult = turnResultFor({ conversation: prewarm.conversation, state: nextState });
+  if (prewarm.failure) throw promptPrewarmFailedError(prewarm.failure, turnResult);
+  return turnResult;
 
-  if (graduationGuideSelection) return { conversation, state: nextState, routing_graduation_guide_selection: graduationGuideSelection };
-  if (routingDestinationResult) return { conversation, state: nextState, routing_destination: routingDestinationResult };
-  if (errandAchievement) return { conversation, state: nextState, errand_achievement: errandAchievement };
-  if (studyCircleAchievement) return { conversation, state: nextState, study_circle_achievement: studyCircleAchievement };
-  return stageMove ? { conversation, state: nextState, stage_move: stageMove } : { conversation, state: nextState };
+  function turnResultFor(base) {
+    if (graduationGuideSelection) return { ...base, routing_graduation_guide_selection: graduationGuideSelection };
+    if (routingDestinationResult) return { ...base, routing_destination: routingDestinationResult };
+    if (errandAchievement) return { ...base, errand_achievement: errandAchievement };
+    if (studyCircleAchievement) return { ...base, study_circle_achievement: studyCircleAchievement };
+    return stageMove ? { ...base, stage_move: stageMove } : base;
+  }
 }
 
 export async function appendSkillRecord({ root, characterId, skillRecord }) {

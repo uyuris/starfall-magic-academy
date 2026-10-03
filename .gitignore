@@ -110,6 +110,7 @@ app/config/imported_runtime_staging/lmstudio.json
 app/config/lmstudio.json
 app/config/conversation-popup.json
 app/config/play-mode.json
+app/config/audio.json
 assets/source_archives/imported_generations/runtime_staging_character_visual_sets/
 imports/snapshots/runtime-staging/character_visual_sets_reference/
 

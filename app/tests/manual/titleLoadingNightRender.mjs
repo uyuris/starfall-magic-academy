@@ -8,12 +8,13 @@
 //   ./node_modules/.bin/electron app/tests/manual/titleLoadingNightRender.mjs
 //
 // Section A — TITLE (real showScreen('title') via the default startup at /): the title screen is driven by the
-// real init override, so its starfield ambient starts through the real showScreen wiring. It measures:
-//   - the .title-hero-screen computed background resolves the NIGHT art (/canonical/title/title_night.jpg),
-//     never the removed daytime title.jpg;
-//   - the #title-starfield canvas is laid out (width/height > 0) and the shared ambient drew an ANIMATED field
-//     (canvas.dataset.starfield === 'animated');
-//   - the drifting decor + corner ornament <img>s decoded.
+// real init override, and the night journey layer (#journey, metaJourney.js) stands at its gate over it. It
+// measures:
+//   - the .title-hero-screen and the journey gate place computed backgrounds resolve the NIGHT art
+//     (/canonical/title/title_night.jpg), never the removed daytime title.jpg;
+//   - the #journey-sky canvas is laid out (width/height > 0) and drew an ANIMATED field
+//     (canvas.dataset.sky === 'animated');
+//   - the corner ornament <img> decoded.
 //
 // Section B — LOADING (real showScreen('academy-loading') via the routing entry): entering the routing hub
 // from the title shows the academy loading screen WHILE POST /api/routing/hub/start is in flight, so the real
@@ -25,8 +26,8 @@
 //   - the #academy-loading-starfield canvas is laid out and drew an ANIMATED field.
 //
 // Section C — TITLE under REDUCED MOTION (CDP Emulation.setEmulatedMedia): with prefers-reduced-motion:reduce
-// emulated, the shared ambient must draw a single STATIC field and run no rAF loop (canvas.dataset.starfield
-// === 'static'). Measured on the title starfield.
+// emulated, the journey sky must draw a single STATIC field and run no rAF loop (canvas.dataset.sky ===
+// 'static'). Measured on the journey sky at the gate.
 //
 // Section D — LOADING under REDUCED MOTION: the emulation is still active, so re-driving the routing entry
 // shows the academy loading screen under prefers-reduced-motion; the #academy-loading-starfield must likewise
@@ -143,23 +144,23 @@ async function freshTitleScreen(win, base) {
   await waitFor(win, `document.querySelector('#title-screen').classList.contains('active') && !!document.querySelector('#start-new-game')`, { tries: 100, intervalMs: 50 });
 }
 
-// Read the current title-screen render probe (background art + starfield ambient dataset + decor decode).
+// Read the current title-screen render probe (background art + journey gate + journey sky dataset).
 async function probeTitle(win) {
-  // Give the ambient a couple of animation frames to set its dataset + draw.
+  // Give the sky a couple of animation frames to set its dataset + draw.
   await sleep(400);
   return js(win, `(() => {
     const hero = document.querySelector('#title-screen');
-    const star = document.querySelector('#title-starfield');
-    const decor = document.querySelector('.title-decor-1');
-    const corner = document.querySelector('.title-corner-tl');
+    const journey = document.querySelector('#journey');
+    const gate = document.querySelector('.journey-place[data-place="gate"]');
+    const sky = document.querySelector('#journey-sky');
     return {
       titleActive: hero.classList.contains('active'),
       heroBg: getComputedStyle(hero).backgroundImage,
-      starfield: star ? star.dataset.starfield : null,
-      starW: star ? star.width : 0,
-      starH: star ? star.height : 0,
-      decorDecoded: !!decor && decor.complete && decor.naturalWidth > 0,
-      cornerDecoded: !!corner && corner.complete && corner.naturalWidth > 0
+      journeyScene: journey ? journey.dataset.scene : null,
+      gateBg: gate ? getComputedStyle(gate).backgroundImage : '',
+      sky: sky ? sky.dataset.sky : null,
+      skyW: sky ? sky.width : 0,
+      skyH: sky ? sky.height : 0
     };
   })()`);
 }
@@ -189,18 +190,18 @@ async function main() {
 
   // ---- Section A: TITLE (real showScreen('title')) ----
   await freshTitleScreen(win, base);
-  await waitFor(win, `(() => { const s = document.querySelector('#title-starfield'); return !!s && s.dataset.starfield === 'animated'; })()`, { tries: 120, intervalMs: 40 });
+  await waitFor(win, `(() => { const s = document.querySelector('#journey-sky'); return !!s && s.dataset.sky === 'animated'; })()`, { tries: 120, intervalMs: 40 });
   const title = await probeTitle(win);
   log('title_probe', title);
   check('TITLE: the .title-hero-screen computed background resolves the night art (/canonical/title/title_night.jpg) and never the removed daytime title.jpg',
     title.titleActive === true && title.heroBg.includes('title_night.jpg') && !title.heroBg.includes('/title.jpg'),
     { heroBg: title.heroBg });
-  check('TITLE: the #title-starfield canvas is laid out and the shared ambient drew an ANIMATED field (dataset.starfield === animated)',
-    title.starfield === 'animated' && title.starW > 0 && title.starH > 0,
-    { starfield: title.starfield, starW: title.starW, starH: title.starH });
-  check('TITLE: the drifting decor and corner ornament images decoded', title.decorDecoded && title.cornerDecoded,
-    { decorDecoded: title.decorDecoded, cornerDecoded: title.cornerDecoded });
-  await waitFor(win, `(() => { const i = document.querySelector('.title-corner-tl'); return !!i && i.complete && i.naturalWidth > 0; })()`, { tries: 120, intervalMs: 40 });
+  check('TITLE: the journey layer stands at the gate and the gate place computed background resolves the night art (/canonical/title/title_night.jpg)',
+    title.journeyScene === 'gate' && title.gateBg.includes('title_night.jpg') && !title.gateBg.includes('/title.jpg'),
+    { journeyScene: title.journeyScene, gateBg: title.gateBg });
+  check('TITLE: the #journey-sky canvas is laid out and drew an ANIMATED field (dataset.sky === animated)',
+    title.sky === 'animated' && title.skyW > 0 && title.skyH > 0,
+    { sky: title.sky, skyW: title.skyW, skyH: title.skyH });
   await sleep(300);
   const titleShot = path.join(shotDir, 'title-night.png');
   try { await fs.writeFile(titleShot, (await win.webContents.capturePage()).toPNG()); console.log(`screenshot: ${titleShot}`); }
@@ -304,8 +305,8 @@ async function main() {
   await sleep(500);
 
   // ---- Section C: REDUCED MOTION (CDP Emulation.setEmulatedMedia) ----
-  // Emulate prefers-reduced-motion:reduce and reload the title: the shared ambient must draw a single STATIC
-  // field (dataset.starfield === 'static'), the same reduced-motion contract the loading starfield shares.
+  // Emulate prefers-reduced-motion:reduce and reload the title: the journey sky must draw a single STATIC field
+  // (dataset.sky === 'static'), the same reduced-motion contract the loading starfield keeps.
   let reducedMotionApplied = true;
   try {
     win.webContents.debugger.attach('1.3');
@@ -317,12 +318,12 @@ async function main() {
     console.log(`reduced-motion emulation: FAILED ${e?.message ?? e}`);
   }
   await freshTitleScreen(win, base);
-  const staticSeen = await waitFor(win, `(() => { const s = document.querySelector('#title-starfield'); return !!s && s.dataset.starfield === 'static'; })()`, { tries: 120, intervalMs: 40 });
-  const reduced = await js(win, `(() => { const s = document.querySelector('#title-starfield'); return { starfield: s ? s.dataset.starfield : null, w: s ? s.width : 0 }; })()`);
+  const staticSeen = await waitFor(win, `(() => { const s = document.querySelector('#journey-sky'); return !!s && s.dataset.sky === 'static'; })()`, { tries: 120, intervalMs: 40 });
+  const reduced = await js(win, `(() => { const s = document.querySelector('#journey-sky'); return { sky: s ? s.dataset.sky : null, w: s ? s.width : 0 }; })()`);
   log('reduced_motion_probe', reduced);
-  check('REDUCED MOTION (title): with prefers-reduced-motion:reduce emulated, the #title-starfield ambient draws a single STATIC field (dataset.starfield === static)',
-    reducedMotionApplied && staticSeen && reduced.starfield === 'static' && reduced.w > 0,
-    { reducedMotionApplied, starfield: reduced.starfield });
+  check('REDUCED MOTION (title): with prefers-reduced-motion:reduce emulated, the #journey-sky draws a single STATIC field (dataset.sky === static)',
+    reducedMotionApplied && staticSeen && reduced.sky === 'static' && reduced.w > 0,
+    { reducedMotionApplied, sky: reduced.sky });
 
   // ---- Section D: LOADING under REDUCED MOTION (routing entry, emulation still active) ----
   // Re-drive the routing entry (the section C reload wiped the double) and measure the in-flight loading screen:

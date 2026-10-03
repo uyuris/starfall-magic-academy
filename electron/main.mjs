@@ -2,9 +2,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog } from 'electron';
 
-import { createServer } from '../app/src/server.mjs';
+import { createServer, shutdownServer } from '../app/src/server.mjs';
 import { loadLmStudioConfig } from '../app/src/llm/lmStudioClient.mjs';
-import { ensureElectronRuntimeWorkspace } from '../app/src/electron/runtimeWorkspace.mjs';
+import { ensureElectronRuntimeWorkspace, resolveElectronUserDataRoot } from '../app/src/electron/runtimeWorkspace.mjs';
 import { listenInternalServer } from '../app/src/electron/runtimeServer.mjs';
 import { attachWindowLifecycle, resolveMainWindowEntryUrl, shouldCreateMainWindowOnActivate } from '../app/src/electron/windowLifecycle.mjs';
 
@@ -58,7 +58,7 @@ async function stopRuntimeServer() {
   if (!runtimeServer) return;
   const server = runtimeServer;
   runtimeServer = null;
-  await new Promise((resolve) => server.close(() => resolve()));
+  await shutdownServer(server);
 }
 
 async function bootElectronRuntime() {
@@ -119,13 +119,21 @@ app.on('activate', () => {
   }
 });
 
+// Quitting (menu, last window on non-darwin, or a SIGTERM/SIGINT that Electron turns into a quit) holds
+// the app open until the runtime server has finished its in-flight writes and finalizations.
 app.on('before-quit', (event) => {
   if (quitting) return;
   quitting = true;
   event.preventDefault();
-  stopRuntimeServer()
-    .catch((error) => console.error(error))
-    .finally(() => app.exit(0));
+  console.log('STARFALL MAGIC ACADEMY quitting; finishing in-flight requests and finalizations before exit');
+  stopRuntimeServer().then(() => app.exit(0), (error) => {
+    console.error(error);
+    app.exit(1);
+  });
 });
+
+// userData must be settled before `whenReady`: Electron derives its own caches from it, and the runtime
+// workspace (config, saves) lives under it. Dev launches get the `-dev` sibling of the packaged dir.
+app.setPath('userData', resolveElectronUserDataRoot({ defaultUserDataRoot: app.getPath('userData'), isPackaged: app.isPackaged }));
 
 app.whenReady().then(launch);

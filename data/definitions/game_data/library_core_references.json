@@ -1,0 +1,129 @@
+{
+  "references": {
+    "knowledge_light_basic": [
+      "knowledge_light_advanced",
+      "core_six_aspects"
+    ],
+    "knowledge_light_advanced": [
+      "knowledge_light_basic",
+      "core_aspect_relations"
+    ],
+    "knowledge_dark_basic": [
+      "knowledge_dark_advanced",
+      "core_six_aspects"
+    ],
+    "knowledge_dark_advanced": [
+      "knowledge_dark_basic",
+      "core_aspect_relations"
+    ],
+    "knowledge_fire_basic": [
+      "knowledge_fire_advanced",
+      "core_six_aspects"
+    ],
+    "knowledge_fire_advanced": [
+      "knowledge_fire_basic",
+      "core_aspect_relations"
+    ],
+    "knowledge_water_basic": [
+      "knowledge_water_advanced",
+      "core_six_aspects"
+    ],
+    "knowledge_water_advanced": [
+      "knowledge_water_basic",
+      "core_aspect_relations"
+    ],
+    "knowledge_earth_basic": [
+      "knowledge_earth_advanced",
+      "core_six_aspects"
+    ],
+    "knowledge_earth_advanced": [
+      "knowledge_earth_basic",
+      "core_leyline"
+    ],
+    "knowledge_wind_basic": [
+      "knowledge_wind_advanced",
+      "core_six_aspects"
+    ],
+    "knowledge_wind_advanced": [
+      "knowledge_wind_basic",
+      "core_aspect_relations"
+    ],
+    "core_starfall_principle": [
+      "core_star_roles",
+      "core_leyline",
+      "core_six_aspects"
+    ],
+    "core_six_aspects": [
+      "core_starfall_principle",
+      "core_aspect_relations"
+    ],
+    "core_academy_founding": [
+      "core_star_calendar",
+      "core_graduation"
+    ],
+    "core_star_calendar": [
+      "core_academy_founding",
+      "core_graduation"
+    ],
+    "core_leyline": [
+      "core_starfall_principle",
+      "core_residue_density",
+      "core_starfall_geography"
+    ],
+    "core_wildwood": [
+      "core_cradle",
+      "core_residue_density"
+    ],
+    "core_residue_density": [
+      "core_leyline",
+      "core_inscription"
+    ],
+    "core_starfall_geography": [
+      "core_starfall_principle",
+      "core_leyline",
+      "core_wildwood"
+    ],
+    "core_star_roles": [
+      "core_starfall_principle",
+      "core_moon_dial"
+    ],
+    "core_aspect_relations": [
+      "core_six_aspects"
+    ],
+    "core_graduation": [
+      "core_academy_founding",
+      "core_star_calendar"
+    ],
+    "core_cradle": [
+      "core_wildwood",
+      "core_vessel_life"
+    ],
+    "core_inscription": [
+      "core_residue_density"
+    ],
+    "core_moon_dial": [
+      "core_dream_bureau",
+      "core_far_side",
+      "core_star_roles"
+    ],
+    "core_far_side": [
+      "core_moon_dial",
+      "core_star_roles"
+    ],
+    "core_forbidden_arts": [
+      "core_sealing_lineage",
+      "core_vessel_life",
+      "core_leyline"
+    ],
+    "core_vessel_life": [
+      "core_forbidden_arts",
+      "core_cradle"
+    ],
+    "core_dream_bureau": [
+      "core_moon_dial"
+    ],
+    "core_sealing_lineage": [
+      "core_forbidden_arts"
+    ]
+  }
+}
