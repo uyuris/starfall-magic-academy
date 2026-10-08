@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <!-- 会場（闘技会・競売場・奏楽堂）の紋。紋ごとの <symbol>（id は venue-<名>）を、起動時に文書の置き場（#venue-sigil-symbols）へ
+       写して <use href="#venue-<名>"> で引く。露台の紋と同じ作法: 藍の面（#2a3070）・月白の線（#dde3f6）・金の灯り（#e8c877）。
+       文字は描かない。塗りを持たない紋（venue-paddle・venue-star）は、置く所の CSS が線と面の色を決める。 -->
+
+  <!-- 言い直し（もう一度）: 露台の戻る紋の矢を、輪を描いて元へ返す形にしたもの。 -->
+  <symbol id="venue-retry" viewBox="0 0 32 32">
+    <path d="M7.5 17.5 A9 9 0 1 0 10.6 9.6" fill="none" stroke="#dde3f6" stroke-width="3.4" stroke-linecap="round" />
+    <path d="M7.5 17.5 A9 9 0 1 0 10.6 9.6" fill="none" stroke="#2a3070" stroke-width="1.6" stroke-linecap="round" />
+    <path d="M6 5.5 L13 8.4 L8.6 14.2 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" />
+    <path d="M16.00 13.80 L16.71 15.29 L18.20 16.00 L16.71 16.71 L16.00 18.20 L15.29 16.71 L13.80 16.00 L15.29 15.29 Z" fill="#e8c877" />
+  </symbol>
+
+  <!-- 闘技会: 試合を始める（交わる二振りの剣）。 -->
+  <symbol id="venue-fight" viewBox="0 0 32 32">
+    <path d="M6 4.5 L19.5 18 L17.5 20 L4 6.5 V4.5 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" />
+    <path d="M26 4.5 L12.5 18 L14.5 20 L28 6.5 V4.5 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" />
+    <path d="M15 17.5 L10.5 22 M17 17.5 L21.5 22 M9 20.5 L12 23.5 M23 20.5 L20 23.5" fill="none" stroke="#dde3f6" stroke-width="1.4" stroke-linecap="round" />
+    <path d="M10.5 23.5 L7.5 26.5 M21.5 23.5 L24.5 26.5" fill="none" stroke="#dde3f6" stroke-width="2" stroke-linecap="round" />
+    <path d="M16.00 23.60 L16.70 25.30 L18.40 26.00 L16.70 26.70 L16.00 28.40 L15.30 26.70 L13.60 26.00 L15.30 25.30 Z" fill="#e8c877" />
+  </symbol>
+
+  <!-- 闘技会: 観戦（見守る眼）。 -->
+  <symbol id="venue-watch" viewBox="0 0 32 32">
+    <path d="M3 16 C7.5 9 12 6.5 16 6.5 C20 6.5 24.5 9 29 16 C24.5 23 20 25.5 16 25.5 C12 25.5 7.5 23 3 16 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" />
+    <circle cx="16" cy="16" r="5" fill="none" stroke="#dde3f6" stroke-width="1.2" />
+    <path d="M16.00 13.30 L16.76 15.24 L18.70 16.00 L16.76 16.76 L16.00 18.70 L15.24 16.76 L13.30 16.00 L15.24 15.24 Z" fill="#e8c877" />
+  </symbol>
+
+  <!-- 闘技会: 自分を癒す（掌の上の灯り）。 -->
+  <symbol id="venue-heal" viewBox="0 0 32 32">
+    <path d="M4 21 C8 20 11 21.5 13.5 23.5 H20.5 C22 23.5 22 25.8 20.5 25.8 H14.5 M4 27.5 H13 L22.5 27.2 L28.5 21.5 C29.3 20.6 28.2 19.2 27.1 19.9 L21.6 23.6" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M16 3.5 C19.5 7.5 21.5 10 21.5 13 A5.5 5.5 0 0 1 10.5 13 C10.5 10 12.5 7.5 16 3.5 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" />
+    <path d="M16.00 9.80 L16.67 11.33 L18.20 12.00 L16.67 12.67 L16.00 14.20 L15.33 12.67 L13.80 12.00 L15.33 11.33 Z" fill="#e8c877" />
+  </symbol>
+
+  <!-- 闘技会の観戦の速さ: 一つ・二つ・三つの矢じり。 -->
+  <symbol id="venue-speed-low" viewBox="0 0 32 32">
+    <path d="M12 8 L20 16 L12 24" fill="none" stroke="#dde3f6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M12 8 L20 16 L12 24" fill="none" stroke="#2a3070" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round" />
+  </symbol>
+  <symbol id="venue-speed-mid" viewBox="0 0 32 32">
+    <path d="M8 8 L16 16 L8 24 M16 8 L24 16 L16 24" fill="none" stroke="#dde3f6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M8 8 L16 16 L8 24 M16 8 L24 16 L16 24" fill="none" stroke="#2a3070" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round" />
+  </symbol>
+  <symbol id="venue-speed-high" viewBox="0 0 32 32">
+    <path d="M4.5 8 L12.5 16 L4.5 24 M12 8 L20 16 L12 24 M19.5 8 L27.5 16 L19.5 24" fill="none" stroke="#dde3f6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M4.5 8 L12.5 16 L4.5 24 M12 8 L20 16 L12 24 M19.5 8 L27.5 16 L19.5 24" fill="none" stroke="#2a3070" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round" />
+  </symbol>
+
+  <!-- 闘技会の観戦: 終わりまで送る（矢じりと止めの線）。 -->
+  <symbol id="venue-skip" viewBox="0 0 32 32">
+    <path d="M6 8 L15 16 L6 24 Z M14 8 L23 16 L14 24 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" />
+    <path d="M26 8 V24" fill="none" stroke="#dde3f6" stroke-width="2" stroke-linecap="round" />
+    <path d="M26.00 3.00 L26.60 4.40 L28.00 5.00 L26.60 5.60 L26.00 7.00 L25.40 5.60 L24.00 5.00 L25.40 4.40 Z" fill="#e8c877" />
+  </symbol>
+
+  <!-- 狙い・相手選びをやめる（閉じた輪に斜めの線）。 -->
+  <symbol id="venue-cancel" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="10.5" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" />
+    <path d="M11.5 11.5 L20.5 20.5 M20.5 11.5 L11.5 20.5" fill="none" stroke="#dde3f6" stroke-width="1.5" stroke-linecap="round" />
+  </symbol>
+
+  <!-- 競売場: 入札する（掲げた札）・降りる（下げた札）。 -->
+  <symbol id="venue-bid" viewBox="0 0 24 24">
+    <path d="M12 3.5 A5 5 0 0 1 12 13.5 A5 5 0 0 1 12 3.5 Z M12 13.5 V20.5" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" />
+    <path d="M19.2 2.4 L19.7 3.8 L21.1 4.3 L19.7 4.8 L19.2 6.2 L18.7 4.8 L17.3 4.3 L18.7 3.8 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="venue-pass" viewBox="0 0 24 24">
+    <path d="M12 20.5 A5 5 0 0 1 12 10.5 A5 5 0 0 1 12 20.5 Z M12 10.5 V3.5" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" />
+    <path d="M3.5 21.5 H20.5" stroke="#dde3f6" stroke-width="1.2" stroke-linecap="round" />
+  </symbol>
+  <!-- 席の札（塗りは置く所の CSS）: 掲げた札。下げた札は同じ紋を逆さに置く。 -->
+  <symbol id="venue-paddle" viewBox="0 0 24 24">
+    <path d="M12 3.5 A5 5 0 0 1 12 13.5 A5 5 0 0 1 12 3.5 Z M12 13.5 V20.5" />
+  </symbol>
+  <!-- 所持金（失うもの無しの印の財布）。 -->
+  <symbol id="venue-purse" viewBox="0 0 48 40">
+    <path d="M18 13 C10 17 7 23 7 28 C7 34 13 37 21 37 C29 37 35 34 35 28 C35 23 32 17 24 13 Z M18 13 C17 10 15 8 14 5 C18 7 24 7 28 5 C27 8 25 10 24 13" fill="#2a3070" stroke="#dde3f6" stroke-width="1.6" stroke-linejoin="round" />
+  </symbol>
+
+  <!-- 奏楽堂の語りの四段: 拾った材料（拾う星）・方向（羅針）・指南（開いた本）・骨子（五線と音符）。 -->
+  <symbol id="venue-materials" viewBox="0 0 32 32">
+    <path d="M6 26 C10 22 22 22 26 26" fill="none" stroke="#dde3f6" stroke-width="1.3" stroke-linecap="round" />
+    <path d="M10 9.5 L10.8 11.7 L13 12.5 L10.8 13.3 L10 15.5 L9.2 13.3 L7 12.5 L9.2 11.7 Z M21 5.5 L21.9 8.1 L24.5 9 L21.9 9.9 L21 12.5 L20.1 9.9 L17.5 9 L20.1 8.1 Z M16 14.5 L16.7 16.3 L18.5 17 L16.7 17.7 L16 19.5 L15.3 17.7 L13.5 17 L15.3 16.3 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="venue-direction" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="11" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" />
+    <path d="M16 6.5 L19 16 L16 25.5 L13 16 Z" fill="none" stroke="#dde3f6" stroke-width="1.1" stroke-linejoin="round" />
+    <path d="M16 6.5 L19 16 H13 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="venue-guidance" viewBox="0 0 32 32">
+    <path d="M16 9 C12 7 8 7 4.5 8 V25 C8 24 12 24 16 26 C20 24 24 24 27.5 25 V8 C24 7 20 7 16 9 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" />
+    <path d="M16 9 V26" stroke="#dde3f6" stroke-width="1.1" />
+    <path d="M24.5 2.8 L25.1 4.4 L26.7 5 L25.1 5.6 L24.5 7.2 L23.9 5.6 L22.3 5 L23.9 4.4 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="venue-skeleton" viewBox="0 0 32 32">
+    <path d="M4 9 H28 M4 13 H28 M4 17 H28 M4 21 H28 M4 25 H28" stroke="#dde3f6" stroke-width="0.9" stroke-linecap="round" />
+    <ellipse cx="13" cy="21" rx="3" ry="2.2" fill="#e8c877" />
+    <path d="M15.8 21 V8" stroke="#e8c877" stroke-width="1.3" stroke-linecap="round" />
+    <ellipse cx="21" cy="17" rx="3" ry="2.2" fill="#e8c877" />
+    <path d="M23.8 17 V5" stroke="#e8c877" stroke-width="1.3" stroke-linecap="round" />
+  </symbol>
+  <!-- 奏楽堂: 譜が書けた（譜の紙）。 -->
+  <symbol id="venue-written" viewBox="0 0 24 28">
+    <path d="M4 2.5 H15.5 L20 7 V25.5 H4 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.1" stroke-linejoin="round" />
+    <path d="M15.5 2.5 V7 H20" fill="none" stroke="#dde3f6" stroke-width="0.9" stroke-linejoin="round" />
+    <path d="M7 12 H17 M7 16 H17 M7 20 H17" stroke="#dde3f6" stroke-width="0.6" opacity="0.7" />
+    <ellipse cx="10" cy="20" rx="1.9" ry="1.4" fill="#e8c877" />
+    <ellipse cx="14.5" cy="16" rx="1.9" ry="1.4" fill="#e8c877" />
+  </symbol>
+  <!-- 奏楽堂: 演奏を始める・奏でてもらう（音符）・止める。 -->
+  <symbol id="venue-play" viewBox="0 0 32 32">
+    <circle cx="16" cy="17" r="11" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" />
+    <path d="M13 11.5 L22 17 L13 22.5 Z" fill="#e8c877" stroke="#e8c877" stroke-width="1" stroke-linejoin="round" />
+    <path d="M16.00 1.20 L16.70 3.00 L18.50 3.70 L16.70 4.40 L16.00 6.20 L15.30 4.40 L13.50 3.70 L15.30 3.00 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="venue-compose" viewBox="0 0 32 32">
+    <path d="M12 24 V8 L25 5 V21" fill="none" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" />
+    <ellipse cx="9" cy="24" rx="3.6" ry="2.7" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" />
+    <ellipse cx="22" cy="21" rx="3.6" ry="2.7" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" />
+    <path d="M27.00 9.20 L27.60 10.80 L29.20 11.40 L27.60 12.00 L27.00 13.60 L26.40 12.00 L24.80 11.40 L26.40 10.80 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="venue-stop" viewBox="0 0 32 32">
+    <circle cx="16" cy="16" r="11" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" />
+    <rect x="11.5" y="11.5" width="9" height="9" rx="1" fill="#e8c877" />
+  </symbol>
+  <!-- 奏楽堂: 書く口（露台の書く口の羽根ペン）。 -->
+  <symbol id="venue-quill" viewBox="0 0 32 32">
+    <path d="M26.5 4 C17.5 6 11.5 13 9 22 L10.5 23.5 C19.5 21 25.5 14 26.5 4 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" />
+    <path d="M24.4 7 C18.6 11 13.6 16 10.2 22.6" fill="none" stroke="#dde3f6" stroke-width="0.8" />
+    <path d="M9 22 L5.2 27.6" fill="none" stroke="#dde3f6" stroke-width="1.4" stroke-linecap="round" />
+    <path d="M24.50 23.80 L25.07 25.43 L26.70 26.00 L25.07 26.57 L24.50 28.20 L23.93 26.57 L22.30 26.00 L23.93 25.43 Z" fill="#e8c877" />
+  </symbol>
+
+  <!-- 勝ち抜いた印・段の道の星（塗りは置く所の CSS）: 製品の失敗の紋の星の形。 -->
+  <symbol id="venue-star" viewBox="-1 4 12 12">
+    <path d="M5 4.5 6.1 8.9 10.5 10 6.1 11.1 5 15.5 3.9 11.1-.5 10 3.9 8.9z" />
+  </symbol>
+</svg>

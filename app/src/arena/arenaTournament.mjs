@@ -738,8 +738,9 @@ function playerDefeatMatch(slot) {
   return match;
 }
 
-// The result-flavor prompt inputs for a terminal tournament (§4/§5): the outcome plus the outcome-specific
-// names — ALWAYS resolving the real champion so it can be named in every branch (§7-1 忠実性の要).
+// The result-flavor prompt inputs for a terminal tournament (§4/§5): the outcome, the tournament mode (the pair
+// elimination line has a 字数 cap) plus the outcome-specific names — ALWAYS resolving the real champion so it can be
+// named in every branch (§7-1 忠実性の要).
 export function arenaResultPromptInputs(slot) {
   const outcome = arenaTournamentOutcome(slot); // throws if not terminal
   const finalMatch = slot.matches.find((match) => match.round === ARENA_ROUND_COUNT - 1);
@@ -747,7 +748,7 @@ export function arenaResultPromptInputs(slot) {
     throw new Error('arena result flavor: the final is not resolved');
   }
   const championUnitId = finalMatch.winner_unit_id;
-  const inputs = { outcome, championName: unitDisplayName(slot, championUnitId) };
+  const inputs = { outcome, mode: slot.mode, championName: unitDisplayName(slot, championUnitId) };
   if (outcome === 'champion') {
     const finalistUnitId = finalMatch.team_a_unit_id === championUnitId ? finalMatch.team_b_unit_id : finalMatch.team_a_unit_id;
     inputs.finalistName = unitDisplayName(slot, finalistUnitId);

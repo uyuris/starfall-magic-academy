@@ -10,7 +10,8 @@
 // It boots an isolated server in ROUTING mode (real canonical assets + a deterministic stub LM so the hub-start
 // opening completes), drives the REAL title entry path to create an active routing slot, then reloads with
 // ?initialScreen=academy-workshop so the dev entry lands the workshop board (GET /api/workshop succeeds on the
-// active routing slot). It shoots the arrival surface and reports the screen background + exit button geometry.
+// active routing slot). It shoots the arrival surface and reports the table room's ground (the workshop art), the
+// table / filter / purse / 出る sigil geometry, and the filter buttons (種別・ティア・属性, no すべて).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -88,11 +89,12 @@ async function shoot(win, suffix) {
 
 const MEASURE = `(() => {
   const screen = document.querySelector('#academy-workshop-screen');
-  const frame = document.querySelector('.academy-workshop-frame');
-  const stage = document.querySelector('.academy-workshop-stage');
-  const controls = document.querySelector('.academy-workshop-controls');
+  const stage = document.querySelector('#academy-workshop-screen .table-room-stage');
+  const controls = document.querySelector('#academy-workshop-screen .table-room-controls');
   const exit = document.querySelector('#academy-workshop-exit');
   const board = document.querySelector('.academy-workshop-board');
+  const purse = document.querySelector('#academy-workshop-purse');
+  const filterNames = (selector) => [...document.querySelectorAll(selector + ' > button')].map((button) => button.querySelector('[aria-label]')?.getAttribute('aria-label') ?? button.textContent.trim());
   const rows = document.querySelectorAll('.academy-workshop-row').length;
   const rect = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height), right: Math.round(r.right), top: Math.round(r.top) }; };
   const bg = (el) => { if (!el) return null; const cs = getComputedStyle(el); return { backgroundColor: cs.backgroundColor, backgroundImage: cs.backgroundImage }; };
@@ -102,10 +104,17 @@ const MEASURE = `(() => {
     screenBg: bg(screen),
     stageBg: bg(stage),
     recipeRows: rows,
-    frameRect: rect(frame),
     controlsRect: rect(controls),
     exitRect: rect(exit),
+    exitName: exit?.getAttribute('aria-label') ?? null,
     boardRect: rect(board),
+    purse: purse?.textContent.trim() ?? null,
+    filters: {
+      kind: filterNames('#academy-workshop-filter'),
+      tier: filterNames('#academy-workshop-tier-filter'),
+      element: filterNames('#academy-workshop-element-filter')
+    },
+    weekShown: Boolean(document.querySelector('#academy-workshop-screen [id$="-week"]')),
     status: (document.querySelector('#academy-workshop-status')?.textContent ?? '').trim()
   };
 })()`;

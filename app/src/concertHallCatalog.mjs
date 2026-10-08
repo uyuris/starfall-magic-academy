@@ -51,7 +51,7 @@ export const CONCERT_HALL_AXIS_KEYS = ['directions', 'subjects', 'motif_categori
 export const CONCERT_HALL_AXIS_COUNTS = { directions: 8, subjects: 10, motif_categories: 8 };
 export const CONCERT_HALL_AXIS_CUES_RANGE = [3, 6];
 export const CONCERT_HALL_DIRECTION_MODES_RANGE = [1, 3];
-export const CONCERT_HALL_PERFORMER_KEYS = ['name', 'greeting', 'input_placeholder', 'empty_shelf', 'voice'];
+export const CONCERT_HALL_PERFORMER_KEYS = ['name', 'greeting', 'empty_shelf', 'voice'];
 
 export const CONCERT_HALL_AXES_FILENAME = 'concert_hall_axes.json';
 export const CONCERT_HALL_GUIDANCE_FILENAME = 'concert_hall_guidance.json';

@@ -47,7 +47,7 @@ export const routingDestinations = Object.freeze([
   Object.freeze({
     id: 'auction',
     label: '競売場',
-    description: '宵に開かれる競売の夜会に足を運ぶ。週替わりの三つの品を、オークションマスターの司会のもとで居合わせた客と競り合い、上乗せ額を積んで武器・護符・貴重品・愛玩の品やうちの子候補を落札する。'
+    description: '宵に開かれる競売の夜会に足を運ぶ。週替わりの三つの品を、オークションマスターの司会のもとで居合わせた客と競り合い、上乗せ額を積んで武器・護符・貴重品・愛玩の品やホムンクルス候補を落札する。'
   }),
   Object.freeze({
     id: 'lounge',

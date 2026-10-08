@@ -1,5 +1,5 @@
-// ダンジョンの印（FS-20260929-03）: 盤の下り階段・のぼり階段（各階の入口）・宝箱・主人公の紋と、入る前のアーチ・持ち物の武器と護符を、
-// 黒曜と琥珀の描き方の SVG 文字列で返す純関数の集まり。DOM にも CSS にも触れず、置き場（升目・駒・柱の行・入る前の間）の大きさに合わせて
+// ダンジョンの印（FS-20260929-03）: 盤の下り階段・のぼり階段（各階の入口）・宝箱・主人公の紋と、入る前の持ち物の武器と護符・同行の印を、
+// 黒曜と琥珀の描き方の SVG 文字列で返す純関数の集まり。DOM にも CSS にも触れず、置き場（升目・駒・柱の行・入る前の画面）の大きさに合わせて
 // 伸び縮みする（viewBox だけを持ち、幅と高さは置く側の CSS が決める）。
 //
 // 盤の印は床と壁と同じ真上からの視点で描く。灯りの三つの濃さ（灯りの中・一度見た所・まだ見ていない所）への従い方は置く側の CSS が
@@ -149,57 +149,6 @@ export function heroCrestSvg() {
   ].join('');
 }
 
-// 入る前のアーチ: 正面から見た黒曜の石のアーチと、柱の上の二つの灯。アーチの奥では段が一段ごとに狭く暗くなって闇の奥へ下る
-// （手前の段だけが灯を受ける）。敷居の上に大きく置く絵なので、盤の印と違い正面の構図のまま描く。
-export function entryArchSvg() {
-  // 段の縁が寄っていく消える点は敷居より下（段が下っていく先）。段は奥ほど詰まって暗くなり、消える点の手前で闇に呑まれる。
-  const vx = 100;
-  const vy = 150;
-  const steps = [];
-  const rows = [[200, 186], [186, 175], [175, 167], [167, 161], [161, 157]];
-  const halfAt = (y) => 50 * ((y - vy) / (200 - vy));
-  rows.forEach(([bottom, top], i) => {
-    const lit = Math.max(0, 1 - i / 4);
-    const tone = `rgb(${Math.round(18 + 86 * lit)} ${Math.round(14 + 66 * lit)} ${Math.round(11 + 42 * lit)})`;
-    steps.push(`<path d="M${round(vx - halfAt(bottom))} ${bottom} L${round(vx - halfAt(top))} ${top} H${round(vx + halfAt(top))} L${round(vx + halfAt(bottom))} ${bottom} Z" fill="${tone}"/>`);
-    steps.push(`<path d="M${round(vx - halfAt(bottom))} ${bottom - 0.8} H${round(vx + halfAt(bottom))}" stroke="rgb(240 178 74 / ${round(0.75 * lit)})" stroke-width="1.6"/>`);
-  });
-  // 柱の前面に掛けた灯（柱の中ほど）。灯の光は輪を重ねて柔らかく広げる。
-  const lantern = (x) => [
-    ...[22, 16, 11].map((r) => `<circle cx="${x}" cy="128" r="${r}" fill="rgb(240 178 74 / 0.08)"/>`),
-    `<path d="M${x - 6} 119 H${x + 6} L${x + 5} 138 H${x - 5} Z" fill="#1b1814" stroke="#c8913a" stroke-width="1.4"/>`,
-    `<rect x="${x - 3}" y="123" width="6" height="11" rx="2" fill="#ffd27a"/>`,
-    `<path d="M${x - 7} 119 H${x + 7} M${x} 113 V119" stroke="#c8913a" stroke-width="1.6"/>`
-  ].join('');
-  // アーチの石: 外の半径 78・内の半径 50 の半円の帯を、放射の目地で石に割る。
-  const joints = [];
-  for (const deg of [-160, -135, -112, -68, -45, -20]) joints.push(`<path d="M${at(100, 96, 50, deg)} L${at(100, 96, 78, deg)}" stroke="rgb(0 0 0 / 0.6)" stroke-width="1.6"/>`);
-  return [
-    '<svg class="dm dm-arch" viewBox="0 0 200 200" aria-hidden="true" focusable="false">',
-    // 口の奥の闇。通路の天井と壁は奥へ下りながら狭まり、内側の小さなアーチの輪郭だけがかすかに見える。
-    '<path d="M50 200 V96 A50 50 0 0 1 150 96 V200 Z" fill="#050407"/>',
-    `<path d="M50 200 V96 L${vx - 22} 132 L${vx - 50} 200 Z" fill="#0e0c0f"/>`,
-    `<path d="M150 200 V96 L${vx + 22} 132 L${vx + 50} 200 Z" fill="#0e0c0f"/>`,
-    `<path d="M${vx - 22} 150 V132 A22 22 0 0 1 ${vx + 22} 132 V150" fill="none" stroke="rgb(240 178 74 / 0.1)" stroke-width="1.2"/>`,
-    `<path d="M50 200 L${vx - 22} 150 M150 200 L${vx + 22} 150" stroke="rgb(240 178 74 / 0.16)" stroke-width="1"/>`,
-    ...steps,
-    // 柱と、アーチの帯（黒曜の石。内の縁だけが灯を受ける）。
-    '<rect x="16" y="96" width="34" height="104" fill="#1a191f"/><rect x="150" y="96" width="34" height="104" fill="#1a191f"/>',
-    '<path d="M16 124 H50 M16 152 H50 M16 180 H50 M150 124 H184 M150 152 H184 M150 180 H184" stroke="rgb(0 0 0 / 0.6)" stroke-width="1.6"/>',
-    '<path d="M22 96 A78 78 0 0 1 178 96 H150 A50 50 0 0 0 50 96 Z" fill="#1f1d24"/>',
-    ...joints,
-    '<path d="M50 200 V96 A50 50 0 0 1 150 96 V200" fill="none" stroke="rgb(240 178 74 / 0.55)" stroke-width="2"/>',
-    '<path d="M22 96 A78 78 0 0 1 178 96" fill="none" stroke="rgb(240 178 74 / 0.22)" stroke-width="1.4"/>',
-    '<path d="M16 96 V200 M184 96 V200" stroke="rgb(0 0 0 / 0.7)" stroke-width="2"/>',
-    // 要石: 小さな琥珀の星。
-    '<path d="M91 18 H109 L106 46 H94 Z" fill="#2a2730" stroke="rgb(240 178 74 / 0.45)" stroke-width="1.2"/>',
-    `<path d="${starPath(100, 30, 6, 2.5)}" fill="#f0b24a"/>`,
-    lantern(33),
-    lantern(167),
-    '</svg>'
-  ].join('');
-}
-
 // 入る前の持ち物の武器と護符（剣・杖・短杖・護符）: 消耗品の小瓶と同じ描き方で、平らな形に琥珀の金具と黒曜の地、灯りを受ける縁
 // だけを淡く光らせる。絵の出どころはこの file の SVG そのもので、どれも左下から右上へ斜めに置く。黒曜の地は
 // 置き場の暗い台に沈まないよう、琥珀の細い縁で輪郭を取る。
@@ -290,6 +239,18 @@ export function charmSvg() {
     gem(40, 62, 11, 15),
     `<path d="M40 40 L52 49" stroke="rgb(255 241 207 / 0.6)" stroke-width="0.9"/>`,
     '</g>',
+    '</svg>'
+  ].join('');
+}
+
+// 同行の印: 結ばれた二つの琥珀の輪と、上に灯る星。相棒と潜るときは輪が重なって結ばれ、ひとりで潜るときは置く側の CSS が二つの輪を
+// 左右へ離し（dm-tether-ring--left・--right を横へ送る）、星を薄くする。輪の形は一つだけで、結ぶ・ほどくの間は置く側が動かす。
+export function companyTetherSvg() {
+  return [
+    '<svg class="dm dm-tether" viewBox="0 0 32 32" aria-hidden="true" focusable="false">',
+    `<circle class="dm-tether-ring dm-tether-ring--left" cx="12.5" cy="17" r="6" fill="none" stroke="${AMBER}" stroke-width="1.6"/>`,
+    `<circle class="dm-tether-ring dm-tether-ring--right" cx="19.5" cy="17" r="6" fill="none" stroke="${AMBER}" stroke-width="1.6"/>`,
+    `<path class="dm-tether-star" d="M16 3.4 L16.6 5 L18.2 5.6 L16.6 6.2 L16 7.8 L15.4 6.2 L13.8 5.6 L15.4 5 Z" fill="${AMBER}"/>`,
     '</svg>'
   ].join('');
 }

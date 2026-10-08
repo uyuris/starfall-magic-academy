@@ -460,7 +460,7 @@ const MEASURE_DRAWER = `(() => {
     errorHidden: error ? error.hidden : null,
     errorText: error?.textContent ?? null,
     busyPresent: !!busy,
-    busyLabel: busy?.querySelector('.routing-hub-info-library-busy-label')?.textContent ?? null,
+    busyWaitMark: busy ? !!busy.querySelector('.screen-wait-mark') : null,
     busyInsideCard: busy ? (() => { const b = busy.getBoundingClientRect(); return b.left >= cardBox.left - 0.5 && b.right <= cardBox.right + 0.5 && b.top >= cardBox.top - 0.5 && b.bottom <= cardBox.bottom + 0.5; })() : null,
     confirmPresent: !!confirm,
     confirmTitle: confirm?.querySelector('.routing-hub-info-library-confirm-title')?.textContent ?? null,

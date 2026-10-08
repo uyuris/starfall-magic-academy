@@ -40,10 +40,10 @@ const TURN_INPUT = process.env.CD_INPUT ?? 'おはよう、今日はいい天気
 const OPENING_TEXT = 'おはようございます。今日はよく晴れていますね。';
 const TURN_REPLY = 'ほんとうに。こんな日は、少し外を歩きたくなります。';
 
-// A SECOND, dedicated turn the stub agrees to move on (場所移動). The reply + cutoff stream as 完成吹き出し; the
-// backend then holds the new-stage opening line back and delivers it only inside the final conversation. The
-// opening carries a 地の文 + a 発話 so a correct queue-driven reveal shows the 地の文 on screen before its 発話 (a
-// transient frame impossible when the opening is dumped all at once by the canonical commit).
+// A SECOND, dedicated turn the stub agrees to move on (場所移動). The reply + cutoff stream as 完成吹き出し, the backend
+// announces the move (stage_move) before the new-stage opening line, and the daytime turn moves the stage before it
+// reveals that opening. The opening carries a 地の文 + a 発話 so a correct queue-driven reveal shows the 地の文 on
+// screen before its 発話 (a transient frame impossible when the opening is dumped all at once by the canonical commit).
 const MOVE_INPUT = '一緒に別の場所へ移動しよう';
 const MOVE_REPLY = 'いいですね、そうしましょう。';
 const MOVE_CUTOFF_TEXT = '（立ち上がって）では、こちらへ行きましょう。';
@@ -51,15 +51,19 @@ const MOVE_OPENING_NARRATION = 'あたりを見回して';
 const MOVE_OPENING_SPEECH = '新しい場所に着きましたね';
 const MOVE_OPENING_TEXT = `（${MOVE_OPENING_NARRATION}）${MOVE_OPENING_SPEECH}。`;
 
-// Parse the first real field destination id from the stage-move destination-selection prompt's 対応表 (the tail
+// Parse the first real field destination from the stage-move destination-selection prompt's 対応表 (the tail
 // `名称: location_id` lines). Any real destination drives the move; fail fast if the table can't be parsed so a
-// silent no-move does not masquerade as a pass.
-function firstDestinationId(prompt) {
+// silent no-move does not masquerade as a pass. The chosen destination is kept so the move turn can check the
+// stage shown when the opening starts revealing.
+let moveDestination = null;
+function firstDestination(prompt) {
   const table = prompt.split('移動可能な移動先の名称とlocation_idの対応表:')[1] ?? '';
   const firstLine = table.split('\n').map((line) => line.trim()).filter(Boolean)[0] ?? '';
-  const id = firstLine.split(': ').pop()?.trim() ?? '';
-  if (!id) throw new Error(`stub could not parse a stage-move destination id from the prompt table: ${JSON.stringify(firstLine)}`);
-  return id;
+  const separator = firstLine.lastIndexOf(': ');
+  const name = separator > 0 ? firstLine.slice(0, separator).trim() : '';
+  const id = separator > 0 ? firstLine.slice(separator + 2).trim() : '';
+  if (!id || !name) throw new Error(`stub could not parse a stage-move destination from the prompt table: ${JSON.stringify(firstLine)}`);
+  return { id, name };
 }
 
 const { createServer } = await import(path.join(PROJECT_ROOT, 'app/src/server.mjs'));
@@ -101,7 +105,10 @@ async function startStubLm() {
     else if (prompt.includes('場所移動の合意')) content = prompt.includes(MOVE_INPUT) ? 'true' : 'false';
     // Stage-move destination selection: return a real field destination id parsed from the prompt's 対応表 (the
     // normal turn never reaches here because its agreement is false).
-    else if (prompt.includes('location_idを1つだけ返す')) content = firstDestinationId(prompt);
+    else if (prompt.includes('location_idを1つだけ返す')) {
+      moveDestination = firstDestination(prompt);
+      content = moveDestination.id;
+    }
     else if (prompt.includes('継続したいと思うか')) content = 'true'; // continuation judgment → keep going
     // Stage-move cutoff reply (区切り発話) — matched before the reply's player-input check.
     else if (prompt.includes('今いる場所での会話を短く区切り')) content = MOVE_CUTOFF_TEXT;
@@ -379,11 +386,12 @@ async function main() {
 
   // ── 1.55) STAGE-MOVE TURN: the post-move opening reveals through the SAME reveal queue ────────
   // Drive a turn the stub agrees to move on. The reply + movement cutoff stream as 完成吹き出し; the backend then
-  // holds the new-stage opening line back (delivered only in the final conversation), which the daytime turn must
-  // enqueue onto the stage reveal queue so 移動後の発話・地の文 pop in one 吹き出し単位 at a time. Because the opening
-  // splits into a 地の文 + a 発話, a correct sequential reveal passes through a transient frame where the 地の文 is
-  // on screen but its 発話 is NOT yet — a frame that never exists if the opening is dumped all at once by the
-  // canonical commit (the pre-fix defect: まとめて・いつの間にか).
+  // announces the move (stage_move) and streams the new-stage opening line, which the daytime turn holds until the
+  // stage frame has moved to the destination and then enqueues onto the stage reveal queue so 移動後の発話・地の文 pop
+  // in one 吹き出し単位 at a time. Because the opening splits into a 地の文 + a 発話, a correct sequential reveal passes
+  // through a transient frame where the 地の文 is on screen but its 発話 is NOT yet — a frame that never exists if the
+  // opening is dumped all at once by the canonical commit (the pre-fix defect: まとめて・いつの間にか). In that frame
+  // the stage frame already names the destination (the stage moved before the opening's first 吹き出し).
   const beforeMove = await js(win, `document.querySelectorAll('#conversation-day-message-stream .chat-message').length`);
   const moveFired = await js(win, `(() => {
     const input = document.querySelector('#conversation-day-input');
@@ -396,10 +404,14 @@ async function main() {
   const moveSent = moveFired && await waitFor(win, `document.querySelector('#conversation-day-input').value === ''`, { tries: 60, intervalMs: 50 });
   // Poll concurrently with the reveal for the sequential-reveal signature (地の文 shown, 発話 not yet). observeTransient
   // returns as soon as it is seen; a broken all-at-once dump never produces it, so this poll fails the check.
+  // The same evaluation that sees the transient frame records the stage frame's label as it stood in that frame.
   const openingRevealedSequentially = moveSent && await observeTransient(win, `(() => {
     const t = (document.querySelector('#conversation-day-message-stream')?.textContent || '');
-    return t.includes(${JSON.stringify(MOVE_OPENING_NARRATION)}) && !t.includes(${JSON.stringify(MOVE_OPENING_SPEECH)});
+    const seen = t.includes(${JSON.stringify(MOVE_OPENING_NARRATION)}) && !t.includes(${JSON.stringify(MOVE_OPENING_SPEECH)});
+    if (seen) window.__stageAtOpening = document.querySelector('#conversation-day-stage-image')?.getAttribute('aria-label') ?? null;
+    return seen;
   })()`, { tries: 900, intervalMs: 15 });
+  const stageAtOpening = openingRevealedSequentially ? await js(win, 'window.__stageAtOpening') : null;
   const moveSettled = moveSent && await waitFor(win, `
     !document.querySelector('#conversation-day-send')?.disabled
     && (document.querySelector('#conversation-day-message-stream')?.textContent || '').includes(${JSON.stringify(MOVE_OPENING_SPEECH)})
@@ -416,10 +428,13 @@ async function main() {
       hasOpeningSpeech: text.includes(${JSON.stringify(MOVE_OPENING_SPEECH)})
     };
   })()`);
-  log('stage_move_turn', { beforeMove, moveFired, moveSent, openingRevealedSequentially, moveSettled, ...move });
+  log('stage_move_turn', { beforeMove, moveFired, moveSent, openingRevealedSequentially, moveSettled, moveDestination, stageAtOpening, ...move });
   check('STAGE-MOVE: the post-move opening line reveals through the reveal queue one 吹き出し at a time (地の文 shown before its 発話), never dumped all at once',
     moveSent && moveSettled && openingRevealedSequentially && move.hasOpeningNarration && move.hasOpeningSpeech,
     { openingRevealedSequentially, hasCutoff: move.hasCutoff, hasOpeningNarration: move.hasOpeningNarration, hasOpeningSpeech: move.hasOpeningSpeech, rowCount: move.rowCount });
+  check('STAGE-MOVE: the stage frame names the destination by the time the post-move opening starts revealing',
+    moveDestination !== null && stageAtOpening === `${moveDestination.name}の詳細を見る`,
+    { moveDestination, stageAtOpening });
   await capture('conversation-day-stage-move.png');
 
   // ── 1.6) COMPOSER FIXED SIZE (可変→固定) ───────────────────────────────────

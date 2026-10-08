@@ -10,17 +10,18 @@
 // It boots an isolated server in LOOP mode (no play-mode.json -> loop baseline; no LM Studio needed), loads the
 // real app, navigates to the 鍛錬 screen via the REAL topbar tab (data-screen="academy-training"), and drives the
 // real presentation + one training action against real Blink layout:
-//   1. ARRIVAL: the 鍛錬 tab renders #academy-training-screen with the framed 昼下がりの鍛錬場 stage image
-//      (.academy-training-stage-image over /canonical/training/background.jpg), the corner_02 ornaments, the eight
-//      compact option cards (5x4 board), the player-parameters panel, and the 鍛錬状況 result summary.
-//   2. ACTION: click the first enabled option card -> POST /api/training/run -> the progress summary advances
-//      (残り N / 6) and the effect overlay fires, all without leaving the screen (until the 6th action completes).
+//   1. ARRIVAL: the 鍛錬 tab renders #academy-training-screen with the 鍛錬場 picture laid over the whole screen
+//      (.shelf-ground = /canonical/training/background.jpg, the send-off curtain's art), the drill plates on the floor,
+//      the eleven player values in one row, the remaining-count diamonds (six lit) and the weekday sigil, with the
+//      plates of the weekday's element lit.
+//   2. ACTION: click the first enabled drill plate -> POST /api/training/run -> one diamond goes out and the effect
+//      overlay fires, all without leaving the screen (until the 6th action completes).
 //
 // A screenshot of the arrival is written to ${TR_SHOT_PREFIX}.png (env TR_SHOT_PREFIX, default tmp/training-shot).
 // Capture before/after by running once on the base design and once on the restyle with distinct prefixes.
 //
-// NEGATIVE CONTROL (documented in the task report): reverting the stage-image markup / the token layer makes the
-// stage-image + corner checks FAIL; breaking the option wiring makes the action leg FAIL. The
+// NEGATIVE CONTROL: dropping the ground's src makes the ground check FAIL; breaking the drill wiring makes the action
+// leg FAIL. The
 // harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
@@ -97,49 +98,40 @@ async function main() {
   check('arrival: 鍛錬 tab activates #academy-training-screen', screen === 'academy-training-screen', { screen });
   if (screen !== 'academy-training-screen') { exitCode = 2; app.quit(); return; }
 
-  // Presentation facts: the framed stage image paints the training-ground background, the corner_02 ornaments
-  // sit over it, the option board carries the eight cards, and the status panel + result summary are present.
+  // Presentation facts: the ground is the training-ground picture, the floor carries the drill plates, the row
+  // carries the eleven values, the diamonds show six left, and the plates of the weekday's element are lit.
   const face = await js(win, `(() => {
-    const stage = document.querySelector('#academy-training-screen .academy-training-stage');
-    const img = document.querySelector('#academy-training-screen .academy-training-stage-image');
-    const cs = img ? getComputedStyle(img) : null;
-    const before = stage ? getComputedStyle(stage, '::before') : null;
-    const options = document.querySelectorAll('#academy-training-options .training-option-card');
-    const params = document.querySelector('#academy-training-player-parameters')?.children.length ?? 0;
-    const result = document.querySelector('#academy-training-result')?.textContent.replace(/\\s+/g, ' ').trim() ?? '';
-    const heroVisible = (() => { const h = document.querySelector('#academy-training-screen .academy-training-hero'); return h ? getComputedStyle(h).display !== 'none' : false; })();
+    const ground = document.querySelector('#academy-training-screen .shelf-ground');
+    const drills = [...document.querySelectorAll('#academy-training-options .academy-training-drill')];
     const dungeonHidden = (() => { const b = document.querySelector('#academy-training-open-dungeon'); if (!b) return 'MISSING'; return b.offsetParent === null; })();
     return {
-      hasStage: !!stage,
-      stageImageBg: cs ? cs.backgroundImage : '',
-      cornerBg: before ? before.backgroundImage : '',
-      optionCount: options.length,
-      paramGroups: params,
-      result,
-      heroVisible,
+      groundSrc: ground ? new URL(ground.src).pathname : '',
+      groundLoaded: ground ? ground.complete && ground.naturalWidth > 0 : false,
+      drillCount: drills.length,
+      litElements: [...new Set(drills.filter((d) => d.dataset.today === 'true').map((d) => d.dataset.trainingElement))],
+      params: document.querySelectorAll('#academy-training-player-parameters .academy-training-param').length,
+      marksLeft: document.querySelectorAll('#academy-training-remaining .shelf-diamond[data-state="left"]').length,
+      marksTotal: document.querySelectorAll('#academy-training-remaining .shelf-diamond').length,
+      day: document.querySelector('#academy-training-day')?.getAttribute('aria-label') ?? '',
       dungeonHidden,
-      // Direct-background (いきなり背景) standard: the layout has padding:0 so the flat obsidian screen fills it
-      // edge-to-edge with no navy-gradient border inset.
+      // Direct-background (いきなり背景) standard: the layout has padding:0 so the picture fills it edge-to-edge.
       layoutPadding: (() => { const l = document.querySelector('.layout'); return l ? getComputedStyle(l).padding : ''; })()
     };
   })()`);
   log('face', face);
-  check('face: framed stage image paints /canonical/training/background.jpg', /canonical\/training\/background\.jpg/.test(face.stageImageBg), { bg: face.stageImageBg });
-  check('face: corner_02 ornament over the stage frame', /corner_02\.png/.test(face.cornerBg), { corner: face.cornerBg });
-  check('face: option board carries the training cards (5x4 board)', face.optionCount >= 8, { optionCount: face.optionCount });
-  check('face: player-parameters panel populated', face.paramGroups > 0, { paramGroups: face.paramGroups });
-  check('face: result summary shows 訓練可能回数 / 現在の曜日', /訓練可能回数/.test(face.result) && /現在の曜日/.test(face.result), { result: face.result });
+  check('face: the ground is /canonical/training/background.jpg and loaded', face.groundSrc === '/canonical/training/background.jpg' && face.groundLoaded, { src: face.groundSrc, loaded: face.groundLoaded });
+  check('face: the floor carries the drill plates', face.drillCount >= 8, { drillCount: face.drillCount });
+  check('face: the row carries the eleven player values', face.params === 11, { params: face.params });
+  check('face: six lit remaining diamonds and the weekday sigil 光曜（光）', face.marksTotal === 6 && face.marksLeft === 6 && face.day === '光曜（光）', { marksLeft: face.marksLeft, marksTotal: face.marksTotal, day: face.day });
+  check('face: only the plates of the weekday element (light) are lit', face.litElements.length === 1 && face.litElements[0] === 'light', { litElements: face.litElements });
   check('face: #academy-training-open-dungeon stays non-render (behavior unchanged)', face.dungeonHidden === true, { dungeonHidden: face.dungeonHidden });
-  // BACKGROUND (いきなり背景): the training layout is edge-to-edge (padding:0) so the flat obsidian screen fills it
-  // with no navy-gradient border inset behind it (the frame's own padding holds the content余白).
-  check('face: the training layout is edge-to-edge (layout padding:0) — no navy-gradient border inset behind the obsidian screen',
-    face.layoutPadding === '0px', { layoutPadding: face.layoutPadding });
+  check('face: the training layout is edge-to-edge (layout padding:0)', face.layoutPadding === '0px', { layoutPadding: face.layoutPadding });
 
   await shoot(win, '');
 
-  // ACTION leg: click the first enabled option card -> POST /api/training/run -> the progress summary advances.
-  const beforeResult = face.result;
-  await js(win, `(() => { const c = document.querySelector('#academy-training-options .training-option-card:not(:disabled)'); if (c) c.click(); return !!c; })()`);
+  // ACTION leg: click the first enabled drill plate -> POST /api/training/run -> one diamond goes out.
+  const beforeMarksLeft = face.marksLeft;
+  await js(win, `(() => { const c = document.querySelector('#academy-training-options .academy-training-drill:not(:disabled)'); if (c) c.click(); return !!c; })()`);
   // Wait for the run request + effect overlay (effect timer is ~1s; day transition ~2s).
   let ran = false;
   for (let i = 0; i < 40; i += 1) {
@@ -148,11 +140,11 @@ async function main() {
     if (ran) break;
   }
   await sleep(1400);
-  const afterResult = await js(win, `document.querySelector('#academy-training-result')?.textContent.replace(/\\s+/g, ' ').trim() ?? ''`);
+  const afterMarksLeft = await js(win, `document.querySelectorAll('#academy-training-remaining .shelf-diamond[data-state="left"]').length`);
   const stillOnScreen = (await activeScreen(win)) === 'academy-training-screen';
-  log('action', { ran, beforeResult, afterResult, stillOnScreen });
-  check('action: option card fires POST /api/training/run', ran === true, { ran });
-  check('action: progress summary advances after the action', afterResult !== beforeResult, { beforeResult, afterResult });
+  log('action', { ran, beforeMarksLeft, afterMarksLeft, stillOnScreen });
+  check('action: drill plate fires POST /api/training/run', ran === true, { ran });
+  check('action: one remaining mark goes out after the action', afterMarksLeft === beforeMarksLeft - 1, { beforeMarksLeft, afterMarksLeft });
   check('action: stays on #academy-training-screen mid-week (no premature transition)', stillOnScreen, { stillOnScreen });
 
   await shoot(win, '-after-action');

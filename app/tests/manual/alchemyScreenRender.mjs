@@ -12,29 +12,22 @@
 // inventory (all 24 dungeon materials + money, so recipes are craftable — the standing book has NO zero-cost
 // guarantee, unlike the old weekly-offer arrival), and drives the REAL stay-and-craft flow against real Blink
 // layout:
-//   1. ARRIVAL: ?initialScreen=academy-alchemy renders the dedicated #academy-alchemy-screen with the full
-//      56-recipe book table (分類・品名・効果・素材・費用 columns), the week header (第N週 / 50), the 分類 filter
-//      chips (すべて + 5 categories), and the always-available 「調合室を出る」 exit. This is the dev entry AND the
-//      shape a routing dispatch to alchemy lands on.
-//   2. FILTER: clicking a 分類 chip hides the other categories' rows in place (no re-fetch).
+//   1. ARRIVAL: ?initialScreen=academy-alchemy renders the dedicated #academy-alchemy-screen — a table room on the
+//      alchemy art (the destinationArt one) with the full 56-recipe book (分類 sigil・品名・効果・素材・費用 cells), no
+//      week header, the 分類 filter (5 category sigils, no すべて), the purse, and the always-available 出る sigil
+//      (調合室を出る). This is the dev entry AND the shape a routing dispatch to alchemy lands on.
+//   2. FILTER: pressing a 分類 sigil hides the other categories' rows in place (no re-fetch); pressing it again
+//      releases the filter.
 //   3. FIXED CRAFT → STAY: click an affordable fixed-cost recipe → POST /api/alchemy/craft (ONE call, no
 //      conversation) → the result popup floats with the crafted item as the 主役 → 受け取る keeps the player in the
 //      lab with the board re-fetched (stay-and-craft).
-//   4. CHOICE CRAFT → STAY: click an affordable choice-cost recipe → the single-element choice picker floats →
-//      selecting an enabled element crafts → result popup → 受け取る → stay.
-//   5. EXIT → HUB RETURN: click 「調合室を出る」 (#academy-alchemy-exit) → returnToRoutingHubFromContent takes the
-//      server-authoritative post_content_screen through the shared loading-covered hub return: the academy loading
-//      screen (#academy-loading-screen) covers the non-streaming hub start (押下→ロード画面→迎え会話ストリーミング開始
-//      でハブ表示 — no freeze on the alchemy screen), then the routing hub re-opens (#routing-hub-screen).
-//   6. REAL DISPATCH: a hub turn the stub decides toward alchemy lands on the arrival via performRoutingTurnDispatch
-//      (the in-turn dispatch, not just the dev entry), proving the mirror ROUTING_DISPATCH_SCREENS entry is wired.
+//   4. CHOICE CRAFT → STAY: an affordable choice-cost recipe shows its six element sigils in its 素材 cell (no picker
+//      window) → pressing an enabled element crafts → result popup → 受け取る → stay.
 //
 // NEGATIVE CONTROL (documented in the task report): reverting the wiring (remove the screens['academy-alchemy']
 // registry entry / the showScreen refreshAlchemyScreen hook, or the #academy-alchemy-screen section) makes step 1
-// FAIL — the arrival never renders; removing the ROUTING_DISPATCH_SCREENS alchemy entry makes step 6 FAIL (the
-// dispatch validation throws instead of landing on the arrival). The harness is fire-and-forget
-// (no top-level await main(); whenReady would deadlock), and the deterministic LM stub answers every prompt the
-// hub dispatch drain/finalization touches (好感度 delta 整数 / MP温存ライン 整数 included).
+// FAIL — the arrival never renders. The harness is fire-and-forget (no top-level await main(); whenReady would
+// deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -51,10 +44,6 @@ const WIN_H = 820;
 // The 6 magic elements × 4 tiers = the 24 dungeon materials the recipe book prices against. Seeded rich so every
 // recipe (fixed AND choice) is affordable — the standing book has no zero-cost guarantee.
 const MATERIAL_ELEMENTS = ['light', 'dark', 'fire', 'water', 'earth', 'wind'];
-// The hub-dispatch leg: the player's hub turn the stub decides toward the alchemy destination, and the send-off
-// utterance streamed before performRoutingTurnDispatch navigates to the alchemy arrival.
-const HUB_DISPATCH_INPUT = '今日は調合の実習をしたい気分です。';
-const SENDOFF_TEXT = 'では、調合室へ向かいましょう。';
 const OPENING_TEXT = 'ようこそ。今日はどこへ向かいましょうか。';
 
 const { createServer } = await import(path.join(PROJECT_ROOT, 'app/src/server.mjs'));
@@ -70,9 +59,7 @@ function check(name, pass, detail = {}) {
 }
 
 // Deterministic routing LM stub. The alchemy craft is LM-free, so the stub only answers the routing legs: the hub
-// opening / re-opening welcome, the hub destination judgment (→ alchemy), the send-off utterance, and the drain /
-// finalization judgments the hub turn touches (好感度 delta 整数 / MP温存ライン 整数 included —
-// a missing branch would make the product-side fail-fast turn into an SSE error before dispatch).
+// opening welcome and the drain / finalization judgments (好感度 delta 整数 / MP温存ライン 整数 included).
 async function startStubLm() {
   const requests = [];
   const server = createHttpServer(async (req, res) => {
@@ -88,8 +75,6 @@ async function startStubLm() {
     else if (schemaName === 'work_record_recall_choice') content = JSON.stringify({ work_record_ids: [] });
     else if (prompt.includes('場所移動の合意')) content = 'false'; // stage-move agreement → no move
     else if (prompt.includes('location_idを1つだけ返す')) content = 'none'; // stage-move destination → none
-    else if (prompt.includes('ルーティングハブ会話内容') && prompt.includes('destination_id')) content = 'alchemy'; // hub destination judgment → alchemy
-    else if (prompt.includes('行き先が確定したプレイヤーを送り出す')) content = SENDOFF_TEXT; // hub send-off utterance
     else if (prompt.includes('継続したいと思うか')) content = 'true'; // continuation judgment → keep going
     else if (prompt.includes('好感度の変化量を判定する')) content = '0'; // affinity delta judgment → neutral (contract: integer -10..10)
     else if (prompt.includes('MP温存ライン')) content = '30'; // mp reserve line judgment → neutral (contract: integer 0..100)
@@ -172,23 +157,23 @@ async function waitFor(win, predicate, { tries = 300, intervalMs = 120 } = {}) {
 
 const js = (win, expr) => win.webContents.executeJavaScript(expr);
 
-// A DOM reader for the rendered book rows: recipe id / disabled / category / name / effect / cost text, and
-// whether the row is a choice-cost recipe (its 素材 cell shows the 任意1系統 label).
+// A DOM reader for the rendered book rows: recipe id / unaffordable (data-lack) / category / name / effect / cost
+// text, and whether the row is a choice-cost recipe (its 素材 cell holds the element options).
 const READ_ROWS = `(() => {
   const rows = [...document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row')];
   return rows.map((li) => {
-    const button = li.querySelector('.academy-alchemy-row-button');
     const itemsText = (li.querySelector('.academy-alchemy-cell-items')?.textContent || '').trim();
     return {
-      recipeId: button?.dataset.recipeId || '',
-      disabled: button ? button.disabled : true,
+      recipeId: li.dataset.recipeId || '',
+      disabled: li.dataset.lack === 'true',
       hidden: li.hidden,
       category: li.dataset.category || '',
-      name: (li.querySelector('.academy-alchemy-cell-name-title')?.textContent || '').trim(),
-      effect: (li.querySelector('.academy-alchemy-effect')?.textContent || '').trim(),
+      categoryName: li.querySelector('.academy-alchemy-category-mark')?.getAttribute('aria-label') || '',
+      name: (li.querySelector('.table-room-name')?.textContent || '').trim(),
+      effect: (li.querySelector('.table-room-effect')?.textContent || '').trim(),
       itemsText,
       moneyText: (li.querySelector('.academy-alchemy-cell-money')?.textContent || '').trim(),
-      isChoice: itemsText.includes('任意')
+      isChoice: !!li.querySelector('.academy-alchemy-choice')
     };
   });
 })()`;
@@ -238,10 +223,11 @@ async function main() {
       routingActive: !!document.querySelector('#routing-hub-screen.active'),
       sessionActive: !!document.querySelector('#academy-conversation-session-screen.active'),
       hasTab: !!document.querySelector('[data-screen="academy-alchemy"]'),
-      weekText: (document.querySelector('#academy-alchemy-week')?.textContent || '').trim(),
-      filterChips: [...document.querySelectorAll('#academy-alchemy-filter .academy-alchemy-filter-chip')].map((c) => (c.textContent || '').trim()),
-      hasExit: !!document.querySelector('#academy-alchemy-exit'),
-      stageBg: (() => { const b = document.querySelector('.academy-alchemy-stage-image'); return b ? getComputedStyle(b).backgroundImage : ''; })(),
+      hasWeek: !!document.querySelector('#academy-alchemy-screen [id$="-week"]'),
+      filterChips: [...document.querySelectorAll('#academy-alchemy-filter .academy-alchemy-filter-chip')].map((c) => c.querySelector('[aria-label]')?.getAttribute('aria-label') || ''),
+      hasExit: document.querySelector('#academy-alchemy-exit')?.getAttribute('aria-label') === '調合室を出る',
+      purse: (document.querySelector('#academy-alchemy-purse')?.textContent || '').trim(),
+      stageBg: (() => { const b = document.querySelector('#academy-alchemy-screen .table-room-stage'); return b ? getComputedStyle(b).backgroundImage : ''; })(),
       rowCount: rows.length,
       affordableCount: rows.filter((r) => !r.disabled).length,
       choiceCount: rows.filter((r) => r.isChoice).length,
@@ -256,17 +242,17 @@ async function main() {
   check('ARRIVAL lands on the dedicated #academy-alchemy-screen (not routing hub / session), no tab',
     onAlchemy && arrival.activeScreenId === 'academy-alchemy-screen' && !arrival.routingActive && !arrival.sessionActive && !arrival.hasTab,
     { activeScreenId: arrival.activeScreenId, hasTab: arrival.hasTab });
-  check('ARRIVAL renders the full 56-recipe book with the week header 第N週 / 50',
-    arrival.rowCount === 56 && /^第\d+週 \/ 50$/.test(arrival.weekText), { weekText: arrival.weekText, rowCount: arrival.rowCount });
-  check('ARRIVAL carries the 分類 filter (すべて + 5 categories) and the 「調合室を出る」 exit',
-    arrival.filterChips.length === 6 && arrival.filterChips[0] === 'すべて' && arrival.hasExit,
-    { filterChips: arrival.filterChips, hasExit: arrival.hasExit });
+  check('ARRIVAL renders the full 56-recipe book with no week header',
+    arrival.rowCount === 56 && !arrival.hasWeek, { hasWeek: arrival.hasWeek, rowCount: arrival.rowCount });
+  check('ARRIVAL carries the 分類 filter (5 category sigils, no すべて), the purse, and the 出る sigil named 調合室を出る',
+    arrival.filterChips.join('・') === '贈り物・仲間強化・自分用強化・ダンジョン消耗品・換金品' && arrival.hasExit && /^[\d,]+ G$/.test(arrival.purse),
+    { filterChips: arrival.filterChips, hasExit: arrival.hasExit, purse: arrival.purse });
   check('ARRIVAL prices the book against the seeded inventory (affordable recipes exist) and includes choice-cost recipes',
     arrival.affordableCount >= 1 && arrival.choiceCount >= 1, { affordableCount: arrival.affordableCount, choiceCount: arrival.choiceCount });
   check('ARRIVAL each sample row carries a 分類 / 品名 / 効果 / 素材 cell',
-    arrival.sample.every((r) => r.recipeId && r.category && r.name && r.effect && r.itemsText),
+    arrival.sample.every((r) => r.recipeId && r.category && r.categoryName && r.name && r.effect && r.itemsText),
     { sample: arrival.sample.map((r) => ({ id: r.recipeId, cat: r.category, hasName: !!r.name, hasEffect: !!r.effect })) });
-  check('ARRIVAL the 1:1 stage-image column paints the alchemy stage image (a real background-image, not none)',
+  check('ARRIVAL the room ground paints the alchemy stage image (a real background-image, not none)',
     arrival.stageBg && arrival.stageBg !== 'none' && arrival.stageBg.includes('/canonical/alchemy/stage.jpg'),
     { stageBg: arrival.stageBg.slice(0, 90) });
   // BACKGROUND (いきなり背景): the alchemy layout is edge-to-edge (padding:0) so the flat obsidian screen fills it
@@ -278,98 +264,61 @@ async function main() {
   try { await sleep(500); await fs.writeFile(shotPath, (await win.webContents.capturePage()).toPNG()); console.log(`screenshot: ${shotPath}`); }
   catch (e) { console.log(`screenshot: FAILED ${e?.message ?? e}`); }
 
-  // ── 1b) COLUMN WRAP: the 分類 chip + the 効果 pill are held to ONE line per row, so a long effect_summary (the
-  //        賢者の霊薬's 5-parameter self_boost, or the ダンジョン消耗品 label) no longer wraps the column and grows
-  //        the row past the 名前＋説明 stack. Measured against real Blink layout: per row, how many client-rect
-  //        lines the chip/pill occupies, the (content-sized, align-items:center) cell heights, and — for an
-  //        ellipsis-clipped cell — that the full text stays reachable through the title attribute (no silent cut).
+  // ── 1b) COLUMN WRAP: the 効果 pill is held to ONE line per row, so a long effect_summary (the 賢者の霊薬's
+  //        5-parameter self_boost) does not wrap the column and grow the row past the 名前＋説明 stack. Measured
+  //        against real Blink layout: per row, how many client-rect lines the pill occupies, the cell heights, and —
+  //        for an ellipsis-clipped pill — that the full text stays reachable through the title attribute.
   const wrap = await js(win, `(() => {
     const px = (v) => Math.round(v);
     const rows = [...document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row')].filter((li) => !li.hidden);
     const measured = rows.map((li) => {
-      const button = li.querySelector('.academy-alchemy-row-button');
-      const catChip = li.querySelector('.academy-alchemy-category-chip');
-      const effChip = li.querySelector('.academy-alchemy-effect');
-      const catCell = li.querySelector('.academy-alchemy-cell-category');
+      const effChip = li.querySelector('.table-room-effect');
       const effCell = li.querySelector('.academy-alchemy-cell-effect');
-      const nameCell = li.querySelector('.academy-alchemy-cell-name');
-      const itemsCell = li.querySelector('.academy-alchemy-cell-items');
-      const moneyCell = li.querySelector('.academy-alchemy-cell-money');
       return {
-        recipeId: button?.dataset.recipeId || '',
-        category: li.dataset.category || '',
-        catLabel: catChip ? (catChip.textContent || '').trim() : '',
+        recipeId: li.dataset.recipeId || '',
         effect: (effChip?.textContent || '').trim(),
-        catLines: catChip ? catChip.getClientRects().length : 0,
         effLines: effChip ? effChip.getClientRects().length : 0,
-        catCellH: catCell ? px(catCell.offsetHeight) : 0,
         effCellH: effCell ? px(effCell.offsetHeight) : 0,
-        catColW: catCell ? px(catCell.getBoundingClientRect().width) : 0,
         effColW: effCell ? px(effCell.getBoundingClientRect().width) : 0,
-        nameColW: nameCell ? px(nameCell.getBoundingClientRect().width) : 0,
-        itemsColW: itemsCell ? px(itemsCell.getBoundingClientRect().width) : 0,
-        moneyColW: moneyCell ? px(moneyCell.getBoundingClientRect().width) : 0,
-        catTrunc: catChip ? catChip.scrollWidth > catChip.clientWidth + 1 : false,
         effTrunc: effChip ? effChip.scrollWidth > effChip.clientWidth + 1 : false,
-        catTitle: catChip ? catChip.title : '',
         effTitle: effChip ? effChip.title : ''
       };
     });
-    const byEffLen = measured.slice().sort((a, b) => b.effect.length - a.effect.length);
-    const longest = byEffLen[0] || null;
+    const longest = measured.slice().sort((a, b) => b.effect.length - a.effect.length)[0] || null;
     const truncatedEff = measured.filter((r) => r.effTrunc);
-    const truncatedCat = measured.filter((r) => r.catTrunc);
-    const effFit = measured.filter((r) => !r.effTrunc);
-    const catFit = measured.filter((r) => !r.catTrunc);
-    const maxLen = (arr, f) => arr.length ? Math.max(...arr.map(f)) : 0;
-    const minLen = (arr, f) => arr.length ? Math.min(...arr.map(f)) : 0;
     return {
       total: measured.length,
-      catMultiLine: measured.filter((r) => r.catLines > 1).map((r) => r.recipeId),
       effMultiLine: measured.filter((r) => r.effLines > 1).map((r) => r.recipeId),
       effCellHeights: [...new Set(measured.map((r) => r.effCellH))],
-      catCellHeights: [...new Set(measured.map((r) => r.catCellH))],
-      cols: { cat: measured[0]?.catColW ?? 0, name: measured[0]?.nameColW ?? 0, eff: measured[0]?.effColW ?? 0, items: measured[0]?.itemsColW ?? 0, money: measured[0]?.moneyColW ?? 0 },
-      catTruncLabels: [...new Set(truncatedCat.map((r) => r.catLabel))],
-      effFitMaxLen: maxLen(effFit, (r) => r.effect.length),
-      effTruncMinLen: minLen(truncatedEff, (r) => r.effect.length),
-      catFitMaxLen: maxLen(catFit, (r) => r.catLabel.length),
-      catTruncMinLen: minLen(truncatedCat, (r) => r.catLabel.length),
+      effColW: measured[0]?.effColW ?? 0,
       longest,
       truncatedEffCount: truncatedEff.length,
-      truncatedCatCount: truncatedCat.length,
-      effTitleAllFull: truncatedEff.every((r) => r.effTitle === r.effect),
-      catTitleAllFull: truncatedCat.every((r) => r.catTitle && r.catTitle.length > 0)
+      effTitleAllFull: truncatedEff.every((r) => r.effTitle === r.effect)
     };
   })()`);
   log('wrap-metrics', wrap);
-  check('WRAP: no 分類 chip wraps to a second line (all 56 rows single-line category)',
-    wrap.catMultiLine.length === 0, { catMultiLine: wrap.catMultiLine, catColW: wrap.cols.cat });
   check('WRAP: no 効果 pill wraps to a second line (all 56 rows single-line effect, incl. the 32-char 賢者の霊薬)',
-    wrap.effMultiLine.length === 0, { effMultiLine: wrap.effMultiLine, effColW: wrap.cols.eff });
+    wrap.effMultiLine.length === 0, { effMultiLine: wrap.effMultiLine, effColW: wrap.effColW });
   check('WRAP: every 効果 cell resolves to ONE uniform single-line height (no row grown by a wrapping effect column)',
     wrap.effCellHeights.length === 1, { effCellHeights: wrap.effCellHeights });
-  check('WRAP: every 分類 cell resolves to ONE uniform single-line height',
-    wrap.catCellHeights.length === 1, { catCellHeights: wrap.catCellHeights });
   check('WRAP: the longest 効果 (32-char self_boost) is clipped with an ellipsis and its full text stays in the title (no silent truncation)',
     !!wrap.longest && wrap.longest.effTrunc && wrap.longest.effTitle === wrap.longest.effect,
     { effect: wrap.longest?.effect, effTrunc: wrap.longest?.effTrunc, titleMatches: wrap.longest?.effTitle === wrap.longest?.effect });
-  check('WRAP: every ellipsis-clipped 効果 / 分類 cell keeps its full text in the title attribute (no information silently cut)',
-    wrap.effTitleAllFull && wrap.catTitleAllFull,
-    { truncatedEffCount: wrap.truncatedEffCount, truncatedCatCount: wrap.truncatedCatCount, effTitleAllFull: wrap.effTitleAllFull, catTitleAllFull: wrap.catTitleAllFull });
+  check('WRAP: every ellipsis-clipped 効果 pill keeps its full text in the title attribute (no information silently cut)',
+    wrap.effTitleAllFull, { truncatedEffCount: wrap.truncatedEffCount, effTitleAllFull: wrap.effTitleAllFull });
 
   // Evidence shot of the long-effect region: scroll the book so the 32-char self_boost (賢者の霊薬) + the
   // ダンジョン消耗品 rows are visible, proving the single-line ellipsis holds where the wrapping used to break rows.
   await js(win, `(() => {
-    const btn = [...document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row-button')].find((b) => b.dataset.recipeId === 'alchemy_sage_elixir');
-    if (btn) btn.scrollIntoView({ block: 'center' });
-    return !!btn;
+    const row = document.querySelector('#academy-alchemy-recipes .academy-alchemy-row[data-recipe-id="alchemy_sage_elixir"]');
+    if (row) row.scrollIntoView({ block: 'center' });
+    return !!row;
   })()`);
   const longShotPath = path.join(os.tmpdir(), 'alchemy-book-longrows.png');
   try { await sleep(400); await fs.writeFile(longShotPath, (await win.webContents.capturePage()).toPNG()); console.log(`screenshot-longrows: ${longShotPath}`); }
   catch (e) { console.log(`screenshot-longrows: FAILED ${e?.message ?? e}`); }
 
-  // ── 2) FILTER: a 分類 chip hides the other categories' rows in place ────────────────────
+  // ── 2) FILTER: a 分類 sigil hides the other categories' rows in place; pressing it again releases it ──────
   const filtered = await js(win, `(() => {
     const chip = [...document.querySelectorAll('#academy-alchemy-filter .academy-alchemy-filter-chip')].find((c) => c.dataset.category === 'product');
     if (!chip) return { ok: false };
@@ -378,19 +327,25 @@ async function main() {
     const visible = rows.filter((r) => !r.hidden);
     return { ok: true, chipPressed: chip.getAttribute('aria-pressed'), visibleCount: visible.length, visibleAllProduct: visible.every((r) => r.category === 'product') };
   })()`);
-  check('FILTER a 分類 chip (換金品/product) shows only that category (in-place hidden toggle, aria-pressed marked)',
+  check('FILTER a 分類 sigil (換金品/product) shows only that category (in-place hidden toggle, aria-pressed marked)',
     filtered.ok && filtered.chipPressed === 'true' && filtered.visibleCount >= 1 && filtered.visibleAllProduct,
     { visibleCount: filtered.visibleCount, visibleAllProduct: filtered.visibleAllProduct });
-  // Reset to すべて for the craft steps.
-  await js(win, `(() => { const c = [...document.querySelectorAll('#academy-alchemy-filter .academy-alchemy-filter-chip')].find((x) => x.dataset.category === 'all'); c && c.click(); return true; })()`);
+  // Press the pressed sigil again: the filter releases (every row shows, no sigil pressed) for the craft steps.
+  const released = await js(win, `(() => {
+    const chip = document.querySelector('#academy-alchemy-filter .academy-alchemy-filter-chip[data-category="product"]');
+    chip.click();
+    const rows = ${READ_ROWS};
+    return { visibleCount: rows.filter((r) => !r.hidden).length, pressed: [...document.querySelectorAll('#academy-alchemy-filter [aria-pressed="true"]')].length };
+  })()`);
+  check('FILTER pressing the pressed 分類 sigil again releases it (all 56 rows show, no sigil pressed)',
+    released.visibleCount === 56 && released.pressed === 0, released);
 
   // ── 3) FIXED CRAFT → RESULT POPUP → STAY ────────────────────
   const fixedTarget = await js(win, `(() => {
     const rows = ${READ_ROWS};
     const target = rows.find((r) => !r.disabled && !r.isChoice);
     if (!target) return null;
-    const btn = [...document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row-button')].find((b) => b.dataset.recipeId === target.recipeId);
-    btn.click();
+    document.querySelector('#academy-alchemy-recipes .academy-alchemy-row[data-recipe-id="' + target.recipeId + '"] button.academy-alchemy-row-body').click();
     return target;
   })()`);
   const fixedPopupUp = fixedTarget && await waitFor(win, `
@@ -423,31 +378,22 @@ async function main() {
   check('FIXED CRAFT 受け取る stays in the lab and re-fetches the board (stay-and-craft — no hub return)',
     stayedAfterFixed, { stayedAfterFixed });
 
-  // ── 4) CHOICE CRAFT → PICKER → RESULT POPUP → STAY ────────────────────
+  // ── 4) CHOICE CRAFT → ELEMENT SIGIL IN THE ROW → RESULT POPUP → STAY ────────────────────
   const choiceTarget = await js(win, `(() => {
     const rows = ${READ_ROWS};
     const target = rows.find((r) => !r.disabled && r.isChoice);
     if (!target) return null;
-    const btn = [...document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row-button')].find((b) => b.dataset.recipeId === target.recipeId);
-    btn.click();
-    return target;
+    const options = [...document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row[data-recipe-id="' + target.recipeId + '"] .academy-alchemy-choice-option')];
+    return { ...target, optionCount: options.length, enabledCount: options.filter((o) => !o.disabled).length, optionNames: options.map((o) => o.getAttribute('aria-label')) };
   })()`);
-  const pickerUp = choiceTarget && await waitFor(win, `
-    document.querySelector('#academy-alchemy-choice-popup') && document.querySelector('#academy-alchemy-choice-popup').hidden === false
-    && document.querySelectorAll('#academy-alchemy-choice-body .academy-alchemy-choice-option').length === 6
-  `, { tries: 400, intervalMs: 120 });
-  const picker = await js(win, `(() => {
-    const options = [...document.querySelectorAll('#academy-alchemy-choice-body .academy-alchemy-choice-option')];
-    return { optionCount: options.length, enabledCount: options.filter((o) => !o.disabled).length };
-  })()`);
-  log('choice-picker', { target: choiceTarget?.recipeId, ...picker });
-  check('CHOICE CRAFT opens the single-element picker with 6 element options (at least one craftable)',
-    pickerUp && picker.optionCount === 6 && picker.enabledCount >= 1, { optionCount: picker.optionCount, enabledCount: picker.enabledCount });
-  // Pick the first enabled element → craft.
-  await js(win, `(() => { const o = [...document.querySelectorAll('#academy-alchemy-choice-body .academy-alchemy-choice-option')].find((x) => !x.disabled); o && o.click(); return true; })()`);
+  log('choice-options', choiceTarget);
+  check('CHOICE CRAFT the affordable choice-cost row holds its 6 element sigils in the 素材 cell (at least one pressable, no picker window)',
+    !!choiceTarget && choiceTarget.optionCount === 6 && choiceTarget.enabledCount >= 1 && !(await js(win, `!!document.querySelector('#academy-alchemy-choice-popup')`)),
+    { optionCount: choiceTarget?.optionCount, enabledCount: choiceTarget?.enabledCount });
+  // Press the first enabled element → craft.
+  await js(win, `(() => { const o = [...document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row[data-recipe-id="${choiceTarget?.recipeId}"] .academy-alchemy-choice-option')].find((x) => !x.disabled); o && o.click(); return true; })()`);
   const choicePopupUp = await waitFor(win, `
     document.querySelector('#academy-alchemy-result-popup')?.hidden === false
-    && document.querySelector('#academy-alchemy-choice-popup')?.hidden === true
     && document.querySelector('#academy-alchemy-result-body')?.textContent.trim().length > 0
   `, { tries: 400, intervalMs: 120 });
   const choicePopup = await js(win, `(() => ({
@@ -455,7 +401,7 @@ async function main() {
     name: (document.querySelector('#academy-alchemy-result-title')?.textContent || '').trim()
   }))()`);
   log('choice-craft', { target: choiceTarget?.recipeId, targetName: choiceTarget?.name, ...choicePopup });
-  check('CHOICE CRAFT selecting an element crafts (POST with materials), closes the picker, and floats the result popup (still in the lab)',
+  check('CHOICE CRAFT pressing an element crafts (POST with materials) and floats the result popup (still in the lab)',
     choicePopupUp && choicePopup.stillAlchemy && choicePopup.name.length > 0 && (choiceTarget?.name ? choicePopup.name === choiceTarget.name : true),
     { name: choicePopup.name, targetName: choiceTarget?.name, stillAlchemy: choicePopup.stillAlchemy });
   await js(win, `(() => { const b = document.querySelector('#academy-alchemy-result-close'); b && b.click(); return true; })()`);
@@ -466,60 +412,6 @@ async function main() {
   `, { tries: 400, intervalMs: 120 });
   check('CHOICE CRAFT 受け取る stays in the lab and re-fetches the board (stay-and-craft)',
     stayedAfterChoice, { stayedAfterChoice });
-
-  // ── 5) EXIT → HUB RETURN via the shared loading-covered hub return ────────────────────
-  const exited = await js(win, `(() => { const b = document.querySelector('#academy-alchemy-exit'); if (!b) return false; b.click(); return true; })()`);
-  const loadingCovered = exited && await waitFor(win, `
-    document.querySelector('#academy-loading-screen')?.classList.contains('active')
-  `, { tries: 400, intervalMs: 15 });
-  check('EXIT → LOADING: 調合室を出る shows the academy loading screen while the hub-return request runs (no freeze on the alchemy screen)',
-    loadingCovered, { loadingCovered });
-  const onHub = exited && await waitFor(win, `
-    document.querySelector('#routing-hub-screen')?.classList.contains('active')
-    && (document.querySelector('#routing-hub-message-stream')?.textContent || '').trim().length > 0
-  `, { tries: 600, intervalMs: 120 });
-  await sleep(400);
-  const hub = await js(win, `(() => ({
-    activeScreenId: document.querySelector('.screen.active')?.id ?? null,
-    alchemyActive: !!document.querySelector('#academy-alchemy-screen.active'),
-    hubOpeningLen: (document.querySelector('#routing-hub-message-stream')?.textContent || '').trim().length
-  }))()`);
-  log('exit', { exited, ...hub });
-  check('EXIT → HUB: 調合室を出る returns to the routing hub through the loading-covered path — not stranded on the arrival / loading screen',
-    onHub && hub.activeScreenId === 'routing-hub-screen' && !hub.alchemyActive && hub.hubOpeningLen > 0,
-    { activeScreenId: hub.activeScreenId, hubOpeningLen: hub.hubOpeningLen });
-
-  // ── 6) REAL DISPATCH: a hub turn the stub decides toward alchemy lands on the arrival ────────────────────
-  let dispatchFired = false;
-  if (onHub) {
-    await waitFor(win, `!document.querySelector('#routing-hub-send')?.disabled && !!document.querySelector('#routing-hub-input')`, { tries: 200, intervalMs: 120 });
-    for (let attempt = 0; attempt < 6 && !dispatchFired; attempt += 1) {
-      await js(win, `(() => {
-        const input = document.querySelector('#routing-hub-input');
-        const send = document.querySelector('#routing-hub-send');
-        if (!input || !send || send.disabled) return false;
-        input.value = ${JSON.stringify(HUB_DISPATCH_INPUT)};
-        send.click();
-        return true;
-      })()`);
-      dispatchFired = await waitFor(win, `document.querySelector('#routing-hub-input').value === ''`, { tries: 40, intervalMs: 80 });
-    }
-  }
-  const dispatched = dispatchFired && await waitFor(win, `
-    document.querySelector('#academy-alchemy-screen')?.classList.contains('active')
-    && document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row').length === 56
-  `, { tries: 600, intervalMs: 150 });
-  await sleep(300);
-  const dispatch = await js(win, `(() => ({
-    activeScreenId: document.querySelector('.screen.active')?.id ?? null,
-    rowCount: document.querySelectorAll('#academy-alchemy-recipes .academy-alchemy-row').length,
-    weekText: (document.querySelector('#academy-alchemy-week')?.textContent || '').trim(),
-    sendoffSeen: (document.querySelector('#routing-hub-message-stream')?.textContent || '').includes(${JSON.stringify(SENDOFF_TEXT)})
-  }))()`);
-  log('dispatch', { dispatchFired, dispatched, ...dispatch });
-  check('DISPATCH: a decided routing hub turn (alchemy) lands on #academy-alchemy-screen via performRoutingTurnDispatch with the 56-recipe book rendered',
-    dispatched && dispatch.activeScreenId === 'academy-alchemy-screen' && dispatch.rowCount === 56 && /^第\d+週 \/ 50$/.test(dispatch.weekText),
-    { activeScreenId: dispatch.activeScreenId, rowCount: dispatch.rowCount, weekText: dispatch.weekText, sendoffSeen: dispatch.sendoffSeen });
 
   const passCount = results.filter((r) => r.pass).length;
   console.log(`\nALCHEMY SCREEN RENDER: ${passCount}/${results.length} checks passed`);

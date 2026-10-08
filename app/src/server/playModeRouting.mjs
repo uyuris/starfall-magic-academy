@@ -4,6 +4,7 @@ import { isInFlightGraduationPhase2 } from '../graduationEnding.mjs';
 import { buildRoutingPersonaVisualSummary } from '../routingPersonaVisual.mjs';
 import { ROUTING_PERSONA_CHARACTER_ID } from '../routingPersona.mjs';
 import { resolvePlayModeSettingsPath } from './playModeSettingsApi.mjs';
+import { routingDestinationNames } from './routingHubApi.mjs';
 
 // The persisted current_screen an in-flight graduation phase 2 can hold on entry: the daytime event screen
 // ('interaction') or the legacy conversation session screen. Any other screen under the in-flight predicate
@@ -21,11 +22,11 @@ function resolvedScreenRouting({ activePlayMode, loopScreen }) {
 }
 
 // The load/slots entry contract for re-entering an in-flight graduation phase 2 conversation. Null when the
-// slot is not mid-phase-2. When present, the frontend branches into the phase-2 conversation surface (instead
-// of the hub / post-content landing) from the preserved entry state, and — for the guide persona (lina) —
-// registers the routing persona visual before its own refresh so the persona identity is known up front. A
-// selectable roster partner (loop or a character_### guide selection) resolves through the roster and carries
-// no persona visual.
+// slot is not mid-phase-2. When present, the frontend branches into the phase-2 conversation (instead of the hub /
+// post-content landing) from the preserved entry state. The 案内人 (lina) re-enters on the terrace without a hub start,
+// so her contract carries what a hub start would have answered for it: the routing persona visual and the destination
+// names (routing_destinations). A selectable roster partner (loop or a character_### guide selection) resolves through
+// the roster and carries neither.
 async function resolveGraduationPhase2Reentry({ root, state, activePlayMode }) {
   if (!isInFlightGraduationPhase2(state)) return null;
   const characterId = String(state.current_interaction_character_id ?? '').trim();
@@ -51,6 +52,7 @@ async function resolveGraduationPhase2Reentry({ root, state, activePlayMode }) {
       root,
       personaVariant: activePlayMode.routing_persona_variant
     });
+    reentry.routing_destinations = routingDestinationNames();
   }
   return reentry;
 }

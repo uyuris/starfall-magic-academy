@@ -10,14 +10,16 @@
 // It boots an isolated server in ROUTING mode with a DETERMINISTIC local LM stub, does a routing new-game
 // (which materializes the fixture roster + runtime state so GET /api/errand can pick real selectable-roster
 // clients), and drives the REAL errand flow against real Blink layout:
-//   1. ARRIVAL: ?initialScreen=academy-errand renders the dedicated #academy-errand-screen with this week's
-//      three offer cards — each carrying a title / situation / reward / client name + FACE — in a horizontally
-//      placed, internally scrolling board on the RIGHT, beside a 1:1 stage-image column on the LEFT
-//      (/canonical/errand/stage.jpg) with the week header (第N週 / 50) overlaid (conversation-day 黒夜 chrome, no
-//      ambient). This is the dev entry AND the shape a routing dispatch to errand lands on.
-//   2. SELECT → CONVERSATION: click a card → the academy loading screen (#academy-loading-screen) covers the
-//      POST /api/errand/start wait (no freeze / 留まる区間 on the arrival) → the client's conversation opens on the
-//      DAYTIME conversation screen (#conversation-day-screen) with the client's NAME (chat bubble) and the
+//   1. ARRIVAL: ?initialScreen=academy-errand renders the card room #academy-errand-screen: the errand destination's
+//      art (/canonical/errand/stage.jpg — the send-off curtain's image) over the whole screen, the week and the place
+//      name (依頼の現場) at the conversation layer's top-left, and this week's three paper cards — each carrying the
+//      client's face + name / title / appeal / the coin mark + reward money — with no heading and no 報酬 label. The
+//      offers are awaited under the place veil (no waiting card). This is the dev entry AND the shape a routing
+//      dispatch to errand lands on.
+//   2. SELECT → CONVERSATION: click a card → the other two cards retreat and the chosen one stays lit in the same room
+//      while POST /api/errand/start runs (no loading screen) → the card row is carried onto the DAYTIME conversation
+//      screen (#conversation-day-screen) at the same place, then leaves; the conversation shows the client's NAME
+//      (chat bubble) and the
 //      依頼主 STANDEE in the stage frame (#conversation-day-stage-image, NOT a field stage image), the opening
 //      revealed in the daytime stream. Clicking the stage frame (the 依頼主 standee) opens the detail popup, which
 //      shows 依頼の現場 + the errand title / situation over the new 1:1 errand stage image (errand/stage.jpg).
@@ -46,11 +48,9 @@
 //     with the cause on #conversation-day-status (tone=error) — it does NOT eject to the hub.
 //
 // NEGATIVE CONTROL (documented in the task report): reverting the wiring (remove the screens['academy-errand']
-// registry entry / the showScreen refreshErrandScreen hook, or the #academy-errand-screen section) makes step 1
-// FAIL — the arrival never renders; reverting startErrand's daytime landing back to the v1 session makes step 2
-// FAIL (the daytime screen never activates and the stage frame never shows the 依頼主 standee); reverting the
-// loading-covered start back to an in-place await (drop showAcademyLoadingScreenUntilReady) makes the SELECT →
-// LOADING check FAIL — the arrival stays frozen and #academy-loading-screen never activates. The
+// registry entry / the showScreen enterRoomCards hook, or the #academy-errand-screen section) makes step 1
+// FAIL — the arrival never renders; putting the start back behind the loading screen makes the SELECT → HELD
+// checks FAIL (#academy-loading-screen activates and the card row never reaches the conversation screen). The
 // harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
@@ -217,6 +217,7 @@ async function newGameThenErrand(win, base) {
   return waitFor(win, `
     document.querySelector('#academy-errand-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-errand-offers .academy-errand-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
   `, { tries: 400, intervalMs: 120 });
 }
 
@@ -248,17 +249,16 @@ async function main() {
     const active = document.querySelector('.screen.active');
     const cards = [...document.querySelectorAll('#academy-errand-offers .academy-errand-card')];
     const readCard = (card) => {
-      const face = card.querySelector('.academy-errand-card-face');
+      const face = card.querySelector('.room-card-face');
       return {
-        errandId: card.querySelector('.academy-errand-card-button')?.dataset.errandId || '',
         clientName: (card.querySelector('.academy-errand-card-client-name')?.textContent || '').trim(),
-        title: (card.querySelector('.academy-errand-card-title')?.textContent || '').trim(),
-        // The card body element (the -situation class is the shared body-text styling hook) now carries the appeal.
-        appeal: (card.querySelector('.academy-errand-card-situation')?.textContent || '').trim(),
-        // The reward is now a labeled footer (報酬 label + money chip); read the whole footer so the 報酬 marker is present.
-        reward: (card.querySelector('.academy-errand-card-footer')?.textContent || '').trim(),
-        // 達成条件 is the internal judgment value only — the card must render NO condition element (never shown).
-        hasCondition: !!card.querySelector('.academy-errand-card-condition'),
+        title: (card.querySelector('.room-card-title')?.textContent || '').trim(),
+        appeal: (card.querySelector('.room-card-appeal')?.textContent || '').trim(),
+        // The worth (the card's lower edge): the coin mark + the reward money, no 報酬 label.
+        reward: (card.querySelector('.room-card-worth')?.textContent || '').trim(),
+        coinSrc: card.querySelector('.room-card-worth .room-card-coin')?.getAttribute('src') || '',
+        // 達成条件 is the internal judgment value only — the card shows only face / name / title / appeal / worth.
+        hasCondition: [...card.querySelector('.room-card-button').children].some((el) => !['room-card-who', 'room-card-title', 'room-card-appeal', 'room-card-worth'].includes(el.classList[0])),
         faceSrc: face?.getAttribute('src') || '',
         faceVisible: face ? getComputedStyle(face).visibility !== 'hidden' : false
       };
@@ -269,7 +269,11 @@ async function main() {
       sessionActive: !!document.querySelector('#academy-conversation-session-screen.active'),
       hasTab: !!document.querySelector('[data-screen="academy-errand"]'),
       weekText: (document.querySelector('#academy-errand-week')?.textContent || '').trim(),
-      stageBg: (() => { const b = document.querySelector('.academy-errand-stage-image'); return b ? getComputedStyle(b).backgroundImage : ''; })(),
+      placeText: (document.querySelector('#academy-errand-place')?.textContent || '').trim(),
+      headings: document.querySelectorAll('#academy-errand-screen h1, #academy-errand-screen h2, #academy-errand-screen h3').length,
+      groundBg: (() => { const g = document.querySelector('#academy-errand-screen .room-cards-ground'); return g ? getComputedStyle(g).backgroundImage : ''; })(),
+      groundBox: (() => { const g = document.querySelector('#academy-errand-screen .room-cards-ground'); if (!g) return null; const r = g.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })(),
+      screenBox: (() => { const r = document.querySelector('#academy-errand-screen').getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })(),
       // Direct-background (いきなり背景) standard: the layout has padding:0 so the flat obsidian screen fills it
       // edge-to-edge with no navy-gradient border inset.
       layoutPadding: (() => { const l = document.querySelector('.layout'); return l ? getComputedStyle(l).padding : ''; })(),
@@ -280,34 +284,33 @@ async function main() {
   check('ARRIVAL lands on the dedicated #academy-errand-screen (not routing hub / session), no tab',
     onErrand && arrival.activeScreenId === 'academy-errand-screen' && !arrival.routingActive && !arrival.sessionActive && !arrival.hasTab,
     { activeScreenId: arrival.activeScreenId, hasTab: arrival.hasTab });
-  check('ARRIVAL renders exactly three offer cards with the week header 第N週 / 50',
-    arrival.cards.length === 3 && /^第\d+週 \/ 50$/.test(arrival.weekText), { weekText: arrival.weekText, cardCount: arrival.cards.length });
-  const everyCardComplete = arrival.cards.every((c) => c.errandId && c.clientName && c.title && c.appeal && c.reward.includes('報酬') && c.faceSrc && c.faceVisible);
-  check('ARRIVAL each card carries title / appeal (当人の語り) / reward / client name + a visible client face',
-    everyCardComplete, { cards: arrival.cards.map((c) => ({ id: c.errandId, client: c.clientName, hasTitle: !!c.title, hasAppeal: !!c.appeal, reward: c.reward, face: c.faceVisible })) });
-  check('ARRIVAL the three errand ids and the three clients are unique (deterministic offer set)',
-    new Set(arrival.cards.map((c) => c.errandId)).size === 3 && new Set(arrival.cards.map((c) => c.clientName)).size === 3,
-    { ids: arrival.cards.map((c) => c.errandId), clients: arrival.cards.map((c) => c.clientName) });
-  // STAGE COLUMN: the conversation-day 黒夜 chrome frames the new 1:1 errand stage image (the screen's face) in
-  // the left column — a real background-image on .academy-errand-stage-image (/canonical/errand/stage.jpg).
-  check('ARRIVAL the 1:1 stage-image column paints the new errand stage image (a real background-image, not none)',
-    arrival.stageBg && arrival.stageBg !== 'none' && arrival.stageBg.includes('/canonical/errand/stage.jpg'),
-    { stageBg: arrival.stageBg.slice(0, 90) });
+  check('ARRIVAL renders exactly three cards with the week 第N週 / 50 and the place name 依頼の現場, and no heading',
+    arrival.cards.length === 3 && /^第\d+週 \/ 50$/.test(arrival.weekText) && arrival.placeText === '依頼の現場' && arrival.headings === 0,
+    { weekText: arrival.weekText, placeText: arrival.placeText, headings: arrival.headings, cardCount: arrival.cards.length });
+  const everyCardComplete = arrival.cards.every((c) => c.clientName && c.title && c.appeal && /^\d[\d,]* G$/.test(c.reward) && c.coinSrc.endsWith('/icons/money.png') && c.faceSrc && c.faceVisible);
+  check('ARRIVAL each card carries the client face + name / title / appeal (当人の語り) / the coin mark + reward money (no 報酬 label)',
+    everyCardComplete, { cards: arrival.cards.map((c) => ({ client: c.clientName, hasTitle: !!c.title, hasAppeal: !!c.appeal, reward: c.reward, coin: c.coinSrc, face: c.faceVisible })) });
+  check('ARRIVAL the three clients are unique (deterministic offer set)',
+    new Set(arrival.cards.map((c) => c.clientName)).size === 3, { clients: arrival.cards.map((c) => c.clientName) });
+  // GROUND: the errand destination's art (the send-off curtain's image) covers the whole screen.
+  check('ARRIVAL the ground is the errand destination art over the whole screen (a real background-image, not none)',
+    arrival.groundBg.includes('/canonical/errand/stage.jpg') && JSON.stringify(arrival.groundBox) === JSON.stringify(arrival.screenBox),
+    { groundBg: arrival.groundBg.slice(0, 90), groundBox: arrival.groundBox, screenBox: arrival.screenBox });
   // CONDITION REMOVAL: 達成条件 is the internal judgment value only — no card renders a condition element.
-  check('ARRIVAL no offer card renders a 達成条件 element (condition is internal only, never shown to the player)',
+  check('ARRIVAL no offer card renders anything beyond face / name / title / appeal / worth (no 達成条件 — internal only)',
     arrival.cards.length > 0 && arrival.cards.every((c) => c.hasCondition === false),
     { hasCondition: arrival.cards.map((c) => c.hasCondition) });
   // BACKGROUND RESTYLE (いきなり背景): the errand layout is edge-to-edge (padding:0) so the flat obsidian screen
   // fills it with no navy-gradient border inset — the conversation-day 黒夜 chrome standard.
-  check('ARRIVAL the errand layout is edge-to-edge (layout padding:0) — no navy-gradient border inset behind the obsidian screen',
+  check('ARRIVAL the errand layout is edge-to-edge (layout padding:0) — the room art meets the window edge',
     arrival.layoutPadding === '0px', { layoutPadding: arrival.layoutPadding });
 
   const shotPath = path.join(os.tmpdir(), 'errand-arrival-render.png');
   try { await sleep(500); await fs.writeFile(shotPath, (await win.webContents.capturePage()).toPNG()); console.log(`screenshot: ${shotPath}`); }
   catch (e) { console.log(`screenshot: FAILED ${e?.message ?? e}`); }
 
-  // ── 1b) OFFER-FETCH RETRY: a failed weekly-offer fetch clears the board and surfaces the error banner + the
-  // explicit retry button; clicking retry re-runs refreshErrandScreen and recovers the board. The arrival has no
+  // ── 1b) OFFER-FETCH RETRY: a failed weekly-offer fetch clears the cards and surfaces the failure notice + the
+  // retry sigil; clicking retry re-runs enterRoomCards (under the place veil) and recovers the cards. The arrival has no
   // back / skip (会話終了 is the only hub return, arrival = the week is spent), so the retry button is the only
   // in-place recovery from a failed generation. Force GET /api/errand to fail, invoke the refresh through the
   // retry button (it is the refresh trigger), assert the empty-board error state, then restore the fetch and
@@ -329,7 +332,7 @@ async function main() {
     document.querySelector('#academy-errand-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-errand-offers .academy-errand-card').length === 0
     && document.querySelector('#academy-errand-retry')?.hidden === false
-    && (() => { const s = document.querySelector('#academy-errand-status'); return !!s && s.hidden === false && (s.textContent || '').trim().length > 0; })()
+    && (() => { const s = document.querySelector('#academy-errand-status'); return !!s && s.hidden === false && !!s.querySelector('.routing-failure-mark'); })()
   `, { tries: 300, intervalMs: 60 });
   const retryFail = await js(win, `(() => {
     const s = document.querySelector('#academy-errand-status');
@@ -337,12 +340,14 @@ async function main() {
     return {
       cards: document.querySelectorAll('#academy-errand-offers .academy-errand-card').length,
       retryVisible: !!r && r.hidden === false,
-      statusShown: !!s && s.hidden === false && (s.textContent || '').trim().length > 0,
+      // The notice is the failure mark (the glyph, plus the destination name when a hub dispatch landed — none on the
+      // dev entry).
+      statusShown: !!s && s.hidden === false && !!s.querySelector('.routing-failure-mark'),
       statusTone: s?.dataset.tone ?? ''
     };
   })()`);
   log('retry_fail', { retryFailState, ...retryFail });
-  check('RETRY: a failed weekly-offer fetch clears the board and surfaces the error banner + the explicit retry button (the arrival has no back / skip)',
+  check('RETRY: a failed weekly-offer fetch clears the cards and surfaces the failure notice + the retry sigil (the arrival has no back / skip)',
     retryFailState && retryFail.cards === 0 && retryFail.retryVisible && retryFail.statusShown && retryFail.statusTone === 'error',
     { cards: retryFail.cards, retryVisible: retryFail.retryVisible, statusShown: retryFail.statusShown, statusTone: retryFail.statusTone });
   const retryShotPath = path.join(os.tmpdir(), 'errand-arrival-retry.png');
@@ -352,6 +357,7 @@ async function main() {
   const retryRecovered = await waitFor(win, `
     document.querySelector('#academy-errand-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-errand-offers .academy-errand-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
     && document.querySelector('#academy-errand-retry')?.hidden === true
     && document.querySelector('#academy-errand-status')?.hidden === true
   `, { tries: 400, intervalMs: 120 });
@@ -361,7 +367,7 @@ async function main() {
     statusHidden: document.querySelector('#academy-errand-status')?.hidden === true
   }))()`);
   log('retry_recover', { retryRecovered, ...retryRecover });
-  check('RETRY: clicking the retry button re-runs refreshErrandScreen and recovers the board (three cards back, retry hidden, status cleared)',
+  check('RETRY: clicking the retry sigil re-runs enterRoomCards and recovers the cards (three cards back, retry hidden, status cleared)',
     retryRecovered && retryRecover.cards === 3 && retryRecover.retryHidden && retryRecover.statusHidden,
     { cards: retryRecover.cards, retryHidden: retryRecover.retryHidden, statusHidden: retryRecover.statusHidden });
 
@@ -371,22 +377,44 @@ async function main() {
   // The daytime stage popup shows the pure scene (situation), NOT the card's appeal body — compare against
   // the stub's situation (the offer's situation flows start-response → activeErrandScene → popup).
   const chosenSituation = OFFER_SITUATION;
+  // SELECT → HELD: the card room stays (no loading screen). A watcher records, from the click on, whether the loading
+  // screen ever activated, the card row's steps, and whether the row reached the conversation screen while held.
+  await js(win, `(() => {
+    const seen = { loading: false, steps: [], heldOnConversation: false, chosenBoxRoom: null, chosenBoxConversation: null };
+    window.__roomCardsSeen = seen;
+    const offers = document.querySelector('#academy-errand-offers');
+    const box = () => { const c = offers.querySelector('.room-card[data-chosen]'); if (!c) return null; const r = c.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); };
+    const watch = () => {
+      if (document.querySelector('#academy-loading-screen')?.classList.contains('active')) seen.loading = true;
+      const step = offers.dataset.step ?? null;
+      if (seen.steps[seen.steps.length - 1] !== step) seen.steps.push(step);
+      if (step === 'chosen' && !seen.chosenBoxRoom) seen.chosenBoxRoom = box();
+      if (step === 'held' && offers.parentElement?.id === 'conversation-day-screen' && document.querySelector('#conversation-day-screen.active')) {
+        seen.heldOnConversation = true;
+        if (!seen.chosenBoxConversation) seen.chosenBoxConversation = box();
+      }
+      if (seen.steps.length < 8) requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    return true;
+  })()`);
   const clicked = await js(win, `(() => {
-    const btn = document.querySelector('#academy-errand-offers .academy-errand-card .academy-errand-card-button');
+    const btn = document.querySelector('#academy-errand-offers .room-card .room-card-button');
     if (!btn) return false;
     btn.click();
     return true;
   })()`);
-  // The freeze fix: selecting an offer shows the academy loading screen WHILE the (session + opening) start POST
-  // runs, so the player never sits frozen on the arrival. showScreen('academy-loading') is synchronous at the
-  // start of showAcademyLoadingScreenUntilReady — ahead of the async start POST resolving — so the loading
-  // interstitial replaces the arrival in the same click, and it holds for at least ACADEMY_LOADING_MINIMUM_MS,
-  // making it reliably observable here before the daytime screen lands.
-  const loadingCovered = clicked && await waitFor(win, `
-    document.querySelector('#academy-loading-screen')?.classList.contains('active')
-  `, { tries: 400, intervalMs: 15 });
-  check('SELECT → LOADING: selecting an offer shows the academy loading screen while the errand start runs (no freeze / 留まる区間 on the arrival)',
-    loadingCovered, { loadingCovered });
+  const released = clicked && await waitFor(win, `
+    document.querySelector('#conversation-day-screen')?.classList.contains('active')
+    && document.querySelector('#academy-errand-offers')?.parentElement?.id === 'academy-errand-screen'
+    && document.querySelectorAll('#academy-errand-offers .room-card').length === 0
+  `, { tries: 400, intervalMs: 60 });
+  const seen = await js(win, `JSON.parse(JSON.stringify(window.__roomCardsSeen))`);
+  log('select_held', { released, ...seen });
+  check('SELECT → HELD: choosing a card keeps the card room (no loading screen); the chosen card waits lit, is carried onto the conversation screen at the same place, then leaves',
+    clicked && released && !seen.loading && seen.steps.includes('chosen') && seen.heldOnConversation && seen.steps.includes('leaving')
+    && !!seen.chosenBoxRoom && JSON.stringify(seen.chosenBoxRoom) === JSON.stringify(seen.chosenBoxConversation),
+    seen);
   const onDay = clicked && await waitFor(win, `
     document.querySelector('#conversation-day-screen')?.classList.contains('active')
     && !document.querySelector('#conversation-day-send')?.disabled
@@ -531,6 +559,7 @@ async function main() {
   const dispatched = dispatchFired && await waitFor(win, `
     document.querySelector('#academy-errand-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-errand-offers .academy-errand-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
   `, { tries: 600, intervalMs: 150 });
   await sleep(300);
   const dispatch = await js(win, `(() => ({
@@ -554,6 +583,7 @@ async function main() {
   const onErrandAchieve = await waitFor(win, `
     document.querySelector('#academy-errand-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-errand-offers .academy-errand-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
   `, { tries: 400, intervalMs: 120 });
   const achieveStarted = onErrandAchieve && await js(win, `(() => {
     const btn = document.querySelector('#academy-errand-offers .academy-errand-card .academy-errand-card-button');
@@ -622,6 +652,7 @@ async function main() {
   const onErrandSlow = await waitFor(win, `
     document.querySelector('#academy-errand-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-errand-offers .academy-errand-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
   `, { tries: 400, intervalMs: 120 });
   const slowStarted = onErrandSlow && await js(win, `(() => {
     const btn = document.querySelector('#academy-errand-offers .academy-errand-card .academy-errand-card-button');
@@ -688,6 +719,7 @@ async function main() {
   const onErrandS2 = await waitFor(win, `
     document.querySelector('#academy-errand-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-errand-offers .academy-errand-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
   `, { tries: 400, intervalMs: 120 });
   const s2Started = onErrandS2 && await js(win, `(() => {
     const btn = document.querySelector('#academy-errand-offers .academy-errand-card .academy-errand-card-button');

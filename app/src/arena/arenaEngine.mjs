@@ -12,12 +12,12 @@ import { deriveCombatStats } from '../dungeon/dungeonStats.mjs';
 import { applyEquipmentToCombatStats } from '../equipment.mjs';
 import { createRng, deriveSeed } from '../dungeon/dungeonRng.mjs';
 import {
-  castSelfHealingSpell, combatMaxHp, equippedHealingSpellState, equippedSpellManaCost,
+  applyRestore, castSelfHealingSpell, combatDefender, combatMaxHp, equippedHealingSpellState, equippedSpellManaCost,
   magicElementLabel, meleeOutcome, recoverActorVitals, spellOutcome, spendMeleeMana
 } from '../dungeon/combatResolution.mjs';
 import { hasLineOfSight, isWalkable, manhattan, nearestFreeTile } from '../dungeon/combatGeometry.mjs';
 import { runActorAiTurn } from '../dungeon/combatAi.mjs';
-import { applyConsumableAttack, consumableHealAmount, consumableMpAmount, loadRunConsumables, loadDungeonConsumableDefinitions } from '../dungeon/combatConsumables.mjs';
+import { applyConsumableAttack, areaWhiffEvent, consumableHealAmount, consumableMpAmount, loadRunConsumables, loadDungeonConsumableDefinitions } from '../dungeon/combatConsumables.mjs';
 import { MP_RESERVE_MAX, MP_RESERVE_MIN } from '../mpReserve.mjs';
 import { consumeInventoryItems } from '../economy.mjs';
 import { arenaSpawnPositions, createArenaBoard } from './arenaBoard.mjs';
@@ -182,7 +182,10 @@ export function createArenaMatch({ seed, teamA, teamB } = {}) {
     // The single once-per-match revive gate (consumables are player-only, at most one player).
     revive_used: false,
     log: [],
-    // Per-turn animation events, reset at each resolved turn; carried on the view, not gameplay state.
+    // The resolving turn's combat events, reset at each resolved turn; arenaStep / runArenaMatchAuto hand them out beside
+    // the view, they are not gameplay state. Kinds: melee / cast — a strike { element, hit, damage, crit, whiff } (whiff
+    // true only for an area throw that caught no one); heal — { resource 'hp'|'mp', source 'spell'|'item', amount };
+    // revive — { amount }, `to` the tile the ally stood up on. Every event carries its `from` / `to` tiles.
     turn_events: []
   };
   startRound(match);
@@ -397,8 +400,8 @@ function arenaPlayerMove(match, actor, rng, direction) {
   if (enemy) {
     const payment = spendMeleeMana(actor, actor.parameters, 'arena player');
     if (!payment.paid) return { acted: false, error: 'insufficient_mp' };
-    const outcome = meleeOutcome(rng, { ...actor.stats, attack: actor.stats.melee_attack, element: null }, enemy);
-    match.turn_events.push({ kind: 'melee', from: { x: actor.x, y: actor.y }, to: { x: enemy.x, y: enemy.y }, element: null, hit: outcome.hit });
+    const outcome = meleeOutcome(rng, { ...actor.stats, attack: actor.stats.melee_attack, element: null }, combatDefender(enemy));
+    match.turn_events.push({ kind: 'melee', from: { x: actor.x, y: actor.y }, to: { x: enemy.x, y: enemy.y }, element: null, hit: outcome.hit, damage: outcome.damage, crit: outcome.crit, whiff: false });
     if (outcome.hit) {
       enemy.hp = Math.max(0, enemy.hp - outcome.damage);
       pushArenaLog(match, outcome.crit ? `${actor.name}の会心の一撃。${enemy.name}に${outcome.damage}ダメージ。` : `${actor.name}が${enemy.name}に${outcome.damage}ダメージ。`);
@@ -421,17 +424,20 @@ function arenaPlayerCast(match, actor, rng, element) {
   const target = nearestVisibleEnemy(match, actor);
   if (!target) return { acted: false, error: 'no_target' };
   actor.mp -= cost;
-  const outcome = spellOutcome(rng, actor.stats.spell_power[element], element, target);
-  match.turn_events.push({ kind: 'cast', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element, hit: true });
+  const outcome = spellOutcome(rng, actor.stats.spell_power[element], element, combatDefender(target));
+  match.turn_events.push({ kind: 'cast', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element, hit: outcome.hit, damage: outcome.damage, crit: false, whiff: false });
   target.hp = Math.max(0, target.hp - outcome.damage);
-  pushArenaLog(match, `${actor.name}の${magicElementLabel(element)}。${target.name}に${outcome.damage}ダメージ。`);
+  pushArenaLog(match, outcome.hit ? `${actor.name}の${magicElementLabel(element)}。${target.name}に${outcome.damage}ダメージ。` : `${actor.name}の${magicElementLabel(element)}は${target.name}に外れた。`);
   if (target.hp <= 0) arenaDefeat(match, target);
   return { acted: true };
 }
 
 function arenaPlayerHeal(match, actor) {
   const spell = equippedHealingSpellState(actor, actor.parameters, actor.equipment);
-  return castSelfHealingSpell(actor, spell, actor.name, (message) => pushArenaLog(match, message));
+  return castSelfHealingSpell(actor, spell, actor.name, {
+    pushLog: (message) => pushArenaLog(match, message),
+    pushEvent: (event) => match.turn_events.push(event)
+  });
 }
 
 // The heal/MP ally target for an actor_id selector: a living (not downed) teammate — the
@@ -483,7 +489,7 @@ function planArenaConsumable(match, actor, item, action) {
           : `${actor.name}が${item.name}を投げたが、巻き込む相手はいなかった。`);
         for (const target of targets) arenaConsumableAttack(match, actor, target, item.power, item.element);
         if (targets.length === 0) {
-          match.turn_events.push({ kind: 'cast', from: { x: actor.x, y: actor.y }, to: { x: aim.x, y: aim.y }, element: item.element, hit: false });
+          match.turn_events.push(areaWhiffEvent({ x: actor.x, y: actor.y }, aim, item.element));
         }
       }
     };
@@ -493,8 +499,7 @@ function planArenaConsumable(match, actor, item, action) {
     if (!ally) return { error: 'invalid_target' };
     return {
       execute: () => {
-        const amount = consumableHealAmount(item, ally.actor);
-        ally.actor.hp = Math.min(ally.actor.max_hp, ally.actor.hp + amount);
+        match.turn_events.push(applyRestore({ x: actor.x, y: actor.y }, ally.actor, 'hp', 'item', consumableHealAmount(item, ally.actor)));
         pushArenaLog(match, `${actor.name}が${item.name}を使い、${ally.name}のHPを回復した。`);
       }
     };
@@ -504,8 +509,7 @@ function planArenaConsumable(match, actor, item, action) {
     if (!ally) return { error: 'invalid_target' };
     return {
       execute: () => {
-        const amount = consumableMpAmount(item, ally.actor);
-        ally.actor.mp = Math.min(ally.actor.max_mp, ally.actor.mp + amount);
+        match.turn_events.push(applyRestore({ x: actor.x, y: actor.y }, ally.actor, 'mp', 'item', consumableMpAmount(item, ally.actor)));
         pushArenaLog(match, `${actor.name}が${item.name}を使い、${ally.name}の魔力を回復した。`);
       }
     };
@@ -524,6 +528,7 @@ function planArenaConsumable(match, actor, item, action) {
       downed.hp = Math.max(1, Math.round(downed.max_hp * item.revive_hp_ratio));
       downed.caster_reposition_baseline = null;
       match.revive_used = true;
+      match.turn_events.push({ kind: 'revive', from: { x: actor.x, y: actor.y }, to: { x: tile.x, y: tile.y }, amount: downed.hp });
       pushArenaLog(match, `${actor.name}が${item.name}を使い、${downed.name}が復帰した。`);
     }
   };
@@ -621,10 +626,11 @@ function actorView(actor) {
 }
 
 // The all-visible spectator view of a match. Board, both teams' actors, round, status,
-// winner, log, and the last turn's events. When a living player controller is present it
-// also carries that fighter's castable elements, self-heal state, revive-gate flag, and —
-// when `consumables` is supplied by arenaStep (which has the root) — the usable consumables
-// list. A standalone view (no root) passes consumables through as null.
+// winner, and log (the combat events travel beside the view: arenaStep's `events`, a replay
+// turn's `events`). When a living player controller is present it also carries that fighter's
+// castable elements, self-heal state, revive-gate flag, and — when `consumables` is supplied by
+// arenaStep (which has the root) — the usable consumables list. A standalone view (no root)
+// passes consumables through as null.
 export function arenaMatchView(match, { consumables = null } = {}) {
   assertArenaMatch(match);
   const player = match.actors.find((actor) => actor.controller === 'player' && isOnBoard(actor));
@@ -639,8 +645,7 @@ export function arenaMatchView(match, { consumables = null } = {}) {
     height: match.board.height,
     tiles: match.board.tiles,
     actors: match.actors.map(actorView),
-    log: [...match.log],
-    events: [...(match.turn_events ?? [])]
+    log: [...match.log]
   };
   if (player) {
     view.player_actor_id = player.actor_id;

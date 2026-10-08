@@ -41,8 +41,16 @@ export const HOMUNCULUS_SOURCE_TYPE = 'homunculus';
 // (location_name「寮の談話室」＋ week-seed 抽選の visible_situation), so — unlike the routing hub's fixed constant
 // scene — the record carries location_name / visible_situation instead of location_id / time_slot.
 export const LOUNGE_SOURCE_TYPE = 'lounge';
+// The source_type stamped on the 案内人's graduation conversation once the player chooses the 案内人 herself: the
+// guide (hub) conversation goes on as the graduation conversation on the terrace at night. Its 舞台 is the fixed
+// authored terrace scene below, injected every turn like the atelier scene, so the record carries location_name /
+// visible_situation instead of the hub's constant scene or a field location_id / time_slot.
+export const GUIDE_GRADUATION_SOURCE_TYPE = 'guide_graduation';
+export const GUIDE_GRADUATION_LOCATION_NAME = '月の文字盤の露台';
+// Pure scene: only what is physically on the terrace now (the moon, the dial rings, the hanging globes, the railing).
+export const GUIDE_GRADUATION_VISIBLE_SITUATION = '雲海の上に満月が懸かり、天の川が手すりの向こうへ淡く流れ落ちている。月の満ち欠けを刻んだ文字盤の環が頭上をゆっくり巡り、鎖に吊られた天球儀が夜風にかすかに揺れる。足もとの石畳には星明かりが薄く溜まっている。';
 // The source_types whose 舞台 is injected per-conversation (dynamic per run / errand / study, the fixed
-// atelier scene, or the authored lounge scene) and is therefore stamped onto the conversation record — as
+// atelier and terrace scenes, or the authored lounge scene) and is therefore stamped onto the conversation record — as
 // opposed to the routing hub (fixed constant scene) or a field session (location_id / time_slot). Records with
 // these source_types omit location_id / time_slot and carry location_name / visible_situation;
 // conversationFinalizationStageFields reads that scene back for the post-processing prompts.
@@ -51,8 +59,17 @@ export const INJECTED_SCENE_SOURCE_TYPES = Object.freeze(new Set([
   ERRAND_SOURCE_TYPE,
   STUDY_CIRCLE_SOURCE_TYPE,
   HOMUNCULUS_SOURCE_TYPE,
-  LOUNGE_SOURCE_TYPE
+  LOUNGE_SOURCE_TYPE,
+  GUIDE_GRADUATION_SOURCE_TYPE
 ]));
+// The injected-scene context (opening / turn scene input) for the 案内人's graduation conversation on the terrace.
+export function guideGraduationSceneContext() {
+  return {
+    source_type: GUIDE_GRADUATION_SOURCE_TYPE,
+    location_name: GUIDE_GRADUATION_LOCATION_NAME,
+    visible_situation: GUIDE_GRADUATION_VISIBLE_SITUATION
+  };
+}
 // The closed set of finalized conversation source_types that write the top-level unconsumed_routing_conversation
 // pointer. field 1:1 + lounge + errand + study_circle + dungeon + homunculus finalizations set the pointer at
 // their atomic promotion; hub (routing_hub), event, graduation, new_game, loop opening and every other
@@ -838,9 +855,9 @@ export function renderContentResultContext(context) {
   }
   if (record.kind === 'auction') {
     const lotLines = record.detail.lots.map((lot) => {
-      if (lot.result === 'won_by_player') return `「${lot.item_name}」（${lot.band}帯）を${lot.price}Gで自分が落札`;
-      if (lot.result === 'won_by_other') return `「${lot.item_name}」（${lot.band}帯）は${lot.winner_display_name}が${lot.price}Gで落札`;
-      return `「${lot.item_name}」（${lot.band}帯）は流札`;
+      if (lot.result === 'won_by_player') return `「${lot.item_name}」を${lot.price}Gで自分が落札`;
+      if (lot.result === 'won_by_other') return `「${lot.item_name}」は${lot.winner_display_name}が${lot.price}Gで落札`;
+      return `「${lot.item_name}」は流札`;
     });
     const won = record.detail.lots.filter((lot) => lot.result === 'won_by_player');
     const wonSummary = won.length

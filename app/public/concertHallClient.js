@@ -177,6 +177,15 @@ export function validateConcertHallScoreShape(score) {
   return score;
 }
 
+// The 題 of one guidance line: the backend lays each line out as 「<題>: <本文>」 (direction / subject / motif category
+// label, then its guidance), so the 語り面 folds the guidance to these titles. A line without the separator is a broken
+// upstream layout, not a cue to show the whole line.
+export function concertHallGuidanceTitle(line) {
+  const at = typeof line === 'string' ? line.indexOf(': ') : -1;
+  if (at <= 0) throw new Error(`concert hall guidance line has no 「題: 本文」 layout: ${JSON.stringify(line)}`);
+  return line.slice(0, at);
+}
+
 // The 曲頭 line: 「ハ長調・♩=96・4/4」 style key / mode / tempo / meter summary.
 export function concertHallScoreHeadline(score) {
   return `${score.key} ${CONCERT_HALL_MODE_LABELS[score.mode]}・♩=${score.tempo}・${score.meter}`;
@@ -189,11 +198,10 @@ export function validateConcertHallArrivalPayload(payload) {
   assertExactKeys(payload, ['week', 'post_content_screen', 'performer', 'pieces'], 'arrival payload');
   const week = requireNonNegativeInteger(payload.week, 'arrival week');
   const postContentScreen = requireNonEmptyString(payload.post_content_screen, 'arrival post_content_screen');
-  assertExactKeys(payload.performer, ['name', 'greeting', 'input_placeholder', 'empty_shelf'], 'arrival performer');
+  assertExactKeys(payload.performer, ['name', 'greeting', 'empty_shelf'], 'arrival performer');
   const performer = {
     name: requireNonEmptyString(payload.performer.name, 'arrival performer.name'),
     greeting: requireNonEmptyString(payload.performer.greeting, 'arrival performer.greeting'),
-    input_placeholder: requireNonEmptyString(payload.performer.input_placeholder, 'arrival performer.input_placeholder'),
     empty_shelf: requireNonEmptyString(payload.performer.empty_shelf, 'arrival performer.empty_shelf')
   };
   if (!Array.isArray(payload.pieces)) throw new Error('concert hall arrival pieces must be an array');

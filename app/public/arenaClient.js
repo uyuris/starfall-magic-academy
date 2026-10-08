@@ -10,10 +10,13 @@
 // are the selection-card presentation; the ids are the exact values POST /api/arena/enter accepts.
 export const ARENA_MODES = Object.freeze(['solo', 'pair', 'spectate']);
 export const ARENA_MODE_LABELS = Object.freeze({ solo: '一人で参加', pair: '二人で参加', spectate: 'バディー参加の観戦' });
-export const ARENA_MODE_DESCRIPTIONS = Object.freeze({
-  solo: '主人公が 1 対 1 のトーナメントに出場します。',
-  pair: '主人公と現バディーのペアで 2 対 2 のトーナメントに出場します。',
-  spectate: 'バディーが 1 対 1 のトーナメントに単独出場し、あなたは観戦します。'
+// The form's sigil drawn beside its label on the selection card: one figure (solo), two figures side by side (pair),
+// the buddy's figure under a watching eye (spectate).
+const ARENA_FIGURE = (x) => `<circle cx="${x}" cy="13" r="5" /><path d="M${x - 9} 36 C${x - 9} 26 ${x - 5} 21 ${x} 21 C${x + 5} 21 ${x + 9} 26 ${x + 9} 36" />`;
+export const ARENA_MODE_SIGILS = Object.freeze({
+  solo: `<svg class="arena-mode-sigil" viewBox="0 0 48 40" aria-hidden="true" focusable="false">${ARENA_FIGURE(24)}</svg>`,
+  pair: `<svg class="arena-mode-sigil" viewBox="0 0 48 40" aria-hidden="true" focusable="false">${ARENA_FIGURE(14)}${ARENA_FIGURE(34)}</svg>`,
+  spectate: '<svg class="arena-mode-sigil" viewBox="0 0 48 40" aria-hidden="true" focusable="false"><path d="M10 9 C16 2 32 2 38 9 C32 16 16 16 10 9 Z" /><circle cx="24" cy="9" r="3" /><circle cx="24" cy="23" r="4" /><path d="M16 38 C16 31 19 28 24 28 C29 28 32 31 32 38" /></svg>'
 });
 
 // The arena phases the state view can carry. selection = no tournament built this week; tournament = the
@@ -150,8 +153,50 @@ function validateArenaActor(entry, label) {
   };
 }
 
+// The combat events one action (or one replay turn) resolved, in resolution order. Every event carries its kind and its
+// `from` / `to` tiles; the rest is per kind:
+//   melee / cast  a strike — its element (null for melee), whether it hit, the HP it took (0 on a miss), whether it was a
+//                 critical hit, and `whiff` (true only for an area throw that caught no one, which never hits)
+//   heal          the restored resource ('hp' / 'mp'), its source ('spell' / 'item') and the amount actually restored
+//   revive        the HP the ally stood up with (`to` is the tile it stood up on)
+const ARENA_EVENT_KINDS = Object.freeze(['melee', 'cast', 'heal', 'revive']);
+function validateArenaEventDetail(event, at) {
+  if (event.kind === 'melee' || event.kind === 'cast') {
+    if (event.element !== null) arenaString(event.element, `${at}.element`);
+    arenaBoolean(event.hit, `${at}.hit`);
+    arenaInteger(event.damage, `${at}.damage`, { min: 0 });
+    arenaBoolean(event.crit, `${at}.crit`);
+    if (arenaBoolean(event.whiff, `${at}.whiff`) && event.hit) throw new Error(`arena: ${at} is a whiff that hit`);
+    return;
+  }
+  if (event.kind === 'heal') {
+    if (event.resource !== 'hp' && event.resource !== 'mp') throw new Error(`arena: ${at}.resource must be hp / mp (got ${JSON.stringify(event.resource)})`);
+    if (event.source !== 'spell' && event.source !== 'item') throw new Error(`arena: ${at}.source must be spell / item (got ${JSON.stringify(event.source)})`);
+    arenaInteger(event.amount, `${at}.amount`, { min: 0 });
+    return;
+  }
+  arenaInteger(event.amount, `${at}.amount`, { min: 1 });
+}
+export function validateArenaEvents(events, label) {
+  arenaArray(events, label);
+  events.forEach((event, index) => {
+    const at = `${label}[${index}]`;
+    arenaObject(event, at);
+    if (!ARENA_EVENT_KINDS.includes(event.kind)) {
+      throw new Error(`arena: ${at}.kind must be one of ${ARENA_EVENT_KINDS.join('/')} (got ${JSON.stringify(event.kind)})`);
+    }
+    for (const end of ['from', 'to']) {
+      arenaObject(event[end], `${at}.${end}`);
+      arenaInteger(event[end].x, `${at}.${end}.x`, { min: 0 });
+      arenaInteger(event[end].y, `${at}.${end}.y`, { min: 0 });
+    }
+    validateArenaEventDetail(event, at);
+  });
+  return events;
+}
+
 // The all-visible spectator/player view of a single match: board dimensions + tiles, both teams' actors,
-// round / status / winner, log, and the last turn's events. When a living player controller is present it
+// round / status / winner, and log (the combat events travel beside the view). When a living player controller is present it
 // also carries that fighter's castable elements, self-heal state, revive gate, and usable consumables — a
 // present-but-malformed player block fails fast. A standalone (no-player / replay) view carries none.
 const ARENA_MATCH_STATUSES = Object.freeze(['active', 'a_won', 'b_won']);
@@ -174,7 +219,6 @@ export function validateArenaMatchView(view, label = 'arena match view') {
   arenaBoolean(view.active, `${label}.active`);
   const actors = arenaArray(view.actors, `${label}.actors`).map((actor, index) => validateArenaActor(actor, `${label}.actors[${index}]`));
   arenaArray(view.log, `${label}.log`);
-  arenaArray(view.events, `${label}.events`);
   // The player block is present exactly when a living player controller is up (arenaMatchView attaches it).
   const hasPlayerBlock = Object.prototype.hasOwnProperty.call(view, 'player_actor_id');
   if (hasPlayerBlock) {
@@ -361,7 +405,7 @@ export function validateArenaReplay(payload) {
   turns.forEach((turn, index) => {
     arenaObject(turn, `replay.turns[${index}]`);
     validateArenaMatchView(turn.view, `replay.turns[${index}].view`);
-    arenaArray(turn.events, `replay.turns[${index}].events`);
+    validateArenaEvents(turn.events, `replay.turns[${index}].events`);
   });
   return payload;
 }

@@ -1,9 +1,10 @@
 /* 露台のハブ（#routing-hub-screen）の見た目。案内人を露台の中ほどに大きく立たせ、言葉を夜の上に灯し、7 つの印を床の紋に、
    入力を下の一本の行にする。画面に見える文字は、週・案内人の名・会話の言葉だけ（印と釦は紋で示す）。目に立つ動きは、言葉が
    灯る・覗いた場所が透ける・送り出しで幕が下りる、の三つだけ。左の七つの印と星の揺り籠から開く画面は、露台の夜の上に帯や
-   沈めた夜として置く（枠の箱は持たない）。振る舞いは hubTerrace.js が持つ。 */
+   沈めた夜として置く（枠の箱は持たない）。振る舞いは hubTerrace.js が持つ。
+   露台の色と帯の寸法は :root に置き、ハブと、ほかの画面で人を押して開く夜の帯（.night-band）が同じ値を読む。 */
 
-#routing-hub-screen {
+:root {
   --routing-night-0: #05060f;
   --routing-night-1: #0a0e1e;
   --routing-night-2: #121834;
@@ -36,12 +37,18 @@
   --terrace-band-width: min(560px, 44vw);
   --terrace-band-inset: 60px;
   --terrace-band-fade: 128px;
+  --terrace-band-head-top: 4.4vh;
+  --terrace-band-icon-size: 34px;
+  --terrace-sigil-size: 26px;
   --terrace-band-night:
     linear-gradient(90deg, transparent 0, rgb(5 6 15 / 0.86) var(--terrace-band-inset), rgb(5 6 15 / 0.82) calc(100% - var(--terrace-band-fade)), rgb(5 6 15 / 0.46) calc(100% - var(--terrace-band-fade) / 2), transparent 100%);
   --terrace-band-night-deep:
     linear-gradient(90deg, transparent 0, rgb(5 6 15 / 0.99) var(--terrace-band-inset), rgb(5 6 15 / 0.985) calc(100% - var(--terrace-band-fade)), rgb(5 6 15 / 0.62) calc(100% - var(--terrace-band-fade) / 2), transparent 100%);
   --terrace-star-point: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0.6 L6.2 3.8 L9.4 5 L6.2 6.2 L5 9.4 L3.8 6.2 L0.6 5 L3.8 3.8 Z' fill='%23e8c877'/%3E%3C/svg%3E");
   --terrace-hairline: rgb(205 214 234 / 0.14);
+}
+
+#routing-hub-screen {
   position: relative;
   height: 100%;
   min-height: 100%;
@@ -303,9 +310,11 @@
   justify-content: flex-end;
 }
 
+/* 言葉の枠: どの行も言葉の列の幅の 82% で止めた同じ幅の枠に入り、枠の中は左揃えで折り返す。案内人の行は左（言葉も地の文も
+   顔の右から）、うゆりすさんの行は右に寄る。うゆりすさんの長い行の枠は案内人の姿の枠の右の縁を越えて左へ出るが、字は案内人の姿にかからない。 */
 #routing-hub-screen .routing-hub-message-stream .chat-message .message-bubble {
   min-width: 0;
-  max-width: 100%;
+  max-width: 82%;
   margin: 0;
   padding: 0;
   border: 0;
@@ -359,22 +368,20 @@
   text-shadow: var(--terrace-word-halo);
 }
 
-/* 案内人の地の文（振る舞い）: 言葉の頭（顔の右）に揃えて、一段控えめに。 */
+/* 案内人の地の文の枠は、案内人の言葉の頭（顔の右）から。 */
 #routing-hub-screen .routing-hub-message-stream .narration-message .message-bubble {
   margin-left: 52px;
 }
 
-#routing-hub-screen .routing-hub-message-stream .narration-message .message-bubble p {
+/* 地の文（振る舞い）: 案内人もうゆりすさんも、一段控えめな同じ色・同じ大きさ。 */
+#routing-hub-screen .routing-hub-message-stream :is(.narration-message, .player-narration-message) .message-bubble p {
   color: var(--terrace-word-quiet);
   font-size: 0.92rem;
 }
 
-/* うゆりすさんの言葉: 同じ夜の上に、一段控えめな明るさで右に。 */
-#routing-hub-screen .routing-hub-message-stream .player-message .message-bubble p,
-#routing-hub-screen .routing-hub-message-stream .player-narration-message .message-bubble p {
-  color: var(--terrace-word-quiet);
-  font-size: 0.96rem;
-  text-align: right;
+/* うゆりすさんの言葉: 案内人の言葉と同じ大きさで、主人公の言葉の色。 */
+#routing-hub-screen .routing-hub-message-stream .player-message .message-bubble p {
+  color: var(--player-word);
 }
 
 #routing-hub-screen .routing-hub-message-stream .message-edit-button { display: none; }
@@ -720,11 +727,19 @@
 #terrace-opened.is-filled { opacity: 1; }
 #terrace-opened.is-instant { opacity: 1; transition: none; }
 
+/* 幕の絵は、待ちの層（#place-veil）と同じ規則で、行き先の画面が宣言した置き方（窓の座標の大きさ・位置）で敷き、宣言した縁の
+   ぼかしを絵と同じ大きさ・位置に掛ける（hubTerrace.js が送り出しの始めに写す。縁の宣言の無い行き先はぼかさない）。絵の外は幕の夜。 */
 #terrace-opened .terrace-opened-art {
   position: absolute;
   inset: 0;
-  background-size: cover;
-  background-position: center;
+  background-position: var(--terrace-opened-art-position);
+  background-repeat: no-repeat;
+  background-size: var(--terrace-opened-art-size);
+  mask-image: var(--terrace-opened-art-mask);
+  mask-composite: var(--terrace-opened-art-mask-composite);
+  mask-position: var(--terrace-opened-art-position);
+  mask-repeat: no-repeat;
+  mask-size: var(--terrace-opened-art-size);
 }
 
 /* 絵の無い行き先: 露台の外の夜と同じ絵・同じ位置で、一段深く沈めた夜。 */
@@ -736,35 +751,37 @@
   background-position: center, right 60%;
 }
 
-/* ══ 左の列から開く画面: 左の列の右から露台の夜を一段沈めた帯を下ろし、中身を夜の上に直に置く ══════════════════════════
-   帯は端に線を持たない夜のグラデーション（左の列の側は短く溶け込み、右は長く夜へ溶ける）。見出しは印の紋だけ、閉じる・戻るは紋。
-   欄と行は枠で囲まず、間合いと行の頭の小さな星の点で区切る。数値は文字のまま。 */
+/* ══ 夜の帯（.night-band）: 左の列の右から露台の夜を一段沈めた帯を下ろし、中身を夜の上に直に置く ══════════════════════════
+   ハブの左の列から開く画面と、人を押して開く窓（会話の相手・ハブの案内人の名・うちの子・主人公の能力画面）が同じ class で着る。
+   帯は端に線を持たない夜のグラデーション（左の列の側は短く溶け込み、右は長く夜へ溶ける）で、縁・角・影・暗幕・ぼかしは持たない。
+   開くは上から下ろし、閉じるは hidden で一度に消える。見出しは印の紋だけ、閉じるは右上の角の戻る紋（.terrace-close）で、見出しに印の紋を持つ帯では
+   その紋の高さまで斜め 45° に左下へ下ろす。欄と行は枠で囲まず、間合いで区切る。
+   数値は文字のまま。人の窓は帯の頭に姿を置き、絵の四辺を帯の夜へ溶かす（絵の四角い縁を帯の中に立てない）。 */
 @keyframes terrace-band-lower {
   0% { opacity: 0; mask-position: 0 100%; }
   100% { opacity: 1; mask-position: 0 0; }
 }
 
 /* 帯の置き場: 背後の覆いは働き（押すと閉じる）だけ持つ透明な面。 */
-#routing-hub-screen .routing-hub-info-popup,
-#routing-hub-screen .routing-hub-equipment-popup {
+.night-band {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: stretch;
   justify-content: flex-start;
+  font-family: var(--runtime-reading-font);
 }
 
-#routing-hub-screen .routing-hub-info-popup { z-index: 5; }
-#routing-hub-screen .routing-hub-equipment-popup { z-index: 7; }
+.night-band[hidden] {
+  display: none;
+}
 
-#routing-hub-screen .routing-hub-info-popup-backdrop,
-#routing-hub-screen .routing-hub-equipment-popup-backdrop {
+.night-band-backdrop {
   position: absolute;
   inset: 0;
 }
 
-#routing-hub-screen .routing-hub-info-popup-card,
-#routing-hub-screen .routing-hub-equipment-popup-card {
+.night-band-card {
   position: relative;
   z-index: 1;
   display: flex;
@@ -774,6 +791,7 @@
   margin: 0 0 0 calc(var(--terrace-band-left) - var(--terrace-band-inset));
   overflow: hidden;
   background: var(--terrace-band-night);
+  color: var(--terrace-word);
   mask-image: linear-gradient(180deg, #000 0 50%, transparent 100%);
   mask-size: 100% 200%;
   mask-position: 0 0;
@@ -781,53 +799,38 @@
   animation: terrace-band-lower 0.9s ease-out both;
 }
 
-/* 帯・装備の小窓・揺り籠が開いている間も、左の列の印と天球儀はそれらの上に出て押せる（切り替え・閉じるは hubTerrace.js）。
-   外枠の重なりの箱をほどいて、左の列を外枠の外の層と同じ高さで並べる（外枠の中身はどれも自分の高さを持つ）。 */
-#routing-hub-screen:has(> #routing-hub-info-popup:not([hidden]), > #routing-hub-equipment-popup:not([hidden]), > #routing-hub-star-cradle:not([hidden])) .routing-hub-frame {
-  z-index: auto;
-}
-
-#routing-hub-screen:has(> #routing-hub-info-popup:not([hidden]), > #routing-hub-equipment-popup:not([hidden]), > #routing-hub-star-cradle:not([hidden])) :is(.routing-hub-category-rail, .routing-hub-cradle-globe) {
-  z-index: 8;
-}
-
-/* 見出し: 印の紋だけ（名前は dialog の読み上げの名前）。閉じるは右の紋。 */
-#routing-hub-screen .routing-hub-info-popup-header,
-#routing-hub-screen .routing-hub-equipment-popup-header {
+/* 見出し: 印の紋だけ（名前は dialog の読み上げの名前）。 */
+.night-band-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   flex: 0 0 auto;
-  padding: 4.4vh calc(var(--terrace-band-fade) + 4px) 1.4vh calc(var(--terrace-band-inset) + 22px);
+  padding: var(--terrace-band-head-top) calc(var(--terrace-band-fade) + 4px) 1.4vh calc(var(--terrace-band-inset) + 22px);
 }
 
-#routing-hub-screen .routing-hub-equipment-popup-header {
-  align-items: flex-start;
-  text-shadow: var(--terrace-word-halo);
-}
-
-#routing-hub-screen .routing-hub-info-popup-heading {
+.night-band-heading {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
 }
 
-#routing-hub-screen .routing-hub-info-popup-title {
+.night-band-title {
   display: none;
 }
 
-#routing-hub-screen .routing-hub-info-popup-icon {
-  width: 34px;
-  height: 34px;
+.night-band-icon {
+  width: var(--terrace-band-icon-size);
+  height: var(--terrace-band-icon-size);
   object-fit: contain;
   opacity: 0.92;
   filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 8px rgb(159 180 255 / 0.35));
 }
 
-/* ── 紋の釦（閉じる・戻る・処分の確かめ・揺り籠の操作） ── */
-#routing-hub-screen .terrace-sigil-button {
+/* ── 紋の釦（閉じる・戻る・処分の確かめ・揺り籠の操作） ──
+   閉じるの紋（.terrace-close）は、どの画面の窓でも星の揺り籠の閉じると同じ紋の釦で、露台の外の窓でもここの灯り方で灯る。 */
+:is(#routing-hub-screen .terrace-sigil-button, .night-band .terrace-sigil-button, .terrace-close) {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -840,24 +843,46 @@
   cursor: pointer;
 }
 
-#routing-hub-screen .terrace-sigil {
+:is(#routing-hub-screen, .night-band, .terrace-close) .terrace-sigil {
   display: block;
-  width: 26px;
-  height: 26px;
+  width: var(--terrace-sigil-size);
+  height: var(--terrace-sigil-size);
   filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 5px rgb(5 6 15 / 0.7));
   opacity: 0.86;
   transition: filter 0.8s ease, opacity 0.8s ease;
 }
 
-#routing-hub-screen .terrace-sigil-button:hover:not(:disabled) .terrace-sigil,
-#routing-hub-screen .terrace-sigil-button:focus .terrace-sigil {
+:is(#routing-hub-screen .terrace-sigil-button, .night-band .terrace-sigil-button, .terrace-close):hover:not(:disabled) .terrace-sigil,
+:is(#routing-hub-screen .terrace-sigil-button, .night-band .terrace-sigil-button, .terrace-close):focus .terrace-sigil {
   opacity: 1;
   filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 8px rgb(159 180 255 / 0.8));
 }
 
-#routing-hub-screen .terrace-sigil-button:focus-visible {
+:is(#routing-hub-screen .terrace-sigil-button, .night-band .terrace-sigil-button, .terrace-close):focus-visible {
   outline: 1px solid rgb(159 180 255 / 0.55);
   outline-offset: 2px;
+}
+
+/* 閉じるの紋: 窓（帯・小窓・揺り籠・覗き）の右上の角から top 16px / right 22px に、30px の戻る紋を置く。夜の帯は右が夜へ溶けるので、
+   溶ける幅の真ん中（帯の見えている端）を窓の右の端とみる。 */
+.terrace-close {
+  --terrace-sigil-size: 30px;
+  position: absolute;
+  top: 16px;
+  right: 22px;
+  z-index: 3;
+}
+
+.night-band-card .terrace-close {
+  right: calc(var(--terrace-band-fade) / 2 + 22px);
+}
+
+/* 見出しに印の紋を持つ帯: 釦の縦の中心を紋の縦の中心まで下ろし、下ろしたのと同じだけ左へ寄せる（右上の角から斜め 45° に左下へ）。
+   紋の中心は帯の上から見出しの上の余白＋紋の半分、釦の中心は top＋紋の半分＋余白 4px。 */
+.night-band-card:has(> .night-band-header .night-band-icon) .terrace-close {
+  --terrace-close-drop: calc(var(--terrace-band-head-top) + var(--terrace-band-icon-size) / 2 - 16px - var(--terrace-sigil-size) / 2 - 4px);
+  top: calc(16px + var(--terrace-close-drop));
+  right: calc(var(--terrace-band-fade) / 2 + 22px + var(--terrace-close-drop));
 }
 
 #routing-hub-screen .terrace-sigil-button:disabled {
@@ -875,14 +900,14 @@
 }
 
 /* ── 帯の本文: 内側だけで流れ、上下の端は夜へ溶ける ── */
-#routing-hub-screen .routing-hub-info-popup-body,
-#routing-hub-screen .routing-hub-equipment-popup-body {
+.night-band-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  margin: 0;
   padding: 1.2vh var(--terrace-band-fade) 7vh calc(var(--terrace-band-inset) + 22px);
   scrollbar-width: none;
   mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 7vh), transparent 100%);
@@ -890,16 +915,53 @@
   text-shadow: var(--terrace-word-halo);
 }
 
-/* 欄（パラメーター・装備・持ち物）: 見出しの小さな控えめの文字と、その下の行。 */
-#routing-hub-screen .routing-hub-info-section,
-#routing-hub-screen .routing-hub-info-section-body {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+/* ── 姿: 帯の頭にいちばん大きく。絵の四辺は帯の夜へ溶け、四角い縁は帯の中に立たない ──
+   姿を持つ帯は一段深い夜を敷き、帯の後ろの画面（会話の画面の額の絵など）の縁を帯の中に透かさない。 */
+.night-band-card:has(> .night-band-figure) {
+  background: var(--terrace-band-night-deep);
 }
 
-#routing-hub-screen .routing-hub-info-section-title,
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-section h4 {
+.night-band-figure {
+  flex: 0 0 auto;
+  width: calc(100% - var(--terrace-band-inset) - var(--terrace-band-fade) / 2);
+  aspect-ratio: 1 / 1;
+  max-height: 50vh;
+  margin: 0 0 0 var(--terrace-band-inset);
+}
+
+.night-band-figure-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  /* 絵の真ん中から外へ丸く夜へ溶かす（四隅は残らない）。顔の絵の単色の地も、部屋ごと描いた一枚絵の縁も四角く立たない。 */
+  mask-image: radial-gradient(closest-side at 50% 46%, #000 58%, transparent 100%);
+}
+
+/* 本文を持たない人の窓（姿と名だけ）: 帯は中身の高さで止め、名の下の幅だけで夜へ溶ける（中身の無い夜を下端まで敷かない）。
+   下ろす動きは同じ mask の送りのまま。 */
+.night-band-card:has(> .night-band-figure):not(:has(> .night-band-body)) {
+  height: auto;
+  align-self: flex-start;
+  padding-bottom: 12vh;
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(50% - 12vh), transparent 50%);
+}
+
+/* 名: 姿の足もとに、夜の上の字で。 */
+.night-band-name {
+  flex: 0 0 auto;
+  margin: -3vh 0 0;
+  padding: 0 var(--terrace-band-fade) 1.2vh calc(var(--terrace-band-inset) + 22px);
+  color: var(--terrace-word);
+  font-size: 1.15rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-shadow: var(--terrace-word-halo);
+}
+
+/* 欄の見出し: 小さな控えめの文字。 */
+.night-band-body .character-parameter-section h4 {
   margin: 0;
   color: var(--terrace-word-quiet);
   font-size: 0.72rem;
@@ -908,7 +970,7 @@
 }
 
 /* 能力: 名前（系統の紋）・細い目盛り・数値の三つを夜の上に並べる。 */
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-section {
+.night-band-body .character-parameter-section {
   gap: 10px;
   padding: 0;
   border: 0;
@@ -917,11 +979,12 @@
   box-shadow: none;
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-group {
+.night-band-body :is(.character-parameter-group, .academy-atelier-parameters) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px 26px;
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item {
+.night-band-body :is(.character-parameter-item, .academy-atelier-parameter) {
   display: grid;
   grid-template-columns: auto 1fr;
   grid-template-areas: 'name value' 'meter meter';
@@ -934,7 +997,7 @@
   box-shadow: none;
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item span {
+.night-band-body :is(.character-parameter-item span, .academy-atelier-parameter-label) {
   grid-area: name;
   display: inline-flex;
   align-items: center;
@@ -943,13 +1006,13 @@
   font-size: 0.86rem;
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item span .terrace-sigil {
+.night-band-body .character-parameter-item span .terrace-sigil {
   width: 22px;
   height: 22px;
   opacity: 0.92;
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item strong {
+.night-band-body :is(.character-parameter-item strong, .academy-atelier-parameter-value) {
   grid-area: value;
   justify-self: end;
   color: var(--terrace-word);
@@ -957,27 +1020,88 @@
   font-weight: 400;
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item meter {
+/* meter は border-box で、土台の上下 1px の枠線を持つ。高さは枠線 2px ＋ 目盛り 2px。満ちた長さは値の比のまま。
+   目盛りの色は値の段（low 33 / high 66）で分ける: 強い＝星明かり・中ほど＝銀・弱い＝沈んだ銀（露台の色だけ）。 */
+.night-band-body :is(.character-parameter-item meter, .academy-atelier-parameter-meter) {
   grid-area: meter;
   width: 100%;
-  height: 2px;
-  border-color: var(--routing-line);
+  height: 4px;
+  border: 1px solid var(--routing-line);
+  border-radius: var(--radius-pill);
   background: var(--routing-night-1);
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item meter::-webkit-meter-bar {
+.night-band-body :is(.character-parameter-item meter, .academy-atelier-parameter-meter)::-webkit-meter-bar {
   height: 2px;
   border: 0;
   border-radius: 0;
-  background: rgb(205 214 234 / 0.14);
+  background: var(--terrace-hairline);
 }
 
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item meter::-webkit-meter-optimum-value,
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item meter::-webkit-meter-suboptimum-value,
-#routing-hub-screen .routing-hub-info-popup-body .character-parameter-item meter::-webkit-meter-even-less-good-value {
+.night-band-body :is(.character-parameter-item meter, .academy-atelier-parameter-meter)::-webkit-meter-optimum-value {
   border-radius: 0;
-  background: linear-gradient(90deg, rgb(159 180 255 / 0.4), rgb(221 227 246 / 0.9));
+  background: linear-gradient(90deg, rgb(159 180 255 / 0.4), var(--routing-starlight));
   box-shadow: 0 0 6px rgb(159 180 255 / 0.5);
+}
+
+.night-band-body :is(.character-parameter-item meter, .academy-atelier-parameter-meter)::-webkit-meter-suboptimum-value {
+  border-radius: 0;
+  background: linear-gradient(90deg, rgb(205 214 234 / 0.4), var(--routing-silver));
+  box-shadow: none;
+}
+
+.night-band-body :is(.character-parameter-item meter, .academy-atelier-parameter-meter)::-webkit-meter-even-less-good-value {
+  border-radius: 0;
+  background: var(--routing-silver-dim);
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .night-band-card {
+    animation: none;
+  }
+}
+
+/* ── ハブの帯: 重なりの順と、開いている間の左の列 ── */
+#routing-hub-screen .routing-hub-info-popup { z-index: 5; }
+#routing-hub-screen #routing-hub-character-popup { z-index: 6; }
+#routing-hub-screen .routing-hub-equipment-popup { z-index: 7; }
+
+/* 案内人の窓の名: 姿の額と同じ左右の幅に置き、その真ん中に収める。 */
+#routing-hub-screen #routing-hub-character-popup .night-band-name {
+  padding: 0 calc(var(--terrace-band-fade) / 2) 1.2vh var(--terrace-band-inset);
+  text-align: center;
+}
+
+/* 帯・装備の小窓が開いている間も、左の列の印と天球儀はそれらの上に出て押せる（切り替え・閉じるは hubTerrace.js）。
+   外枠の重なりの箱をほどいて、左の列を外枠の外の層と同じ高さで並べる（外枠の中身はどれも自分の高さを持つ）。 */
+#routing-hub-screen:has(> #routing-hub-info-popup:not([hidden]), > #routing-hub-equipment-popup:not([hidden])) .routing-hub-frame {
+  z-index: auto;
+}
+
+#routing-hub-screen:has(> #routing-hub-info-popup:not([hidden]), > #routing-hub-equipment-popup:not([hidden])) :is(.routing-hub-category-rail, .routing-hub-cradle-globe) {
+  z-index: 8;
+}
+
+#routing-hub-screen .routing-hub-equipment-popup-header {
+  align-items: flex-start;
+  text-shadow: var(--terrace-word-halo);
+}
+
+/* 欄（パラメーター・装備・持ち物）: 見出しの小さな控えめの文字と、その下の行。 */
+#routing-hub-screen .routing-hub-info-section,
+#routing-hub-screen .routing-hub-info-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#routing-hub-screen .routing-hub-info-section-title {
+  margin: 0;
+  color: var(--terrace-word-quiet);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
 }
 
 /* ── 行: 行の頭の小さな星の点と間合いで区切る ── */
@@ -1103,14 +1227,12 @@
 }
 
 #routing-hub-screen .routing-hub-info-equip-equipped,
-#routing-hub-screen .routing-hub-info-equip-empty-wrap,
 #routing-hub-screen .routing-hub-info-equip-instance {
   display: flex;
   flex-direction: column;
 }
 
-#routing-hub-screen .routing-hub-info-equip-equipped,
-#routing-hub-screen .routing-hub-info-equip-empty-wrap { gap: 8px; }
+#routing-hub-screen .routing-hub-info-equip-equipped { gap: 8px; }
 #routing-hub-screen .routing-hub-info-equip-instance { gap: 6px; }
 
 #routing-hub-screen .routing-hub-info-buddy-body {
@@ -1162,12 +1284,10 @@
 #routing-hub-screen .routing-hub-info-ledger-desc,
 #routing-hub-screen .routing-hub-info-ledger-quantity,
 #routing-hub-screen .routing-hub-info-roster-meta,
-#routing-hub-screen .routing-hub-info-equip-slot-head,
 #routing-hub-screen .routing-hub-info-equip-instance-meta,
 #routing-hub-screen .routing-hub-info-equip-owned-meta,
 #routing-hub-screen .routing-hub-info-equip-candidate-meta,
 #routing-hub-screen .routing-hub-info-equip-effect-label,
-#routing-hub-screen .routing-hub-info-equip-empty,
 #routing-hub-screen .routing-hub-info-diary-count,
 #routing-hub-screen .routing-hub-info-library-entry-meta,
 #routing-hub-screen .routing-hub-info-money-label,
@@ -1203,15 +1323,30 @@
 #routing-hub-screen .routing-hub-info-diary-count,
 #routing-hub-screen .routing-hub-info-library-entry-meta { letter-spacing: 0.06em; }
 
-#routing-hub-screen .routing-hub-info-equip-slot-head {
-  margin: 0;
-  letter-spacing: 0.18em;
-  font-size: 0.72rem;
+/* 欄の印: ダンジョンの支度の武器・護符の絵を、夜の上の淡い銀に落として置く。空の欄は同じ絵の影と破線の台（支度と同じ読み）。 */
+#routing-hub-screen .routing-hub-info-equip-slot-mark {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 3px;
+  border-radius: 999px;
 }
 
-#routing-hub-screen .routing-hub-info-equip-empty {
-  margin: 0;
-  font-size: 0.82rem;
+#routing-hub-screen .routing-hub-info-equip-slot-mark .dm {
+  display: block;
+  width: 40px;
+  height: 40px;
+  filter: grayscale(1) brightness(1.5) drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 5px rgb(5 6 15 / 0.7));
+  opacity: 0.72;
+}
+
+#routing-hub-screen .routing-hub-info-equip-slot-mark.is-empty {
+  outline: 1px dashed rgb(205 214 234 / 0.28);
+  outline-offset: 1px;
+}
+
+#routing-hub-screen .routing-hub-info-equip-slot-mark.is-empty .dm {
+  filter: grayscale(1) brightness(0.45);
+  opacity: 0.5;
 }
 
 #routing-hub-screen .routing-hub-info-equip-effects {
@@ -1279,8 +1414,7 @@
 #routing-hub-screen .routing-hub-info-roster-face { width: 44px; height: 44px; }
 #routing-hub-screen .routing-hub-info-diary-face { width: 52px; height: 52px; }
 
-/* 帯の中の文字の釦（解除・使う・渡す・お気に入り・処分）: 控えめな文字と下の細い線だけ。 */
-#routing-hub-screen .routing-hub-info-equip-action,
+/* 帯の中の文字の釦（使う・渡す・お気に入り・処分）: 控えめな文字と下の細い線だけ。 */
 #routing-hub-screen .routing-hub-info-ledger-use,
 #routing-hub-screen .routing-hub-info-ledger-give,
 #routing-hub-screen .routing-hub-info-library-favorite,
@@ -1297,7 +1431,6 @@
   text-shadow: var(--terrace-word-halo);
 }
 
-#routing-hub-screen .routing-hub-info-equip-action,
 #routing-hub-screen .routing-hub-info-ledger-use,
 #routing-hub-screen .routing-hub-info-ledger-give,
 #routing-hub-screen .routing-hub-info-library-favorite,
@@ -1307,16 +1440,15 @@
   cursor: pointer;
 }
 
-#routing-hub-screen .routing-hub-info-equip-action,
 #routing-hub-screen .routing-hub-info-ledger-use { letter-spacing: 0.06em; }
 #routing-hub-screen .routing-hub-info-ledger-give { letter-spacing: 0.08em; }
 #routing-hub-screen .routing-hub-info-library-favorite,
 #routing-hub-screen .routing-hub-info-library-dispose { letter-spacing: 0.04em; white-space: nowrap; }
 
+/* 解除は紋の釦（戻す紋）。 */
 #routing-hub-screen .routing-hub-info-equip-action { align-self: flex-start; }
 #routing-hub-screen .routing-hub-info-ledger-give { align-self: flex-end; margin-top: 2px; }
 
-#routing-hub-screen .routing-hub-info-equip-action:hover,
 #routing-hub-screen .routing-hub-info-ledger-use:hover:not(:disabled),
 #routing-hub-screen .routing-hub-info-ledger-give:hover:not(:disabled),
 #routing-hub-screen .routing-hub-info-library-favorite:hover,
@@ -1648,7 +1780,7 @@
   height: 32px;
 }
 
-/* 関連する本へ移る間の覆い: 帯の中だけを塞ぐ待ちの幕（3 つの点の live region）。 */
+/* 関連する本へ移る間の覆い: 帯の中だけを塞ぐ待ちの幕（画面の中の待ちの印を抱え、右下で待ちの紋が回る）。 */
 #routing-hub-screen .routing-hub-info-library-busy {
   position: absolute;
   inset: 0;
@@ -1662,33 +1794,6 @@
   border-radius: 18px;
   background: var(--routing-veil-strong);
   text-align: center;
-}
-
-#routing-hub-screen .routing-hub-info-library-busy-orbits {
-  display: inline-flex;
-  gap: 10px;
-}
-
-#routing-hub-screen .routing-hub-info-library-busy-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--radius-pill);
-  background: var(--routing-starlight);
-  animation: routing-hub-info-library-busy-pulse 1200ms ease-in-out infinite;
-}
-
-#routing-hub-screen .routing-hub-info-library-busy-dot:nth-child(2) { animation-delay: 180ms; }
-#routing-hub-screen .routing-hub-info-library-busy-dot:nth-child(3) { animation-delay: 360ms; }
-
-#routing-hub-screen .routing-hub-info-library-busy-label {
-  color: var(--routing-silver-strong);
-  font-size: 0.9rem;
-  letter-spacing: 0.04em;
-}
-
-@keyframes routing-hub-info-library-busy-pulse {
-  0%, 100% { opacity: 0.25; transform: translateY(0); }
-  50% { opacity: 1; transform: translateY(-4px); }
 }
 
 /* ── 装備の詳しい小窓: 帯の上に夜の幕をもう一段かけて、品の名と中身を置く ── */
@@ -1741,79 +1846,43 @@
   gap: 6px;
 }
 
-/* ══ 星の揺り籠: 露台の夜を沈めた上に鉢と生き物をじかに浮かべる ══════════════════════════════════════════════════════ */
-@keyframes terrace-cradle-sink {
+/* ══ 星の揺り籠: 箱庭の絵を画面いっぱいの地にし、芝の上の座へ鉢と生き物をじかに置く ══════════════════════════════════════════ */
+@keyframes terrace-cradle-descend {
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
 
+/* 露台の要素（週・案内人・会話・左の列・天球儀）は揺り籠の間、地の下に隠れる。 */
 #routing-hub-screen .routing-hub-star-cradle {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 7;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-backdrop {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 70% 72% at 50% 50%, rgb(5 6 15 / 0.8), rgb(5 6 15 / 0.9) 70%, rgb(5 6 15 / 0.94));
-  animation: terrace-cradle-sink 1.2s ease-out both;
-}
-
-/* 箱庭の絵は、枠を持たない淡い夜の気配として沈めた夜の奥に置く。 */
-#routing-hub-screen .routing-hub-star-cradle-backdrop::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: url('/canonical/star_cradle/garden.jpg') center / cover no-repeat;
-  opacity: 0.16;
-  mask-image: radial-gradient(ellipse 50% 50% at 50% 55%, #000 30%, transparent 100%);
-}
-
-#routing-hub-screen .routing-hub-star-cradle-card {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  width: min(1120px, 84vw);
-  height: 100%;
-  max-height: 100%;
+  z-index: 60;
   overflow: hidden;
-  animation: terrace-cradle-sink 1.2s ease-out both;
+  background: rgb(5 6 15);
+  animation: terrace-cradle-descend 1.2s ease-out both;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  flex: 0 0 auto;
-  padding: 4.4vh 0 0;
+/* 地: 箱庭の絵（1600x900）を窓いっぱいに覆う一枚。座の位置はこの絵に対する割合なので、窓の縦横比が変わっても芝の上に留まる。 */
+#routing-hub-screen .routing-hub-star-cradle-garden {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, 100vh * 16 / 9);
+  height: max(100vh, 100vw * 9 / 16);
+  transform: translate(-50%, -50%);
+  background: url('/canonical/star_cradle/garden.jpg') 0 0 / 100% 100% no-repeat;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-icon {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 8px rgb(159 180 255 / 0.35));
-}
-
-/* 状態の行: 忙しさと、操作のそばの失敗の報せ（失敗は左の星明かりの筋を添える）。 */
+/* busy・エラーの一行（出る時だけ・上の真ん中）。失敗は左の星明かりの筋を添える。 */
 #routing-hub-screen .routing-hub-star-cradle-status {
-  flex: 0 0 auto;
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  transform: translateX(-50%);
   margin: 0;
-  color: var(--terrace-word-quiet);
-  font-size: 0.85rem;
+  padding-left: 10px;
+  color: var(--terrace-word);
+  font-size: 0.9rem;
   text-shadow: var(--terrace-word-halo);
 }
 
@@ -1821,84 +1890,75 @@
   box-shadow: inset 3px 0 0 var(--routing-starlight);
 }
 
-#routing-hub-screen .routing-hub-star-cradle-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4vh;
-  padding: 2vh 0 7vh;
-  scrollbar-width: none;
-  mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 7vh), transparent 100%);
-  color: var(--terrace-word);
-  text-shadow: var(--terrace-word-halo);
+/* 鉢・生き物の座: 足元（--x, --y）を芝の上の一点に置き、絵は足元から上へ、名と値は足元から下へ。 */
+#routing-hub-screen .routing-hub-star-cradle-spot {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 0;
+  height: 0;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-garden {
-  display: flex;
-  flex-direction: column;
-  gap: 3vh;
+/* 足元の淡い灯り: 鉢・生き物を置ける座（空きでも埋まっていても同じ）。選んだ座は金色に灯る。 */
+#routing-hub-screen .routing-hub-star-cradle-spot::before {
+  content: '';
+  position: absolute;
+  left: -90px;
+  top: -24px;
+  width: 180px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(159 180 255 / 0.38), rgb(159 180 255 / 0) 70%);
+  pointer-events: none;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+#routing-hub-screen .routing-hub-star-cradle-spot.is-selected::before {
+  background: radial-gradient(ellipse at center, rgb(255 214 120 / 0.75), rgb(255 214 120 / 0) 72%);
 }
 
-#routing-hub-screen .routing-hub-star-cradle-row-title,
-#routing-hub-screen .routing-hub-star-cradle-section-title {
-  margin: 0;
-  color: var(--terrace-word-quiet);
-  font-size: 0.72rem;
-  font-weight: 400;
-  letter-spacing: 0.22em;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-track {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4vw;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-slot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-slot-empty {
-  align-items: flex-start;
-  justify-content: center;
-  min-height: 160px;
-  padding-top: 2vh;
-  color: var(--routing-silver-dim);
-}
-
-/* 鉢と生き物は、足もとに淡い夜の光を敷いて浮かべる。植物は揺れ、生き物は歩き回る（揃わないよう位置で位相をずらす）。 */
-#routing-hub-screen .routing-hub-star-cradle-sprite {
-  position: relative;
-  width: clamp(84px, 12vw, 120px);
-  height: clamp(84px, 12vw, 120px);
+#routing-hub-screen .routing-hub-star-cradle-figure {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform: translateX(-50%);
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-sprite::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -6px;
-  width: 70%;
-  height: 14px;
-  translate: -50% 0;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgb(159 180 255 / 0.28), transparent 70%);
-  pointer-events: none;
+#routing-hub-screen button.routing-hub-star-cradle-figure {
+  cursor: pointer;
+}
+
+#routing-hub-screen button.routing-hub-star-cradle-figure:focus-visible {
+  outline: 1px solid var(--terrace-word);
+  outline-offset: 4px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-figure .terrace-empty-art,
+#routing-hub-screen .routing-hub-star-cradle-actions .terrace-empty-art,
+#routing-hub-screen .routing-hub-star-cradle-cage .terrace-empty-art,
+#routing-hub-screen .routing-hub-star-cradle-station > [role="img"] .terrace-empty-art,
+#routing-hub-screen .routing-hub-star-cradle-free-item .terrace-empty-art {
+  opacity: 0.95;
+  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.95)) drop-shadow(0 0 8px rgb(159 180 255 / 0.45));
+}
+
+#routing-hub-screen .routing-hub-star-cradle-figure .terrace-empty-art {
+  width: 104px;
+  height: 104px;
+}
+
+/* 植物は揺れ、生き物は歩き回る（揃わないよう座で位相をずらす）。 */
+#routing-hub-screen .routing-hub-star-cradle-sprite {
+  width: var(--size);
+  height: var(--size);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 #routing-hub-screen .routing-hub-star-cradle-sprite-img {
@@ -1936,211 +1996,236 @@
   75% { transform: translate(8px, -2px); }
 }
 
-#routing-hub-screen .routing-hub-star-cradle-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-stage,
-#routing-hub-screen .routing-hub-star-cradle-name {
-  color: var(--terrace-word);
-  font-weight: 400;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-stage {
-  letter-spacing: 0.08em;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-note {
-  margin: 0;
-  color: var(--routing-silver-dim);
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-weeks,
-#routing-hub-screen .routing-hub-star-cradle-flavor,
-#routing-hub-screen .routing-hub-star-cradle-reason,
-#routing-hub-screen .routing-hub-star-cradle-feed-heading,
-#routing-hub-screen .routing-hub-star-cradle-free,
-#routing-hub-screen .routing-hub-star-cradle-caged-kind {
-  color: var(--terrace-word-quiet);
-}
-
-#routing-hub-screen .routing-hub-star-cradle-weeks,
-#routing-hub-screen .routing-hub-star-cradle-caged-kind { font-size: 0.78rem; }
-
-#routing-hub-screen .routing-hub-star-cradle-flavor {
-  font-style: italic;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-badge {
-  display: inline-block;
-  color: var(--terrace-place-glow);
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
-}
-
-/* 操作（収穫・副産物・名付け・籠へ・植える・放す）は紋の釦、餌の素材の選びは控えめな文字の並び（選ぶと働く）。 */
-#routing-hub-screen .routing-hub-star-cradle-button {
-  cursor: pointer;
-  letter-spacing: 0.06em;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-button-action {
-  font-size: 0.82rem;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-button-chip {
-  padding: 1px 0;
-  border: 0;
-  border-bottom: 1px solid rgb(205 214 234 / 0.2);
-  border-radius: 0;
-  background: none;
-  color: var(--terrace-word-quiet);
-  text-shadow: var(--terrace-word-halo);
-  font-size: 0.78rem;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-button-chip:hover:not(:disabled) {
-  border-bottom-color: rgb(159 180 255 / 0.7);
-  color: var(--terrace-word);
-}
-
-#routing-hub-screen .routing-hub-star-cradle-button-chip:focus-visible {
-  outline: none;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-action-wrap {
+#routing-hub-screen .routing-hub-star-cradle-tag {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-feed {
-  display: flex;
-  flex-direction: column;
+#routing-hub-screen .routing-hub-star-cradle-name {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
+  gap: 4px;
+  color: var(--terrace-word);
+  font-size: 1.02rem;
+  letter-spacing: 0.06em;
+  text-shadow: var(--terrace-word-halo);
 }
 
-#routing-hub-screen .routing-hub-star-cradle-feed-heading {
-  font-size: 0.76rem;
+/* 金の星の印: 金色変異・変貌（名の脇）。 */
+#routing-hub-screen .routing-hub-star-cradle-mark {
+  display: inline-flex;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-feed-list {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 4px 14px;
+#routing-hub-screen .routing-hub-star-cradle-mark svg {
+  width: 14px;
+  height: 14px;
+  filter: drop-shadow(0 0 6px var(--routing-gold-glow));
 }
 
-/* 名前の入力の行: 下線と名付けの紋で示す（名前は製品の aria-label のまま）。 */
-#routing-hub-screen .routing-hub-star-cradle-name-form {
+/* 育ちの粒: 開花（孵化・成体）までの週の数だけ並べ、経った週を灯す。孵化の週の後に小さな間を空ける。 */
+#routing-hub-screen .routing-hub-star-cradle-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid var(--terrace-word-quiet);
+  box-shadow: 0 0 4px rgb(5 6 15 / 0.9);
+}
+
+#routing-hub-screen .routing-hub-star-cradle-pip.is-lit {
+  border-color: var(--terrace-word);
+  background: var(--terrace-word);
+  box-shadow: 0 0 6px rgb(159 180 255 / 0.8);
+}
+
+#routing-hub-screen .routing-hub-star-cradle-pip.is-gap {
+  margin-left: 5px;
+}
+
+/* 与えた餌（素材の絵と数）。 */
+#routing-hub-screen .routing-hub-star-cradle-fed {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+  color: var(--terrace-word-quiet);
+  font-size: 0.75rem;
+  text-shadow: var(--terrace-word-halo);
+}
+
+#routing-hub-screen .routing-hub-star-cradle-fed img {
+  width: 16px;
+  height: 16px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  width: 100%;
+  gap: 2px;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-name-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 4px 2px;
+#routing-hub-screen .routing-hub-star-cradle-actions .terrace-empty-art {
+  width: 48px;
+  height: 48px;
+}
+
+/* 受け取り済みの副産物・籠に入れられない子: 数を持たない淡い紋（芝の上でも形が読める濃さ）。 */
+#routing-hub-screen .routing-hub-star-cradle-actions .terrace-sigil-button:disabled .terrace-sigil {
+  opacity: 0.55;
+}
+
+/* 持っている素材（選んだ座の下だけ・押すとその子に一つ与える）。 */
+#routing-hub-screen .routing-hub-star-cradle-material {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  padding: 2px 3px;
   border: 0;
-  border-bottom: 1px solid rgb(205 214 234 / 0.36);
-  border-radius: 0;
   background: none;
   color: var(--terrace-word);
+  font: inherit;
+  font-size: 0.75rem;
+  text-shadow: var(--terrace-word-halo);
+  cursor: pointer;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-material img {
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 0 3px rgb(5 6 15 / 0.9));
+}
+
+/* 名付け: 名付けの紋を押すと、その場に名の入力が開く。 */
+#routing-hub-screen .routing-hub-star-cradle-name-input {
+  width: 9em;
+  padding: 2px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--terrace-word-quiet);
+  background: rgb(5 6 15 / 0.45);
+  color: var(--terrace-word);
+  font: inherit;
+  font-size: 0.95rem;
   text-shadow: var(--terrace-word-halo);
 }
 
 #routing-hub-screen .routing-hub-star-cradle-name-input:focus-visible {
   outline: none;
-  border-bottom-color: rgb(159 180 255 / 0.7);
+  border-bottom-color: var(--terrace-word);
 }
 
-#routing-hub-screen .routing-hub-star-cradle-plant-section,
-#routing-hub-screen .routing-hub-star-cradle-caged-section {
+/* 植える場: 絵の奥の空いた鉢の足元。空きの数と、持っている種・卵。 */
+#routing-hub-screen .routing-hub-star-cradle-station {
+  position: absolute;
+  left: 73.125%;
+  top: 50.222%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 6px;
 }
 
 #routing-hub-screen .routing-hub-star-cradle-free {
-  margin: 0;
-  font-size: 0.82rem;
-  letter-spacing: 0.06em;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-plant-list,
-#routing-hub-screen .routing-hub-star-cradle-caged-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-plant-row,
-#routing-hub-screen .routing-hub-star-cradle-caged-row {
-  position: relative;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 18px;
-  width: fit-content;
-  padding: 0 0 0 16px;
+  gap: 14px;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-plant-row::before,
-#routing-hub-screen .routing-hub-star-cradle-caged-row::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 8px;
-  height: 8px;
-  translate: 0 -50%;
-  background: var(--terrace-star-point) center / contain no-repeat;
-  opacity: 0.8;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-plant-label {
-  color: var(--routing-silver);
-}
-
-#routing-hub-screen .routing-hub-star-cradle-caged-label {
-  display: flex;
-  flex-direction: column;
+#routing-hub-screen .routing-hub-star-cradle-free-item {
+  display: inline-flex;
+  align-items: center;
   gap: 2px;
-  min-width: 0;
+  color: var(--terrace-word);
+  font-size: 1.15rem;
+  text-shadow: var(--terrace-word-halo);
 }
 
-#routing-hub-screen .routing-hub-star-cradle-caged-section > .routing-hub-star-cradle-reason[role="img"] {
-  display: block;
+#routing-hub-screen .routing-hub-star-cradle-free-item .terrace-empty-art {
+  width: 46px;
+  height: 46px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-station > [role="img"] .terrace-empty-art {
+  width: 64px;
+  height: 64px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-seed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--terrace-word);
+  font: inherit;
+  font-size: 1rem;
+  text-shadow: var(--terrace-word-halo);
+  cursor: pointer;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-seed img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 3px rgb(5 6 15 / 0.9));
+}
+
+#routing-hub-screen .routing-hub-star-cradle-count {
+  color: var(--terrace-word-quiet);
+  font-size: 0.8rem;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-seed .terrace-sigil {
+  width: 26px;
+  height: 26px;
+}
+
+/* 籠: 右下の円い石の台の上。 */
+#routing-hub-screen .routing-hub-star-cradle-cage {
+  position: absolute;
+  left: 68.25%;
+  bottom: 3.333%;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-cage .terrace-empty-art {
+  width: 84px;
+  height: 84px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-caged {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-caged img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px var(--routing-shadow));
 }
 
 @media (prefers-reduced-motion: reduce) {
   #routing-hub-screen .routing-hub-cradle-globe,
   #routing-hub-screen .routing-hub-message-stream .chat-message.pop-in,
-  #routing-hub-screen .routing-hub-info-popup-card,
-  #routing-hub-screen .routing-hub-equipment-popup-card,
-  #routing-hub-screen .routing-hub-star-cradle-card,
-  #routing-hub-screen .routing-hub-star-cradle-backdrop,
+  #routing-hub-screen .routing-hub-star-cradle,
   #routing-hub-screen .routing-hub-star-cradle-sprite-plant,
   #routing-hub-screen .routing-hub-star-cradle-sprite-creature {
     animation: none;
-  }
-
-  #routing-hub-screen .routing-hub-info-library-busy-dot {
-    animation: none;
-    opacity: 0.7;
   }
 }

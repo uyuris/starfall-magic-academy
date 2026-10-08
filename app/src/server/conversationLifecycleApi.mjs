@@ -2,9 +2,8 @@ import { academyPostTurnStatePolicy, companionPostTurnStatePolicy } from '../llm
 import { resolvePostContentScreen } from '../playMode.mjs';
 import { resetGatheringStocks } from '../economy.mjs';
 import { prepareAcademyStageSituationsForState, prepareSanrinCreaturePlacementsForState } from '../fieldRuntime.mjs';
-import { normalizeRoutingHubContext } from '../routingMetaContext.mjs';
+import { guideGraduationSceneContext, normalizeRoutingHubContext } from '../routingMetaContext.mjs';
 import { ROUTING_PERSONA_CHARACTER_ID } from '../routingPersona.mjs';
-import { buildRoutingPersonaVisualSummary } from '../routingPersonaVisual.mjs';
 import { isGraduationEndingContext as isGraduationEndingContextForState } from '../graduationEnding.mjs';
 import { resolveAcademyConversationLandingScreen } from './conversationPopupSettingsApi.mjs';
 import {
@@ -34,9 +33,11 @@ import {
   buildRoutingWeekProgressionKey,
   findRoutingWeekProgression,
   findRoutingWeekProgressionByConversation,
+  isGuideGraduationInFlight,
   isRoutingWeekProgressionRecordApplied,
   readRoutingGraduationGuide,
   startGraduationEndingConversationForCharacter,
+  startGuideGraduationConversation,
   startNextAcademyWeek
 } from '../graduationEnding.mjs';
 import { selectableCharacterChoice } from '../characterCatalog.mjs';
@@ -60,12 +61,14 @@ import {
   withoutFootprintSummary
 } from '../llm/footprintSummary.mjs';
 import { runExclusiveConversationWork } from './conversationTurnExclusion.mjs';
+import { readGraduationRoad } from '../graduationRoad.mjs';
 
 const CONVERSATION_LIFECYCLE_ROUTES = new Set([
   'POST /api/conversation/opening',
   'POST /api/conversation',
   'POST /api/conversation/finalize/retry',
-  'POST /api/conversation/end'
+  'POST /api/conversation/end',
+  'GET /api/graduation/road'
 ]);
 
 const CONVERSATION_ID_PATTERN = /^conv_[A-Za-z0-9_-]+$/;
@@ -99,27 +102,12 @@ function assertActivePlayMode(activePlayMode) {
   return activePlayMode;
 }
 
-// The routing persona variant that drives a guide graduation phase-2 conversation (opening + turns): the
-// save's effective variant, supplied only in routing mode. Loop mode and any non-routing conversation pass
-// undefined, so the pipeline keeps the disk-profile behavior and only a routing phase-2-with-lina turn (gated
-// in the pipeline) consumes it. Broadly supplying it in routing mode is safe: the pipeline gate (persona actor
-// + graduation ending context, no hub context) is the precise guard, and no other routing conversation with
-// the persona actor exists outside the hub.
+// The routing persona variant the 案内人's graduation conversation speaks in (its turns, and the opening that restores it
+// on a load): the save's effective variant, supplied only in routing mode. Loop mode passes undefined, so the pipeline
+// keeps the disk-profile behavior and only the guide graduation (gated in the pipeline: the persona actor + the
+// graduation ending context, no hub context) consumes it.
 export function graduationPersonaVariantForActivePlayMode(activePlayMode) {
   return activePlayMode?.mode === 'routing' ? activePlayMode.routing_persona_variant : undefined;
-}
-
-// The routing persona visual summary for a guide graduation phase-2 conversation面 response (opening / restore
-// re-open), or null when this is not a guide-persona phase 2. The frontend renders the persona's own face /
-// standee / speaker icon (hub-outside) from it, the same summary shape the routing hub start returns. A
-// selectable roster graduation partner (loop or a character_### guide selection) gets no persona visual — it
-// resolves through the selectable roster. Gated exactly like the pipeline persona branch: routing mode, the
-// persona actor, and the graduation ending event context.
-export async function routingPersonaVisualForGraduationPhase2({ root, characterId, state, activePlayMode }) {
-  if (activePlayMode?.mode !== 'routing') return null;
-  if (characterId !== ROUTING_PERSONA_CHARACTER_ID) return null;
-  if (!isGraduationEndingContextForState(state, null)) return null;
-  return await buildRoutingPersonaVisualSummary({ root, personaVariant: activePlayMode.routing_persona_variant });
 }
 
 function routingTurnContextMismatch(message) {
@@ -127,6 +115,18 @@ function routingTurnContextMismatch(message) {
   error.statusCode = 409;
   error.errorCode = 'ROUTING_TURN_CONTEXT_MISMATCH';
   return error;
+}
+
+// A turn on the 案内人's graduation conversation (the guide conversation going on as the graduation conversation on the
+// terrace) takes the terrace scene as its injected 舞台 every turn, and the companion post-turn policy with it, so the
+// terrace never moves the stage. Returns that scene context, or null for every other turn. While the 案内人's graduation
+// is in flight, a turn naming another actor or conversation is a context mismatch (fail-fast).
+export function guideGraduationSceneContextForTurn({ activePlayMode, state, conversationId, characterId }) {
+  if (activePlayMode?.mode !== 'routing' || !isGuideGraduationInFlight(state)) return null;
+  if (characterId !== ROUTING_PERSONA_CHARACTER_ID || (conversationId && conversationId !== state.last_conversation_id)) {
+    throw routingTurnContextMismatch('a turn during the guide graduation must continue the guide graduation conversation');
+  }
+  return guideGraduationSceneContext();
 }
 
 function routingErrandContextMismatch(message) {
@@ -157,8 +157,8 @@ function expectsActiveRoutingHubTurn({ playMode, state, activeConversationId }) 
     && Boolean(activeConversationId)
     && state.current_screen === 'interaction'
     && state.current_interaction_character_id === ROUTING_PERSONA_CHARACTER_ID
-    // The guide graduation phase 2 with the persona is an ordinary event conversation on the same actor id
-    // (lina) and the interaction screen, but it is NOT the routing hub: it carries the graduation ending
+    // The 案内人's graduation conversation is the guide conversation gone on past the selection, on the same actor id
+    // (lina) and the interaction screen, but it is no longer a hub conversation: it carries the graduation ending
     // event context and no routing_hub, so it must not be held to the strict hub-conversation shape.
     && !isGraduationEndingContextForState(state, null);
 }
@@ -876,12 +876,22 @@ async function buildConversationEndPayload({
     current_interaction_character_id: null,
     pending_interaction_context: null
   };
+  if (graduationEnding) {
+    // The graduation conversation is never finalized: its end calls no LM and makes no record (memory, skill,
+    // work record, flags, affinity). The graduation is complete the moment the conversation ends.
+    const graduatedState = markGraduationEndingComplete(nextState);
+    await writeJson(root, 'game_data/runtime_state.json', graduatedState);
+    return {
+      finalization_status: 'skipped',
+      conversation,
+      character_id: characterId,
+      state: graduatedState,
+      transition
+    };
+  }
   await writeJson(root, 'game_data/runtime_state.json', nextState);
   const finalizationProviders = providers ?? await resolveRuntimeProviders({ requestedProvider: body.provider, context });
-  const finalStateTransform = graduationEnding
-    ? (stateForCompletion) => markGraduationEndingComplete({ ...(stateForCompletion ?? {}), current_screen: fallbackScreen })
-    : null;
-  const finalization = await runConversationFinalization({ root, conversationId, characterId, providers: finalizationProviders, finalStateTransform });
+  const finalization = await runConversationFinalization({ root, conversationId, characterId, providers: finalizationProviders });
   const finalizationState = finalization.state ?? nextState;
   return {
     finalization_status: 'completed',
@@ -936,12 +946,29 @@ export async function attachRoutingTurnDispatch({
   };
 }
 
-// The in-turn graduation guide selection (routing phase 2): when a guide turn's partner-selection judgment
-// picked one of the presented characters (turnResult carries routing_graduation_guide_selection), finalize the
-// hub (guide) conversation via the same drain discipline every routing exit uses, then start the selected
-// character's graduation event on academy-conversation-session. This mirrors attachRoutingTurnDispatch, but the
-// destination is the character graduation event rather than a routing content screen. A turn without a selection
-// is returned untouched, so the guide conversation simply continues.
+// The guide (hub) conversation record carried on as the 案内人's graduation conversation: the hub snapshot drops (no hub
+// turn follows it), the record takes the terrace 舞台 and the graduation event identity from the started interaction,
+// and its id, messages, actor context, and judgments stay as they are.
+function guideGraduationConversationRecord(conversation, pendingContext) {
+  const { routing_hub: _routingHub, ...record } = conversation;
+  const scene = guideGraduationSceneContext();
+  return {
+    ...record,
+    source_type: scene.source_type,
+    location_name: scene.location_name,
+    visible_situation: scene.visible_situation,
+    event_flag_id: pendingContext.event_flag_id,
+    event_label: pendingContext.event_label,
+    source_conversation_id: pendingContext.source_conversation_id
+  };
+}
+
+// The in-turn graduation guide selection (routing phase 2): a guide turn whose partner-selection judgment picked a
+// partner carries routing_graduation_guide_selection. An academy person: finalize the hub (guide) conversation via the
+// same drain discipline every routing exit uses, then start that person's graduation event on the daytime conversation
+// screen. The 案内人 herself: nothing is finalized and no conversation is opened — the guide conversation goes on as the
+// graduation conversation on the terrace (same id, one history), and it is finalized as the graduation when it ends. A
+// turn without a selection is returned untouched, so the guide conversation simply continues.
 export async function attachRoutingGraduationGuideSelection({
   root,
   context,
@@ -964,6 +991,23 @@ export async function attachRoutingGraduationGuideSelection({
   // Refuse on a failed job before this turn writes its waiting state, so the guide goes on untouched and the
   // player can name the partner again once the retry clears the job.
   assertNoFailedPendingFinalizations(state);
+  if (characterId === ROUTING_PERSONA_CHARACTER_ID) {
+    return await runOutsideRoutingReadScope(async () => {
+      const started = await startGuideGraduationConversation({ root, now: new Date().toISOString() });
+      if (started.conversation_id !== turnResult.conversation.id) {
+        throw new Error(`guide graduation started on ${started.conversation_id}, not the selecting guide conversation ${turnResult.conversation.id}`);
+      }
+      const conversation = guideGraduationConversationRecord(turnResult.conversation, started.state.pending_interaction_context);
+      await writeJson(root, `game_data/logs/conversations/${conversation.id}.json`, conversation);
+      return {
+        ...turnResult,
+        conversation,
+        state: started.state,
+        graduation_ending: { character_id: characterId },
+        routing_graduation_guide_selection: turnResult.routing_graduation_guide_selection
+      };
+    });
+  }
   return await runOutsideRoutingReadScope(async () => {
     const now = new Date().toISOString();
     const hubConversationId = turnResult.conversation.id;
@@ -1018,7 +1062,7 @@ export async function attachRoutingGraduationGuideSelection({
     // The selected character's graduation event lands on the fixed daytime conversation screen — the same
     // landing every event conversation follows — so both the interaction's persisted current_screen (via the
     // startEventFlagInteraction screen arg) and this response's transition next_screen stay truthful to where the
-    // frontend actually lands.
+    // frontend actually lands. It opens like any event conversation (the conversation passage).
     const landingScreen = resolveAcademyConversationLandingScreen();
     const started = await startGraduationEndingConversationForCharacter({
       root,
@@ -1027,21 +1071,13 @@ export async function attachRoutingGraduationGuideSelection({
       screen: landingScreen,
       now
     });
-    // When the chosen partner is the guide persona (案内人自身), the selection-confirm response carries the
-    // routing persona visual so the frontend can render the persona's own face / standee / speaker icon for
-    // the hub-outside phase 2 (the same summary shape the hub start returns). A selectable roster partner
-    // resolves through the roster and gets no persona visual.
-    const routingPersonaVisual = characterId === ROUTING_PERSONA_CHARACTER_ID
-      ? await buildRoutingPersonaVisualSummary({ root, personaVariant: playMode.routing_persona_variant })
-      : null;
     return {
       ...turnResult,
       finalization_status: 'drained',
       state: started.state,
-      transition: { next_screen: landingScreen, loading_copy_key: 'graduation-ending-start' },
+      transition: { next_screen: landingScreen },
       graduation_ending: { character_id: characterId },
-      routing_graduation_guide_selection: turnResult.routing_graduation_guide_selection,
-      ...(routingPersonaVisual ? { routing_persona_visual: routingPersonaVisual } : {})
+      routing_graduation_guide_selection: turnResult.routing_graduation_guide_selection
     };
   });
 }
@@ -1191,18 +1227,7 @@ export async function handleConversationLifecycleApi({
       graduationPersonaVariant: graduationPersonaVariantForActivePlayMode(activePlayMode),
       ...providers
     });
-    // A guide-persona graduation phase 2 opening (the immediate hand-off after selection, or a restore
-    // re-open of an in-progress phase 2) carries the routing persona visual so the frontend renders the
-    // persona's own art hub-outside; every other opening (roster partner / loop / normal event) attaches
-    // nothing.
-    const openingState = await readJson(root, 'game_data/runtime_state.json');
-    const routingPersonaVisual = await routingPersonaVisualForGraduationPhase2({
-      root,
-      characterId,
-      state: openingState,
-      activePlayMode
-    });
-    return sendJson(res, routingPersonaVisual ? { ...result, routing_persona_visual: routingPersonaVisual } : result);
+    return sendJson(res, result);
   }
 
   if (req.method === 'POST' && url.pathname === '/api/conversation') {
@@ -1247,6 +1272,12 @@ export async function handleConversationLifecycleApi({
       if (activeErrand && activeStudyCircle) {
         throw routingStudyCircleContextMismatch('routing errand and study circle are both active');
       }
+      const guideGraduationScene = guideGraduationSceneContextForTurn({
+        activePlayMode,
+        state: turnState,
+        conversationId: turnRequest.conversationId,
+        characterId: turnRequest.characterId
+      });
       // Graduation guide (routing week 50): a hub turn while the guide phase is active presents the top-N
       // characters and judges the player's chosen graduation partner instead of a routing destination. Only a
       // routing hub turn resolves it; every other turn leaves it undefined and stays byte-equivalent.
@@ -1268,13 +1299,13 @@ export async function handleConversationLifecycleApi({
             ? buildRoutingStudyCircleSceneContext(activeStudyCircle)
             : activeAtelierConversation
               ? atelierInjectedSceneContext()
-              : undefined,
+              : guideGraduationScene ?? undefined,
         errandJudgmentContext: activeErrand ? { condition_text: activeErrand.condition_text } : undefined,
         studyCircleJudgmentContext: activeStudyCircle ? { condition_text: activeStudyCircle.condition_text } : undefined,
         routingHubContext: turnRequest.routingHubContext,
         routingGraduationGuideContext,
         graduationPersonaVariant: graduationPersonaVariantForActivePlayMode(activePlayMode),
-        postTurnStatePolicy: activeErrand || activeStudyCircle || activeAtelierConversation ? companionPostTurnStatePolicy : academyPostTurnStatePolicy
+        postTurnStatePolicy: activeErrand || activeStudyCircle || activeAtelierConversation || guideGraduationScene ? companionPostTurnStatePolicy : academyPostTurnStatePolicy
       });
       const dispatched = await attachRoutingTurnDispatch({
         root,
@@ -1354,6 +1385,23 @@ export async function handleConversationLifecycleApi({
     const characterId = String(body.character_id ?? '').trim();
     const result = await retryPendingFinalizationForCharacter({ root, characterId, finalizeJob });
     return sendJson(res, retryResponsePayload(result, { character_id: characterId }));
+  }
+
+  // 卒業の星の道の材料（一年の人と相手の最後の一言）。卒業の会話を締める前に frontend が読む（締めると本文が消える）。LM は呼ばない。
+  if (req.method === 'GET' && url.pathname === '/api/graduation/road') {
+    if (activePlayMode.mode !== 'routing') {
+      const error = new Error('graduation road requires routing mode');
+      error.statusCode = 409;
+      error.errorCode = 'GRADUATION_ROAD_UNAVAILABLE';
+      throw error;
+    }
+    return sendJson(res, await readGraduationRoad({
+      root,
+      authoringRoot: context.root,
+      readJson,
+      readJsonIfExists,
+      personaVariant: activePlayMode.routing_persona_variant
+    }));
   }
 
   if (req.method === 'POST' && url.pathname === '/api/conversation/end') {

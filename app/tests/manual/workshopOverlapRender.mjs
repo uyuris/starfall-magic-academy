@@ -1,13 +1,14 @@
-// Render-backed workshop-arrival overlap check (Electron / real Blink layout).
+// Render-backed workshop table-room layout check (Electron / real Blink layout).
 //
-// `node --test` cannot lay out a DOM, so the "recipe board overlaps the 1:1 stage image" layout bug is
-// verified here against real layout. Not a *.test.mjs (npm test skips it); run it by hand:
+// `node --test` cannot lay out a DOM, so the workshop's table-room layout is verified here against real layout. Not a
+// *.test.mjs (npm test skips it); run it by hand:
 //   ./node_modules/.bin/electron app/tests/manual/workshopOverlapRender.mjs
 //   WS_WIN_W=1280 WS_WIN_H=720 ./node_modules/.bin/electron app/tests/manual/workshopOverlapRender.mjs
 //
-// It loads the real client shell, forces the workshop arrival screen active, injects a dense recipe
-// board with the CURRENT markup, and measures the rects of the stage column vs the recipe board /
-// list, reporting any geometric intersection (the overlap).
+// It loads the real client shell, forces the workshop arrival screen active, injects a dense recipe board with the
+// CURRENT row markup, and measures: the table stays right of the room's art (the left 38.9%) and clear of the place
+// name and the 出る sigil, the rows never overflow the table horizontally, the cells line up row to row, and the
+// crafting overlay stays fully in view with the list scrolled to its bottom.
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -55,105 +56,75 @@ async function main() {
   await win.loadURL(`${base}/`);
   await new Promise((r) => setTimeout(r, 1800)); // let app.js boot + the offscreen window settle its viewport
 
-  // Force the workshop arrival screen active and inject a dense board with the CURRENT card markup.
+  // Force the workshop screen active and inject a dense board with the CURRENT row markup (table-room rows: an li
+  // carrying data-lack when unaffordable, its row body a button whose cells sit on the room's column template).
   await win.webContents.executeJavaScript(`(() => {
     for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
-    const screen = document.querySelector('#academy-workshop-screen');
-    screen.classList.add('active');
+    document.querySelector('#academy-workshop-screen').classList.add('active');
     const list = document.querySelector('#academy-workshop-recipes');
     list.replaceChildren();
     for (let i = 0; i < 40; i += 1) {
       const li = document.createElement('li');
-      li.className = 'academy-workshop-row';
-      li.dataset.category = 'sword';
-      li.dataset.element = 'fire';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'academy-workshop-row-button';
-      if (i % 3 === 0) btn.disabled = true;
-      btn.innerHTML =
-        '<span class="academy-workshop-cell academy-workshop-cell-kind">武器（剣）</span>' +
-        '<span class="academy-workshop-cell academy-workshop-cell-element">火</span>' +
-        '<span class="academy-workshop-cell academy-workshop-cell-tier">T2</span>' +
-        '<span class="academy-workshop-cell academy-workshop-cell-effects"><span class="academy-workshop-effect">攻撃+12</span><span class="academy-workshop-effect">最大HP+8</span></span>' +
-        '<span class="academy-workshop-cell academy-workshop-cell-items"><span class="academy-workshop-cost"><span class="academy-workshop-cost-label">紅蓮鉄鉱</span><span class="academy-workshop-cost-amount">3（所持 1）</span></span></span>' +
-        '<span class="academy-workshop-cell academy-workshop-cell-money"><span class="academy-workshop-cost"><span class="academy-workshop-cost-label">費用</span><span class="academy-workshop-cost-amount">1200（所持 800）</span></span></span>' +
-        '<span class="academy-workshop-cell academy-workshop-cell-outlook" data-band="2">良い仕上がり</span>';
-      if (btn.disabled) { const l = document.createElement('span'); l.className = 'academy-workshop-row-lack'; l.textContent = '素材・費用が足りません'; btn.append(l); }
-      li.append(btn);
+      li.className = 'table-room-row academy-workshop-row';
+      if (i % 3 === 0) li.dataset.lack = 'true';
+      li.innerHTML = '<button type="button" class="table-room-row-body academy-workshop-row-body"' + (i % 3 === 0 ? ' disabled' : '') + '>' +
+        '<span class="table-room-cell academy-workshop-cell-mark"><span class="academy-workshop-kind-mark" role="img" aria-label="剣"><svg viewBox="0 0 100 100"></svg></span></span>' +
+        '<span class="table-room-cell academy-workshop-cell-mark"><span class="academy-workshop-element-mark" role="img" aria-label="火"><svg viewBox="0 0 32 32"></svg></span></span>' +
+        '<span class="table-room-cell academy-workshop-cell-tier">T2</span>' +
+        '<span class="table-room-cell academy-workshop-cell-effects"><span class="academy-workshop-effect">攻撃+12</span><span class="academy-workshop-effect">最大HP+10</span></span>' +
+        '<span class="table-room-cell academy-workshop-cell-items"><span class="table-room-cost"><span class="table-room-cost-name">劫火の紅蓮核</span><span class="table-room-cost-amount">6（所持 0）</span></span></span>' +
+        '<span class="table-room-cell academy-workshop-cell-money"><span class="table-room-cost"><span class="table-room-cost-name"></span><span class="table-room-cost-amount">1,200 G</span></span></span>' +
+        '<span class="table-room-cell academy-workshop-cell-outlook" data-band="2">確かな手応え</span>' +
+        '</button>';
       list.append(li);
     }
     return true;
   })()`);
   await new Promise((r) => setTimeout(r, 900));
 
+  // The room's layout: the table sits right of the left 38.9% (the room's art stays clear there), clear of the place
+  // name and the 出る sigil; the rows never overflow the table horizontally; every row's cells line up with every
+  // other row's (a column reads straight down); and the in-flight crafting overlay stays fully inside the table's
+  // visible frame even when the list is scrolled to its bottom.
   const measure = () => win.webContents.executeJavaScript(`(() => {
-    const rect = (sel) => { const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); return { left:+r.left.toFixed(1), top:+r.top.toFixed(1), right:+r.right.toFixed(1), bottom:+r.bottom.toFixed(1), width:+r.width.toFixed(1), height:+r.height.toFixed(1) }; };
-    const stageEl = document.querySelector('.academy-workshop-stage');
-    const cs = getComputedStyle(stageEl);
-    const stageComputed = { width: cs.width, height: cs.height, aspectRatio: cs.aspectRatio, justifySelf: cs.justifySelf, alignSelf: cs.alignSelf, gridColumn: cs.gridColumn, gridRow: cs.gridRow, boxSizing: cs.boxSizing, minWidth: cs.minWidth, inlineStyle: stageEl.getAttribute('style') };
-    const frameEl = document.querySelector('.academy-workshop-frame');
-    const frameCols = getComputedStyle(frameEl).gridTemplateColumns;
-    const stage = rect('.academy-workshop-stage');
-    const board = rect('.academy-workshop-board');
-    const list = rect('#academy-workshop-recipes');
-    const frame = rect('.academy-workshop-frame');
-    const layout = rect('.layout');
-    const topbarVar = getComputedStyle(document.documentElement).getPropertyValue('--runtime-topbar-height');
-    const stageSize = getComputedStyle(document.querySelector('.academy-workshop-screen')).getPropertyValue('--workshop-stage-size');
-    // Intersection of stage vs board/list (positive w&h => real overlap).
-    const inter = (a, b) => { if (!a || !b) return null; const x = Math.max(0, Math.min(a.right,b.right) - Math.max(a.left,b.left)); const y = Math.max(0, Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top)); return { x:+x.toFixed(1), y:+y.toFixed(1), overlaps: x>1 && y>1 }; };
-    // Column alignment: every header cell's left must sit over the matching first-row cell's left (a table reads
-    // straight down its columns). Compare the 7 header columns to the first row's 7 cells.
-    const lefts = (sel) => [...document.querySelectorAll(sel)].map((el) => +el.getBoundingClientRect().left.toFixed(1));
-    const wOf = (sel) => { const el = document.querySelector(sel); return el ? +el.getBoundingClientRect().width.toFixed(1) : null; };
-    const widths = { board: wOf('.academy-workshop-board'), boardClient: document.querySelector('.academy-workshop-board')?.clientWidth, head: wOf('.academy-workshop-head-row'), ul: wOf('#academy-workshop-recipes'), rowLi: wOf('#academy-workshop-recipes .academy-workshop-row'), rowBtn: wOf('#academy-workshop-recipes .academy-workshop-row-button') };
-    const headLefts = lefts('.academy-workshop-head-row .academy-workshop-col');
-    const firstRow = document.querySelector('#academy-workshop-recipes .academy-workshop-row .academy-workshop-row-button');
-    const rowLefts = firstRow ? [...firstRow.querySelectorAll(':scope > .academy-workshop-cell')].map((el) => +el.getBoundingClientRect().left.toFixed(1)) : [];
-    const colDrift = headLefts.map((h, i) => +Math.abs(h - (rowLefts[i] ?? NaN)).toFixed(1));
-    const aligned = headLefts.length === 7 && rowLefts.length === 7 && colDrift.every((d) => d <= 2.5);
-    // Row-to-row alignment: the SECOND row's cell lefts must match the first row's exactly (a column reads straight
-    // down across recipes — the core table requirement).
-    const rows = [...document.querySelectorAll('#academy-workshop-recipes .academy-workshop-row .academy-workshop-row-button')];
-    const cellLefts = (btn) => [...btn.querySelectorAll(':scope > .academy-workshop-cell')].map((el) => +el.getBoundingClientRect().left.toFixed(1));
-    const rowA = rows[1] ? cellLefts(rows[1]) : [];
-    const rowB = rows[6] ? cellLefts(rows[6]) : [];
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: +r.left.toFixed(1), top: +r.top.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1), width: +r.width.toFixed(1), height: +r.height.toFixed(1) }; };
+    const inter = (a, b) => { if (!a || !b) return null; const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)); const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)); return { x: +x.toFixed(1), y: +y.toFixed(1), overlaps: x > 1 && y > 1 }; };
+    const screen = document.querySelector('#academy-workshop-screen');
+    const tableEl = screen.querySelector('.table-room-table');
+    const listEl = document.querySelector('#academy-workshop-recipes');
+    const table = box(tableEl);
+    const exit = box(screen.querySelector('.table-room-exit'));
+    const place = box(screen.querySelector('.table-room-place'));
+    const artEdge = +(window.innerWidth * 0.389).toFixed(1);
+    const overflowX = listEl.scrollWidth - listEl.clientWidth;
+    const bodies = [...listEl.querySelectorAll('.table-room-row-body')];
+    const widest = Math.max(...bodies.map((b) => b.getBoundingClientRect().right)) - listEl.getBoundingClientRect().right;
+    const cellLefts = (b) => [...b.querySelectorAll(':scope > .table-room-cell')].map((el) => +el.getBoundingClientRect().left.toFixed(1));
+    const rowA = bodies[1] ? cellLefts(bodies[1]) : [];
+    const rowB = bodies[6] ? cellLefts(bodies[6]) : [];
     const rowDrift = rowA.map((v, i) => +Math.abs(v - (rowB[i] ?? NaN)).toFixed(1));
     const rowToRowAligned = rowA.length === 7 && rowB.length === 7 && rowDrift.every((d) => d <= 0.5);
-    // Sticky header: after scrolling the inner table, the header top stays at the table's top.
-    const boardEl = document.querySelector('.academy-workshop-board');
-    const tableEl = document.querySelector('.academy-workshop-table');
-    tableEl.scrollTop = 300;
-    const headTop = document.querySelector('.academy-workshop-head-row').getBoundingClientRect().top;
-    const tableTop = tableEl.getBoundingClientRect().top;
-    const sticky = Math.abs(headTop - tableTop) <= 1.5;
-    // Scroll-independent crafting overlay: scroll the list to the BOTTOM (as if crafting the last row), inject the
-    // crafting overlay into the board (as setWorkshopCrafting does), and confirm the overlay + its 銘を刻んでいる…
-    // label are FULLY inside the board's visible frame (never scrolled off-screen).
-    tableEl.scrollTop = tableEl.scrollHeight;
-    boardEl.dataset.crafting = 'true';
+    listEl.scrollTop = listEl.scrollHeight;
+    tableEl.dataset.crafting = 'true';
     const ov = document.createElement('div');
     ov.className = 'academy-workshop-crafting';
-    ov.innerHTML = '<span class="academy-workshop-crafting-label">銘を刻んでいる…</span>';
-    boardEl.append(ov);
-    const br = boardEl.getBoundingClientRect();
+    ov.innerHTML = '<span class="screen-wait-mark" aria-hidden="true"></span>';
+    tableEl.append(ov);
+    const br = tableEl.getBoundingClientRect();
     const or = ov.getBoundingClientRect();
-    const lr = ov.querySelector('.academy-workshop-crafting-label').getBoundingClientRect();
     const within = (inner, outer) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1 && inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
-    const overlayVisible = within(or, br) && within(lr, br) && or.width > 1 && or.height > 1;
-    const rectOf = (r) => ({ left: +r.left.toFixed(1), top: +r.top.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1) });
-    return { window: { w: window.innerWidth, h: window.innerHeight }, topbarVar: topbarVar.trim(), stageSize: stageSize.trim(), stageComputed, frameCols, stage, board, list, frame, layout, stage_x_board: inter(stage, board), stage_x_list: inter(stage, list), widths, headLefts, rowLefts, colDrift, aligned, rowDrift, rowToRowAligned, sticky, overlayVisible, overlayRect: rectOf(or), boardRect: rectOf(br), labelRect: rectOf(lr) };
+    const overlayVisible = within(or, br) && or.width > 1 && or.height > 1;
+    return { window: { w: window.innerWidth, h: window.innerHeight }, ground: getComputedStyle(screen.querySelector('.table-room-stage')).backgroundImage, artEdge, table, exit, place, table_x_exit: inter(table, exit), table_x_place: inter(table, place), overflowX, widest: +widest.toFixed(1), rowA, rowB, rowDrift, rowToRowAligned, overlayVisible };
   })()`);
 
   const m = await measure();
   log('measure', m);
-  const noOverlap = !(m.stage_x_board?.overlaps || m.stage_x_list?.overlaps);
   const checks = [
-    ['NO STAGE/BOARD OVERLAP', noOverlap],
-    ['HEADER↔ROW COLUMNS ALIGNED', m.aligned, `maxDrift=${Math.max(...m.colDrift)}px`],
+    ['ROOM ART CLEAR LEFT OF THE TABLE', m.table.left >= m.artEdge - 1, `table.left=${m.table.left} artEdge=${m.artEdge}`],
+    ['GROUND IS THE ROOM ART', m.ground.includes('/canonical/workshop/stage.jpg'), m.ground.slice(0, 90)],
+    ['TABLE CLEAR OF THE PLACE NAME AND THE 出る SIGIL', !m.table_x_exit.overlaps && !m.table_x_place.overlaps],
+    ['NO HORIZONTAL OVERFLOW OF THE ROWS', m.overflowX <= 1 && m.widest <= 1, `overflowX=${m.overflowX} widest=${m.widest}`],
     ['ROW↔ROW COLUMNS ALIGNED', m.rowToRowAligned, `drift=${JSON.stringify(m.rowDrift)}`],
-    ['STICKY HEADER', m.sticky],
     ['CRAFTING OVERLAY FULLY IN VIEW (scrolled to bottom)', m.overlayVisible]
   ];
   for (const [label, pass, extra] of checks) {

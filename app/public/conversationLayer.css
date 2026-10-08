@@ -1,0 +1,829 @@
+/* 昼の会話画面の見せ方の層。製品の昼の会話（#conversation-day-screen）の上に置き、app.js が data-conversation-kind に会話の種類
+   （学院マップから相手を選んで入る会話 field・依頼 errand・研究会 study-circle・ホムンクルス atelier・出来事 event）を立てた会話の間だけ
+   効く。どの種類も同じ一つの形で、違うのは地の絵と場所の名だけ（どちらも conversationLayer.js が置く）。印の無い会話（卒業）は製品の
+   見た目のまま。
+   - 地はいまの会話の舞台の絵（学院の会話・出来事は舞台の background_url、依頼・研究会・ホムンクルスは種類ごとの stage.jpg）を全画面
+     cover で敷く（絵の URL は conversationLayer.js が --cl-stage-art に置く）。絵はぼかさない。絵を囲む額・中身の箱・「あなた」の札・角の飾り・宙に浮く飾りはやめる。
+   - 場所と言葉が主役。相手は左下の隅、左の印の列のすぐ右に一人だけ立つ。胸の上の切れ目は画面の下の縁に沈め、肩の端は下の暗がりへ
+     溶かす（宙に浮いた頭にしない）。顔の絵の地は描くときに抜き、舞台の光を薄く乗せる（conversationLayer.js の matteFace・
+     litFace）。返事が届くたびにその言葉の表情へ透明度で溶け替える。名は人の足もとに小さく置く（言葉と一緒に流れない）。
+     顔の絵は寄せずに絵全体を顔の窓に描き（絵の下の縁が画面の下の縁）、大きさ --cl-face は画面の高さに合わせる（1440x900 で
+     320px）。400px で止める。
+   - 地を切り抜いた人の顔は、頭と髪の輪郭を露台の案内人の立ち絵（hubTerrace.css の .routing-hub-standee）と同じ柔らかさで舞台へ
+     溶かす。印のある顔と切り抜いていない顔は窓の縁だけを溶かす（どちらにするかは conversationLayer.js が data-face-fade に出す）。
+   - 言葉の列は人の右に置き、下から積む（相手の言葉は人の隣から始まり、主人公の言葉は人から遠い右へ寄る。どちらも同じ幅の枠の中で
+     左揃え）。書く口の行は言葉の列の下。言葉は箱も帯も敷かず、言葉の列の後ろの景色だけを空気のような暗がりのグラデーションで沈め、
+     字には深い柔らかい影を添える。主人公の言葉（暗い金）と控えめな字（仕草の一文・人の名）も透けない色にして、明るい舞台
+     （山道入口・保健室など）の上でも読めるようにする。
+     言葉の列の後ろの暗がりは画面に固定した楕円なので、やり取りが進んで言葉が上へ積まれると上の行が明るい地（机・器・掲示の紙・窓）に
+     出る。そこで言葉の一つひとつの後ろにも、左の印の列と同じ夜の楕円を字の幅に沿って敷く（帯や箱の形にはしない）。
+   - 舞台の名から開く舞台の詳細は、舞台の覗きと同じく場の上へ溶かす形: 製品の小窓の絵が画面そのものになり、左と下を夜へ溶かして、
+     名と様子の一文はその夜の上に直に置く（枠のカードはやめる）。
+   - 左の印と開く画面は露台（hubTerrace.css）の形: 床の楕円の光の上の印・字の無い印・夜を一段沈めた帯。印は六つ（製品のまま）。
+   - 動き: 着いた瞬間に場所が見え、少し遅れて人が光の中から現れ、会話を終えると人が光へ溶けて場所が残る（終えるの釦を押してから
+     製品が会話を閉じるまでの間は conversationLayer.js が持つ）。会話の途中で場所が移ると、人が光へ溶けて消え、地が新しい場所の絵へ
+     溶け替わり、少し遅れて人が光の中から現れる（順は conversationLayer.js の stageMoves が持つ）。人の動きは透明度と光だけ。動きを
+     減らす設定では切り替えるだけ。 */
+
+#conversation-day-screen[data-conversation-kind],
+#academy-loading-screen[data-conversation-passage],
+.room-cards-screen {
+  --cl-face: min(35.6vh, 400px);
+  --cl-rail-left: 1.8vw;
+  --cl-rail-width: clamp(56px, 6vw, 76px);
+  --cl-face-left: calc(var(--cl-rail-left) + var(--cl-rail-width) + 1.2vw);
+  --cl-face-gap: 2.8vw;
+  --cl-words-left: calc(var(--cl-face-left) + var(--cl-face) + var(--cl-face-gap));
+  --cl-words-width: min(36vw, 540px);
+  --cl-line-bottom: 4.6vh;
+  --cl-night-0: #05060f;
+  --cl-word: #eef3ff;
+  --cl-word-quiet: #c4cde3;
+  --cl-moon: #e7edff;
+  --cl-starlight: #9fb4ff;
+  --cl-halo: 0 0 2px rgb(5 6 15), 0 0 5px rgb(5 6 15 / 0.95), 0 0 12px rgb(5 6 15 / 0.85), 0 0 24px rgb(5 6 15 / 0.6);
+  --cl-sigil: rgb(159 180 255 / 0.3);
+  --cl-sigil-strong: rgb(159 180 255 / 0.62);
+  --cl-star-point: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0.6 L6.2 3.8 L9.4 5 L6.2 6.2 L5 9.4 L3.8 6.2 L0.6 5 L3.8 3.8 Z' fill='%23e8c877'/%3E%3C/svg%3E");
+  --cl-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --cl-stage-fade: 900ms;
+  --cl-face-rise: 360ms;
+  --cl-face-settle: 540ms;
+  --cl-face-dissolve: radial-gradient(ellipse 72% 95% at 50% 30%, #000 72%, rgb(0 0 0 / 0.7) 84%, rgb(0 0 0 / 0.3) 93%, transparent 100%), linear-gradient(180deg, transparent 0, #000 6%), linear-gradient(90deg, transparent 0, #000 5%, #000 95%, transparent 100%);
+  background: var(--cl-night-0);
+}
+
+/* ── 地: 舞台の絵が画面そのもの ─────────────────────────────────────────────────────────────────────── */
+/* 地の絵の置き方（窓の座標・待ちの層 #place-veil も読む）: 窓を覆う大きさで、真ん中。 */
+#conversation-day-screen[data-conversation-kind] {
+  --place-art-size: cover;
+  --place-art-position: center;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-background {
+  background-image: var(--cl-stage-art);
+  background-size: var(--place-art-size);
+  background-position: var(--place-art-position);
+  background-attachment: fixed;
+  background-color: var(--cl-night-0);
+  /* 会話の途中で場所が移ると、前の場所の絵から新しい場所の絵へ溶け替わる（人の表情の移りと同じ長さ）。 */
+  transition: background-image var(--cl-stage-fade) var(--cl-ease);
+}
+
+/* 言葉の列の後ろの景色だけを、空気のような暗がりで沈める（箱や帯の形にしない）。言葉は下から積むので、沈みは下ほど深い。
+   人の足もとには、肩の端が溶けていく下の暗がりを置く。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse calc(var(--cl-words-width) * 0.82) 58% at calc(var(--cl-words-left) + var(--cl-words-width) * 0.5) 66%, rgb(5 6 15 / 0.78), rgb(5 6 15 / 0.6) 48%, rgb(5 6 15 / 0.22) 78%, transparent 100%),
+    radial-gradient(ellipse calc(var(--cl-face) * 0.9) 26vh at calc(var(--cl-face-left) + var(--cl-face) * 0.5) 100%, rgb(5 6 15 / 0.82), rgb(5 6 15 / 0.42) 55%, transparent 100%);
+}
+
+/* 光の粒（製品の灯りの粒）は空気として残し、宙に浮く飾りはやめる。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-motes { opacity: 0.55; }
+#conversation-day-screen[data-conversation-kind] .conversation-day-decor-layer { display: none; }
+
+/* ── 外枠: 額と中身の箱をほどいて、中身を絵の上に直に置く ─────────────────────────────────────────── */
+#conversation-day-screen[data-conversation-kind] .conversation-day-frame {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-body { display: contents; }
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage { display: contents; }
+
+/* 舞台の絵の額（正方の絵・角の飾り）はやめる。舞台の絵は地になった。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-standee-frame { display: none; }
+
+/* 人の列（左下の隅）と、その右の言葉の列。人は画面の下の縁まで降り、書く口の行は言葉の列の下に一緒に来る。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-chat-panel {
+  position: absolute;
+  z-index: 3;
+  top: 9vh;
+  bottom: 0;
+  left: var(--cl-face-left);
+  width: calc(var(--cl-face) + var(--cl-face-gap) + var(--cl-words-width));
+  display: grid;
+  grid-template-columns: var(--cl-face) minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto auto calc(var(--cl-line-bottom) - 10px);
+  grid-template-areas: "face stream stream" "face status status" "face composer ways" "face . .";
+  gap: 10px var(--cl-face-gap);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-corner { display: none; }
+
+/* ── 週: 露台・学院マップの層と同じく、左上の控えめな字だけ。札の部屋（依頼・研究会。style.css の .room-cards-screen）も同じ場所・
+   同じ字で週と場所の名を置く（札から会話へ移っても字は動かない） ─────────────────────────────────────────────── */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage], .room-cards-screen) .conversation-day-topbar {
+  position: absolute;
+  z-index: 4;
+  top: 2.6vh;
+  left: 1.8vw;
+  color: var(--cl-word-quiet);
+  text-shadow: var(--cl-halo);
+}
+
+:is(#conversation-day-screen[data-conversation-kind], .room-cards-screen) .conversation-day-moon-glyph {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage], .room-cards-screen) .conversation-day-week { color: var(--cl-word); }
+
+/* いま居る舞台の名: 週の脇の字だけ（枠なし）。指を乗せた先が灯り、押すと製品の舞台の詳細の小窓が開く。 */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage], .room-cards-screen) .cl-stage-name {
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  color: var(--cl-word-quiet);
+  font: inherit;
+  letter-spacing: inherit;
+  text-shadow: var(--cl-halo);
+  cursor: pointer;
+  transition: color 0.6s ease, text-shadow 0.6s ease;
+}
+
+#conversation-day-screen[data-conversation-kind] .cl-stage-name:is(:hover, :focus-visible) {
+  outline: none;
+  color: var(--cl-moon);
+  text-shadow: var(--cl-halo), 0 0 14px rgb(159 180 255 / 0.9);
+}
+
+/* ── 言葉: 夜の上に字の周りの淡い影だけで灯す ─────────────────────────────────────────────────────── */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream {
+  grid-area: stream;
+  gap: 16px;
+  padding: 3vh 8px 0 0;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 16%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 16%);
+}
+
+/* 言葉は下から積む（いちばん新しい言葉がいつも列の下端・顔の脇に来る）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream > :first-child { margin-top: auto; }
+
+/* 言葉ごとの顔と名はやめる（顔は列の脇の一つ、名はその顔の下）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream :is(.message-face, .message-speaker) { display: none; }
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream .message-edit-button { display: none; }
+
+/* 言葉の枠: どの行も言葉の列の幅の 82% で止めた同じ幅の枠に入り、枠の中は左揃えで折り返す。相手の行は左（人の隣）、主人公の
+   行は右（人から遠い側）に寄る。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream .chat-message .message-bubble {
+  width: fit-content;
+  max-width: 82%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* 言葉ごとの夜の楕円: 字の真後ろに、上下 1.4vh・左右 2vw はみ出す。言葉の枠の外へのはみ出しは border-image の outset で描く
+   （描くだけのはみ出しで、言葉の列のスクロールの幅に入らない — 下から積む列の言葉の位置を動かさない）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream .chat-message .message-bubble {
+  border-image: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(5 6 15 / 0.62), rgb(5 6 15 / 0.38) 58%, transparent 100%) 0 fill / 0 / 1.4vh 2vw;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream .message-bubble p {
+  margin: 0;
+  color: var(--cl-word);
+  font-size: 1.05rem;
+  line-height: 1.85;
+  letter-spacing: 0.03em;
+  text-shadow: var(--cl-halo);
+}
+
+/* 地の文（振る舞い）: 相手も主人公も、一段控えめな同じ色・同じ大きさ。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream :is(.narration-message, .player-narration-message) .message-bubble p {
+  color: var(--cl-word-quiet);
+  font-size: 0.92rem;
+}
+
+/* 主人公の行: 同じ夜の上に、枠ごと右に寄せる。右の縁には露台の相手の行の顔の印（40px＋間 12px）と同じ幅を鏡に映して空け、
+   相手の文の右から主人公の言葉の右までを露台と同じ間合いにする（窓の幅によらない固定）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream :is(.player-message, .player-narration-message) .message-bubble {
+  margin-left: auto;
+  margin-right: 52px;
+}
+
+/* 主人公の言葉: 相手の言葉と同じ大きさで、主人公の言葉の色。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream .player-message .message-bubble p {
+  color: var(--player-word);
+}
+
+/* 言葉が灯る: 跳ねず、ゆっくり明るむだけ。 */
+@keyframes cl-kindle {
+  0% { opacity: 0; filter: blur(2px); }
+  100% { opacity: 1; filter: blur(0); }
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-message-stream .chat-message.pop-in {
+  animation: cl-kindle 1.8s ease-out both;
+  will-change: opacity, filter;
+}
+
+/* 失敗の報せ: 書く行の上の夜に置く。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-status {
+  grid-area: status;
+  margin: 0;
+  color: var(--cl-word-quiet);
+  text-shadow: var(--cl-halo);
+}
+
+/* ── 書く口: 札も枠も置かず、羽根ペンの紋（露台の紋）と下の一本の線で示す ──────────────────────────────── */
+#conversation-day-screen[data-conversation-kind] .conversation-day-composer {
+  grid-area: composer;
+  position: relative;
+  display: block;
+  margin-left: 32px;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-composer-label { display: none; }
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-composer textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: 2.4em;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 2px;
+  overflow-y: hidden;
+  border: 0;
+  border-bottom: 1px solid rgb(205 214 234 / 0.36);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--cl-word);
+  font-size: 1rem;
+  line-height: 1.5;
+  text-shadow: var(--cl-halo);
+  animation: none;
+  transition: border-color 0.8s ease;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-composer textarea:focus {
+  outline: none;
+  border-bottom-color: rgb(159 180 255 / 0.7);
+  box-shadow: none;
+}
+
+/* 話した瞬間は、波紋を広げずに線が一度明るむだけ。 */
+#conversation-day-screen[data-conversation-kind].is-day-player-spoke .conversation-day-composer textarea {
+  border-bottom-color: rgb(231 237 255 / 0.9);
+  transition: none;
+}
+
+#conversation-day-screen[data-conversation-kind] .cl-write-mark {
+  position: absolute;
+  left: -32px;
+  bottom: 7px;
+  width: 22px;
+  height: 22px;
+  opacity: 0.5;
+  pointer-events: none;
+  transition: opacity 1.2s ease;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-composer:focus-within .cl-write-mark { opacity: 0.9; }
+
+/* 送る・終えるの二つは、露台の紋の釦（字は aria-label へ）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-button-row {
+  grid-area: ways;
+  align-self: end;
+  gap: 22px;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-action-button {
+  padding: 4px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  opacity: 0.86;
+  transition: opacity 1.2s ease;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-action-button:hover:not(:disabled) {
+  opacity: 1;
+  box-shadow: none;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-action-button:disabled { opacity: 0.34; }
+
+#conversation-day-screen[data-conversation-kind] .cl-way-mark {
+  display: block;
+  width: 26px;
+  height: 26px;
+  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 6px rgb(5 6 15 / 0.7));
+  transition: filter 1.2s ease;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-action-button:is(:hover, :focus-visible):not(:disabled) .cl-way-mark {
+  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 8px rgb(159 180 255 / 0.7));
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-action-button:focus-visible {
+  outline: 1px solid rgb(159 180 255 / 0.55);
+  outline-offset: 2px;
+}
+
+/* ── 相手: 左下の隅に一人。地を抜いて舞台の光を乗せた胸像を、胸の上の切れ目を画面の下の縁に沈めて立たせる ───────── */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face {
+  grid-area: face;
+  align-self: end;
+  position: relative;
+  width: var(--cl-face);
+  margin: 0;
+  opacity: 0;
+}
+
+/* 着いた場所が先に見え、少し遅れて人が光の中から現れる（透明度と光だけ）。 */
+@keyframes cl-emerge {
+  0% { opacity: 0; filter: brightness(1.8) drop-shadow(0 0 30px rgb(var(--cl-light-rgb) / 0.85)); }
+  55% { opacity: 1; }
+  100% { opacity: 1; filter: brightness(1) drop-shadow(0 0 0 rgb(var(--cl-light-rgb) / 0)); }
+}
+
+/* 会話を終えると、人が光へ溶けて消え、場所が残る。 */
+@keyframes cl-recede {
+  0% { opacity: 1; filter: brightness(1) drop-shadow(0 0 0 rgb(var(--cl-light-rgb) / 0)); }
+  100% { opacity: 0; filter: brightness(1.8) drop-shadow(0 0 26px rgb(var(--cl-light-rgb) / 0.7)); }
+}
+
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face.is-present {
+  opacity: 1;
+  animation: cl-emerge 1.8s var(--cl-ease) 0.6s both;
+}
+
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face.is-present.is-leaving {
+  opacity: 0;
+  animation: cl-recede 1.1s var(--cl-ease) both;
+}
+
+/* 会話へ移るあいだに現れきった人は、会話の画面でそのまま立っている（現れ直さない）。 */
+#conversation-day-screen[data-conversation-kind] .cl-face.is-present.is-arrived { animation: none; }
+
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face-well {
+  position: relative;
+  display: block;
+  width: var(--cl-face);
+  height: var(--cl-face);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  /* 窓の溶かし（印のある顔・切り抜いていない顔）: 頭と髪は透かさない（楕円の中心を絵の上寄りに置き、頭と髪をすべて不透明の
+     内側に入れる）。透かすのは下の両隅（肩の端）と、絵の上と両脇の縁の細い帯（絵の縁まで描かれた髪を、絵の四角い縁で切って見せ
+     ない）だけで、重ねた mask は掛け合わせる。下の縁の真ん中は透かさずに切る（胸の上の切れ目は画面の下の縁に沈む）。 */
+  -webkit-mask-image: var(--cl-face-dissolve);
+  mask-image: var(--cl-face-dissolve);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  overflow: hidden;
+}
+
+/* 地を切り抜いた人の顔: 露台の案内人の立ち絵の溶かし（絵に内接する楕円の半径の 56% まで不透明、そこから縁まで直線に透明）を、
+   頭と髪を囲む楕円に置く。楕円は絵の上の縁と両脇の縁に接するので、そこで透明になりきり、窓の四角い縁は見えない。胸から下（高さ
+   58%〜70% から下）は溶かさず、両脇の縁の 5% の帯だけを透かす（肩の端は下の暗がりへ沈む）。重ね方: 楕円 ∪（下の帯 ∩ 両脇の帯）。 */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face[data-face-fade="head"] .cl-face-well {
+  --cl-face-dissolve: radial-gradient(ellipse 50% 48% at 50% 48%, #000 56%, transparent 100%), linear-gradient(180deg, transparent 58%, #000 70%), linear-gradient(90deg, transparent 0, #000 5%, #000 95%, transparent 100%);
+  -webkit-mask-composite: source-over, source-in;
+  mask-composite: add, intersect;
+}
+
+/* 苔火は祠の石灯籠そのもので、絵の下の縁まで四角い石の竿が描かれている。絵を窓の中で下げて竿を画面の下の縁の外へ沈め、灯籠を隅の
+   地面に据える。透かしは灯籠を中心にし、石は透かさずに外の縁だけを景色と下の暗がりへ溶かす。 */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face[data-partner="creature_001"] .cl-face-well {
+  --cl-face-dissolve: radial-gradient(ellipse 56% 60% at 50% 66%, #000 62%, rgb(0 0 0 / 0.8) 74%, rgb(0 0 0 / 0.4) 86%, rgb(0 0 0 / 0.1) 95%, transparent 100%);
+}
+
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face[data-partner="creature_001"] .cl-face-layer {
+  transform: translateY(16%);
+}
+
+/* 胸から下は下の暗がりへ沈める。 */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face-well::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 58%, rgb(5 6 15 / 0.42) 80%, rgb(5 6 15 / 0.82) 100%);
+}
+
+#conversation-day-screen[data-conversation-kind] .cl-face-well:focus-visible { outline: none; }
+
+/* 顔の絵は寄せずに絵全体を描く（抜いた地の縁まで見えたまま mask で景色へ溶かす）。見えている層はいつも一枚だけで、二つの層を
+   重ねて溶け替えない（重ねると人が半ば透けて舞台が見え、位置のずれた顔では目や口が二重になる）。 */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face-layer.is-shown { opacity: 1; }
+
+/* 表情が移る: 人は不透明のまま舞台の光に明るみ、明るみきったところで表情の絵が入れ替わり、新しい表情が明るみから落ち着く。 */
+@keyframes cl-face-rise {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.4); }
+}
+
+@keyframes cl-face-settle {
+  from { filter: brightness(1.4); }
+  to { filter: brightness(1); }
+}
+
+#conversation-day-screen[data-conversation-kind] .cl-face-layer.is-rising { animation: cl-face-rise var(--cl-face-rise) ease-in both; }
+#conversation-day-screen[data-conversation-kind] .cl-face-layer.is-settling { animation: cl-face-settle var(--cl-face-settle) var(--cl-ease) both; }
+
+/* 名は人の足もと（下の暗がりの上）に小さく置く。 */
+:is(#conversation-day-screen[data-conversation-kind], #academy-loading-screen[data-conversation-passage]) .cl-face-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2.4vh;
+  margin: 0;
+  color: var(--cl-word-quiet);
+  font-size: 0.82rem;
+  letter-spacing: 0.24em;
+  text-align: center;
+  text-indent: 0.24em;
+  text-shadow: var(--cl-halo);
+  pointer-events: none;
+}
+
+/* 相手が言葉を探している間は、人の周りの光がゆっくり息をする（光の明るさだけ）。 */
+@keyframes cl-breath {
+  0%, 100% { filter: drop-shadow(0 0 10px rgb(var(--cl-light-rgb) / 0.12)); }
+  50% { filter: drop-shadow(0 0 26px rgb(var(--cl-light-rgb) / 0.38)); }
+}
+
+#conversation-day-screen[data-conversation-kind].is-day-responding .cl-face-well,
+#conversation-day-screen[data-conversation-kind] .cl-face.is-awaiting .cl-face-well {
+  animation: cl-breath 3.2s ease-in-out infinite;
+}
+
+/* ── 左の印: 露台の床の印の形（字は出さず、床に寝た楕円の光の上に印）。印は六つ ─────────────────────── */
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-rail {
+  position: absolute;
+  z-index: 6;
+  left: var(--cl-rail-left);
+  top: 18vh;
+  bottom: 14vh;
+  width: var(--cl-rail-width);
+  justify-content: space-evenly;
+  gap: 0;
+}
+
+/* 明るい絵の上でも印が薄れないよう、列の後ろに夜の楕円を敷く（帯や箱にはしない）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-rail::before {
+  content: '';
+  position: absolute;
+  inset: -6vh -2.4vw;
+  z-index: -1;
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(5 6 15 / 0.56), rgb(5 6 15 / 0.32) 60%, transparent 100%);
+  pointer-events: none;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-button {
+  position: relative;
+  padding: 2px 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-button::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 54px;
+  height: 14px;
+  translate: -50% 0;
+  border: 1px solid var(--cl-sigil);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(159 180 255 / 0.24), rgb(159 180 255 / 0.06) 60%, transparent 75%);
+  transition: border-color 1.2s ease, box-shadow 1.2s ease;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-button:is(:hover, .is-active) {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-button:is(:hover, .is-active)::before {
+  border-color: var(--cl-sigil-strong);
+  box-shadow: 0 0 14px rgb(159 180 255 / 0.4);
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-button:focus-visible {
+  outline: 1px solid rgb(159 180 255 / 0.55);
+  outline-offset: 2px;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-icon {
+  width: 45px;
+  height: 45px;
+  margin-top: -15px;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 6px rgb(5 6 15 / 0.7));
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-category-label { display: none; }
+
+/* ── 印から開く画面: 器は共有の夜の帯（.night-band・hubTerrace.css）。ここはほかの欄の中身の見せ方。 ──────────── */
+@keyframes cl-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 帯の中の欄と行は枠で囲まず、間合いと行の頭の小さな星の点で区切る。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-info-popup-body :is(
+  .conversation-day-info-summary, .conversation-day-info-empty-card, .conversation-day-info-loading, .conversation-day-info-diary-loading,
+  .conversation-day-info-buddy-card, .conversation-day-info-roster-card, .conversation-day-info-ledger-row, .conversation-day-info-money-card,
+  .conversation-day-info-chip, .conversation-day-info-ledger-materia span, .conversation-day-info-diary-header, .conversation-day-info-diary-entry,
+  .conversation-day-info-ledger-give
+) {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-info-popup-body :is(.conversation-day-info-ledger-row, .conversation-day-info-roster-card, .conversation-day-info-diary-entry) {
+  position: relative;
+  padding: 2px 0 2px 16px;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-info-popup-body :is(.conversation-day-info-ledger-row, .conversation-day-info-roster-card, .conversation-day-info-diary-entry)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 7px;
+  height: 7px;
+  background: var(--cl-star-point) center / contain no-repeat;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-info-popup-body :is(
+  .conversation-day-info-ledger-desc, .conversation-day-info-roster-meta, .conversation-day-info-empty-note, .conversation-day-info-summary-label,
+  .conversation-day-info-money-label, .conversation-day-info-diary-count, .conversation-day-info-chip, .conversation-day-info-ledger-materia span
+) {
+  color: var(--cl-word-quiet);
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-info-popup-body .conversation-day-info-ledger-give {
+  padding: 2px 0;
+  color: var(--cl-word);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-info-popup-body :is(.conversation-day-info-portrait, .conversation-day-info-roster-face, .conversation-day-info-diary-face) {
+  border: 0;
+  border-radius: 50%;
+}
+
+/* ── 舞台の名から開く舞台の詳細: 舞台の覗きと同じく場の上へ溶かす（枠のカードはやめる） ─────────────────────
+   製品の小窓の絵（#conversation-day-stage-popup-image）を画面そのものにし、製品の小窓の地（押すと閉じる）を絵の左と下を夜へ溶かす
+   暗がりにして、名と様子の一文はその夜の上に直に置く。中身と開け閉めは製品の小窓のまま。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup {
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0 0 9vh calc(1.8vw + 96px);
+  animation: cl-fade-in 0.9s var(--cl-ease) both;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-image {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: auto;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background-color: var(--cl-night-0);
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-backdrop {
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 80% 80% at 60% 50%, rgb(5 6 15 / 0.2), rgb(5 6 15 / 0.62) 100%),
+    linear-gradient(90deg, rgb(5 6 15 / 0.9) 0, rgb(5 6 15 / 0.66) 30%, rgb(5 6 15 / 0.12) 58%, transparent 74%),
+    linear-gradient(0deg, rgb(5 6 15 / 0.8) 0, rgb(5 6 15 / 0.24) 32%, transparent 52%);
+  backdrop-filter: none;
+}
+
+/* カードの重なりの層をほどく（製品の z-index のままだと flex の子のカードが層になり、中の絵が地の暗がりより上に描かれる）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-card {
+  position: static;
+  z-index: auto;
+  width: min(42vw, 600px);
+  max-height: none;
+  overflow: visible;
+  gap: 2.2vh;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--cl-word);
+  text-shadow: var(--cl-halo);
+}
+
+/* 名・様子の一文の順に、夜の上へ縦に並べる（閉じるの紋は小窓の右上の角）。 */
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-header { display: contents; }
+
+#conversation-day-screen[data-conversation-kind] :is(.conversation-day-stage-popup-heading, .conversation-day-stage-popup-text) {
+  position: relative;
+  z-index: 2;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-heading { order: 0; }
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-text { order: 1; }
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-eyebrow { display: none; }
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-title {
+  color: var(--cl-moon);
+  font-size: 1.7rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+#conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-text {
+  color: var(--cl-word);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+/* ── 会話へ移るあいだ: 読み込みの画面の上で場へ入っていく（段は conversationLayer.js が data-conversation-passage に立てる） ──
+   箱・字・夜の絵・星座は出さない。地は会話の画面と同じ夜で、場所の絵・暗がり・顔・名・舞台の名は会話の画面と同じ場所・同じ大きさ。 */
+.cl-passage { display: none; }
+
+#academy-loading-screen[data-conversation-passage] :is(.academy-loading-backdrop, .academy-loading-copy) { display: none; }
+
+/* 露台の送り出しの幕（行き先の絵・hubTerrace の #terrace-opened）は読み込みの間も上に残る。学院マップへの送り出しの読み込みの下で
+   出来事の会話が始まると行き先は会話になるので、移り変わりが出ている間は幕を出さない（幕は会話の画面に着いたとき露台が上げる）。 */
+body:has(#academy-loading-screen[data-conversation-passage]) #terrace-opened { display: none; }
+
+#academy-loading-screen[data-conversation-passage] .cl-passage {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--cl-night-0);
+}
+
+#academy-loading-screen[data-conversation-passage] :is(.cl-passage-stage, .cl-passage-scrim, .cl-passage-glow) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* 場所の絵: 会話の画面の地と同じ敷き方（cover・中央・ぼかさない）。夜の暗さから明るさと透明度で満ちる。 */
+#academy-loading-screen[data-conversation-passage] .cl-passage-stage {
+  z-index: 0;
+  background-image: var(--cl-stage-art);
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+}
+
+/* 会話の画面と同じ暗がり（言葉の列の後ろ・足もと）を場所と一緒に満たし、会話の画面へ移っても明るさが跳ねないようにする。 */
+#academy-loading-screen[data-conversation-passage] .cl-passage-scrim {
+  z-index: 1;
+  background:
+    radial-gradient(ellipse calc(var(--cl-words-width) * 0.82) 58% at calc(var(--cl-words-left) + var(--cl-words-width) * 0.5) 66%, rgb(5 6 15 / 0.78), rgb(5 6 15 / 0.6) 48%, rgb(5 6 15 / 0.22) 78%, transparent 100%),
+    radial-gradient(ellipse calc(var(--cl-face) * 0.9) 26vh at calc(var(--cl-face-left) + var(--cl-face) * 0.5) 100%, rgb(5 6 15 / 0.82), rgb(5 6 15 / 0.42) 55%, transparent 100%);
+  opacity: 0;
+}
+
+/* 相手が立つ左下の隅の明るみ（舞台の光の色）。 */
+#academy-loading-screen[data-conversation-passage] .cl-passage-glow {
+  z-index: 2;
+  background: radial-gradient(ellipse calc(var(--cl-face) * 0.62) 34vh at calc(var(--cl-face-left) + var(--cl-face) * 0.5) 82%, rgb(var(--cl-light-rgb) / 0.34), rgb(var(--cl-light-rgb) / 0.12) 55%, transparent 100%);
+  opacity: 0;
+}
+
+/* 顔の窓: 会話の画面の顔と同じ場所（左の印の列の右・下の縁）。中身と現れ方は会話の画面の .cl-face のまま。 */
+#academy-loading-screen[data-conversation-passage] .cl-passage-face {
+  position: absolute;
+  z-index: 3;
+  left: var(--cl-face-left);
+  bottom: 0;
+  width: var(--cl-face);
+}
+
+#academy-loading-screen[data-conversation-passage] .cl-passage-face .cl-face-well { pointer-events: none; }
+
+/* 舞台の名: 会話の画面で週の字の脇に立つのと同じ場所・同じ字。週の字は場所を取るだけで見せない（週は会話の画面の表示）。 */
+#academy-loading-screen[data-conversation-passage] .cl-passage-topbar :is(.conversation-day-moon-glyph, .cl-passage-week) { visibility: hidden; }
+
+#academy-loading-screen[data-conversation-passage] .cl-passage-stage-name {
+  cursor: default;
+  opacity: 0;
+}
+
+@keyframes cl-passage-fill {
+  0% { opacity: 0; filter: brightness(0.35); }
+  100% { opacity: 1; filter: brightness(1); }
+}
+
+@keyframes cl-passage-appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cl-passage-breath {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.85; }
+}
+
+/* 満ちる: 場所と暗がりが 1.6s で満ち、舞台の名が少し遅れて灯り、満ちきったところから明るみが息をする。 */
+#academy-loading-screen[data-conversation-passage="waiting"] .cl-passage-stage { animation: cl-passage-fill 1.6s var(--cl-ease) both; }
+#academy-loading-screen[data-conversation-passage]:not([data-conversation-passage="dark"]) .cl-passage-scrim { animation: cl-passage-appear 1.6s var(--cl-ease) both; }
+#academy-loading-screen[data-conversation-passage]:not([data-conversation-passage="dark"]) .cl-passage-stage-name { animation: cl-passage-appear 1.2s var(--cl-ease) 0.4s both; }
+#academy-loading-screen[data-conversation-passage="waiting"] .cl-passage-glow { animation: cl-passage-breath 3.2s ease-in-out 1.6s infinite; }
+
+/* 待ちが長引いた: 場所が少し沈み、明るみの息がゆっくり浅くなる（止まらない — まだ待っている）。 */
+@keyframes cl-passage-sink {
+  from { filter: brightness(1); }
+  to { filter: brightness(0.62); }
+}
+
+@keyframes cl-passage-slow-breath {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.6; }
+}
+
+#academy-loading-screen[data-conversation-passage="long-wait"] .cl-passage-stage {
+  opacity: 1;
+  animation: cl-passage-sink 2.4s var(--cl-ease) both;
+}
+
+#academy-loading-screen[data-conversation-passage="long-wait"] .cl-passage-glow { animation: cl-passage-slow-breath 6.4s ease-in-out infinite; }
+
+/* 次の段の動きは、段が替わった瞬間の場所と明るみの見え方（conversationLayer.js が --cl-passage-held-* に写す）から始める。 */
+@keyframes cl-passage-glow-out {
+  from { opacity: var(--cl-passage-held-glow); }
+  to { opacity: 0; }
+}
+
+/* 応答が始まった: 明るみが顔へ譲り、顔が光の中から現れる（顔の動きは .cl-face.is-present の cl-emerge）。待ちが長引いた後なら、沈んだ
+   場所も元の明るさへ戻る。 */
+@keyframes cl-passage-rise {
+  from { opacity: 1; filter: var(--cl-passage-held-filter); }
+  to { opacity: 1; filter: brightness(1); }
+}
+
+#academy-loading-screen[data-conversation-passage="arriving"] .cl-passage-stage { animation: cl-passage-rise 1.4s var(--cl-ease) both; }
+#academy-loading-screen[data-conversation-passage="arriving"] .cl-passage-glow { animation: cl-passage-glow-out 1.4s var(--cl-ease) both; }
+
+/* 止まった（言葉の生成に失敗した）: 明るみが消えて息が止み、場所が色を失って夜へ沈む。沈みきったら製品の戻し先へ戻る。 */
+@keyframes cl-passage-stop {
+  from { opacity: var(--cl-passage-held-opacity); filter: var(--cl-passage-held-filter); }
+  to { opacity: var(--cl-passage-held-opacity); filter: brightness(0.3) saturate(0.15); }
+}
+
+#academy-loading-screen[data-conversation-passage="stopped"] .cl-passage-stage { animation: cl-passage-stop 1.2s var(--cl-ease) both; }
+#academy-loading-screen[data-conversation-passage="stopped"] .cl-passage-glow { animation: cl-passage-glow-out 1.2s var(--cl-ease) both; }
+
+/* 動きを減らす設定: 切り替えるだけ。 */
+@media (prefers-reduced-motion: reduce) {
+  #conversation-day-screen[data-conversation-kind] *,
+  #conversation-day-screen[data-conversation-kind] *::before,
+  #conversation-day-screen[data-conversation-kind] *::after,
+  #academy-loading-screen[data-conversation-passage] .cl-passage *,
+  #academy-loading-screen[data-conversation-passage] .cl-passage *::before,
+  #academy-loading-screen[data-conversation-passage] .cl-passage *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+
+  #academy-loading-screen[data-conversation-passage]:not([data-conversation-passage="dark"]) :is(.cl-passage-stage, .cl-passage-scrim, .cl-passage-stage-name) { opacity: 1; }
+  #academy-loading-screen[data-conversation-passage="waiting"] .cl-passage-glow { opacity: 0.5; }
+  #academy-loading-screen[data-conversation-passage="long-wait"] .cl-passage-glow { opacity: 0.3; }
+  #academy-loading-screen[data-conversation-passage="long-wait"] .cl-passage-stage { filter: brightness(0.62); }
+  #academy-loading-screen[data-conversation-passage="stopped"] .cl-passage-stage { filter: brightness(0.3) saturate(0.15); }
+}

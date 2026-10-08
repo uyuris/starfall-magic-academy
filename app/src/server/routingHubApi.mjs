@@ -34,10 +34,10 @@ function assertValidConversationIdForApi(value, fieldName = 'id') {
 }
 
 // Every hub start answers with the destination catalog's ids and names (routing_destinations): the hub names the
-// destinations in the guide's words and on its failure notice from this one list. A destination without a label is a
-// catalog/config mismatch, which the catalog's own validation stops here, naming its id
-// (`routing destination.label is required: <id>`).
-function routingDestinationNames() {
+// destinations in the guide's words and on its failure notice from this one list. The 案内人's graduation re-entry
+// opens the hub without a hub start and carries the same list. A destination without a label is a catalog/config
+// mismatch, which the catalog's own validation stops here, naming its id (`routing destination.label is required: <id>`).
+export function routingDestinationNames() {
   return validateRoutingDestinations(routingDestinations).map(({ id, label }) => ({ id, label }));
 }
 

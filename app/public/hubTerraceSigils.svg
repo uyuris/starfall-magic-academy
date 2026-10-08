@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg">
-  <!-- 十一の能力の紋。紋ごとの <symbol>（id は sigil-<能力の key>）を <use href="/hubTerraceSigils.svg#sigil-<key>"> で引く。
+  <!-- 十一の能力の紋と、購買の手もとの売る・使うの紋。紋ごとの <symbol>（id は sigil-<能力の key>・sigil-sell・sigil-use）を <use href="/hubTerraceSigils.svg#sigil-<key>"> で引く。
        露台の夜の上の作法: 藍の面（#2a3070）・月白の線（#dde3f6）・金の灯り（#e8c877）。文字は描かない。 -->
   <symbol id="sigil-light" viewBox="0 0 32 32">
     <circle cx="16" cy="16" r="6.2" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" />
@@ -56,5 +56,16 @@
   <symbol id="sigil-charisma" viewBox="0 0 32 32">
     <path d="M4.5 24.5 L6.5 10.5 L12 17 L16 7.5 L20 17 L25.5 10.5 L27.5 24.5 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" />
     <path d="M16 18.1 L16.67 19.83 L18.4 20.5 L16.67 21.17 L16 22.9 L15.33 21.17 L13.6 20.5 L15.33 19.83 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="sigil-sell" viewBox="0 0 32 32">
+    <ellipse cx="16" cy="21" rx="9" ry="6" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" />
+    <ellipse cx="16" cy="19.4" rx="5.4" ry="3.2" fill="none" stroke="#dde3f6" stroke-width="0.9" />
+    <path d="M16 12.5 V3.5 M12.4 7 L16 3.5 L19.6 7" fill="none" stroke="#dde3f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M24.5 6.2 L25.1 7.7 L26.6 8.3 L25.1 8.9 L24.5 10.4 L23.9 8.9 L22.4 8.3 L23.9 7.7 Z" fill="#e8c877" />
+  </symbol>
+  <symbol id="sigil-use" viewBox="0 0 32 32">
+    <path d="M13 11 V7 H19 V11 C23.5 12.6 26 16 26 20 A10 8 0 0 1 6 20 C6 16 8.5 12.6 13 11 Z" fill="#2a3070" stroke="#dde3f6" stroke-width="1.3" stroke-linejoin="round" />
+    <path d="M12 5 H20" fill="none" stroke="#dde3f6" stroke-width="1.5" stroke-linecap="round" />
+    <path d="M16 15.4 L16.9 17.6 L19.1 18.5 L16.9 19.4 L16 21.6 L15.1 19.4 L12.9 18.5 L15.1 17.6 Z" fill="#e8c877" />
   </symbol>
 </svg>

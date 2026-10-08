@@ -70,7 +70,7 @@ export function healingSpellAmount(parameters) {
   const purpose = 'healing spell amount';
   const lightPower = strictSpellPowerFor(parameters, 'light', purpose);
   const waterPower = strictSpellPowerFor(parameters, 'water', purpose);
-  return Math.max(8, Math.round((lightPower + waterPower) / 3));
+  return Math.max(8, Math.round((lightPower + waterPower) / 5));
 }
 
 export function healingSpellManaCost(parameters) {
@@ -145,7 +145,7 @@ export function deriveCombatStats(rawParameters) {
     melee_attack: 5 + Math.round(strength * 0.45 + agility * 0.1),
     defense: 2 + Math.round(strength * 0.18 + agility * 0.12),
     accuracy: 78 + Math.round(agility * 0.18),
-    evasion: Math.round(agility * 0.16),
+    evasion: 9 + Math.round(agility * 0.28),
     crit_chance: Math.round(academics * 0.14),
     // Exploration reflection: sharper minds reveal more of the floor each step.
     vision_radius: 3 + Math.floor(academics / 45),

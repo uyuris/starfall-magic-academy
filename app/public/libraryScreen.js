@@ -14,7 +14,6 @@ const READ_FAILED_LINE = '今は写しを綴じられませんでした';
 const ARRIVAL_FAILED_LINE = '今は書庫に入れませんでした';
 const GATED_NOTE = '今は開けない';
 const FOOTNOTES_HEADING = '関連する本';
-const FOOTNOTES_PENDING_LINE = '関連する本を探しています…';
 const FOOTNOTES_FAILED_LINE = '関連する本を読み込めませんでした。';
 const FOOTNOTES_RETRY_LABEL = '再試行';
 const GATED_ERROR_CODE = 'LIBRARY_BOOK_GATED';
@@ -724,7 +723,7 @@ function validateRead(response) {
 // - redirectRuntimeError(error): LM の設定・接続の失敗なら設定画面へ誘導して true。
 // - leave(): ロードの被覆を経てハブへ戻る。
 export function createLibraryScreen(deps) {
-  for (const name of ['loadArrival', 'search', 'read', 'footnotes', 'redirectRuntimeError', 'leave']) {
+  for (const name of ['loadArrival', 'search', 'read', 'footnotes', 'redirectRuntimeError', 'leave', 'waitMark']) {
     if (typeof deps?.[name] !== 'function') throw new Error(`library screen: missing dependency ${name}`);
   }
   const root = document.querySelector('#academy-library-screen');
@@ -1768,7 +1767,7 @@ export function createLibraryScreen(deps) {
     return item;
   }
 
-  // 待つ間はインクの一文、確定は見出しと題の並び、失敗は見出しと一文と「再試行」。0 件は脚注を書かない。
+  // 待つ間は画面の中の待ちの印（右下で待ちの紋が回る）、確定は見出しと題の並び、失敗は見出しと一文と「再試行」。0 件は脚注を書かない。
   function buildFootnotes() {
     const { state, references } = reading.footnotes;
     if (state === 'idle' || (state === 'ready' && references.length === 0)) return null;
@@ -1777,7 +1776,7 @@ export function createLibraryScreen(deps) {
     section.dataset.state = state;
     section.append(pageRule());
     if (state === 'pending') {
-      section.append(pageNoteLine(FOOTNOTES_PENDING_LINE));
+      section.append(deps.waitMark());
       return section;
     }
     const heading = document.createElement('p');

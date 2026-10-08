@@ -10,14 +10,14 @@
 //
 // Every daytime conversation kind runs on its own isolated routing server with a deterministic LM stub:
 //   roster (学院マップの相手) / event (hub → academy-map dispatch auto-starts a pending event) / errand / study circle /
-//   atelier (うちの子) / graduation (phase-2 with the 案内人).
+//   atelier (うちの子).
 // Per kind: on landing (no click) the opening has revealed and document.activeElement must already be the input.
 // The first utterance is then typed after a real (CDP) click on the input; once the reply has revealed,
 // document.activeElement must be the input; the second utterance is then typed + sent with CDP key events only
 // (no click, no harness focus()) and must reach the LM stub. On the roster kind, the edge cases: typing during the
 // reveal, a scrolled-up read position, an open overlay (info drawer / stage popup / character popup) and the
 // terminal auto-end, plus one gift (渡す from the inventory drawer) after which focus must return once the reaction
-// has revealed. The atelier and graduation kinds add their own partner popup. A focus() probe records every
+// has revealed. The atelier kind adds its own partner popup. A focus() probe records every
 // focus call on the input (options + scroll positions before/after) so a no-op is observable, not inferred.
 // The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
@@ -56,7 +56,6 @@ const OFFER_MOTIVATION = '一人では手が回らないため。';
 const OFFER_APPEAL = 'あの、ひとつお願いしてもいいですか。少しだけ手を貸してほしいんです。';
 const SENDOFF_TEXT = '（あなたの背をそっと押して）では、いってらっしゃい。';
 const MAP_INPUT = '今週は学院を歩いて回りたい';
-const GUIDE_SELECT_INPUT = 'あなた自身と、この学院生活の最後を過ごしたい';
 const EVENT_FLAG_ID = 'event.stargazing_promise.ready';
 const EVENT_CHARACTER_ID = 'character_001';
 const HOMUNCULUS_ID = 'homunculus_001';
@@ -96,7 +95,6 @@ async function startStubLm() {
     } else if (prompt.includes('この依頼を自分の口から持ちかける') || prompt.includes('この研究会を自分の口から持ちかける')) content = OFFER_APPEAL;
     else if (prompt.includes('場所移動の合意')) content = 'false';
     else if (prompt.includes('location_idを1つだけ返す')) content = 'none';
-    else if (prompt.includes('締めくくりを誰と過ごすと選んだか')) content = 'lina';
     else if (prompt.includes('ルーティングハブ会話内容') && prompt.includes('destination_id')) {
       if (prompt.includes(MAP_INPUT)) content = 'academy-map';
       else content = 'none';
@@ -107,7 +105,7 @@ async function startStubLm() {
     else if (prompt.includes('MP温存ライン')) content = '30';
     else if (prompt.includes('増減したユーザーの所持金を判定する') || prompt.includes('所持金判定')) content = '0';
     else if (prompt.includes('を手渡した')) content = GIFT_REACTION; // the gift_reaction turn
-    else if ([FIRST_INPUT, SECOND_INPUT, REVEAL_TYPING_INPUT, SCROLL_INPUT, DRAWER_INPUT, STAGE_POPUP_INPUT, PARTNER_POPUP_INPUT, END_INPUT, MAP_INPUT, GUIDE_SELECT_INPUT].some((input) => prompt.includes(input))) content = REPLY_TEXT;
+    else if ([FIRST_INPUT, SECOND_INPUT, REVEAL_TYPING_INPUT, SCROLL_INPUT, DRAWER_INPUT, STAGE_POPUP_INPUT, PARTNER_POPUP_INPUT, END_INPUT, MAP_INPUT].some((input) => prompt.includes(input))) content = REPLY_TEXT;
     else content = OPENING_TEXT;
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ choices: [{ message: { content } }] }));
@@ -477,7 +475,7 @@ async function scenarioRoster() {
     label: 'info-drawer',
     open: `document.querySelector('.conversation-day-category-button[data-day-category="inventory"]').click();`,
     overlaySelector: '#conversation-day-info-popup',
-    close: `document.querySelector('#conversation-day-info-popup .conversation-day-info-popup-close').click();`
+    close: `document.querySelector('#conversation-day-info-popup .night-band-close').click();`
   });
   await overlayTurn(win, 'roster', {
     input: STAGE_POPUP_INPUT,
@@ -641,46 +639,12 @@ async function scenarioAtelier() {
   win.destroy();
 }
 
-async function scenarioGraduation() {
-  const fixture = await makeFixture('graduation');
-  const base = await startGameServer(fixture);
-  const win = await openWindow();
-  // The hub creates the graduation guide at hub start once elapsed_weeks reaches GRADUATION_ENDING_WEEK - 1: seed
-  // week 49 on a fresh routing save, then enter the hub through the real title → ロード → slot load path.
-  const onHub = await newGameToHub(win, base);
-  await mutateActiveSlotState(fixture.root, (state) => { state.elapsed_weeks = 49; });
-  await win.loadURL(`${base}/`);
-  await waitFor(win, `document.querySelector('#title-screen')?.classList.contains('active')`, { tries: 200, intervalMs: 100 });
-  await sleep(400);
-  await js(win, `document.querySelector('#open-load-screen').click(); true`);
-  await waitFor(win, `document.querySelector('#slot-load-screen')?.classList.contains('active') && document.querySelector('.slot-load-item .academy-map-action-button.primary')`, { tries: 200, intervalMs: 100 });
-  await sleep(200);
-  const loaded = await js(win, `(() => { const b = document.querySelector('.slot-load-item .academy-map-action-button.primary'); if (!b || b.disabled) return false; b.click(); return true; })()`);
-  const guideHub = loaded && await waitFor(win, `document.querySelector('#routing-hub-screen')?.classList.contains('active') && !document.querySelector('#routing-hub-send')?.disabled && !document.querySelector('#academy-loading-screen')?.classList.contains('active')`, { tries: 400, intervalMs: 120 });
-  const guide = await js(win, `fetch('/api/state').then((r) => r.json()).then((s) => s?.routing_graduation_guide ?? null)`);
-  await sleep(400);
-  const selectSent = guideHub && guide !== null && await hubTurn(win, GUIDE_SELECT_INPUT);
-  const landed = selectSent && await waitFor(win, dayScreenReady, { tries: 900, intervalMs: 150 });
-  check('graduation: the 案内人 phase-2 卒業会話 lands on #conversation-day-screen', landed, { onHub, loaded, guideHub, guideActive: guide !== null, selectSent, landed });
-  await openingFocusCheck(win, 'graduation', landed);
-  await coreKindCheck(win, 'graduation');
-  await overlayTurn(win, 'graduation', {
-    input: PARTNER_POPUP_INPUT,
-    label: 'graduation-popup',
-    open: `document.querySelector('#conversation-day-message-stream .message-speaker').click();`,
-    overlaySelector: '#conversation-day-graduation-popup',
-    close: `document.querySelector('#conversation-day-graduation-popup [data-day-popup-close]').click();`
-  });
-  win.destroy();
-}
-
 const SCENARIOS = {
   roster: scenarioRoster,
   event: scenarioEvent,
   errand: () => scenarioOffer('errand', { initialScreen: 'academy-errand', cardButton: '#academy-errand-offers .academy-errand-card .academy-errand-card-button' }),
   'study-circle': () => scenarioOffer('study-circle', { initialScreen: 'academy-study-circle', cardButton: '#academy-study-circle-offers .academy-study-circle-card .academy-study-circle-card-button' }),
-  atelier: scenarioAtelier,
-  graduation: scenarioGraduation
+  atelier: scenarioAtelier
 };
 
 async function main() {

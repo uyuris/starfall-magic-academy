@@ -8,12 +8,12 @@
 //
 // It boots a self-contained STUB HTTP server (static app/public + /canonical + deterministic /api/auction/*
 // responses, and the minimal boot endpoints the client refreshes) and drives the REAL auction flow against real
-// Blink layout: land on #academy-auction-screen via ?initialScreen=academy-auction → the entry loading cover
-// releases on the opening 口上 → the master opening + seated-bidder reactions reveal in the chat stream → the NPC
-// bidders pass and the bid bar activates for the player's turn → the player raises and wins → the hammer 宣言
-// reveals → the next lot → after the third lot the closed view shows the week's results + the ハブへ戻る affordance.
-// The board (name / current / highest / min-increment / progress / history) and the numeric bid bar are measured
-// against real layout. The harness is fire-and-forget (no top-level await main(); whenReady
+// Blink layout: land on #academy-auction-screen via ?initialScreen=academy-auction → the entry wait releases on the
+// opening 口上 → the master opening + seated-bidder reactions land over the speakers' heads in their seats → the NPC
+// bidders pass and the hand at the bottom opens for the player's turn (the raise starts at the minimum increment) →
+// the player raises and wins → the hammer 宣言 → the next lot → after the third lot the closed results stand with the
+// exit sigil. The lot (category / name / price), the way of the stages, the seats and the hand are measured against
+// real layout. The harness is fire-and-forget (no top-level await main(); whenReady
 // would deadlock) and drives real pointer clicks through the DOM.
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
@@ -25,8 +25,8 @@ import { fileURLToPath } from 'node:url';
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PUBLIC_ROOT = path.join(PROJECT_ROOT, 'app/public');
 const REPO_CANONICAL = path.join(PROJECT_ROOT, 'assets/canonical');
-const WIN_W = Number(process.env.AUC_WIN_W ?? 1200);
-const WIN_H = Number(process.env.AUC_WIN_H ?? 820);
+const WIN_W = Number(process.env.AUC_WIN_W ?? 1440);
+const WIN_H = Number(process.env.AUC_WIN_H ?? 900);
 
 const log = (label, obj) => console.log(`${label}: ${JSON.stringify(obj)}`);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -36,11 +36,14 @@ function check(name, pass, detail = {}) {
   console.log(`${pass ? 'PASS' : 'FAIL'} ${name}${Object.keys(detail).length ? ` ${JSON.stringify(detail)}` : ''}`);
 }
 
-// ── Deterministic auction fixture: two seated bidders, three lots. The stub NPCs always pass, so the player
+// ── Deterministic auction fixture: three seated bidders (the week's 3〜5), three lots. The stub NPCs always pass, so the player
 // wins every lot they raise on — a deterministic 1-lot-at-a-time walkthrough through the close. ──
+// Each seat's face is a real visual set under assets/canonical (the seats decode the matted face, so a missing face fails
+// the entry).
 const BIDDERS = [
-  { character_id: 'character_001', display_name: 'セラ' },
-  { character_id: 'character_002', display_name: 'リオ' }
+  { character_id: 'character_001', display_name: 'セラ', visual_set_id: 'ab_001' },
+  { character_id: 'character_002', display_name: 'リオ', visual_set_id: 'ab_002' },
+  { character_id: 'character_003', display_name: 'ミナ', visual_set_id: 'ab_003' }
 ];
 const LOTS = [
   { lot_index: 0, category: 'treasure', band: 'C', name: '番所の封蝋菓子', category_label: '調合の貴重品', blurb: '曰くつきの逸話が触れ込みの小物。', initial_price: 400, min_increment: 50 },
@@ -60,7 +63,7 @@ function slotStateView() {
     week: 6,
     status: slot.status,
     current_lot_index: slot.current_lot_index,
-    bidders: BIDDERS.map((bidder) => ({ ...bidder })),
+    bidders: BIDDERS.map(({ character_id, display_name }) => ({ character_id, display_name })),
     lots: LOTS.map((lot) => ({ ...lot })),
     awards: slot.awards.map((award) => ({ ...award }))
   };
@@ -80,7 +83,7 @@ async function readJsonBody(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); } catch { return {}; }
 }
 
-const STATIC_TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json' };
+const STATIC_TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.svg': 'image/svg+xml' };
 
 async function serveStatic(res, absPath) {
   try {
@@ -139,7 +142,7 @@ function startStubServer() {
     if (p === '/api/inventory') return json(res, { money: START_MONEY, items: [] });
     if (p === '/api/shop') return json(res, { items: [] });
     if (p === '/api/equipment') return json(res, { slots: { weapon: null, amulet: null }, instances: [], buddy: null, sales: [] });
-    if (p === '/api/characters') return json(res, { characters: BIDDERS.map((b) => ({ character_id: b.character_id, display_name: b.display_name, visual_set_id: b.character_id, face_url: `/canonical/character_visual_sets/${b.character_id}/face_emotions/neutral.jpg`, standee_url: '' })), capabilities: { character_authoring: { enabled: false, reason: null, message: null } } });
+    if (p === '/api/characters') return json(res, { characters: BIDDERS.map((b) => ({ character_id: b.character_id, display_name: b.display_name, visual_set_id: b.visual_set_id, face_url: `/canonical/character_visual_sets/${b.visual_set_id}/face_emotions/neutral.jpg`, standee_url: '' })), capabilities: { character_authoring: { enabled: false, reason: null, message: null } } });
     if (p === '/api/character-delete-flags') return json(res, { flagged: [] });
     if (p === '/api/settings/conversation-popup') return json(res, { cooldown_ms: 30, animation_ms: 30, academy_conversation_screen: 'day' });
     if (p.startsWith('/api/')) return json(res, {}); // catch-all: resilient refresh tasks swallow empties
@@ -169,56 +172,46 @@ async function waitFor(win, predicate, { tries = 300, intervalMs = 60 } = {}) {
 
 const js = (win, expr) => win.webContents.executeJavaScript(expr);
 
-// Play one lot: wait for the bid bar to activate (the player's turn after the NPCs pass), assert the board, then
-// raise by the minimum increment and win. Returns the observed board snapshot for the lot.
+// Play one lot: wait for the hand to open (the player's turn after the NPCs pass), assert the stage, then raise by
+// the minimum increment (already in the raise) and win. Returns the observed stage snapshot for the lot.
 async function playOneLot(win, lot) {
-  const barActive = await waitFor(win, `document.querySelector('#academy-auction-bid-bar')?.dataset.active === 'true' && document.querySelector('#academy-auction-bid')?.disabled === false`, { tries: 400, intervalMs: 60 });
-  const board = await js(win, `(() => ({
+  const turn = await waitFor(win, `document.querySelector('#academy-auction-bid-bar')?.dataset.active === 'true' && document.querySelector('#academy-auction-bid')?.disabled === false`, { tries: 400, intervalMs: 60 });
+  const stage = await js(win, `(() => ({
     name: (document.querySelector('#academy-auction-board-name')?.textContent || '').trim(),
     category: (document.querySelector('#academy-auction-board-category')?.textContent || '').trim(),
     current: (document.querySelector('#academy-auction-current')?.textContent || '').trim(),
-    increment: (document.querySelector('#academy-auction-increment')?.textContent || '').trim(),
-    progress: (document.querySelector('#academy-auction-lot-progress')?.textContent || '').trim(),
-    streamText: (document.querySelector('#academy-auction-message-stream')?.textContent || '').replace(/\\s+/g, ' ').trim(),
-    rows: document.querySelectorAll('#academy-auction-message-stream .chat-message').length,
-    faces: document.querySelectorAll('#academy-auction-message-stream .message-face img').length
+    raise: document.querySelector('#academy-auction-bid-input')?.value ?? null,
+    way: document.querySelector('#academy-auction-path')?.getAttribute('aria-label') ?? null,
+    seats: document.querySelectorAll('#academy-auction-seats .academy-auction-seat').length,
+    faces: [...document.querySelectorAll('#academy-auction-seats .academy-auction-seat-face img')].filter((img) => img.complete && img.naturalWidth > 0).length,
+    masterWords: (document.querySelector('#academy-auction-seats .academy-auction-seat[data-seat="master"] .academy-auction-voice')?.textContent || '').trim(),
+    bidderWords: document.querySelectorAll('#academy-auction-seats .academy-auction-seat:not([data-seat="master"]) .academy-auction-word').length
   }))()`);
-  check(`LOT ${lot.lot_index}: board shows the lot (name / category / increment / progress) and the reveal ran (opening + reactions with faces)`,
-    barActive && board.name === lot.name && board.category === lot.category_label && board.increment === `${lot.min_increment}G`
-      && board.progress.includes(`${lot.lot_index + 1} / 3`) && board.rows > 0 && board.faces > 0
-      && board.streamText.includes(lot.name),
-    { barActive, ...board });
-  // Viewport-fit + internal-scroll measurement (the point of this task): as chat accumulates across lots, the
-  // document must not grow past the viewport, the chat stream must own the internal scroll, and the board +
-  // numeric bid bar must stay on-screen. Real Blink layout only (jsdom / static regex cannot measure this).
+  const lotWay = ['一品目', '二品目', '三品目'][lot.lot_index];
+  check(`LOT ${lot.lot_index}: the stage shows the lot (name / category / price), the way is on ${lotWay}, the raise holds the minimum increment, and the words landed over the seats`,
+    turn && stage.name === lot.name && stage.category === lot.category_label && stage.raise === String(lot.min_increment)
+      && (stage.way ?? '').includes(`いま ${lotWay}`) && stage.seats === BIDDERS.length + 1 && stage.faces === BIDDERS.length + 1
+      && stage.masterWords.length > 0 && stage.bidderWords > 0,
+    { turn, ...stage });
+  // Viewport fit: the document never grows past the viewport, and the lot, the seats and the hand stay on-screen.
   const viewport = await js(win, `(() => {
     const doc = document.scrollingElement || document.documentElement;
-    const stream = document.querySelector('#academy-auction-message-stream');
-    const screen = document.querySelector('#academy-auction-screen');
-    const board = document.querySelector('#academy-auction-board');
-    const bar = document.querySelector('#academy-auction-bid-bar');
-    const barRect = bar.getBoundingClientRect();
-    const boardRect = board.getBoundingClientRect();
+    const onScreen = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.top >= -1 && r.left >= -1 && r.bottom <= window.innerHeight + 1 && r.right <= window.innerWidth + 1; };
     return {
       innerH: window.innerHeight,
-      docScrollH: doc.scrollHeight,
       pageOverflow: doc.scrollHeight - window.innerHeight,
-      screenH: Math.round(screen.getBoundingClientRect().height),
-      streamClientH: stream.clientHeight,
-      streamScrollH: stream.scrollHeight,
-      streamOverflows: stream.scrollHeight > stream.clientHeight + 1,
-      barOnScreen: barRect.bottom <= window.innerHeight + 1 && barRect.top >= -1,
-      boardOnScreen: boardRect.bottom <= window.innerHeight + 1 && boardRect.top >= -1,
-      rows: document.querySelectorAll('#academy-auction-message-stream .chat-message').length
+      screenH: Math.round(document.querySelector('#academy-auction-screen').getBoundingClientRect().height),
+      lotOnScreen: onScreen(document.querySelector('.academy-auction-lot')),
+      handOnScreen: onScreen(document.querySelector('#academy-auction-bid-bar')),
+      seatsOnScreen: [...document.querySelectorAll('#academy-auction-seats .academy-auction-seat-face')].every(onScreen)
     };
   })()`);
-  check(`LOT ${lot.lot_index}: page stays viewport-fit (no document overflow), chat scrolls internally, board + bid bar on-screen`,
-    viewport.pageOverflow <= 1 && viewport.screenH <= viewport.innerH + 1 && viewport.barOnScreen && viewport.boardOnScreen
-      && (lot.lot_index === 0 || viewport.streamOverflows),
+  check(`LOT ${lot.lot_index}: page stays viewport-fit (no document overflow), the lot, every seat's face and the hand on-screen`,
+    viewport.pageOverflow <= 1 && viewport.screenH <= viewport.innerH + 1 && viewport.lotOnScreen && viewport.handOnScreen && viewport.seatsOnScreen,
     viewport);
-  // Raise by the minimum increment and win.
-  await js(win, `(() => { const i = document.querySelector('#academy-auction-bid-input'); i.value = '${lot.min_increment}'; document.querySelector('#academy-auction-bid').click(); return true; })()`);
-  return board;
+  // Raise by the minimum increment (already in the raise) and win.
+  await js(win, `(() => { document.querySelector('#academy-auction-bid').click(); return true; })()`);
+  return stage;
 }
 
 async function main() {
@@ -232,21 +225,22 @@ async function main() {
 
   await win.loadURL(`${base}/?initialScreen=academy-auction`);
 
-  // ── 1) ENTRY: the auction screen becomes active and the board renders once the entry loading cover releases on
-  // the opening 口上 stream (so wait for the board to be populated, not just the screen swap). ──
+  // ── 1) ENTRY: the auction screen becomes active and the lot renders once the entry wait releases on the opening
+  // 口上 stream (so wait for the lot to be populated, not just the screen swap). ──
   const onScreen = await waitFor(win, `document.querySelector('#academy-auction-screen')?.classList.contains('active') && (document.querySelector('#academy-auction-board-name')?.textContent || '').trim().length > 0`, { tries: 400, intervalMs: 60 });
   const entry = await js(win, `(() => ({
     activeId: document.querySelector('.screen.active')?.id || null,
     liveShown: document.querySelector('#academy-auction-live') && !document.querySelector('#academy-auction-live').hidden,
     closedHidden: document.querySelector('#academy-auction-closed')?.hidden !== false,
-    week: (document.querySelector('#academy-auction-week')?.textContent || '').trim(),
-    motes: document.querySelector('#academy-auction-motes')?.dataset.ambient || null,
+    name: (document.querySelector('#academy-auction-title')?.textContent || '').trim(),
+    weekText: /第\d+週/.test(document.querySelector('#academy-auction-screen').textContent),
+    exitHidden: document.querySelector('#academy-auction-exit').hidden,
     boardName: (document.querySelector('#academy-auction-board-name')?.textContent || '').trim()
   }))()`);
   log('entry', { onScreen, ...entry });
-  check('ENTRY: lands on #academy-auction-screen with the live board (not the closed view), week rendered, motes ambient running',
+  check('ENTRY: lands on #academy-auction-screen with the live stage (not the closed view), the venue name, no week text, no exit sigil before the close',
     onScreen && entry.activeId === 'academy-auction-screen' && entry.liveShown && entry.closedHidden
-      && /^第\d+週 \/ 50$/.test(entry.week) && entry.motes === 'animated',
+      && entry.name === '競売場' && !entry.weekText && entry.exitHidden,
     entry);
 
   // ── 2) DRIVE ALL THREE LOTS (player wins each; NPCs pass) THROUGH TO CLOSE ──
@@ -257,18 +251,20 @@ async function main() {
     await sleep(200);
   }
 
-  // ── 3) CLOSED VIEW: the third lot's resolution closes the auction and shows the week results + hub-return ──
+  // ── 3) CLOSED: the third lot's resolution closes the auction; the results stand with the exit sigil ──
   const closed = await waitFor(win, `document.querySelector('#academy-auction-closed')?.hidden === false`, { tries: 400, intervalMs: 60 });
   const closedView = await js(win, `(() => ({
     liveHidden: document.querySelector('#academy-auction-live')?.hidden === true,
     resultCount: document.querySelectorAll('#academy-auction-closed-results li').length,
     wonRows: document.querySelectorAll('#academy-auction-closed-results li[data-result="won_by_player"]').length,
-    exitPresent: !!document.querySelector('#academy-auction-exit'),
+    exitShown: !document.querySelector('#academy-auction-exit').hidden,
+    way: document.querySelector('#academy-auction-path')?.getAttribute('aria-label') ?? null,
     resultsText: (document.querySelector('#academy-auction-closed-results')?.textContent || '').replace(/\\s+/g, ' ').trim()
   }))()`);
   log('closed', { closed, ...closedView });
-  check('CLOSED: after the third lot the closed view shows the three results, all won by the player, with the ハブへ戻る affordance',
-    closed && closedView.liveHidden && closedView.resultCount === 3 && closedView.wonRows === 3 && closedView.exitPresent
+  check('CLOSED: after the third lot the three results stand, all won by the player, the way is all done and the exit sigil is up',
+    closed && closedView.liveHidden && closedView.resultCount === 3 && closedView.wonRows === 3 && closedView.exitShown
+      && (closedView.way ?? '').includes('すべて済んだ')
       && closedView.resultsText.includes('星図の天球儀'),
     closedView);
 

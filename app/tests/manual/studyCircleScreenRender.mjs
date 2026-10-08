@@ -10,14 +10,16 @@
 // It boots an isolated server in ROUTING mode with a DETERMINISTIC local LM stub, does a routing new-game
 // (which materializes the fixture roster + runtime state so GET /api/study-circle can pick real selectable-roster
 // hosts and decorate their faces), and drives the REAL study circle flow against real Blink layout:
-//   1. ARRIVAL: ?initialScreen=academy-study-circle renders the dedicated #academy-study-circle-screen with this
-//      week's three offer cards — each carrying a title / theme / venue / situation / reward deltas / host name +
-//      FACE — in a horizontally placed, internally scrolling board on the RIGHT, beside a 1:1 stage-image column on
-//      the LEFT (/canonical/study_circle/stage.jpg) with the week header (第N週 / 50) overlaid (conversation-day 黒夜
-//      chrome, 星藍 accent). This is the dev entry AND the shape a routing dispatch to study circle lands on.
-//   2. SELECT → CONVERSATION: click a card → the academy loading screen (#academy-loading-screen) covers the
-//      POST /api/study-circle/start wait (no freeze / 留まる区間 on the arrival) → the host's conversation opens on the
-//      DAYTIME conversation screen (#conversation-day-screen) with the host's NAME (chat bubble) and the 主催 STANDEE
+//   1. ARRIVAL: ?initialScreen=academy-study-circle renders the card room #academy-study-circle-screen: the study
+//      circle destination's art (/canonical/study_circle/stage.jpg — the send-off curtain's image) over the whole
+//      screen, the week and the place name (研究会) at the conversation layer's top-left, and this week's three paper
+//      cards — each carrying the host's face + name / title / venue / appeal / the reward-parameter marks — with no
+//      heading and no theme name (the errand card room's shared build). The offers are awaited under the place veil.
+//      This is the dev entry AND the shape a routing dispatch to study circle lands on.
+//   2. SELECT → CONVERSATION: click a card → the other two cards retreat and the chosen one stays lit in the same room
+//      (the place name becomes the card's venue) while POST /api/study-circle/start runs (no loading screen) → the card
+//      row is carried onto the DAYTIME conversation screen (#conversation-day-screen) at the same place, then leaves;
+//      the conversation shows the host's NAME (chat bubble) and the 主催 STANDEE
 //      in the stage frame (#conversation-day-stage-image, NOT a field stage image), the opening revealed in the
 //      daytime stream. Clicking the stage frame (the 主催 standee) opens the detail popup, which shows the venue + the
 //      theme / situation over the new 1:1 study circle stage image (study_circle/stage.jpg).
@@ -33,7 +35,7 @@
 //      performRoutingTurnDispatch (the in-turn dispatch entry, not just the dev entry).
 //
 // NEGATIVE CONTROL (documented in the task report): reverting the wiring (remove the screens['academy-study-circle']
-// registry entry / the showScreen refreshStudyCircleScreen hook, or the #academy-study-circle-screen section) makes
+// registry entry / the showScreen enterRoomCards hook, or the #academy-study-circle-screen section) makes
 // step 1 FAIL — the arrival never renders; removing the study_circle dispatch mirror entry makes step 5 FAIL (the
 // decided hub turn throws unknown destination_id). The harness is fire-and-forget (no top-level
 // await main(); whenReady would deadlock).
@@ -177,6 +179,7 @@ async function newGameThenStudyCircle(win, base) {
   return waitFor(win, `
     document.querySelector('#academy-study-circle-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-study-circle-offers .academy-study-circle-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
   `, { tries: 400, intervalMs: 120 });
 }
 
@@ -206,18 +209,15 @@ async function main() {
     const active = document.querySelector('.screen.active');
     const cards = [...document.querySelectorAll('#academy-study-circle-offers .academy-study-circle-card')];
     const readCard = (card) => {
-      const face = card.querySelector('.academy-study-circle-card-face');
+      const face = card.querySelector('.room-card-face');
       return {
-        themeId: card.querySelector('.academy-study-circle-card-button')?.dataset.themeId || '',
         hostName: (card.querySelector('.academy-study-circle-card-host-name')?.textContent || '').trim(),
-        title: (card.querySelector('.academy-study-circle-card-title')?.textContent || '').trim(),
-        theme: (card.querySelector('.academy-study-circle-card-theme')?.textContent || '').trim(),
-        venue: (card.querySelector('.academy-study-circle-card-venue')?.textContent || '').trim(),
-        // The card body element (the -situation class is the shared body-text styling hook) now carries the appeal.
-        appeal: (card.querySelector('.academy-study-circle-card-situation')?.textContent || '').trim(),
-        rewards: (card.querySelector('.academy-study-circle-card-rewards')?.textContent || '').trim(),
-        // 達成条件 is the internal judgment value only — the card must render NO condition element (never shown).
-        hasCondition: !!card.querySelector('.academy-study-circle-card-condition'),
+        title: (card.querySelector('.room-card-title')?.textContent || '').trim(),
+        venue: (card.querySelector('.room-card-venue')?.textContent || '').trim(),
+        appeal: (card.querySelector('.room-card-appeal')?.textContent || '').trim(),
+        rewards: (card.querySelector('.room-card-worth')?.textContent || '').trim(),
+        // The card shows only face / name / title / venue / appeal / worth — no theme name, no 達成条件 (internal only).
+        extraParts: [...card.querySelector('.room-card-button').children].map((el) => el.classList[0]).filter((name) => !['room-card-who', 'room-card-title', 'room-card-venue', 'room-card-appeal', 'room-card-worth'].includes(name)),
         faceSrc: face?.getAttribute('src') || '',
         faceVisible: face ? getComputedStyle(face).visibility !== 'hidden' : false
       };
@@ -228,7 +228,11 @@ async function main() {
       sessionActive: !!document.querySelector('#academy-conversation-session-screen.active'),
       hasTab: !!document.querySelector('[data-screen="academy-study-circle"]'),
       weekText: (document.querySelector('#academy-study-circle-week')?.textContent || '').trim(),
-      stageBg: (() => { const b = document.querySelector('.academy-study-circle-stage-image'); return b ? getComputedStyle(b).backgroundImage : ''; })(),
+      placeText: (document.querySelector('#academy-study-circle-place')?.textContent || '').trim(),
+      headings: document.querySelectorAll('#academy-study-circle-screen h1, #academy-study-circle-screen h2, #academy-study-circle-screen h3').length,
+      groundBg: (() => { const g = document.querySelector('#academy-study-circle-screen .room-cards-ground'); return g ? getComputedStyle(g).backgroundImage : ''; })(),
+      groundBox: (() => { const g = document.querySelector('#academy-study-circle-screen .room-cards-ground'); if (!g) return null; const r = g.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })(),
+      screenBox: (() => { const r = document.querySelector('#academy-study-circle-screen').getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })(),
       // Direct-background (いきなり背景) standard: the layout has padding:0 so the flat obsidian screen fills it
       // edge-to-edge with no navy-gradient border inset.
       layoutPadding: (() => { const l = document.querySelector('.layout'); return l ? getComputedStyle(l).padding : ''; })(),
@@ -239,26 +243,22 @@ async function main() {
   check('ARRIVAL lands on the dedicated #academy-study-circle-screen (not routing hub / session), no tab',
     onStudyCircle && arrival.activeScreenId === 'academy-study-circle-screen' && !arrival.routingActive && !arrival.sessionActive && !arrival.hasTab,
     { activeScreenId: arrival.activeScreenId, hasTab: arrival.hasTab });
-  check('ARRIVAL renders exactly three offer cards with the week header 第N週 / 50',
-    arrival.cards.length === 3 && /^第\d+週 \/ 50$/.test(arrival.weekText), { weekText: arrival.weekText, cardCount: arrival.cards.length });
-  const everyCardComplete = arrival.cards.every((c) => c.themeId && c.hostName && c.title && c.theme && c.venue && c.appeal && c.rewards && c.faceSrc && c.faceVisible);
-  check('ARRIVAL each card carries title / theme / venue / appeal (当人の語り) / reward deltas / host name + a visible host face',
-    everyCardComplete, { cards: arrival.cards.map((c) => ({ id: c.themeId, host: c.hostName, title: !!c.title, theme: !!c.theme, venue: !!c.venue, rewards: c.rewards, face: c.faceVisible })) });
-  check('ARRIVAL the three theme ids and the three hosts are unique (deterministic offer set)',
-    new Set(arrival.cards.map((c) => c.themeId)).size === 3 && new Set(arrival.cards.map((c) => c.hostName)).size === 3,
-    { ids: arrival.cards.map((c) => c.themeId), hosts: arrival.cards.map((c) => c.hostName) });
-  // STAGE COLUMN: the conversation-day 黒夜 chrome (星藍 accent) frames the new 1:1 study circle stage image (the
-  // screen's face) in the left column — a real background-image on .academy-study-circle-stage-image.
-  check('ARRIVAL the 1:1 stage-image column paints the new study circle stage image (a real background-image, not none)',
-    arrival.stageBg && arrival.stageBg !== 'none' && arrival.stageBg.includes('/canonical/study_circle/stage.jpg'),
-    { stageBg: arrival.stageBg.slice(0, 90) });
-  // CONDITION REMOVAL: 達成条件 is the internal judgment value only — no card renders a condition element.
-  check('ARRIVAL no offer card renders a 達成条件 element (condition is internal only, never shown to the player)',
-    arrival.cards.length > 0 && arrival.cards.every((c) => c.hasCondition === false),
-    { hasCondition: arrival.cards.map((c) => c.hasCondition) });
-  // BACKGROUND (いきなり背景): the study circle layout is edge-to-edge (padding:0) so the flat obsidian screen fills
-  // it with no navy-gradient border inset behind it (the frame's own padding holds the content余白).
-  check('ARRIVAL the study circle layout is edge-to-edge (layout padding:0) — no navy-gradient border inset behind the obsidian screen',
+  check('ARRIVAL renders exactly three cards with the week 第N週 / 50 and the place name 研究会, and no heading',
+    arrival.cards.length === 3 && /^第\d+週 \/ 50$/.test(arrival.weekText) && arrival.placeText === '研究会' && arrival.headings === 0,
+    { weekText: arrival.weekText, placeText: arrival.placeText, headings: arrival.headings, cardCount: arrival.cards.length });
+  const everyCardComplete = arrival.cards.every((c) => c.hostName && c.title && c.venue && c.appeal && c.rewards && c.faceSrc && c.faceVisible);
+  check('ARRIVAL each card carries the host face + name / title / venue / appeal (当人の語り) / reward-parameter marks',
+    everyCardComplete, { cards: arrival.cards.map((c) => ({ host: c.hostName, title: !!c.title, venue: !!c.venue, rewards: c.rewards, face: c.faceVisible })) });
+  check('ARRIVAL the three hosts are unique (deterministic offer set)',
+    new Set(arrival.cards.map((c) => c.hostName)).size === 3, { hosts: arrival.cards.map((c) => c.hostName) });
+  // GROUND: the study circle destination's art (the send-off curtain's image) covers the whole screen.
+  check('ARRIVAL the ground is the study circle destination art over the whole screen (a real background-image, not none)',
+    arrival.groundBg.includes('/canonical/study_circle/stage.jpg') && JSON.stringify(arrival.groundBox) === JSON.stringify(arrival.screenBox),
+    { groundBg: arrival.groundBg.slice(0, 90), groundBox: arrival.groundBox, screenBox: arrival.screenBox });
+  check('ARRIVAL no card renders anything beyond face / name / title / venue / appeal / worth (no theme name, no 達成条件)',
+    arrival.cards.length > 0 && arrival.cards.every((c) => c.extraParts.length === 0),
+    { extraParts: arrival.cards.map((c) => c.extraParts) });
+  check('ARRIVAL the study circle layout is edge-to-edge (layout padding:0) — the room art meets the window edge',
     arrival.layoutPadding === '0px', { layoutPadding: arrival.layoutPadding });
 
   // REWARD BADGE LAYOUT: every reward balloon renders at a uniform height regardless of the offer's reward count or
@@ -268,31 +268,31 @@ async function main() {
   // card's rewards row (real card width) stays single-line (white-space:nowrap), so its height equals a normal badge
   // — proving the fix removes the wrap-driven stretch even in the width-constrained card.
   const badges = await js(win, `(() => {
-    const round = (n) => Math.round(n * 100) / 100;
     const cards = [...document.querySelectorAll('#academy-study-circle-offers .academy-study-circle-card')];
     const perCard = cards.map((card) => {
-      const row = card.querySelector('.academy-study-circle-card-rewards');
-      const chips = [...card.querySelectorAll('.academy-study-circle-card-reward')];
+      const row = card.querySelector('.room-card-worth');
+      const chips = [...card.querySelectorAll('.room-card-gain')];
       return {
         rowAlign: row ? getComputedStyle(row).alignItems : '',
         count: chips.length,
-        heights: chips.map((c) => round(c.getBoundingClientRect().height))
+        // The cards are tilted, so the layout height (offsetHeight, untransformed) is the badge's height.
+        heights: chips.map((c) => c.offsetHeight)
       };
     });
     const allHeights = perCard.flatMap((c) => c.heights);
     // Synthetic stress: inject a very long-label badge into the first card's real rewards row and compare its height
     // to that same card's first (short) badge. white-space:nowrap keeps it one line, so heights must match.
-    const firstRow = cards[0]?.querySelector('.academy-study-circle-card-rewards');
-    const firstChip = cards[0]?.querySelector('.academy-study-circle-card-reward');
+    const firstRow = cards[0]?.querySelector('.room-card-worth');
+    const firstChip = cards[0]?.querySelector('.room-card-gain');
     let stress = null;
     if (firstRow && firstChip) {
       const long = document.createElement('span');
-      long.className = 'academy-study-circle-card-reward';
+      long.className = 'room-card-gain';
       long.textContent = '非常に長い報酬パラメータ名の見本ラベル +9999';
       firstRow.append(long);
       stress = {
-        normalHeight: round(firstChip.getBoundingClientRect().height),
-        longHeight: round(long.getBoundingClientRect().height),
+        normalHeight: firstChip.offsetHeight,
+        longHeight: long.offsetHeight,
         longWhiteSpace: getComputedStyle(long).whiteSpace
       };
       long.remove();
@@ -302,8 +302,8 @@ async function main() {
   log('reward_badges', badges);
   const uniformHeight = badges.allHeights.length >= 3
     && badges.allHeights.every((h) => Math.abs(h - badges.allHeights[0]) < 0.5);
-  const noStretch = badges.perCard.every((c) => c.rowAlign === 'flex-start');
-  check('REWARD BADGES: every reward balloon across the three cards renders at one uniform height, and the rewards row does not cross-axis-stretch (align-items:flex-start)',
+  const noStretch = badges.perCard.every((c) => c.rowAlign === 'center');
+  check('REWARD BADGES: every reward mark across the three cards renders at one uniform height, and the worth row does not cross-axis-stretch (align-items:center)',
     uniformHeight && noStretch,
     { rowAligns: badges.perCard.map((c) => c.rowAlign), counts: badges.perCard.map((c) => c.count), allHeights: badges.allHeights });
   check('REWARD BADGES: a long-label badge injected at real card width stays single-line (white-space:nowrap) and keeps the uniform badge height (no wrap-driven vertical stretch / 間延び)',
@@ -315,9 +315,9 @@ async function main() {
   try { await sleep(500); await fs.writeFile(shotPath, (await win.webContents.capturePage()).toPNG()); console.log(`screenshot: ${shotPath}`); }
   catch (e) { console.log(`screenshot: FAILED ${e?.message ?? e}`); }
 
-  // ── 1b) OFFER-FETCH RETRY (the errand mirror): a failed weekly-offer fetch clears the board and surfaces the
-  // error banner + the explicit retry button; clicking retry re-runs refreshStudyCircleScreen and recovers the
-  // board. The arrival has no back / skip (会話終了 is the only hub return, arrival = the week is spent), so the
+  // ── 1b) OFFER-FETCH RETRY (the errand mirror): a failed weekly-offer fetch clears the cards and surfaces the
+  // failure notice + the retry sigil; clicking retry re-runs enterRoomCards (under the place veil) and recovers the
+  // cards. The arrival has no back / skip (会話終了 is the only hub return, arrival = the week is spent), so the
   // retry button is the only in-place recovery from a failed generation. Force GET /api/study-circle to fail,
   // invoke the refresh through the retry button, assert the empty-board error state, then restore the fetch and
   // click retry again to recover the three cards. Leaves a clean arrival for the SELECT leg below. ──
@@ -338,7 +338,7 @@ async function main() {
     document.querySelector('#academy-study-circle-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-study-circle-offers .academy-study-circle-card').length === 0
     && document.querySelector('#academy-study-circle-retry')?.hidden === false
-    && (() => { const s = document.querySelector('#academy-study-circle-status'); return !!s && s.hidden === false && (s.textContent || '').trim().length > 0; })()
+    && (() => { const s = document.querySelector('#academy-study-circle-status'); return !!s && s.hidden === false && !!s.querySelector('.routing-failure-mark'); })()
   `, { tries: 300, intervalMs: 60 });
   const retryFail = await js(win, `(() => {
     const s = document.querySelector('#academy-study-circle-status');
@@ -346,12 +346,14 @@ async function main() {
     return {
       cards: document.querySelectorAll('#academy-study-circle-offers .academy-study-circle-card').length,
       retryVisible: !!r && r.hidden === false,
-      statusShown: !!s && s.hidden === false && (s.textContent || '').trim().length > 0,
+      // The notice is the failure mark (the glyph, plus the destination name when a hub dispatch landed — none on the
+      // dev entry).
+      statusShown: !!s && s.hidden === false && !!s.querySelector('.routing-failure-mark'),
       statusTone: s?.dataset.tone ?? ''
     };
   })()`);
   log('retry_fail', { retryFailState, ...retryFail });
-  check('RETRY: a failed weekly-offer fetch clears the board and surfaces the error banner + the explicit retry button (the arrival has no back / skip)',
+  check('RETRY: a failed weekly-offer fetch clears the cards and surfaces the failure notice + the retry sigil (the arrival has no back / skip)',
     retryFailState && retryFail.cards === 0 && retryFail.retryVisible && retryFail.statusShown && retryFail.statusTone === 'error',
     { cards: retryFail.cards, retryVisible: retryFail.retryVisible, statusShown: retryFail.statusShown, statusTone: retryFail.statusTone });
   const retryShotPath = path.join(os.tmpdir(), 'study-circle-arrival-retry.png');
@@ -361,6 +363,7 @@ async function main() {
   const retryRecovered = await waitFor(win, `
     document.querySelector('#academy-study-circle-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-study-circle-offers .academy-study-circle-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
     && document.querySelector('#academy-study-circle-retry')?.hidden === true
     && document.querySelector('#academy-study-circle-status')?.hidden === true
   `, { tries: 400, intervalMs: 120 });
@@ -370,32 +373,56 @@ async function main() {
     statusHidden: document.querySelector('#academy-study-circle-status')?.hidden === true
   }))()`);
   log('retry_recover', { retryRecovered, ...retryRecover });
-  check('RETRY: clicking the retry button re-runs refreshStudyCircleScreen and recovers the board (three cards back, retry hidden, status cleared)',
+  check('RETRY: clicking the retry sigil re-runs enterRoomCards and recovers the cards (three cards back, retry hidden, status cleared)',
     retryRecovered && retryRecover.cards === 3 && retryRecover.retryHidden && retryRecover.statusHidden,
     { cards: retryRecover.cards, retryHidden: retryRecover.retryHidden, statusHidden: retryRecover.statusHidden });
 
   // ── 2) SELECT → CONVERSATION: a card starts the host's conversation on the DAYTIME screen ──
   const chosenHost = arrival.cards[0]?.hostName ?? '';
-  const chosenTheme = arrival.cards[0]?.theme ?? '';
+  // The card no longer shows the theme name; the popup still does (from the start response) — read it from the offers.
+  const chosenTheme = (await js(win, `fetch('/api/study-circle').then((r) => r.json())`)).offers[0].theme_name;
   const chosenVenue = arrival.cards[0]?.venue ?? '';
   // The daytime stage popup shows the pure scene (situation), NOT the card's appeal body — compare against
   // the stub's situation (the offer's situation flows start-response → activeStudyCircleScene → popup).
   const chosenSituation = OFFER_SITUATION;
+  // SELECT → HELD: the card room stays (no loading screen). A watcher records, from the click on, whether the loading
+  // screen ever activated, the card row's steps, and whether the row reached the conversation screen while held.
+  await js(win, `(() => {
+    const seen = { loading: false, steps: [], heldOnConversation: false, chosenBoxRoom: null, chosenBoxConversation: null };
+    window.__roomCardsSeen = seen;
+    const offers = document.querySelector('#academy-study-circle-offers');
+    const box = () => { const c = offers.querySelector('.room-card[data-chosen]'); if (!c) return null; const r = c.getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); };
+    const watch = () => {
+      if (document.querySelector('#academy-loading-screen')?.classList.contains('active')) seen.loading = true;
+      const step = offers.dataset.step ?? null;
+      if (seen.steps[seen.steps.length - 1] !== step) seen.steps.push(step);
+      if (step === 'chosen' && !seen.chosenBoxRoom) seen.chosenBoxRoom = box();
+      if (step === 'held' && offers.parentElement?.id === 'conversation-day-screen' && document.querySelector('#conversation-day-screen.active')) {
+        seen.heldOnConversation = true;
+        if (!seen.chosenBoxConversation) seen.chosenBoxConversation = box();
+      }
+      if (seen.steps.length < 8) requestAnimationFrame(watch);
+    };
+    requestAnimationFrame(watch);
+    return true;
+  })()`);
   const clicked = await js(win, `(() => {
-    const btn = document.querySelector('#academy-study-circle-offers .academy-study-circle-card .academy-study-circle-card-button');
+    const btn = document.querySelector('#academy-study-circle-offers .room-card .room-card-button');
     if (!btn) return false;
     btn.click();
     return true;
   })()`);
-  // The freeze fix (mirror of the errand arrival): selecting an offer shows the academy loading screen WHILE the
-  // (session + opening) start POST runs, so the player never sits frozen on the arrival. showScreen('academy-loading')
-  // is synchronous at the start of showAcademyLoadingScreenUntilReady — ahead of the async start POST resolving — so
-  // the loading interstitial replaces the arrival in the same click, and it holds for at least ACADEMY_LOADING_MINIMUM_MS.
-  const loadingCovered = clicked && await waitFor(win, `
-    document.querySelector('#academy-loading-screen')?.classList.contains('active')
-  `, { tries: 400, intervalMs: 15 });
-  check('SELECT → LOADING: selecting an offer shows the academy loading screen while the study circle start runs (no freeze / 留まる区間 on the arrival)',
-    loadingCovered, { loadingCovered });
+  const released = clicked && await waitFor(win, `
+    document.querySelector('#conversation-day-screen')?.classList.contains('active')
+    && document.querySelector('#academy-study-circle-offers')?.parentElement?.id === 'academy-study-circle-screen'
+    && document.querySelectorAll('#academy-study-circle-offers .room-card').length === 0
+  `, { tries: 400, intervalMs: 60 });
+  const seen = await js(win, `JSON.parse(JSON.stringify(window.__roomCardsSeen))`);
+  log('select_held', { released, ...seen });
+  check('SELECT → HELD: choosing a card keeps the card room (no loading screen); the chosen card waits lit, is carried onto the conversation screen at the same place, then leaves',
+    clicked && released && !seen.loading && seen.steps.includes('chosen') && seen.heldOnConversation && seen.steps.includes('leaving')
+    && !!seen.chosenBoxRoom && JSON.stringify(seen.chosenBoxRoom) === JSON.stringify(seen.chosenBoxConversation),
+    seen);
   const onDay = clicked && await waitFor(win, `
     document.querySelector('#conversation-day-screen')?.classList.contains('active')
     && !document.querySelector('#conversation-day-send')?.disabled
@@ -539,6 +566,7 @@ async function main() {
   const dispatched = dispatchFired && await waitFor(win, `
     document.querySelector('#academy-study-circle-screen')?.classList.contains('active')
     && document.querySelectorAll('#academy-study-circle-offers .academy-study-circle-card').length === 3
+    && document.querySelector('#place-veil')?.hidden === true
   `, { tries: 600, intervalMs: 150 });
   await sleep(300);
   const dispatch = await js(win, `(() => ({

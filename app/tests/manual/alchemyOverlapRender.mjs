@@ -1,16 +1,14 @@
-// Render-backed alchemy-arrival overlap check (Electron / real Blink layout).
+// Render-backed alchemy table-room layout check (Electron / real Blink layout).
 //
-// `node --test` cannot lay out a DOM, so the "1:1 stage image overlaps the recipe board" layout bug is
-// verified here against real layout. Not a *.test.mjs (npm test skips it); run it by hand:
+// `node --test` cannot lay out a DOM, so the alchemy lab's table-room layout is verified here against real layout. Not
+// a *.test.mjs (npm test skips it); run it by hand:
 //   ./node_modules/.bin/electron app/tests/manual/alchemyOverlapRender.mjs
 //   AL_WIN_W=1280 AL_WIN_H=720 ./node_modules/.bin/electron app/tests/manual/alchemyOverlapRender.mjs
 //
-// It loads the real client shell, forces the alchemy lab screen active, injects a dense recipe table with
-// the CURRENT markup, and measures the rects of the 1:1 stage column vs the recipe board / list, reporting any
-// geometric intersection (the overlap). The alchemy stage shares the workshop content-box overlap root cause:
-// its frame is `grid-template-columns: var(--alchemy-stage-size) minmax(0, 1fr)`, so a content-box stage whose
-// padding+border spill past --alchemy-stage-size covers the neighbouring board. `box-sizing: border-box` keeps
-// the stage's real paint inside its column. This harness confirms the sibling fix the same way workshop's did.
+// It loads the real client shell, forces the alchemy lab screen active, injects a dense recipe table with the CURRENT
+// row markup (the longest 効果 and a two-material cost), and measures: the table stays right of the room's art (the
+// left 38.9%) and clear of the place name and the 出る sigil, the rows never overflow the table horizontally, the cells
+// line up row to row, and the crafting overlay stays fully in view with the list scrolled to its bottom.
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -58,29 +56,23 @@ async function main() {
   await win.loadURL(`${base}/`);
   await new Promise((r) => setTimeout(r, 1800)); // let app.js boot + the offscreen window settle its viewport
 
-  // Force the alchemy lab screen active and inject a dense recipe table with plausible row content so the board
-  // column resolves to its real width (the overlap is a function of the stage column geometry, so filler rows are
-  // enough to make the board occupy its neighbouring column next to the stage). Rows mirror the real
-  // buildAlchemyRow markup (subgrid row-button + the 5 aligned cells).
+  // Force the alchemy screen active and inject a dense board with the CURRENT row markup (table-room rows: an li
+  // carrying data-lack when unaffordable, its row body a button whose cells sit on the room's column template).
   await win.webContents.executeJavaScript(`(() => {
     for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
-    const screen = document.querySelector('#academy-alchemy-screen');
-    screen.classList.add('active');
+    document.querySelector('#academy-alchemy-screen').classList.add('active');
     const list = document.querySelector('#academy-alchemy-recipes');
     list.replaceChildren();
-    const cats = ['gift', 'ally_boost', 'self_boost', 'dungeon_consumable', 'product'];
-    for (let i = 0; i < 24; i += 1) {
-      const category = cats[i % cats.length];
+    for (let i = 0; i < 40; i += 1) {
       const li = document.createElement('li');
-      li.className = 'academy-alchemy-row';
-      li.dataset.category = category;
-      li.innerHTML =
-        '<button type="button" class="academy-alchemy-row-button">' +
-          '<span class="academy-alchemy-cell academy-alchemy-cell-category"><span class="academy-alchemy-category-chip" data-category="' + category + '">分類</span></span>' +
-          '<span class="academy-alchemy-cell academy-alchemy-cell-name"><span class="academy-alchemy-cell-name-title">霜結の霊薬 ' + i + '</span><span class="academy-alchemy-cell-name-desc">冷気属性の下地を煮詰め、星霜の粉を溶かし込む調合。</span></span>' +
-          '<span class="academy-alchemy-cell academy-alchemy-cell-effect"><span class="academy-alchemy-effect">効果 +4</span></span>' +
-          '<span class="academy-alchemy-cell academy-alchemy-cell-items"><span class="academy-alchemy-cost"><span class="academy-alchemy-cost-label">霜の結晶</span><span class="academy-alchemy-cost-amount">3（所持 5）</span></span></span>' +
-          '<span class="academy-alchemy-cell academy-alchemy-cell-money"><span class="academy-alchemy-cost"><span class="academy-alchemy-cost-label">費用</span><span class="academy-alchemy-cost-amount">5,000（所持 9,000）</span></span></span>' +
+      li.className = 'table-room-row academy-alchemy-row';
+      if (i % 3 === 0) li.dataset.lack = 'true';
+      li.innerHTML = '<button type="button" class="table-room-row-body academy-alchemy-row-body"' + (i % 3 === 0 ? ' disabled' : '') + '>' +
+        '<span class="table-room-cell academy-alchemy-cell-category"><span class="academy-alchemy-category-mark" data-category="self_boost" role="img" aria-label="自分用強化"><svg viewBox="0 0 32 32"></svg></span></span>' +
+        '<span class="table-room-cell academy-alchemy-cell-name"><span class="table-room-name">賢者の霊薬</span><span class="table-room-desc">澄んだ霊薬が喉を通ると、頭の奥まで冴えわたり、手足に静かな力が満ちる。</span></span>' +
+        '<span class="table-room-cell academy-alchemy-cell-effect"><span class="table-room-effect">筋力 +2、敏捷 +2、学力 +2、魔力 +2、カリスマ +2</span></span>' +
+        '<span class="table-room-cell academy-alchemy-cell-items"><span class="table-room-cost"><span class="table-room-cost-name">天光の宝冠</span><span class="table-room-cost-amount">2（所持 0）</span></span><span class="table-room-cost"><span class="table-room-cost-name">深淵の王珠</span><span class="table-room-cost-amount">1（所持 0）</span></span></span>' +
+        '<span class="table-room-cell academy-alchemy-cell-money"><span class="table-room-cost"><span class="table-room-cost-name"></span><span class="table-room-cost-amount">1,500 G</span></span></span>' +
         '</button>';
       list.append(li);
     }
@@ -88,30 +80,50 @@ async function main() {
   })()`);
   await new Promise((r) => setTimeout(r, 900));
 
+  // The room's layout: the table sits right of the left 38.9% (the room's art stays clear there), clear of the place
+  // name and the 出る sigil; the rows never overflow the table horizontally; every row's cells line up with every
+  // other row's (a column reads straight down); and the in-flight crafting overlay stays fully inside the table's
+  // visible frame even when the list is scrolled to its bottom.
   const measure = () => win.webContents.executeJavaScript(`(() => {
-    const rect = (sel) => { const el = document.querySelector(sel); if (!el) return null; const r = el.getBoundingClientRect(); return { left:+r.left.toFixed(1), top:+r.top.toFixed(1), right:+r.right.toFixed(1), bottom:+r.bottom.toFixed(1), width:+r.width.toFixed(1), height:+r.height.toFixed(1) }; };
-    const stageEl = document.querySelector('.academy-alchemy-stage');
-    const cs = getComputedStyle(stageEl);
-    const stageComputed = { width: cs.width, height: cs.height, aspectRatio: cs.aspectRatio, alignSelf: cs.alignSelf, boxSizing: cs.boxSizing, paddingLeft: cs.paddingLeft, borderLeftWidth: cs.borderLeftWidth };
-    const frameEl = document.querySelector('.academy-alchemy-frame');
-    const frameCols = getComputedStyle(frameEl).gridTemplateColumns;
-    const stage = rect('.academy-alchemy-stage');
-    const board = rect('.academy-alchemy-board');
-    const list = rect('#academy-alchemy-recipes');
-    const frame = rect('.academy-alchemy-frame');
-    const stageSize = getComputedStyle(document.querySelector('.academy-alchemy-screen')).getPropertyValue('--alchemy-stage-size');
-    // Intersection of stage vs board/list (positive w&h => real overlap).
-    const inter = (a, b) => { if (!a || !b) return null; const x = Math.max(0, Math.min(a.right,b.right) - Math.max(a.left,b.left)); const y = Math.max(0, Math.min(a.bottom,b.bottom) - Math.max(a.top,b.top)); return { x:+x.toFixed(1), y:+y.toFixed(1), overlaps: x>1 && y>1 }; };
-    return { window: { w: window.innerWidth, h: window.innerHeight }, stageSize: stageSize.trim(), stageComputed, frameCols, stage, board, list, frame, stage_x_board: inter(stage, board), stage_x_list: inter(stage, list) };
+    const box = (el) => { if (!el) return null; const r = el.getBoundingClientRect(); return { left: +r.left.toFixed(1), top: +r.top.toFixed(1), right: +r.right.toFixed(1), bottom: +r.bottom.toFixed(1), width: +r.width.toFixed(1), height: +r.height.toFixed(1) }; };
+    const inter = (a, b) => { if (!a || !b) return null; const x = Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)); const y = Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)); return { x: +x.toFixed(1), y: +y.toFixed(1), overlaps: x > 1 && y > 1 }; };
+    const screen = document.querySelector('#academy-alchemy-screen');
+    const tableEl = screen.querySelector('.table-room-table');
+    const listEl = document.querySelector('#academy-alchemy-recipes');
+    const table = box(tableEl);
+    const exit = box(screen.querySelector('.table-room-exit'));
+    const place = box(screen.querySelector('.table-room-place'));
+    const artEdge = +(window.innerWidth * 0.389).toFixed(1);
+    const overflowX = listEl.scrollWidth - listEl.clientWidth;
+    const bodies = [...listEl.querySelectorAll('.table-room-row-body')];
+    const widest = Math.max(...bodies.map((b) => b.getBoundingClientRect().right)) - listEl.getBoundingClientRect().right;
+    const cellLefts = (b) => [...b.querySelectorAll(':scope > .table-room-cell')].map((el) => +el.getBoundingClientRect().left.toFixed(1));
+    const rowA = bodies[1] ? cellLefts(bodies[1]) : [];
+    const rowB = bodies[6] ? cellLefts(bodies[6]) : [];
+    const rowDrift = rowA.map((v, i) => +Math.abs(v - (rowB[i] ?? NaN)).toFixed(1));
+    const rowToRowAligned = rowA.length === 5 && rowB.length === 5 && rowDrift.every((d) => d <= 0.5);
+    listEl.scrollTop = listEl.scrollHeight;
+    tableEl.dataset.crafting = 'true';
+    const ov = document.createElement('div');
+    ov.className = 'academy-alchemy-crafting';
+    ov.innerHTML = '<span class="screen-wait-mark" aria-hidden="true"></span>';
+    tableEl.append(ov);
+    const br = tableEl.getBoundingClientRect();
+    const or = ov.getBoundingClientRect();
+    const within = (inner, outer) => inner.left >= outer.left - 1 && inner.right <= outer.right + 1 && inner.top >= outer.top - 1 && inner.bottom <= outer.bottom + 1;
+    const overlayVisible = within(or, br) && or.width > 1 && or.height > 1;
+    return { window: { w: window.innerWidth, h: window.innerHeight }, ground: getComputedStyle(screen.querySelector('.table-room-stage')).backgroundImage, artEdge, table, exit, place, table_x_exit: inter(table, exit), table_x_place: inter(table, place), overflowX, widest: +widest.toFixed(1), rowA, rowB, rowDrift, rowToRowAligned, overlayVisible };
   })()`);
 
   const m = await measure();
   log('measure', m);
-  const noOverlap = !(m.stage_x_board?.overlaps || m.stage_x_list?.overlaps);
-  const borderBox = m.stageComputed?.boxSizing === 'border-box';
   const checks = [
-    ['STAGE IS border-box', borderBox, `boxSizing=${m.stageComputed?.boxSizing}`],
-    ['NO STAGE/BOARD OVERLAP', noOverlap, `stage_x_board=${JSON.stringify(m.stage_x_board)}`]
+    ['ROOM ART CLEAR LEFT OF THE TABLE', m.table.left >= m.artEdge - 1, `table.left=${m.table.left} artEdge=${m.artEdge}`],
+    ['GROUND IS THE ROOM ART', m.ground.includes('/canonical/alchemy/stage.jpg'), m.ground.slice(0, 90)],
+    ['TABLE CLEAR OF THE PLACE NAME AND THE 出る SIGIL', !m.table_x_exit.overlaps && !m.table_x_place.overlaps],
+    ['NO HORIZONTAL OVERFLOW OF THE ROWS', m.overflowX <= 1 && m.widest <= 1, `overflowX=${m.overflowX} widest=${m.widest}`],
+    ['ROW↔ROW COLUMNS ALIGNED', m.rowToRowAligned, `drift=${JSON.stringify(m.rowDrift)}`],
+    ['CRAFTING OVERLAY FULLY IN VIEW (scrolled to bottom)', m.overlayVisible]
   ];
   for (const [label, pass, extra] of checks) {
     console.log(`${pass ? 'PASS' : 'FAIL'}: ${label}${extra ? ` (${extra})` : ''}`);

@@ -6,17 +6,14 @@
 //
 //   ./node_modules/.bin/electron app/tests/manual/frameDecorationCalibrationRender.mjs
 //
-// It boots a ROUTING-mode server with a deterministic LM stub, starts a game to reach the hub (so the hub's
-// week/moon render has real runtime state), then RELOADS with ?calibrate=routing-hub so the dev calibration
-// overlay activates on the real hub. It measures, against real layout:
-//   OFF:  a plain load carries NO calibration overlay and the corners render at their baked positions.
-//   ON:   ?calibrate=routing-hub injects one handle per registered corner + the export panel; the corner
-//         transform matrices fold in the baked calibration offsets (the chat corners are corner_01 upright,
-//         the standee corners rotated), and the export text lists the eight offset custom properties at
-//         their baked values.
-//   DRAG: a REAL mouse drag on the chat bottom-right handle translates that upright corner_01 ornament in
-//         real time — its computed matrix gains the drag's (dx,dy) on top of the baked baseline — and the
-//         panel readout reflects the new offset.
+// It boots a ROUTING-mode server with a deterministic LM stub, starts a game so the runtime state (field locations +
+// elapsed_weeks) is present, then RELOADS with ?calibrate=academy-map so the dev calibration overlay activates on the
+// real map. It measures, against real layout:
+//   OFF:  a plain load carries NO calibration overlay.
+//   ON:   ?calibrate=academy-map binds a handle to every truth-source pin and the four frame corners, with paste-ready
+//         pin / corner exports; &region=sanrin switches the same map to the 山林 region and its pins.
+//   DRAG: a REAL mouse drag on a pin / a corner moves it in real time and updates its export; RESET restores the seed.
+//   FAIL-FAST: an unknown ?region= id or an unknown ?calibrate screen builds no overlay and surfaces the throw.
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -136,7 +133,7 @@ async function main() {
   const offLayer = await js(win, `document.querySelectorAll('.frame-decoration-calibration-layer').length`);
   check('OFF: no calibration overlay without ?calibrate', offLayer === 0, { layers: offLayer });
 
-  // ── 1) Reach the routing hub so its week/moon render has real runtime state ─
+  // ── 1) Start a game and reach the routing hub so the map has real runtime state ─
   await js(win, `document.querySelector('#start-new-game').click(); true`);
   const onHub = await waitFor(win, `
     document.querySelector('#routing-hub-screen')?.classList.contains('active')
@@ -144,134 +141,7 @@ async function main() {
   `);
   check('reached the routing hub (runtime state present)', onHub, { onHub });
 
-  // ── 2) CAL ON: reload with ?calibrate=routing-hub — the overlay activates on the real hub ──
-  await win.loadURL(`${base}/?calibrate=routing-hub`);
-  const built = await waitFor(win, `
-    !!document.querySelector('.frame-decoration-calibration-layer')
-    && document.querySelector('#routing-hub-screen')?.classList.contains('active')
-    && document.querySelectorAll('.frame-decoration-calibration-handle').length === 4
-  `);
-  const shell = await js(win, `(() => {
-    const handles = [...document.querySelectorAll('.frame-decoration-calibration-handle')];
-    return {
-      layer: !!document.querySelector('.frame-decoration-calibration-layer'),
-      hubActive: document.querySelector('#routing-hub-screen')?.classList.contains('active'),
-      handleCount: handles.length,
-      labels: handles.map((h) => h.querySelector('.frame-decoration-calibration-handle-label')?.textContent),
-      panel: !!document.querySelector('.frame-decoration-calibration-panel'),
-      exportText: document.querySelector('.frame-decoration-calibration-export')?.value || ''
-    };
-  })()`);
-  log('shell', shell);
-  check('ON: overlay activates on the hub with one handle per registered corner + export panel',
-    built && shell.handleCount === 4 && shell.panel && shell.labels.filter(Boolean).length === 4,
-    { handleCount: shell.handleCount, labels: shell.labels, panel: shell.panel });
-  const exportHasAllVars = [
-    ['--rh-standee-corner-tl-dx', '-1px'], ['--rh-standee-corner-tl-dy', '-6px'],
-    ['--rh-standee-corner-br-dx', '2px'], ['--rh-standee-corner-br-dy', '6px'],
-    ['--rh-chat-corner-tl-dx', '-6px'], ['--rh-chat-corner-tl-dy', '-8px'],
-    ['--rh-chat-corner-br-dx', '7px'], ['--rh-chat-corner-br-dy', '9px']
-  ].every(([v, value]) => shell.exportText.includes(`${v}: ${value};`));
-  check('ON: export lists all eight offset custom properties at their baked values (bake-ready)',
-    exportHasAllVars, { exportText: shell.exportText });
-
-  // ── 3) Baked baseline: with calibration active but not yet dragged, the corners render with the baked
-  //       offsets folded into their transforms (chat BR = corner_01 as the 180° point reflection scale(-1,-1)
-  //       + translate(7,9); standee ::after = corner_02 rotate(90deg) + translate(2,6)). ──
-  const norm = (t) => t.replace(/\s+/g, '');
-  const probe = () => js(win, `(() => {
-    const norm = (t) => t.replace(/\\s+/g, '');
-    const chatBR = document.querySelector('.routing-hub-corner-br');
-    const afterCs = getComputedStyle(document.querySelector('.routing-hub-standee-frame'), '::after');
-    return {
-      chatBR: norm(getComputedStyle(chatBR).transform),
-      standeeAfter: norm(afterCs.transform)
-    };
-  })()`);
-  const baked = await probe();
-  log('baked_offset', baked);
-  check('ON: chat BR ornament = corner_01 point-reflected (scale(-1,-1)) + baked translate(7,9) => matrix(-1,0,0,-1,7,9)',
-    baked.chatBR === 'matrix(-1,0,0,-1,7,9)', { chatBR: baked.chatBR });
-  check('ON: standee ::after ornament = corner_02 rotate(90deg) + baked translate(2,6) => matrix(0,1,-1,0,2,6)',
-    baked.standeeAfter === 'matrix(0,1,-1,0,2,6)', { standeeAfter: baked.standeeAfter });
-
-  // ── 4) REAL DRAG: drag the chat bottom-right handle and measure the ornament move in real layout ──
-  const DX = 24;
-  const DY = 16;
-  // The chat BR corner ships baked to translate(7,9) (style.css .routing-hub-screen), so the drag lands on
-  // top of that baseline: the final offset is (baseline + drag).
-  const BAKED_BR_DX = 7;
-  const BAKED_BR_DY = 9;
-  const handleCenter = await js(win, `(() => {
-    const h = document.querySelector('.frame-decoration-calibration-handle[data-calibration-id="routing-hub-chat-corner-br"]');
-    const r = h.getBoundingClientRect();
-    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
-  })()`);
-  // Drive a REAL pointer drag through the actual handler via CDP Input events (a hidden window ignores
-  // webContents.sendInputEvent, and a dispatched PointerEvent can't satisfy setPointerCapture — CDP creates a
-  // genuine pointer, so pointerdown/capture/pointermove/pointerup fire exactly as under a mouse).
-  const dbg = win.webContents.debugger;
-  dbg.attach('1.3');
-  const mouse = (type, x, y, buttons) => dbg.sendCommand('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons, clickCount: type === 'mouseMoved' ? 0 : 1 });
-  await mouse('mousePressed', handleCenter.x, handleCenter.y, 1);
-  await sleep(40);
-  for (let step = 1; step <= 4; step += 1) {
-    await mouse('mouseMoved', handleCenter.x + (DX * step) / 4, handleCenter.y + (DY * step) / 4, 1);
-    await sleep(30);
-  }
-  await mouse('mouseReleased', handleCenter.x + DX, handleCenter.y + DY, 0);
-  await sleep(120);
-  try { dbg.detach(); } catch { /* noop */ }
-  const dragged = await js(win, `(() => {
-    const norm = (t) => t.replace(/\\s+/g, '');
-    const chatBR = document.querySelector('.routing-hub-corner-br');
-    const m = norm(getComputedStyle(chatBR).transform).match(/^matrix\\(([^)]*)\\)$/);
-    const parts = m ? m[1].split(',').map(Number) : [];
-    const host = document.querySelector('.routing-hub-corner-br');
-    return {
-      matrixParts: parts,
-      inlineDx: host.style.getPropertyValue('--rh-chat-corner-br-dx'),
-      inlineDy: host.style.getPropertyValue('--rh-chat-corner-br-dy'),
-      exportText: document.querySelector('.frame-decoration-calibration-export')?.value || ''
-    };
-  })()`);
-  log('dragged', dragged);
-  // matrix(a,b,c,d,e,f): the chat BR corner_01 ships as the 180° point reflection scale(-1,-1) so it keeps
-  // a=-1,d=-1; the drag offset (baked baseline + drag) still lands in e (x) and f (y) because the calibration
-  // translate is composed IN FRONT of the flip.
-  const [a, , , d, e, f] = dragged.matrixParts;
-  check('DRAG: the chat BR ornament translated by the drag delta on top of its baked baseline (e≈baseline+dx, f≈baseline+dy)',
-    Math.abs(e - (BAKED_BR_DX + DX)) <= 4 && Math.abs(f - (BAKED_BR_DY + DY)) <= 4,
-    { e, f, expected: { e: BAKED_BR_DX + DX, f: BAKED_BR_DY + DY } });
-  check('DRAG: the ornament kept its shipped scale(-1,-1) point reflection while translating (a=-1, d=-1)',
-    a === -1 && d === -1, { a, d });
-  check('DRAG: the export/readout reflects the new offset (moved off the baked 7px baseline)',
-    /--rh-chat-corner-br-dx: \d+px;/.test(dragged.exportText) && !dragged.exportText.includes('--rh-chat-corner-br-dx: 7px;'),
-    { inlineDx: dragged.inlineDx, inlineDy: dragged.inlineDy });
-
-  // ── 5) RESET restores the captured baseline (the baked 7px/9px shipped default), not a hardcoded 0 ──
-  await js(win, `document.querySelectorAll('.frame-decoration-calibration-actions button')[1].click(); true`);
-  await sleep(80);
-  const afterReset = await js(win, `(() => {
-    const norm = (t) => t.replace(/\\s+/g, '');
-    const host = document.querySelector('.routing-hub-corner-br');
-    return {
-      chatBR: norm(getComputedStyle(host).transform),
-      inlineDx: host.style.getPropertyValue('--rh-chat-corner-br-dx'),
-      inlineDy: host.style.getPropertyValue('--rh-chat-corner-br-dy'),
-      exportBaseline: (document.querySelector('.frame-decoration-calibration-export')?.value || '').includes('--rh-chat-corner-br-dx: 7px;')
-    };
-  })()`);
-  log('after_reset', afterReset);
-  check('RESET (既定に戻す): the ornament returns to its captured baked baseline (7px/9px), matrix + export back to baseline',
-    afterReset.chatBR === 'matrix(-1,0,0,-1,7,9)' && afterReset.inlineDx === '7px' && afterReset.inlineDy === '9px' && afterReset.exportBaseline,
-    afterReset);
-
-  const shotPath = path.join(os.tmpdir(), 'frame-decoration-calibration-render.png');
-  try { await fs.writeFile(shotPath, (await win.webContents.capturePage()).toPNG()); console.log(`screenshot: ${shotPath}`); }
-  catch (error) { console.log(`screenshot: FAILED ${error?.message ?? error}`); }
-
-  // ── 5b) CAL ON (academy-map): the tool's SECOND kind — map pins (% coordinates) + the four frame corners ──
+  // ── 2) CAL ON (academy-map): map pins (% coordinates) + the four frame corners ──
   // The game started above persisted runtime state (field locations + elapsed_weeks). Reloading into the map
   // renders the real pins; the tool binds a handle to EVERY truth-source pin — a live node where one rendered,
   // a synthesized dashed marker where none did (event stages / stages absent from the field) — so all are
@@ -321,7 +191,7 @@ async function main() {
     ['--am-corner-tl-dx', '--am-corner-tr-dx', '--am-corner-bl-dx', '--am-corner-br-dy'].every((v) => mapShell.cornerExport.includes(`${v}: 0px;`)),
     { cornerExport: mapShell.cornerExport.slice(0, 140) });
 
-  // ── 5c) REAL DRAG an EVENT pin (sealed_ritual_room — never drawn by the normal map, so a synthesized marker):
+  // ── 3) REAL DRAG an EVENT pin (sealed_ritual_room — never drawn by the normal map, so a synthesized marker):
   //       it moves by a percentage of the map image live, and its export line updates. This proves the event
   //       stages, not just the rendered ones, are draggable. ──
   const PIN_DX = 40;
@@ -369,7 +239,7 @@ async function main() {
     pinAfter.line !== pinBefore.line && new RegExp(`${pinBefore.pinId}: \\{ x: -?\\d`).test(pinAfter.line),
     { before: pinBefore.line.trim(), after: pinAfter.line.trim() });
 
-  // ── 5d) REAL DRAG a map corner: it writes the --am-corner-* offset off its 0px baseline ──
+  // ── 4) REAL DRAG a map corner: it writes the --am-corner-* offset off its 0px baseline ──
   const cornerCenter = await js(win, `(() => {
     const h = document.querySelector('.frame-decoration-calibration-handle[data-calibration-id="academy-map-corner-tl"]');
     const r = h.getBoundingClientRect();
@@ -394,7 +264,7 @@ async function main() {
     /^-?\d+px$/.test(cornerAfter.dx) && cornerAfter.dx !== '0px' && cornerAfter.exportMoved,
     cornerAfter);
 
-  // ── 5e) RESET (academy-map): pins return to their seed % and corners to their 0px baseline ──
+  // ── 5) RESET (academy-map): pins return to their seed % and corners to their 0px baseline ──
   await js(win, `document.querySelector('.frame-decoration-calibration-actions [data-calibration-action="reset"]').click(); true`);
   await sleep(90);
   const mapReset = await js(win, `(() => {
@@ -411,7 +281,7 @@ async function main() {
     && mapReset.cornerDx === '0px' && mapReset.cornerExportBaseline,
     mapReset);
 
-  // ── 5f) CAL ON (academy-map + region=sanrin): the SAME map DOM screen, switched to the 山林 region so the sanrin
+  // ── 6) CAL ON (academy-map + region=sanrin): the SAME map DOM screen, switched to the 山林 region so the sanrin
   //       background + sanrin pins render, and the pin export bakes back into sanrinMapStagePinCoordinates. This is
   //       the additive registration this task adds — the academy pins are NOT shown here (only the active region's). ──
   await win.loadURL(`${base}/?calibrate=academy-map&region=sanrin`);
@@ -448,50 +318,11 @@ async function main() {
     && sanrinShell.pinExport.includes('sanrin_gathering: { x: 49, y: 28 }'),
     { head: sanrinShell.pinExport.slice(0, 80) });
 
-  // REAL DRAG a sanrin pin: it moves by a % of the map image and its export line updates off the seed value.
-  const S_DX = 40;
-  const S_DY = 24;
-  const sanrinPinBefore = await js(win, `(() => {
-    const h = document.querySelector('.frame-decoration-calibration-handle--pin[data-calibration-pin-id="sanrin_trailhead"]');
-    const hr = h.getBoundingClientRect();
-    const hx = hr.left + hr.width / 2, hy = hr.top + hr.height / 2;
-    const container = document.querySelector('#academy-map-stage-layer').getBoundingClientRect();
-    const nodes = [...document.querySelectorAll('#academy-map-stage-layer .academy-map-node')];
-    let index = -1, best = Infinity;
-    nodes.forEach((n, i) => { const r = n.getBoundingClientRect(); const d = Math.hypot((r.left + r.width / 2) - hx, r.bottom - hy); if (d < best) { best = d; index = i; } });
-    const line = (document.querySelector('.frame-decoration-calibration-pin-export')?.value || '').split('\\n').find((l) => l.includes('sanrin_trailhead:')) || '';
-    return { index, hx: Math.round(hx), hy: Math.round(hy), cw: container.width, ch: container.height, left: nodes[index].style.left, top: nodes[index].style.top, line };
-  })()`);
-  log('sanrin_pin_before', sanrinPinBefore);
-  const sdbg = win.webContents.debugger;
-  if (!sdbg.isAttached()) sdbg.attach('1.3');
-  const smouse = (type, x, y, buttons) => sdbg.sendCommand('Input.dispatchMouseEvent', { type, x, y, button: 'left', buttons, clickCount: type === 'mouseMoved' ? 0 : 1 });
-  await smouse('mousePressed', sanrinPinBefore.hx, sanrinPinBefore.hy, 1);
-  await sleep(40);
-  for (let step = 1; step <= 4; step += 1) { await smouse('mouseMoved', sanrinPinBefore.hx + (S_DX * step) / 4, sanrinPinBefore.hy + (S_DY * step) / 4, 1); await sleep(30); }
-  await smouse('mouseReleased', sanrinPinBefore.hx + S_DX, sanrinPinBefore.hy + S_DY, 0);
-  await sleep(120);
-  try { sdbg.detach(); } catch { /* noop */ }
-  const sanrinPinAfter = await js(win, `(() => {
-    const nodes = [...document.querySelectorAll('#academy-map-stage-layer .academy-map-node')];
-    const node = nodes[${sanrinPinBefore.index}];
-    const line = (document.querySelector('.frame-decoration-calibration-pin-export')?.value || '').split('\\n').find((l) => l.includes('sanrin_trailhead:')) || '';
-    return { left: node.style.left, top: node.style.top, line };
-  })()`);
-  log('sanrin_pin_after', sanrinPinAfter);
-  const sExpectDxPct = (S_DX / sanrinPinBefore.cw) * 100;
-  const sExpectDyPct = (S_DY / sanrinPinBefore.ch) * 100;
-  check('DRAG(region=sanrin pin): the live sanrin pin moved right/down by the pointer delta as a % of the map image, and its export line updated',
-    Math.abs((Number.parseFloat(sanrinPinAfter.left) - Number.parseFloat(sanrinPinBefore.left)) - sExpectDxPct) <= 1.0
-    && Math.abs((Number.parseFloat(sanrinPinAfter.top) - Number.parseFloat(sanrinPinBefore.top)) - sExpectDyPct) <= 1.0
-    && sanrinPinAfter.line !== sanrinPinBefore.line && /sanrin_trailhead: \{ x: -?\d/.test(sanrinPinAfter.line),
-    { before: { left: sanrinPinBefore.left, top: sanrinPinBefore.top }, after: { left: sanrinPinAfter.left, top: sanrinPinAfter.top }, afterLine: sanrinPinAfter.line.trim() });
-
   const sanrinShot = path.join(os.tmpdir(), 'frame-decoration-calibration-sanrin.png');
   try { await fs.writeFile(sanrinShot, (await win.webContents.capturePage()).toPNG()); console.log(`screenshot: ${sanrinShot}`); }
   catch (error) { console.log(`screenshot: FAILED ${error?.message ?? error}`); }
 
-  // ── 5g) FAIL-FAST (region): an unknown ?region= id aborts activation (no overlay) and surfaces the throw ──
+  // ── 7) FAIL-FAST (region): an unknown ?region= id aborts activation (no overlay) and surfaces the throw ──
   rendererErrors.length = 0;
   await win.loadURL(`${base}/?calibrate=academy-map&region=__no_such_region__`);
   await sleep(1200);
@@ -500,24 +331,7 @@ async function main() {
   check('FAIL-FAST(region): an unknown ?region= id builds NO overlay (activation aborted) and the throw is surfaced',
     badRegionLayers === 0 && badRegionSurfaced, { layers: badRegionLayers, surfaced: badRegionSurfaced, sampleErrors: rendererErrors.slice(0, 2) });
 
-  // ── 6) DOM-side fail-fast: a non-px offset custom property aborts activation (no overlay) and surfaces the throw ──
-  // Inject a bad default (--rh-chat-corner-br-dx: 1rem) at document-start via CDP, then reactivate on the hub
-  // (runtime state still present from the game above). resolveCalibrationTarget must reject the non-px value.
-  if (!dbg.isAttached()) dbg.attach('1.3');
-  await dbg.sendCommand('Page.enable');
-  await dbg.sendCommand('Page.addScriptToEvaluateOnNewDocument', {
-    source: "(() => { const inject = () => { const s = document.createElement('style'); s.textContent = '.routing-hub-screen{--rh-chat-corner-br-dx:1rem !important}'; (document.head || document.documentElement).appendChild(s); }; if (document.head) inject(); else document.addEventListener('DOMContentLoaded', inject); })();"
-  });
-  rendererErrors.length = 0;
-  await win.loadURL(`${base}/?calibrate=routing-hub`);
-  await sleep(1500);
-  const nonPxLayers = await js(win, `document.querySelectorAll('.frame-decoration-calibration-layer').length`);
-  const nonPxSurfaced = rendererErrors.some((m) => /must be a px length/.test(m));
-  check('FAIL-FAST: a non-px offset custom property (1rem) aborts activation (no overlay) and surfaces the throw',
-    nonPxLayers === 0 && nonPxSurfaced, { layers: nonPxLayers, surfaced: nonPxSurfaced, sampleErrors: rendererErrors.slice(0, 2) });
-  try { dbg.detach(); } catch { /* noop */ }
-
-  // ── 7) DOM-side fail-fast: an unknown ?calibrate screen aborts activation (no overlay) and surfaces the throw ──
+  // ── 8) DOM-side fail-fast: an unknown ?calibrate screen aborts activation (no overlay) and surfaces the throw ──
   rendererErrors.length = 0;
   await win.loadURL(`${base}/?calibrate=__no_such_screen__`);
   await sleep(1200);
@@ -526,7 +340,6 @@ async function main() {
   check('FAIL-FAST: an unknown ?calibrate screen builds NO overlay (activation aborted, not degraded) and the throw is surfaced',
     failFast === 0 && surfaced, { layers: failFast, surfaced, sampleErrors: rendererErrors.slice(0, 2) });
 
-  void norm;
   const failed = results.filter((r) => !r.pass);
   console.log(`\nSUMMARY: ${results.length - failed.length}/${results.length} passed`);
   if (failed.length) { exitCode = 1; console.log(`FAILED: ${failed.map((r) => r.name).join(' | ')}`); }

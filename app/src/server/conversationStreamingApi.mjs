@@ -3,7 +3,8 @@ import { buildRoutingErrandSceneContext, readActiveRoutingErrand } from '../rout
 import { buildRoutingStudyCircleSceneContext, readActiveRoutingStudyCircle } from '../routingStudyCircle.mjs';
 import { matchingActiveAtelierConversation } from '../homunculusAtelierVisit.mjs';
 import { atelierInjectedSceneContext } from '../homunculusScene.mjs';
-import { attachRoutingErrandCompletion, attachRoutingGraduationGuideSelection, attachRoutingStudyCircleCompletion, attachRoutingTurnDispatch, graduationPersonaVariantForActivePlayMode, resolveConversationLifecycleRoot, resolveConversationTurnRequest, resolveRoutingGraduationGuideContext, routingPersonaVisualForGraduationPhase2 } from './conversationLifecycleApi.mjs';
+import { attachRoutingErrandCompletion, attachRoutingGraduationGuideSelection, attachRoutingStudyCircleCompletion, attachRoutingTurnDispatch, graduationPersonaVariantForActivePlayMode, guideGraduationSceneContextForTurn, resolveConversationLifecycleRoot, resolveConversationTurnRequest, resolveRoutingGraduationGuideContext } from './conversationLifecycleApi.mjs';
+import { ROUTING_PERSONA_CHARACTER_ID } from '../routingPersona.mjs';
 import { runExclusiveConversationWork } from './conversationTurnExclusion.mjs';
 
 const CONVERSATION_STREAMING_ROUTES = new Set([
@@ -173,6 +174,7 @@ export async function streamConversationTurnSse({
       graduationPersonaVariant,
       onEmotion: (emotion) => sendSseEvent(res, 'assistant_emotion', emotion),
       onAssistantComplete: ({ content, emotion }) => sendSseEvent(res, 'assistant_complete', { content, ...emotion }),
+      onStageMove: (stageMove) => sendSseEvent(res, 'stage_move', stageMove),
       postTurnStatePolicy
     });
     // Drain-on-exit: a decided routing turn runs its full pending-finalization drain in
@@ -196,13 +198,13 @@ export async function streamConversationTurnSse({
     if (result?.errand_achievement || result?.study_circle_achievement) {
       sendSseEvent(res, 'achievement_draining', { kind: result.errand_achievement ? 'errand' : 'study_circle' });
     }
-    // Drain-on-exit for the graduation guide selection (routing phase 2): when the guide turn picked a partner,
-    // finalizeTurnResult (attachRoutingGraduationGuideSelection) drains the hub conversation and starts the
-    // character event after the reply has streamed. Emit a graduation_guide_draining signal here — after the
-    // reply, before the drain — so the client covers the drain with the loading screen, the same流儀 as
-    // routing_draining.
-    if (result?.routing_graduation_guide_selection) {
-      sendSseEvent(res, 'graduation_guide_draining', { character_id: result.routing_graduation_guide_selection.character_id ?? null });
+    // Drain-on-exit for the graduation guide selection of an academy person (routing phase 2): finalizeTurnResult
+    // (attachRoutingGraduationGuideSelection) drains the hub conversation and starts that person's graduation event
+    // after the reply has streamed. Emit a graduation_guide_draining signal here — after the reply, before the drain
+    // — so the client covers the drain with the loading screen, the same流儀 as routing_draining. Choosing the 案内人
+    // herself drains nothing (the conversation goes on on the terrace), so it sends no such signal.
+    if (result?.routing_graduation_guide_selection && result.routing_graduation_guide_selection.character_id !== ROUTING_PERSONA_CHARACTER_ID) {
+      sendSseEvent(res, 'graduation_guide_draining', { character_id: result.routing_graduation_guide_selection.character_id });
     }
     // In-turn finalization progress: the drain that finalizeTurnResult runs (routing dispatch / achievement
     // auto-end / graduation guide) emits its block boundaries on this already-open SSE as finalization_progress
@@ -264,17 +266,7 @@ export async function handleConversationStreamingApi({
         onAssistantComplete: ({ content }) => sendSseEvent(res, 'assistant_complete', { content }),
         ...providers
       });
-      // A guide-persona graduation phase 2 opening (immediate hand-off after selection, or a restore re-open
-      // of an in-progress phase 2) carries the routing persona visual so the frontend renders the persona's
-      // own art hub-outside; every other opening attaches nothing.
-      const openingState = await readJson(root, 'game_data/runtime_state.json');
-      const routingPersonaVisual = await routingPersonaVisualForGraduationPhase2({
-        root,
-        characterId,
-        state: openingState,
-        activePlayMode
-      });
-      sendSseEvent(res, 'result', routingPersonaVisual ? { ...result, routing_persona_visual: routingPersonaVisual } : result);
+      sendSseEvent(res, 'result', result);
     } catch (error) {
       sendSseEvent(res, 'error', serializeStreamError(error));
     } finally {
@@ -306,7 +298,8 @@ export async function handleConversationStreamingApi({
           now: new Date().toISOString(),
           ...providers,
           onEmotion: (emotion) => sendSseEvent(res, 'assistant_emotion', emotion),
-          onAssistantComplete: ({ content, emotion }) => sendSseEvent(res, 'assistant_complete', { content, ...emotion })
+          onAssistantComplete: ({ content, emotion }) => sendSseEvent(res, 'assistant_complete', { content, ...emotion }),
+          onStageMove: (stageMove) => sendSseEvent(res, 'stage_move', stageMove)
         });
         sendSseEvent(res, 'result', result);
       } catch (error) {
@@ -329,6 +322,7 @@ export async function handleConversationStreamingApi({
       let activeErrand = undefined;
       let activeStudyCircle = undefined;
       let activeAtelier = undefined;
+      let guideGraduationScene = undefined;
       const getTurnRequest = async () => {
         turnRequest ??= await resolveConversationTurnRequest({
           root,
@@ -382,6 +376,19 @@ export async function handleConversationStreamingApi({
           : null;
         return activeAtelier;
       };
+      // The 案内人's graduation conversation on the terrace takes the terrace scene as its injected 舞台 every turn.
+      const getGuideGraduationScene = async () => {
+        if (guideGraduationScene !== undefined) return guideGraduationScene;
+        const request = await getTurnRequest();
+        const state = await readJson(root, 'game_data/runtime_state.json');
+        guideGraduationScene = guideGraduationSceneContextForTurn({
+          activePlayMode,
+          state,
+          conversationId: request.conversationId,
+          characterId: request.characterId
+        });
+        return guideGraduationScene;
+      };
       openSse(res);
       try {
         const errandForStream = await getActiveErrand();
@@ -394,7 +401,8 @@ export async function handleConversationStreamingApi({
         if (errandForStream && studyCircleForStream) {
           throw routingStudyCircleContextMismatch('routing errand and study circle are both active');
         }
-        const injectedSceneForStream = errandForStream || studyCircleForStream || atelierForStream;
+        const guideGraduationSceneForStream = await getGuideGraduationScene();
+        const injectedSceneForStream = errandForStream || studyCircleForStream || atelierForStream || guideGraduationSceneForStream;
         await streamConversationTurnSse({
           res,
           root,
@@ -414,7 +422,9 @@ export async function handleConversationStreamingApi({
               ? buildRoutingErrandSceneContext(errandForStream)
               : studyCircleForStream
                 ? buildRoutingStudyCircleSceneContext(studyCircleForStream)
-                : atelierInjectedSceneContext()
+                : atelierForStream
+                  ? atelierInjectedSceneContext()
+                  : guideGraduationSceneForStream
           } : {}),
           ...(errandForStream ? {
             resolveErrandJudgmentContext: async () => ({ condition_text: errandForStream.condition_text })

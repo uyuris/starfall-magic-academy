@@ -1,0 +1,722 @@
+/* 学院マップの見せ方の層。製品の学院マップ（#academy-map-screen）の上に置き、html.ap-page の下だけで効く。
+   - 額・中身の箱・見出しの下の一文をやめ、地図を画面そのものに近づける（ピンは地図の中の割合の座標なので、地図は 16:9 のまま、
+     ピンの左右の端が左の印の列と右の顔の列の間に収まるいちばん大きい大きさ（画面の高さまで）に広げ、絵の外は同じ絵をぼかして
+     沈めた地で埋め、絵の縁はその地へ溶かす）。
+   - 左の印と開く画面は露台（hubTerrace.css）の形: 床の楕円の光の上の印・字の無い印・夜を一段沈めた帯。学院と山林の札は印の列の下。
+   - 動くのは透明度・ぼかし・光の明るさだけ。拡大・跳ね・弾みは使わない。動きを減らす設定では切り替えるだけ。
+   - 舞台の覗きと相手選びは露台のように場の上へ溶かす: 舞台の絵が額を出て画面そのものになり、字と顔は夜の上に直に置く。 */
+
+html.ap-page {
+  --ap-people-w: clamp(150px, 11.5vw, 184px);
+  /* 左の印の列の右の端。ピンはこれより右、顔の列より左に来る（地図の絵の縁は印の列と顔の列の下に入ってよい）。 */
+  --ap-rail-right: calc(1.8vw + clamp(56px, 6vw, 76px));
+  --ap-pin-w: 38px;
+  --ap-pin-gap: 8px;
+  --ap-face: 40px;
+  --ap-night-0: #05060f;
+  --ap-silver: #cdd6ea;
+  --ap-silver-strong: #eef3ff;
+  --ap-silver-quiet: rgb(205 214 234 / 0.7);
+  --ap-starlight: #9fb4ff;
+  --ap-moon: #e7edff;
+  --ap-halo: 0 0 2px rgb(5 6 15 / 0.95), 0 0 7px rgb(5 6 15 / 0.9), 0 0 16px rgb(5 6 15 / 0.8);
+  --ap-sigil: rgb(159 180 255 / 0.3);
+  --ap-sigil-strong: rgb(159 180 255 / 0.62);
+  --ap-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ap-fade: 420ms;
+}
+
+/* ── 地図: 額・箱・見出しの下の一文を外し、地図を画面そのものに近づける ─────────────────────────────── */
+html.ap-page #academy-map-screen .academy-map-shell {
+  display: block;
+  padding: 0;
+  background: var(--ap-night-0);
+}
+
+/* 地図の絵の外の地: 製品が地図に敷く背景（academyMapLayer.js が --ap-map-art に写す）を画面いっぱいにぼかして沈める。 */
+html.ap-page #academy-map-screen .academy-map-shell::before {
+  content: '';
+  position: absolute;
+  inset: -48px;
+  background-image: var(--ap-map-art);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: blur(26px) brightness(0.46) saturate(0.8);
+}
+
+html.ap-page #academy-map-screen :is(.academy-map-heading, .academy-map-frame, .academy-map-corner, .academy-map-grid) {
+  display: none;
+}
+
+html.ap-page #academy-map-screen .academy-map-body {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+/* 地図の幅: ピンの左右の端の間（地図の --ap-pin-x0〜--ap-pin-x1 %）が、印の列の右と顔の列の左の間に収まる幅と、画面の高さ
+   いっぱいになる幅の小さい方。ピンの左右の端の中ほどを、印の列と顔の列の間の中ほどに置き（画面より広い地図は画面の左右の
+   端を越えて縁を残さない所まで寄せる）、上下は画面の中ほど。この大きさ・位置が地図の絵の置き方（窓の座標・待ちの層 #place-veil
+   も読む）で、地図の枠も地図の絵もこれで置く。地図の縁のぼかし（--place-art-mask・--place-art-mask-composite。絵の大きさに
+   対する割合）も同じく層が読み、地図の枠はこれで縁をぼかす。 */
+html.ap-page #academy-map-screen {
+  --ap-map-w: min(
+    calc((100vw - var(--ap-people-w) - var(--ap-rail-right) - var(--ap-pin-w) - 2 * var(--ap-pin-gap)) * 100 / (var(--ap-pin-x1) - var(--ap-pin-x0))),
+    calc(100dvh * 1672 / 941)
+  );
+  --ap-map-h: calc(var(--ap-map-w) * 941 / 1672);
+  --ap-map-left: clamp(
+    min(0px, 100vw - var(--ap-map-w)),
+    calc((var(--ap-rail-right) + 100vw - var(--ap-people-w)) / 2 - var(--ap-map-w) * (var(--ap-pin-x0) + var(--ap-pin-x1)) / 200),
+    max(0px, 100vw - var(--ap-map-w))
+  );
+  --place-art-size: var(--ap-map-w) var(--ap-map-h);
+  --place-art-position: var(--ap-map-left) calc(var(--runtime-topbar-height, 88px) + (100dvh - var(--runtime-topbar-height, 88px) - var(--ap-map-h)) / 2);
+  --place-art-mask: linear-gradient(90deg, transparent 0, #000 3%, #000 97%, transparent 100%), linear-gradient(180deg, transparent 0, #000 11%, #000 89%, transparent 100%);
+  --place-art-mask-composite: intersect;
+}
+
+html.ap-page #academy-map-screen .academy-map-canvas {
+  position: absolute;
+  top: calc(50% - var(--ap-map-h) / 2);
+  left: var(--ap-map-left);
+  width: var(--ap-map-w);
+  max-width: none;
+  background-size: cover, var(--place-art-size), cover;
+  background-position: center, var(--place-art-position), center;
+  background-attachment: scroll, fixed, scroll;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  mask-image: var(--place-art-mask);
+  mask-composite: var(--place-art-mask-composite);
+  transition: opacity var(--ap-fade) var(--ap-ease), filter var(--ap-fade) var(--ap-ease);
+}
+
+/* 覗き・相手選びが開いている間、地図は少し沈む（明るさとぼかしだけ）。 */
+html.ap-page.ap-popup-open #academy-map-screen .academy-map-canvas {
+  filter: brightness(0.62) saturate(0.85) blur(1.5px);
+}
+
+/* ピン: 顔に指を乗せた人のいる舞台のピンが灯り、ほかは沈む。 */
+html.ap-page #academy-map-screen .academy-map-node {
+  transition: opacity 0.5s var(--ap-ease), filter 0.5s var(--ap-ease);
+}
+
+html.ap-page #academy-map-screen .academy-map-stage-layer.ap-pins-quiet .academy-map-node:not(.ap-pin-lit) {
+  opacity: 0.26;
+  filter: brightness(0.6) saturate(0.6);
+}
+
+html.ap-page #academy-map-screen .academy-map-node.ap-pin-lit {
+  z-index: 3;
+  filter: brightness(1.3) drop-shadow(0 0 6px var(--ap-moon)) drop-shadow(0 0 16px var(--ap-starlight));
+}
+
+/* 舞台の名の吹き出し: 箱をやめ、夜の上の字にする（出入りは透明度だけ）。 */
+html.ap-page #academy-map-screen .academy-map-hover-tooltip {
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(ellipse 60% 70% at 50% 50%, rgb(5 6 15 / 0.72), rgb(5 6 15 / 0.36) 64%, transparent 100%);
+  box-shadow: none;
+  backdrop-filter: none;
+  transform: none;
+  color: var(--ap-silver-strong);
+  text-shadow: var(--ap-halo);
+  transition: opacity 0.3s var(--ap-ease);
+}
+
+html.ap-page #academy-map-screen .academy-map-hover-tooltip.is-visible { transform: none; }
+
+html.ap-page #academy-map-screen .academy-map-hover-tooltip :is(small, .academy-map-hover-occupants-label) {
+  color: var(--ap-silver-quiet);
+}
+
+html.ap-page #academy-map-screen .academy-map-hover-occupant-chip {
+  border: 0;
+  background: none;
+  padding: 0 6px 0 0;
+  color: var(--ap-silver-strong);
+}
+
+/* ── 週: 露台と同じく上の控えめな字だけ ─────────────────────────────────────────────────────────────── */
+html.ap-page #academy-map-screen .academy-map-topbar {
+  top: 2.6vh;
+  left: 1.8vw;
+  transform: none;
+  z-index: 10;
+}
+
+html.ap-page #academy-map-screen .academy-map-week {
+  color: var(--ap-silver-strong);
+  text-shadow: var(--ap-halo);
+}
+
+/* ── 左の印: 露台の床の印の形（字は出さず、床に寝た楕円の光の上に印） ───────────────────────────────── */
+html.ap-page #academy-map-screen .academy-map-category-rail {
+  position: absolute;
+  z-index: 9;
+  left: 1.8vw;
+  top: 18vh;
+  bottom: 30vh;
+  width: clamp(56px, 6vw, 76px);
+  justify-content: space-evenly;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+html.ap-page #academy-map-screen .academy-map-category-button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: auto;
+  padding: 2px 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+html.ap-page #academy-map-screen .academy-map-category-button::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 54px;
+  height: 14px;
+  translate: -50% 0;
+  border: 1px solid var(--ap-sigil);
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgb(159 180 255 / 0.24), rgb(159 180 255 / 0.06) 60%, transparent 75%);
+  transition: border-color 1.2s ease, box-shadow 1.2s ease;
+}
+
+html.ap-page #academy-map-screen .academy-map-category-button:is(:hover, .is-active)::before {
+  border-color: var(--ap-sigil-strong);
+  box-shadow: 0 0 14px rgb(159 180 255 / 0.4);
+}
+
+html.ap-page #academy-map-screen .academy-map-category-button:focus-visible {
+  outline: 1px solid rgb(159 180 255 / 0.55);
+  outline-offset: 2px;
+}
+
+html.ap-page #academy-map-screen .academy-map-category-icon {
+  width: 45px;
+  height: 45px;
+  margin-top: -15px;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 6px rgb(5 6 15 / 0.7));
+}
+
+html.ap-page #academy-map-screen .academy-map-category-label {
+  display: none;
+}
+
+/* 学院と山林の札: 印の列の下に縦に二つ。選ばれている側は月の白、もう一方は静かな銀（箱は持たない）。 */
+html.ap-page #academy-map-screen .academy-map-hero {
+  display: contents;
+}
+
+html.ap-page #academy-map-screen .academy-map-region-toggle {
+  position: absolute;
+  z-index: 9;
+  left: 1.8vw;
+  top: calc(100% - 26vh);
+  width: clamp(56px, 6vw, 76px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4vh;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+html.ap-page #academy-map-screen .academy-map-region-button {
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ap-silver-quiet);
+  font-size: 0.92rem;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-shadow: var(--ap-halo);
+  transition: color 0.8s ease, text-shadow 0.8s ease;
+}
+
+html.ap-page #academy-map-screen .academy-map-region-button:hover:not(.is-active) {
+  border: 0;
+  background: none;
+  color: var(--ap-silver-strong);
+}
+
+html.ap-page #academy-map-screen .academy-map-region-button.is-active {
+  border: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ap-moon);
+  text-shadow: var(--ap-halo), 0 0 12px rgb(159 180 255 / 0.85);
+}
+
+/* ── 印から開く画面: 器は共有の夜の帯（.night-band・hubTerrace.css）。ここは地図の上の重なりの順と、ほかの欄の中身の見せ方。 */
+html.ap-page #academy-map-screen .academy-map-info-popup {
+  z-index: 8;
+}
+
+/* 帯の中の欄と行は枠で囲まず、間合いと行の頭の小さな星の点で区切る。 */
+html.ap-page #academy-map-screen .academy-map-info-popup-body :is(
+  .academy-map-info-empty-card, .academy-map-info-loading, .academy-map-info-buddy-card, .academy-map-info-roster-card,
+  .academy-map-info-ledger-row, .academy-map-info-money-card, .academy-map-info-chip, .academy-map-info-ledger-materia span
+) {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+html.ap-page #academy-map-screen .academy-map-info-popup-body :is(.academy-map-info-ledger-row, .academy-map-info-roster-card) {
+  position: relative;
+  padding: 2px 0 2px 16px;
+}
+
+html.ap-page #academy-map-screen .academy-map-info-popup-body :is(.academy-map-info-ledger-row, .academy-map-info-roster-card)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 7px;
+  height: 7px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0.6 L6.2 3.8 L9.4 5 L6.2 6.2 L5 9.4 L3.8 6.2 L0.6 5 L3.8 3.8 Z' fill='%23e8c877'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+html.ap-page #academy-map-screen .academy-map-info-popup-body :is(.academy-map-info-portrait, .academy-map-info-roster-face) {
+  border: 0;
+  border-radius: 50%;
+}
+
+html.ap-page #academy-map-screen .academy-map-info-popup-body :is(.academy-map-info-chip, .academy-map-info-ledger-materia span) {
+  padding: 0 8px 0 0;
+  color: var(--ap-silver-quiet);
+}
+
+/* ── 人から選ぶ道: 右の縁の顔の列 ───────────────────────────────────────────────────────────────────── */
+.ap {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  font-family: var(--runtime-reading-font);
+  visibility: hidden;
+}
+
+/* 層が出るのは学院マップにいる間だけ（会話・購買などへ移ったら製品の画面だけになる）。 */
+html.ap-page body:has(#academy-map-screen.active) .ap[data-ap-ready="true"] {
+  visibility: visible;
+}
+
+.ap-people {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--ap-people-w);
+  background: linear-gradient(90deg, transparent 0, rgb(5 6 15 / 0.7) 28%, rgb(5 6 15 / 0.86) 100%);
+  opacity: 0;
+  transition: opacity var(--ap-fade) var(--ap-ease);
+}
+
+.ap.has-people .ap-people { opacity: 1; }
+html.ap-popup-open .ap.has-people .ap-people { opacity: 0.18; }
+
+.ap-people-flow {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 7vh 38px 7vh 26px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  pointer-events: auto;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 6vh, #000 calc(100% - 6vh), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 6vh, #000 calc(100% - 6vh), transparent 100%);
+}
+
+html.ap-popup-open :is(.ap-people-flow, .ap-people-index) { pointer-events: none; }
+
+/* 名の頭の音の行: 顔の列の外側の縁に、字だけの印を縦に並べる。いま居る人のいない行は沈んで押せない。 */
+.ap-people-index {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  right: 6px;
+  translate: 0 -50%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: auto;
+}
+
+.ap-people-index[hidden] { display: none; }
+
+.ap-people-index-row {
+  width: 26px;
+  padding: 5px 0;
+  border: 0;
+  background: none;
+  color: var(--ap-silver-quiet);
+  font: inherit;
+  font-size: 0.86rem;
+  line-height: 1.2;
+  text-align: center;
+  text-shadow: var(--ap-halo);
+  cursor: pointer;
+  transition: color 0.6s var(--ap-ease), text-shadow 0.6s var(--ap-ease), opacity 0.6s var(--ap-ease);
+}
+
+.ap-people-index-row:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.ap-people-index-row:not(:disabled):is(:hover, :focus-visible) {
+  outline: none;
+  color: var(--ap-silver-strong);
+}
+
+.ap-people-index-row[aria-pressed="true"] {
+  color: var(--ap-moon);
+  text-shadow: var(--ap-halo), 0 0 12px rgb(159 180 255 / 0.85);
+}
+
+/* 頭の音の行を選んでいる間の列: その行の人が名の順に一人一行で、顔の脇に名（「・」の前の語）。 */
+.ap-people-flow.is-indexed {
+  gap: 4px;
+  padding-left: 12px;
+}
+
+.ap-people-flow.is-indexed .ap-person {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  text-align: left;
+}
+
+.ap-people-flow.is-indexed .ap-person img {
+  flex: none;
+  width: 32px;
+}
+
+.ap-person-name {
+  color: var(--ap-silver-strong);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-shadow: var(--ap-halo);
+}
+
+.ap-people-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--ap-face));
+  gap: 6px;
+  transition: opacity 0.5s var(--ap-ease), filter 0.5s var(--ap-ease);
+}
+
+.ap-people-flow:has(> .is-lit) > :not(.is-lit) {
+  opacity: 0.32;
+  filter: brightness(0.7);
+}
+
+.ap-person {
+  width: var(--ap-face);
+  height: var(--ap-face);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  filter: brightness(0.86);
+  transition: filter 0.5s var(--ap-ease);
+}
+
+.ap-person img,
+.ap-peek-face img,
+.ap-pick-face img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 18%;
+}
+
+.ap-person:is(:hover, :focus-visible) {
+  outline: none;
+  filter: brightness(1.15) drop-shadow(0 0 6px var(--ap-moon)) drop-shadow(0 0 12px var(--ap-starlight));
+}
+
+.ap-person.is-buddy img { box-shadow: 0 0 0 1px rgb(255 214 120 / 0.65); }
+.ap-person.is-enemy img { box-shadow: 0 0 0 1px rgb(255 120 140 / 0.6); }
+
+/* ── 舞台の覗きと相手選び（開閉は透明度とぼかしだけ） ───────────────────────────────────────────────── */
+.ap-popup {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: auto;
+  opacity: 0;
+  filter: blur(6px);
+  transition: opacity var(--ap-fade) var(--ap-ease), filter var(--ap-fade) var(--ap-ease);
+}
+
+.ap-popup[hidden] { display: none; }
+.ap-popup.is-open { opacity: 1; filter: none; }
+
+.ap-popup-veil {
+  position: absolute;
+  inset: 0;
+}
+
+.ap-popup-sheet {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+}
+
+.ap-popup-name {
+  margin: 0;
+  font-weight: 500;
+}
+
+.ap-peek-situation,
+.ap-pick-empty {
+  margin: 0;
+  line-height: 1.75;
+}
+
+.ap-popup-ways {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.ap-sigil {
+  display: inline-flex;
+  padding: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  transition: opacity 0.6s ease, filter 0.6s ease;
+}
+
+.ap-sigil-mark {
+  display: block;
+  width: 26px;
+  height: 26px;
+}
+
+.ap-peek-faces,
+.ap-pick-faces {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.ap-peek-face,
+.ap-pick-face {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 0.5s var(--ap-ease), filter 0.5s var(--ap-ease);
+}
+
+.ap-face-name {
+  width: 100%;
+  line-height: 1.3;
+  text-align: center;
+}
+
+/* 名は「・」で切った語ごとに折れない（語の間の <wbr> でだけ行が替わる）。 */
+.ap-face-name-word { white-space: nowrap; }
+
+/* 覗きの顔は小さいので、名は指を乗せた顔と選んだ顔の下にだけ灯る（ほかの名は読み上げの名だけ）。名は顔の左端から右へ
+   一行で出し、紙や画面の左の縁を越えない。 */
+.ap-peek-face { position: relative; }
+
+.ap-peek-face .ap-face-name {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  width: max-content;
+  max-width: 16em;
+  text-align: left;
+  opacity: 0;
+  transition: opacity 0.4s var(--ap-ease);
+}
+
+.ap-peek-faces { row-gap: 26px; padding-bottom: 20px; }
+
+.ap-peek-face:is(:hover, :focus-visible, .is-chosen) .ap-face-name { opacity: 1; }
+
+/* 選んだ人は灯り、ほかは沈む（人から来た道・覗きで顔を押したとき）。 */
+:is(.ap-peek-faces, .ap-pick-faces).has-chosen > :not(.is-chosen) {
+  opacity: 0.42;
+  filter: brightness(0.7) saturate(0.7);
+}
+
+/* 覗きは「先にそこにいる人の顔、次に舞台の絵と様子の一文」の順に灯る。 */
+.ap-peek .ap-peek-faces { transition: opacity 0.36s var(--ap-ease); }
+.ap-peek :is(.ap-popup-art, .ap-popup-name, .ap-peek-situation, .ap-popup-ways) {
+  transition: opacity 0.6s var(--ap-ease) 0.26s, filter 0.6s var(--ap-ease) 0.26s;
+}
+.ap-peek:not(.is-open) :is(.ap-popup-art, .ap-popup-name, .ap-peek-situation, .ap-popup-ways) {
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+/* ── 絵が額を出て画面そのものになり、字と顔は夜の上に直に置く ─────────────────────────────────────────── */
+html.ap-page .ap-popup-veil {
+  background: radial-gradient(ellipse 80% 80% at 60% 50%, rgb(5 6 15 / 0.2), rgb(5 6 15 / 0.62) 100%);
+}
+
+html.ap-page .ap-popup-art {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--ap-night-0);
+  background-size: cover;
+  background-position: center;
+  pointer-events: none;
+}
+
+/* 絵の左と下は夜へ溶かし、字はその夜の上に置く。 */
+html.ap-page .ap-popup-art::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(5 6 15 / 0.9) 0, rgb(5 6 15 / 0.66) 30%, rgb(5 6 15 / 0.12) 58%, transparent 74%),
+    linear-gradient(0deg, rgb(5 6 15 / 0.8) 0, rgb(5 6 15 / 0.24) 32%, transparent 52%);
+}
+
+html.ap-page .ap-popup-sheet {
+  left: calc(1.8vw + 96px);
+  bottom: 9vh;
+  width: min(42vw, 600px);
+  gap: 2.2vh;
+  color: var(--ap-silver-strong);
+  text-shadow: var(--ap-halo);
+}
+
+html.ap-page .ap-popup-name {
+  font-size: 1.7rem;
+  letter-spacing: 0.14em;
+  color: var(--ap-moon);
+}
+
+html.ap-page .ap-peek-situation,
+html.ap-page .ap-pick-empty {
+  font-size: 1rem;
+  color: var(--ap-silver-strong);
+}
+
+html.ap-page .ap-peek-faces { gap: 12px; }
+html.ap-page .ap-peek-face { width: 64px; }
+html.ap-page .ap-peek-face img { filter: drop-shadow(0 0 6px rgb(5 6 15 / 0.9)); }
+html.ap-page .ap-peek-face .ap-face-name {
+  font-size: 0.72rem;
+  color: var(--ap-silver-quiet);
+}
+
+html.ap-page .ap-pick-faces { gap: 22px; order: 1; }
+html.ap-page .ap-pick .ap-popup-name { order: 0; }
+html.ap-page .ap-pick .ap-pick-empty { order: 2; }
+/* 相手選びの顔の幅は、顔の絵の幅と名のいちばん長い語の幅の広い方（語の途中で折れない幅）。 */
+html.ap-page .ap-pick-face { width: min-content; min-width: 104px; }
+html.ap-page .ap-pick-face img { width: 104px; }
+html.ap-page .ap-pick-face .ap-face-name {
+  font-size: 0.86rem;
+  color: var(--ap-silver-strong);
+}
+
+html.ap-page :is(.ap-peek-face, .ap-pick-face):is(:hover, :focus-visible, .is-chosen) {
+  outline: none;
+  opacity: 1;
+  filter: brightness(1.12) drop-shadow(0 0 8px var(--ap-moon)) drop-shadow(0 0 18px var(--ap-starlight));
+}
+
+/* 「ここに行く」は露台の送る釦の紋（字は aria-label）。閉じるの印と並ぶ、一回り大きい行き先の印。 */
+html.ap-page .ap-way-go .ap-sigil-mark {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 6px rgb(5 6 15 / 0.7));
+}
+
+html.ap-page .ap-sigil { color: var(--ap-silver-quiet); }
+html.ap-page .ap-sigil:is(:hover, :focus-visible) {
+  outline: none;
+  color: var(--ap-silver-strong);
+  filter: drop-shadow(0 0 8px rgb(159 180 255 / 0.8));
+}
+
+/* ── 購買へ行くとき: 覗きの絵が購買の画面の地と同じ深夜へ沈む ──────────────────────────────────────────
+   字・顔・印と覗きの暗がりが先に薄れ、絵は購買の画面の地と同じ縦位置へ寄りながら、購買の画面の地と同じ沈めの層
+   （.shop-night-grade・.shop-night-tint・style.css）が満ちる。沈みきったところで製品が購買の画面へ移る。 */
+html.ap-page .ap-night-sink {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 900ms var(--ap-ease);
+}
+
+html.ap-page .ap-peek.is-sinking .ap-night-sink { opacity: 1; }
+
+html.ap-page .ap-peek.is-sinking .ap-popup-art {
+  background-position: var(--shop-ground-position);
+  transition: background-position 900ms var(--ap-ease);
+}
+
+html.ap-page .ap-peek.is-sinking .ap-popup-art::after,
+html.ap-page .ap-peek.is-sinking .ap-popup-veil,
+html.ap-page .ap-peek.is-sinking :is(.ap-peek-faces, .ap-popup-name, .ap-peek-situation, .ap-popup-ways) {
+  opacity: 0;
+  transition: opacity 360ms var(--ap-ease);
+}
+
+/* ── 製品の舞台の窓と相手選びの窓はこの層が代わりに見せる（押下・確定は製品のまま通る） ─────────────── */
+html.ap-page #academy-map-location-dialog,
+html.ap-page #academy-map-location-dialog::backdrop,
+html.ap-page #academy-map-screen .academy-map-companion-popup {
+  display: none !important;
+}
+
+/* 動きを減らす設定: 切り替えるだけ。 */
+@media (prefers-reduced-motion: reduce) {
+  html.ap-page *,
+  html.ap-page *::before,
+  html.ap-page *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

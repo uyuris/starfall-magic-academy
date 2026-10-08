@@ -630,7 +630,7 @@ function cagedCreatureConsignment({ catalog, starCradleCatalog, instance }) {
     category_label: '籠入りの生き物',
     blurb: mutation ? `${variety.flavor}（${mutation.name}）` : variety.flavor
   };
-  return { band, presentation, valueAnchor: catalog.price_bands[band].price_min };
+  return { band, presentation, valueAnchor: catalog.price_bands[band].price_min, variety, mutation };
 }
 
 // The consignment presentation for an equipment instance: 銘 (name) + 来歴 (flavor) as the 触れ込み. A weapon reads
@@ -680,7 +680,7 @@ async function resolveConsignmentAsset({ root, storage, state, catalog, source }
   const valueAnchor = auctionConsignmentItemMarketValue(item.sell_price);
   return {
     source: normalized,
-    presentation: { name: item.name, category_label: '所持品', blurb },
+    presentation: { name: item.name, category_label: '持ち物', blurb },
     band: bandForConsignmentValue(catalog, valueAnchor),
     valueAnchor
   };
@@ -698,44 +698,79 @@ function requireConsignmentWindow(state, week) {
 }
 
 // Lists the player's consignable assets for the visit: unequipped equipment instances + sell_price>0 inventory
-// items, each with its value anchor and the band that anchor maps to (so the client can preview the lot tier).
+// items + caged creatures. Each row carries what the 出品 picker shows of it — element / tier / sell_price / art
+// (null where the asset has no such attribute: a non-material item has no element / tier and no authored icon, an
+// equipment instance no art, a caged creature no tier / sell price) — and the lot it would open as: band,
+// initial_price and min_increment, taken from buildConsignmentLot over this week's seated bidders (the same lot
+// submit lists, never a second price rule). Fails fast when no auction slot is open this week.
 export async function listConsignableItems({ root }) {
   const storage = createStorageApi({ root });
   const state = await storage.readJson(RUNTIME_STATE_PATH);
   const week = auctionWeekFromState(state);
+  const slot = readAuctionSlotForWeek(state, week);
+  if (!slot) throw statusError('no auction is open this week', 409, { errorCode: 'AUCTION_NOT_OPEN' });
   const catalog = await loadAuctionCatalog({ root });
+  const lotPreview = (source, presentation, band, valueAnchor) => {
+    const lot = buildConsignmentLot({ week, source, presentation, band, valueAnchor, bidders: slot.bidders, catalog });
+    return { band: lot.band, initial_price: lot.initial_price, min_increment: lot.min_increment };
+  };
   const surface = await loadEquipmentSurface({ storage });
   const equipped = equippedInstanceIds(state);
   const equipment = surface.instances
     .filter((instance) => !equipped.has(instance.instance_id))
     .map((instance) => {
-      const valueAnchor = auctionConsignmentEquipmentMarketValue(equipmentSellPrice({ tier: instance.tier, quality: instance.quality }));
+      const sellPrice = equipmentSellPrice({ tier: instance.tier, quality: instance.quality });
+      const valueAnchor = auctionConsignmentEquipmentMarketValue(sellPrice);
       const presentation = consignmentEquipmentPresentation(instance);
-      return { kind: 'equipment', instance_id: instance.instance_id, ...presentation, value_anchor: valueAnchor, band: bandForConsignmentValue(catalog, valueAnchor) };
+      return {
+        kind: 'equipment',
+        instance_id: instance.instance_id,
+        ...presentation,
+        element: instance.element,
+        tier: instance.tier,
+        sell_price: sellPrice,
+        art: null,
+        value_anchor: valueAnchor,
+        ...lotPreview({ kind: 'equipment', instance_id: instance.instance_id }, presentation, bandForConsignmentValue(catalog, valueAnchor), valueAnchor)
+      };
     });
   const inventory = await loadInventory({ root });
   const items = inventory.items
     .filter((item) => Number.isInteger(item.sell_price) && item.sell_price > 0 && item.quantity > 0)
     .map((item) => {
       const valueAnchor = auctionConsignmentItemMarketValue(item.sell_price);
+      const presentation = { name: item.name, category_label: '持ち物', blurb: typeof item.description === 'string' ? item.description : '' };
       return {
         kind: 'item',
         item_id: item.item_id,
-        name: item.name,
-        category_label: '所持品',
-        blurb: typeof item.description === 'string' ? item.description : '',
+        ...presentation,
         quantity: item.quantity,
+        element: item.element ?? null,
+        tier: item.tier ?? null,
+        sell_price: item.sell_price,
+        art: item.icon ?? null,
         value_anchor: valueAnchor,
-        band: bandForConsignmentValue(catalog, valueAnchor)
+        ...lotPreview({ kind: 'item', item_id: item.item_id }, presentation, bandForConsignmentValue(catalog, valueAnchor), valueAnchor)
       };
     });
   // 星の揺り籠 connection (出品側): the player's caged creatures are consignable too, each with its rarity/変貌 band
-  // and that band's floor as the value anchor.
+  // and that band's floor as the value anchor. A caged creature is always an adult, so its art is the 変貌 form's
+  // when it took one, else the variety's adult form.
   const starCradleCatalog = await loadStarCradleCatalog({ root });
   const cagedSurface = await loadStarCradleCreaturesSurface({ storage });
   const caged = cagedSurface.instances.map((instance) => {
-    const { band, presentation, valueAnchor } = cagedCreatureConsignment({ catalog, starCradleCatalog, instance });
-    return { kind: 'star_cradle_creature', instance_id: instance.instance_id, name: presentation.name, category_label: presentation.category_label, blurb: presentation.blurb, value_anchor: valueAnchor, band };
+    const { band, presentation, valueAnchor, variety, mutation } = cagedCreatureConsignment({ catalog, starCradleCatalog, instance });
+    return {
+      kind: 'star_cradle_creature',
+      instance_id: instance.instance_id,
+      ...presentation,
+      element: variety.element,
+      tier: null,
+      sell_price: null,
+      art: `/canonical/star_cradle/creatures/${variety.id}_${mutation ? mutation.id : 'adult'}.png`,
+      value_anchor: valueAnchor,
+      ...lotPreview({ kind: 'star_cradle_creature', instance_id: instance.instance_id }, presentation, band, valueAnchor)
+    };
   });
   return { week, equipment, items, caged };
 }

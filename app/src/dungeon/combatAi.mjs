@@ -17,11 +17,13 @@
 //   spellManaCost(actor, elem)  equipment-adjusted spell MP cost
 //   healingSpellState(actor)    equipment-adjusted self-heal state
 //   pushLog(message)            append an action-log line
-//   pushEvent(event)            append a combat animation event
+//   pushEvent(event)            append a combat animation event: a strike ({ kind, from, to, element, hit, damage, crit, whiff } —
+//                               damage is the HP the strike took (0 on a miss), crit whether it was a critical hit, whiff
+//                               always false here) or the self-heal's { kind: 'heal', ... } (combatResolution applyRestore)
 //   onDefeat(target)            handle a target dropped to 0 HP (rewards/removal + log)
 
 import { companionAiArchetype } from './dungeonStats.mjs';
-import { castSelfHealingSpell, magicElementLabel, meleeOutcome, mpAboveReserve, spellOutcome, spendMeleeMana } from './combatResolution.mjs';
+import { castSelfHealingSpell, combatDefender, magicElementLabel, meleeOutcome, mpAboveReserve, spellOutcome, spendMeleeMana } from './combatResolution.mjs';
 import { CARDINAL_DIRECTIONS, canSeeCellWithinRadius, hasLineOfSight, manhattan, orderedPathDirections, pathKey, pathStepFrom, stepToward } from './combatGeometry.mjs';
 
 const SPELL_MIN_RANGE = 2;
@@ -69,10 +71,10 @@ function nearestLivingEnemyVisibleToActor(field, actor) {
 
 function castAt(field, actor, target, element, manaCost) {
   actor.mp -= manaCost;
-  const outcome = spellOutcome(field.rng, actor.stats.spell_power[element], element, target);
-  field.pushEvent({ kind: 'cast', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element, hit: true });
+  const outcome = spellOutcome(field.rng, actor.stats.spell_power[element], element, combatDefender(target));
+  field.pushEvent({ kind: 'cast', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element, hit: outcome.hit, damage: outcome.damage, crit: false, whiff: false });
   target.hp = Math.max(0, target.hp - outcome.damage);
-  field.pushLog(`${actor.name}の${magicElementLabel(element)}。${target.name}に${outcome.damage}ダメージ。`);
+  field.pushLog(outcome.hit ? `${actor.name}の${magicElementLabel(element)}。${target.name}に${outcome.damage}ダメージ。` : `${actor.name}の${magicElementLabel(element)}は${target.name}に外れた。`);
   if (target.hp <= 0) field.onDefeat(target);
 }
 
@@ -82,8 +84,8 @@ function meleeAttack(field, actor, target) {
   if (!mpAboveReserve(actor)) return false;
   const payment = spendMeleeMana(actor, actor.parameters, 'combat actor');
   if (!payment.paid) return false;
-  const outcome = meleeOutcome(field.rng, { ...actor.stats, attack: actor.stats.melee_attack }, target);
-  field.pushEvent({ kind: 'melee', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element: null, hit: outcome.hit });
+  const outcome = meleeOutcome(field.rng, { ...actor.stats, attack: actor.stats.melee_attack }, combatDefender(target));
+  field.pushEvent({ kind: 'melee', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element: null, hit: outcome.hit, damage: outcome.damage, crit: outcome.crit, whiff: false });
   if (outcome.hit) {
     target.hp = Math.max(0, target.hp - outcome.damage);
     field.pushLog(`${actor.name}が${target.name}に${outcome.damage}ダメージ。`);
@@ -236,8 +238,8 @@ function runCasterTurn(field, actor, target, element, manaCost) {
 // and appends any log/event lines through the field writers.
 export function runActorAiTurn(field, actor) {
   const healingSpell = field.healingSpellState(actor);
-  if (healingSpell.can_use && actor.hp <= Math.floor(actor.max_hp / 2)) {
-    castSelfHealingSpell(actor, healingSpell, actor.name, field.pushLog);
+  if (healingSpell.can_use && actor.hp <= Math.floor(actor.max_hp / 3)) {
+    castSelfHealingSpell(actor, healingSpell, actor.name, field);
     return;
   }
   const visibleTarget = nearestLivingEnemyVisibleToActor(field, actor);

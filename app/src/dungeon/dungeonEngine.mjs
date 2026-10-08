@@ -20,11 +20,11 @@ import { createRng, deriveSeed } from './dungeonRng.mjs';
 import { homunculusCompanionViewFields } from './dungeonCompanion.mjs';
 import { deriveCombatStats } from './dungeonStats.mjs';
 import { generateFloor, itemKinds } from './dungeonGeneration.mjs';
-import { COMBAT_HEAL_MULTIPLIER, castSelfHealingSpell, combatMaxHp, equippedEvasionSpellState, equippedHealingSpellState, equippedPierceSpellState, equippedSpellManaCost, magicElementLabel, meleeOutcome, recoverActorVitals, spellOutcome, spendMeleeMana } from './combatResolution.mjs';
+import { COMBAT_HEAL_MULTIPLIER, applyRestore, castSelfHealingSpell, combatMaxHp, equippedEvasionSpellState, equippedHealingSpellState, equippedPierceSpellState, equippedSpellManaCost, magicElementLabel, meleeOutcome, recoverActorVitals, spellOutcome, spendMeleeMana } from './combatResolution.mjs';
 import { EVASION_SPELL_DURATION } from './dungeonStats.mjs';
 import { canSeeCellWithinRadius, hasLineOfSight, isWalkable, manhattan, nearestFreeTile, pierceLineCells, stepToward } from './combatGeometry.mjs';
 import { runActorAiTurn } from './combatAi.mjs';
-import { applyConsumableAttack, consumableHealAmount, consumableMpAmount, loadRunConsumables, loadDungeonConsumableDefinitions } from './combatConsumables.mjs';
+import { applyConsumableAttack, areaWhiffEvent, consumableHealAmount, consumableMpAmount, loadRunConsumables, loadDungeonConsumableDefinitions } from './combatConsumables.mjs';
 import { accrueEnemyDefeat, accrueFloorClear, accrueRunClear, bankPendingGains, emptyPendingGains, summarizePendingGains } from './dungeonRewards.mjs';
 import { ROUTING_CONTENT_RESULT_STATE_KEY, buildDungeonContentResult, requireRoutingContentWeek } from '../routingContentResult.mjs';
 import { addMaterialToBuffer, emptyMaterialBuffer, materialBufferEntries, readMaterialBuffer, rollEnemyMaterialDrop } from './dungeonMaterials.mjs';
@@ -163,9 +163,15 @@ function pushLog(run, message) {
 }
 
 // Structured combat events for the just-resolved action, consumed by the frontend to animate
-// who did what to whom (caster/attacker -> target, by tile, tinted by element). Reset at the
-// start of each action and exposed read-only on the view; carries no gameplay effect.
-// `from`/`to` are tile coords captured at event time (targets do not move when struck).
+// who did what to whom (by tile). Reset at the start of each action and exposed read-only on the
+// view; carries no gameplay effect. `from`/`to` are tile coords captured at event time (targets do
+// not move when struck). Kinds:
+//   melee / cast / enemy_attack  a strike { element, hit, damage, crit, whiff } (damage 0 on a miss;
+//                                whiff true only for an area throw that caught no one)
+//   heal                         { resource 'hp'|'mp', source 'spell'|'item', amount } (applyRestore)
+//   revive                       { amount } — `to` is the tile the companion stood up on
+//   evasion                      the player's evasion spell taking hold (from = to = the player's tile)
+// The per-turn regen is not an event.
 function pushEvent(run, event) {
   if (!run.turn_events) run.turn_events = [];
   run.turn_events.push(event);
@@ -265,7 +271,7 @@ function enemyAct(run, enemy, rng) {
   const adjacentToCompanion = companion && manhattan(enemy.x, enemy.y, companion.x, companion.y) === 1;
   if (adjacentToPlayer) {
     const outcome = meleeOutcome(rng, enemy, playerDefenderStats(run));
-    pushEvent(run, { kind: 'enemy_attack', from: { x: enemy.x, y: enemy.y }, to: { x: run.player.x, y: run.player.y }, element: enemy.element, hit: outcome.hit });
+    pushEvent(run, { kind: 'enemy_attack', from: { x: enemy.x, y: enemy.y }, to: { x: run.player.x, y: run.player.y }, element: enemy.element, hit: outcome.hit, damage: outcome.damage, crit: outcome.crit, whiff: false });
     if (outcome.hit) {
       run.player.hp = Math.max(0, run.player.hp - outcome.damage);
       pushLog(run, `${enemy.name}が${PLAYER_LOG_NAME}に${outcome.damage}ダメージ。`);
@@ -274,7 +280,7 @@ function enemyAct(run, enemy, rng) {
     }
   } else if (adjacentToCompanion) {
     const outcome = meleeOutcome(rng, enemy, companion.stats);
-    pushEvent(run, { kind: 'enemy_attack', from: { x: enemy.x, y: enemy.y }, to: { x: companion.x, y: companion.y }, element: enemy.element, hit: outcome.hit });
+    pushEvent(run, { kind: 'enemy_attack', from: { x: enemy.x, y: enemy.y }, to: { x: companion.x, y: companion.y }, element: enemy.element, hit: outcome.hit, damage: outcome.damage, crit: outcome.crit, whiff: false });
     if (outcome.hit) {
       companion.hp = Math.max(0, companion.hp - outcome.damage);
       if (companion.hp <= 0) {
@@ -337,14 +343,14 @@ function enemySpellPower(enemy) {
 function enemyCast(run, enemy, target, rng) {
   const elementLabel = magicElementLabel(enemy.element);
   const outcome = spellOutcome(rng, enemySpellPower(enemy), enemy.element, target.stats);
-  pushEvent(run, { kind: 'cast', from: { x: enemy.x, y: enemy.y }, to: { x: target.actor.x, y: target.actor.y }, element: enemy.element, hit: true });
+  pushEvent(run, { kind: 'cast', from: { x: enemy.x, y: enemy.y }, to: { x: target.actor.x, y: target.actor.y }, element: enemy.element, hit: outcome.hit, damage: outcome.damage, crit: false, whiff: false });
   target.actor.hp = Math.max(0, target.actor.hp - outcome.damage);
   if (target.kind === 'companion' && target.actor.hp <= 0) {
     target.actor.down = true;
     pushLog(run, `${target.name}は倒れて戦線を離れた。`);
     return;
   }
-  pushLog(run, `${enemy.name}の${elementLabel}。${target.name}に${outcome.damage}ダメージ。`);
+  pushLog(run, outcome.hit ? `${enemy.name}の${elementLabel}。${target.name}に${outcome.damage}ダメージ。` : `${enemy.name}の${elementLabel}は${target.name}に外れた。`);
 }
 
 function runEnemyTurns(run, rng) {
@@ -435,7 +441,7 @@ function playerMove(run, rng, dx, dy) {
     const payment = spendMeleeMana(run.player, run.parameters, 'dungeon player');
     if (!payment.paid) return { acted: false, error: 'insufficient_mp' };
     const outcome = meleeOutcome(rng, { ...run.player_stats, attack: run.player_stats.melee_attack, element: null }, enemy);
-    pushEvent(run, { kind: 'melee', from: { x: run.player.x, y: run.player.y }, to: { x: enemy.x, y: enemy.y }, element: null, hit: outcome.hit });
+    pushEvent(run, { kind: 'melee', from: { x: run.player.x, y: run.player.y }, to: { x: enemy.x, y: enemy.y }, element: null, hit: outcome.hit, damage: outcome.damage, crit: outcome.crit, whiff: false });
     if (outcome.hit) {
       enemy.hp = Math.max(0, enemy.hp - outcome.damage);
       pushLog(run, outcome.crit ? `${PLAYER_LOG_NAME}の会心の一撃。${enemy.name}に${outcome.damage}ダメージ。` : `${PLAYER_LOG_NAME}が${enemy.name}に${outcome.damage}ダメージ。`);
@@ -473,7 +479,7 @@ function playerCast(run, rng, element) {
   if (!target) return { acted: false, error: 'no_target' };
   run.player.mp -= cost;
   const outcome = spellOutcome(rng, run.player_stats.spell_power[element], element, target);
-  pushEvent(run, { kind: 'cast', from: { x: run.player.x, y: run.player.y }, to: { x: target.x, y: target.y }, element, hit: true });
+  pushEvent(run, { kind: 'cast', from: { x: run.player.x, y: run.player.y }, to: { x: target.x, y: target.y }, element, hit: outcome.hit, damage: outcome.damage, crit: false, whiff: false });
   target.hp = Math.max(0, target.hp - outcome.damage);
   pushLog(run, `${PLAYER_LOG_NAME}の${magicElementLabel(element)}。${target.name}に${outcome.damage}ダメージ。`);
   if (target.hp <= 0) defeatEnemy(run, target);
@@ -481,7 +487,10 @@ function playerCast(run, rng, element) {
 }
 
 function playerHealingSpell(run) {
-  return castSelfHealingSpell(run.player, playerHealingSpellState(run), PLAYER_LOG_NAME, (message) => pushLog(run, message));
+  return castSelfHealingSpell(run.player, playerHealingSpellState(run), PLAYER_LOG_NAME, {
+    pushLog: (message) => pushLog(run, message),
+    pushEvent: (event) => pushEvent(run, event)
+  });
 }
 
 // 貫通魔法 (dark + fire): a defense-IGNORING line attack. The first target is auto-selected exactly like
@@ -507,7 +516,7 @@ function playerPierce(run, rng) {
   }
   for (const enemy of hits) {
     const outcome = spellOutcome(rng, state.power, PIERCE_EVENT_ELEMENT, enemy, { ignoreDefense: true });
-    pushEvent(run, { kind: 'cast', from: { x: run.player.x, y: run.player.y }, to: { x: enemy.x, y: enemy.y }, element: PIERCE_EVENT_ELEMENT, hit: true });
+    pushEvent(run, { kind: 'cast', from: { x: run.player.x, y: run.player.y }, to: { x: enemy.x, y: enemy.y }, element: PIERCE_EVENT_ELEMENT, hit: outcome.hit, damage: outcome.damage, crit: false, whiff: false });
     enemy.hp = Math.max(0, enemy.hp - outcome.damage);
     pushLog(run, `${PLAYER_LOG_NAME}の貫通魔法。${enemy.name}の防御を貫き${outcome.damage}ダメージ。`);
     if (enemy.hp <= 0) defeatEnemy(run, enemy);
@@ -522,6 +531,8 @@ function playerEvasion(run) {
   if (run.player.mp < state.mp_cost) return { acted: false, error: 'insufficient_mp' };
   run.player.mp -= state.mp_cost;
   run.player_evasion_buff = { turns_remaining: EVASION_SPELL_DURATION, bonus: state.evasion_bonus };
+  const tile = { x: run.player.x, y: run.player.y };
+  pushEvent(run, { kind: 'evasion', from: tile, to: tile });
   pushLog(run, `${PLAYER_LOG_NAME}の回避魔法。${EVASION_SPELL_DURATION}ターンのあいだ攻撃を避けやすくなる。`);
   return { acted: true };
 }
@@ -549,11 +560,12 @@ function playerUseItem(run, kind) {
   // Charisma's fortune raises the quality of consumables (more is restored), and the whole
   // restore is scaled by the combat heal multiplier like every other healing effect.
   const potency = (definition.amount + Math.max(0, run.player_stats.fortune)) * COMBAT_HEAL_MULTIPLIER;
+  const tile = { x: run.player.x, y: run.player.y };
   if (definition.effect === 'heal') {
-    run.player.hp = Math.min(run.player.max_hp, run.player.hp + potency);
+    pushEvent(run, applyRestore(tile, run.player, 'hp', 'item', potency));
     pushLog(run, `${PLAYER_LOG_NAME}が${definition.name}でHPを回復した。`);
   } else if (definition.effect === 'mana') {
-    run.player.mp = Math.min(run.player.max_mp, run.player.mp + potency);
+    pushEvent(run, applyRestore(tile, run.player, 'mp', 'item', potency));
     pushLog(run, `${PLAYER_LOG_NAME}が${definition.name}で魔力を回復した。`);
   }
   entry.count -= 1;
@@ -635,7 +647,7 @@ function planConsumable(run, item, action) {
         for (const enemy of targets) dungeonConsumableAttack(run, enemy, item.power, item.element);
         // A whiff (no enemies in radius) still shows the blast at the landing tile so it animates.
         if (targets.length === 0) {
-          pushEvent(run, { kind: 'cast', from: { x: run.player.x, y: run.player.y }, to: { x: aim.x, y: aim.y }, element: item.element, hit: false });
+          pushEvent(run, areaWhiffEvent({ x: run.player.x, y: run.player.y }, aim, item.element));
         }
       }
     };
@@ -645,8 +657,7 @@ function planConsumable(run, item, action) {
     if (!ally) return { error: 'invalid_target' };
     return {
       execute: () => {
-        const amount = consumableHealAmount(item, ally.actor);
-        ally.actor.hp = Math.min(ally.actor.max_hp, ally.actor.hp + amount);
+        pushEvent(run, applyRestore({ x: run.player.x, y: run.player.y }, ally.actor, 'hp', 'item', consumableHealAmount(item, ally.actor)));
         pushLog(run, `${PLAYER_LOG_NAME}が${item.name}を使い、${ally.name}のHPを回復した。`);
       }
     };
@@ -656,8 +667,7 @@ function planConsumable(run, item, action) {
     if (!ally) return { error: 'invalid_target' };
     return {
       execute: () => {
-        const amount = consumableMpAmount(item, ally.actor);
-        ally.actor.mp = Math.min(ally.actor.max_mp, ally.actor.mp + amount);
+        pushEvent(run, applyRestore({ x: run.player.x, y: run.player.y }, ally.actor, 'mp', 'item', consumableMpAmount(item, ally.actor)));
         pushLog(run, `${PLAYER_LOG_NAME}が${item.name}を使い、${ally.name}の魔力を回復した。`);
       }
     };
@@ -675,6 +685,7 @@ function planConsumable(run, item, action) {
       // A revived companion starts its AI kiting state fresh.
       run.companion.caster_reposition_baseline = null;
       run.revive_used = true;
+      pushEvent(run, { kind: 'revive', from: { x: run.player.x, y: run.player.y }, to: { x: tile.x, y: tile.y }, amount: run.companion.hp });
       pushLog(run, `${PLAYER_LOG_NAME}が${item.name}を使い、${run.companion.name}が復帰した。`);
     }
   };

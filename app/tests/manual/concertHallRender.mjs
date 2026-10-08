@@ -7,7 +7,8 @@
 // named *.test.mjs and lives under app/tests/manual/, so the change gate skips it; run it by hand:
 //
 //   ./node_modules/.bin/electron app/tests/manual/concertHallRender.mjs \
-//     --repo-root <absolute worktree> --out-dir <absolute output directory> [--lm-config <absolute lmstudio.json>]
+//     --repo-root <absolute worktree> --out-dir <absolute output directory> --viewport <width>x<height> \
+//     [--lm-config <absolute lmstudio.json>]
 //
 // Two LM modes, chosen by the presence of --lm-config:
 //   stub mode (no --lm-config): an in-process LM Studio wire-protocol stub answers every model call
@@ -23,8 +24,9 @@
 //     もう一度. Real-LM observations (per-stage attempts, prompt bytes, timing) are read from the product's own request
 //     log (GET /api/debug/llm-requests, a 30-entry ring) — no proxy sits between the server and LM Studio.
 //
-// Both path arguments are required and absolute (no default). The output directory receives one PNG per capture,
-// named 01-arrival … 09-lm-error (03-composing-s1/s2/s4/s5 for 作曲中), and audit.json:
+// Both path arguments are required and absolute (no default); the window size is required too. The output directory
+// receives one PNG per capture, named 01-arrival … 09-lm-error (02-typing-first-char for the wish's first letter,
+// 03-composing-s1/s2/s4/s5 for 作曲中), and audit.json:
 //   - `captures`: per PNG the launch kind (stub | real | real-unreachable), the visibility measurement taken right
 //     before the capture (every element that must be visible in that state: its rect, inside the viewport and its
 //     scroll clip, not covered by anything else — asserted, not just recorded), and the DOM composition snapshot;
@@ -33,6 +35,10 @@
 //   - `audio`: during the performance the number of AudioBufferSourceNode.start calls must equal the score's note
 //     count, and after stop() no started source survives and the player's context is suspended (prototype
 //     instrumentation installed in the page before the performance; the page's own code is not patched);
+//   - `layout`: per capture the sigil on the stage floor (止める / 演奏を始める, whichever is shown), its rect and
+//     every text-bearing element (own text or an input) whose rect intersects it — recorded, not asserted, so the
+//     same run measures the board before and after a layout change; each section name's rendered lines; and the
+//     wish input's placeholder width against the input's content box;
 //   - `lm`: the LM call counts per leg (the replay must make none) and, in real mode, the per-stage attempt /
 //     retry counts, the S1 prompt (bytes, candidate counts), per-call timing and the generated pieces.
 //
@@ -49,11 +55,11 @@ import { execFileSync } from 'node:child_process';
 // ── CLI (required, absolute, no defaults) ─────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
   const parsed = {};
-  const required = ['--repo-root', '--out-dir'];
+  const required = ['--repo-root', '--out-dir', '--viewport'];
   const known = new Set([...required, '--lm-config']);
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
-    if (!known.has(token)) throw new Error(`unexpected argument: ${token} (expected --repo-root, --out-dir and optionally --lm-config)`);
+    if (!known.has(token)) throw new Error(`unexpected argument: ${token} (expected --repo-root, --out-dir, --viewport and optionally --lm-config)`);
     const value = argv[i + 1];
     if (value === undefined || value.startsWith('--')) throw new Error(`missing value for ${token}`);
     if (parsed[token] !== undefined) throw new Error(`duplicate argument: ${token}`);
@@ -63,27 +69,31 @@ function parseArgs(argv) {
   for (const token of required) {
     if (parsed[token] === undefined) throw new Error(`${token} is required (no default, no fallback)`);
   }
-  for (const [token, value] of Object.entries(parsed)) {
-    if (!path.isAbsolute(value)) throw new Error(`${token} must be an absolute path: ${value}`);
+  for (const token of ['--repo-root', '--out-dir', '--lm-config']) {
+    if (parsed[token] !== undefined && !path.isAbsolute(parsed[token])) throw new Error(`${token} must be an absolute path: ${parsed[token]}`);
   }
-  return { repoRoot: parsed['--repo-root'], outDir: parsed['--out-dir'], lmConfigPath: parsed['--lm-config'] ?? null };
+  const size = parsed['--viewport'].match(/^([1-9]\d*)x([1-9]\d*)$/);
+  if (!size) throw new Error(`--viewport must be <width>x<height>: ${parsed['--viewport']}`);
+  return { repoRoot: parsed['--repo-root'], outDir: parsed['--out-dir'], viewport: { width: Number(size[1]), height: Number(size[2]) }, lmConfigPath: parsed['--lm-config'] ?? null };
 }
 
-const VIEWPORT = { width: 1440, height: 900 };
 const PLAYER_INPUT = '今週は奏楽堂に行きたい。楽師に曲を作ってもらいたい';
 const WISH_TEXT = '星の降る夜に、静かに眠りへ落ちていくような曲を';
+const WISH_FIRST_CHAR = WISH_TEXT.slice(0, 1);
 const SECOND_WISH_TEXT = '祭りの朝の、跳ねるような曲を';
 const SENDOFF_TEXT = 'では、奏楽堂へ。楽師が待っています。';
 // Each stub stage answer is delayed so every 作曲中 busy card is capturable mid-stream.
 const STAGE_DELAY_MS = 700;
 const POLL_MS = 100;
 // The board's element structure (§1) the composition audit checks against.
+// The venue form: the stage's name is its sigil's read-out name, the writing line is quill · input · compose sigil
+// at the bottom, the exit sigil stands top right, a failure breaks the way of the stages and raises the retry sigil.
 const STAGE_CARD_TITLES = ['拾った材料', '方向', 'この曲に効く指南', '骨子'];
-const CONTROL_ORDER = ['academy-concert-hall-input', 'academy-concert-hall-compose', 'academy-concert-hall-exit'];
-const SHELF_COLUMNS = ['academy-concert-hall-shelf-title', 'academy-concert-hall-shelf-direction', 'academy-concert-hall-shelf-week'];
-const STAGE_CORNER_ORNAMENTS = 4;
+const CONTROL_ORDER = ['academy-concert-hall-input', 'academy-concert-hall-compose'];
+const SHELF_COLUMNS = ['academy-concert-hall-shelf-mark', 'academy-concert-hall-shelf-title', 'academy-concert-hall-shelf-direction'];
+const WAY_NAMES = '願い・語り・演奏・棚';
 const RETRY_LABEL = 'もう一度';
-const BUSY_LABEL = '楽師が譜を書いている…';
+const BUSY_LABEL = '楽師が譜を書いている';
 // The product's LM request titles for the concert hall stages (concertHallGeneration.mjs).
 const STAGE_TITLES = { materials: '奏楽堂 材料選び', direction: '奏楽堂 方向決め', skeleton: '奏楽堂 骨子' };
 const SECTION_TITLE = /^奏楽堂 節 (\d+)$/;
@@ -102,18 +112,22 @@ function check(name, pass, detail = {}) {
 // The hub answers mirror app/tests/manual/routingHubSessionScreenRender.mjs (the destination here is concert_hall;
 // the finalization / drain judgments answer neutrally so the decided turn's drain completes);
 // the concert hall stage answers are keyed by the product's own response_format schema names and are gate-clean:
-// no materials, one motif word, the first axis ids, a 2 × 4-bar C-major skeleton at tempo 60 (inside 静謐's
+// no materials, one motif word, the first axis ids, a 4 × 4-bar C-major skeleton at tempo 60 (inside 静謐's
 // 44〜72 band), one melody note per beat. With the fault armed, the materials answer names an unknown material id.
+// The section names and lines are long on purpose: the first three are the ones a real piece wrapped and overlapped
+// with (静寂なる闘技場の祈り), the fourth is longer than any of them.
 function skeletonAnswer() {
   return {
-    title: '星降りの子守唄',
+    title: '静寂なる闘技場の祈り',
     key: 'C',
     mode: 'major',
     tempo: 60,
     meter: '4/4',
     sections: [
-      { name: '宵', bars: 4, chords: ['Cmaj7', 'Am', 'Fmaj7', 'G'], character: '星が降り始める、ゆっくりとした導入。' },
-      { name: '眠り', bars: 4, chords: ['Fmaj7', 'G', 'Cmaj7', 'Cmaj7'], character: '呼吸が深くなり、静かに閉じる。' }
+      { name: '迷いの呼びかけ', bars: 4, chords: ['Cmaj7', 'Am', 'Fmaj7', 'G'], character: '低音の連打に乗せ、問いと答えが静かに漂う導入部。' },
+      { name: '停滞する視線', bars: 4, chords: ['Fmaj7', 'G', 'Cmaj7', 'Cmaj7'], character: '浮遊感のある和音の中で、旋律が一段高くへと導かれる。' },
+      { name: '寄り添う共鳴', bars: 4, chords: ['Cmaj7', 'Am', 'Fmaj7', 'G'], character: '呼びかけと応えが重なり、静かな肯定感に包まれる結び。' },
+      { name: '遠い星々へ還る静かな祈りの終わり', bars: 4, chords: ['Fmaj7', 'G', 'Cmaj7', 'Cmaj7'], character: '最後の和音がほどけ、闘技場の静寂へ音がひとつずつ還っていく余韻。' }
     ]
   };
 }
@@ -214,7 +228,7 @@ const FACE = `(document.querySelector('.academy-concert-hall-board')?.dataset.fa
 const CONCERT_HALL_ACTIVE = `document.querySelector('#academy-concert-hall-screen')?.classList.contains('active')`;
 
 async function stateOf(win) {
-  return win.webContents.executeJavaScript(`({ state: ${STATE}, face: ${FACE}, screen: document.querySelector('.screen.active')?.id ?? null, status: (document.querySelector('#academy-concert-hall-status')?.textContent ?? '').trim() })`);
+  return win.webContents.executeJavaScript(`({ state: ${STATE}, face: ${FACE}, screen: document.querySelector('.screen.active')?.id ?? null, way: document.querySelector('#academy-concert-hall-path')?.getAttribute('aria-label') ?? null })`);
 }
 
 async function waitForState(win, state, options) {
@@ -270,8 +284,8 @@ async function measureVisible(win, entries) {
 }
 
 const COMMON_VISIBLE = [
-  { name: 'stage frame', selector: '.academy-concert-hall-stage' },
-  { name: 'stage week caption', selector: '#academy-concert-hall-week' },
+  { name: 'venue name', selector: '#academy-concert-hall-title' },
+  { name: 'way of the stages', selector: '#academy-concert-hall-path' },
   { name: 'controls: input', selector: '#academy-concert-hall-input' },
   { name: 'controls: compose', selector: '#academy-concert-hall-compose' },
   { name: 'controls: exit', selector: '#academy-concert-hall-exit' },
@@ -279,89 +293,131 @@ const COMMON_VISIBLE = [
 ];
 const SHELF_VISIBLE = (pieces) => [
   { name: 'shelf: greeting', selector: '#academy-concert-hall-greeting' },
-  { name: 'shelf: heading', selector: '.academy-concert-hall-shelf-heading' },
   ...(pieces === 0
     ? [{ name: 'shelf: empty line', selector: '#academy-concert-hall-shelf-empty' }]
     : Array.from({ length: pieces }, (_unused, index) => ({ name: `shelf: row ${index}`, selector: '.academy-concert-hall-shelf-button', index })))
 ];
 const BUSY_VISIBLE = [
-  { name: 'busy card', selector: '.academy-concert-hall-card[data-busy="true"]', scroll: true },
-  { name: 'busy label', selector: '.academy-concert-hall-card[data-busy="true"] .academy-concert-hall-busy-label' }
+  { name: 'busy mark', selector: '#academy-concert-hall-narration-cards .venue-busy', scroll: true }
 ];
+// ── layout measurement (recorded with every capture, not asserted) ───────────────────────────────────────────
+// The floor sigil shown now (止める on the 演奏面, 演奏を始める on the 語り面) against every text-bearing element of the
+// screen: an element with its own non-blank text node, or an input; overlap = the two rects intersect with area > 0.
+// Each section name's rendered lines (characters grouped by their line box top). The placeholder's text width in its
+// own ::placeholder font against the input's content box.
+const LAYOUT = `(() => {
+  const screen = document.querySelector('#academy-concert-hall-screen');
+  const round = (rect) => ({ x: Math.round(rect.left), y: Math.round(rect.top), w: Math.round(rect.width), h: Math.round(rect.height) });
+  const shown = (el) => { const rect = el.getBoundingClientRect(); return rect.width > 0 && rect.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+  const describe = (el) => el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + [...el.classList].join('.') : '');
+  const sigil = ['#academy-concert-hall-stop', '#academy-concert-hall-perform'].map((s) => document.querySelector(s)).find((el) => el && shown(el)) ?? null;
+  let overlaps = [];
+  if (sigil) {
+    const a = sigil.getBoundingClientRect();
+    overlaps = [...screen.querySelectorAll('*')]
+      .filter((el) => !sigil.contains(el) && shown(el) && (el.tagName === 'INPUT' || [...el.childNodes].some((node) => node.nodeType === 3 && node.textContent.trim())))
+      .map((el) => ({ el, b: el.getBoundingClientRect() }))
+      .filter(({ b }) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0)
+      .map(({ el, b }) => ({ element: describe(el), text: (el.value ?? el.textContent).trim().slice(0, 24), rect: round(b) }));
+  }
+  const sectionTitles = [...screen.querySelectorAll('.academy-concert-hall-section-title')].filter(shown).map((el) => {
+    const text = el.firstChild;
+    const lines = [];
+    let top = null;
+    for (let i = 0; i < text.length; i += 1) {
+      const range = document.createRange();
+      range.setStart(text, i);
+      range.setEnd(text, i + 1);
+      const rect = range.getClientRects()[0];
+      if (top === null || Math.abs(rect.top - top) > 2) { lines.push(''); top = rect.top; }
+      lines[lines.length - 1] += text.textContent[i];
+    }
+    return { face: el.closest('.academy-concert-hall-face').id, name: text.textContent, lines };
+  });
+  const input = document.querySelector('#academy-concert-hall-input');
+  const placeholderStyle = getComputedStyle(input, '::placeholder');
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+  probe.style.font = placeholderStyle.font;
+  probe.style.letterSpacing = placeholderStyle.letterSpacing;
+  probe.textContent = input.placeholder;
+  document.body.append(probe);
+  const inputStyle = getComputedStyle(input);
+  const contentWidth = input.clientWidth - parseFloat(inputStyle.paddingLeft) - parseFloat(inputStyle.paddingRight);
+  const placeholder = { text: input.placeholder, shown: input.value === '', font_size: placeholderStyle.fontSize, color: placeholderStyle.color, text_width: Math.round(probe.getBoundingClientRect().width), content_width: Math.round(contentWidth) };
+  probe.remove();
+  placeholder.fits = placeholder.text_width <= placeholder.content_width;
+  return { sigil: sigil ? { element: describe(sigil), rect: round(sigil.getBoundingClientRect()) } : null, overlap_count: overlaps.length, overlaps, section_titles: sectionTitles, placeholder };
+})()`;
+
 const PERFORMANCE_VISIBLE = [
   { name: 'head: title', selector: '#academy-concert-hall-head-title' },
   { name: 'head: meta', selector: '#academy-concert-hall-head-meta' },
   { name: 'head: progress bar', selector: '.academy-concert-hall-progress' },
-  { name: 'head: section', selector: '#academy-concert-hall-head-section' },
-  { name: 'head: stop', selector: '#academy-concert-hall-stop' },
-  { name: 'current section card', selector: '#academy-concert-hall-performance-cards .academy-concert-hall-card-section[data-current="true"]', scroll: true }
+  { name: 'stop sigil', selector: '#academy-concert-hall-stop' },
+  { name: 'current section', selector: '#academy-concert-hall-performance-cards .academy-concert-hall-section[data-current="true"]', scroll: true }
 ];
 
 // ── DOM composition snapshot (the audit's actual side) ───────────────────────────────────────────────────────
 const SNAPSHOT = `(() => {
   const q = (s) => document.querySelector(s);
   const qa = (s) => [...document.querySelectorAll(s)];
-  const stage = q('.academy-concert-hall-stage');
-  const corners = ['::before', '::after'].filter((pseudo) => {
-    const style = getComputedStyle(stage, pseudo);
-    return style.content !== 'none' && style.backgroundImage.includes('corner');
-  }).length;
-  const cardOf = (el) => ({
-    title: el.querySelector('.academy-concert-hall-card-title').textContent,
+  const stageOf = (el) => ({
+    title: el.querySelector('.academy-concert-hall-card-title').getAttribute('aria-label'),
     stage: el.dataset.stage,
-    written: el.dataset.written === 'true',
+    written: el.dataset.busy !== 'true' && el.dataset.error !== 'true',
     busy: el.dataset.busy === 'true',
-    busy_label: el.querySelector('.academy-concert-hall-busy-label')?.textContent ?? null,
-    error: el.dataset.error === 'true',
-    error_line: el.querySelector('.academy-concert-hall-card-error')?.textContent ?? null,
-    retry_label: el.querySelector('.academy-concert-hall-retry')?.textContent ?? null,
+    busy_label: el.querySelector('.academy-concert-hall-card-body > .venue-busy')?.getAttribute('aria-label') ?? null,
+    error: el.dataset.error === 'true'
+  });
+  const sectionOf = (el) => ({
+    title: el.querySelector('.academy-concert-hall-section-title').textContent,
+    written: !!el.querySelector('.academy-concert-hall-written'),
+    busy: !!el.querySelector('.venue-busy'),
+    busy_label: el.querySelector('.venue-busy')?.getAttribute('aria-label') ?? null,
     current: el.dataset.current === 'true'
   });
   const faceCards = (faceId) => ({
-    stage_cards: qa('#' + faceId + ' .academy-concert-hall-card-stage').map(cardOf),
-    section_cards: qa('#' + faceId + ' .academy-concert-hall-card-section').map(cardOf)
+    stage_cards: qa('#' + faceId + ' .academy-concert-hall-card').map(stageOf),
+    section_cards: qa('#' + faceId + ' .academy-concert-hall-section').map(sectionOf)
   });
   const face = q('.academy-concert-hall-board').dataset.face;
   const input = q('#academy-concert-hall-input');
   const compose = q('#academy-concert-hall-compose');
   const exit = q('#academy-concert-hall-exit');
-  const order = [input, compose, exit].map((el) => el.getBoundingClientRect());
-  const stop = q('#academy-concert-hall-stop').getBoundingClientRect();
-  const headText = q('.academy-concert-hall-head-text').getBoundingClientRect();
+  const order = [input, compose].map((el) => el.getBoundingClientRect());
+  const way = q('#academy-concert-hall-path');
+  const retry = q('#academy-concert-hall-retry');
   return {
     state: q('#academy-concert-hall-screen').dataset.state,
     face,
-    stage: { corner_ornaments: corners, caption: q('#academy-concert-hall-week').textContent },
+    venue: { name: q('#academy-concert-hall-title').textContent, way: way.getAttribute('aria-label'), way_failed: way.dataset.failed === 'true', retry_label: retry.hidden ? null : retry.getAttribute('aria-label') },
     controls: {
-      order: qa('.academy-concert-hall-controls > *').map((el) => el.id),
-      left_to_right: order[0].right <= order[1].left && order[1].right <= order[2].left,
+      order: qa('.academy-concert-hall-composer > [id]').map((el) => el.id),
+      left_to_right: order[0].right <= order[1].left,
       input_text: input.value.length > 0,
       input_enabled: !input.disabled,
       compose_enabled: !compose.disabled,
-      exit_enabled: !exit.disabled
+      exit_enabled: !exit.disabled && !exit.hidden
     },
     shelf: {
       greeting: q('#academy-concert-hall-greeting').textContent.trim().length > 0,
-      heading: q('.academy-concert-hall-shelf-heading').textContent,
       empty_line: !q('#academy-concert-hall-shelf-empty').hidden && q('#academy-concert-hall-shelf-empty').textContent.trim().length > 0,
       rows: qa('.academy-concert-hall-shelf-button').map((el) => ({
         entry_id: el.dataset.entryId,
         highlight: el.dataset.highlight === 'true',
-        columns: [...el.children].map((col) => [...col.classList].find((cls) => cls !== 'academy-concert-hall-shelf-col')),
+        columns: [...el.children].map((col) => col.classList[0]),
         title: el.querySelector('.academy-concert-hall-shelf-title').textContent,
-        direction: el.querySelector('.academy-concert-hall-shelf-direction').textContent,
-        week: el.querySelector('.academy-concert-hall-shelf-week').textContent
+        direction: el.querySelector('.academy-concert-hall-shelf-direction').textContent
       }))
     },
-    narration: { ...faceCards('academy-concert-hall-narration-cards'), cta_visible: !q('#academy-concert-hall-perform').hidden, cta_label: q('#academy-concert-hall-perform').textContent },
+    narration: { ...faceCards('academy-concert-hall-narration-cards'), cta_visible: !q('#academy-concert-hall-perform').hidden, cta_label: q('#academy-concert-hall-perform').getAttribute('aria-label') },
     performance: {
       head: {
         title: q('#academy-concert-hall-head-title').textContent,
         meta: q('#academy-concert-hall-head-meta').textContent,
         progress: q('.academy-concert-hall-progress').getAttribute('aria-valuenow'),
-        section: q('#academy-concert-hall-head-section').textContent,
-        stop_label: q('#academy-concert-hall-stop').textContent,
-        stop_right_of_text: stop.left >= headText.right
+        stop_label: q('#academy-concert-hall-stop').getAttribute('aria-label')
       },
       ...faceCards('academy-concert-hall-performance-cards')
     }
@@ -375,38 +431,39 @@ function expectedComposition(key, facts) {
   const busyStage = { 's1': 'materials', 's2': 'direction', 's4': 'skeleton', 's5': 'section' };
   const base = {
     face: null,
-    stage: { corner_ornaments: STAGE_CORNER_ORNAMENTS, caption_has_week: true },
-    controls: { order: CONTROL_ORDER, left_to_right: true, input_text: null, input_enabled: null, compose_enabled: null, exit_enabled: null },
+    venue: { name: '奏楽堂', way_names: WAY_NAMES, way_failed: false, retry_label: null },
+    controls: { order: CONTROL_ORDER, left_to_right: true, input_text: null, input_enabled: null, compose_enabled: null, exit_enabled: true },
     shelf: null,
     narration: null,
     performance: null
   };
   // With no row on the shelf there is no column to measure: the columns are recorded only (null), never assumed.
-  const shelfFace = (rows, highlightTop) => ({ greeting: true, heading: true, empty_line: rows === 0, rows, columns: rows === 0 ? null : SHELF_COLUMNS, highlight_top: highlightTop });
-  const narrationFace = ({ written, busy, busyIndex = null, sections, sectionsWritten, cta, error = null }) => ({
-    stage_order: STAGE_CARD_TITLES, stage_written: written, busy_stage: busy, busy_index: busyIndex, busy_label: busy ? BUSY_LABEL : null,
+  const shelfFace = (rows, highlightTop) => ({ greeting: true, empty_line: rows === 0, rows, columns: rows === 0 ? null : SHELF_COLUMNS, highlight_top: highlightTop });
+  const narrationFace = ({ shown, written, busy, busyIndex = null, sections, sectionsWritten, cta, error = null }) => ({
+    stage_order: STAGE_CARD_TITLES.slice(0, shown), stage_written: written, busy_stage: busy, busy_index: busyIndex, busy_label: busy ? BUSY_LABEL : null,
     section_cards: sections, section_written: sectionsWritten, cta_visible: cta, error
   });
-  const performanceFace = () => ({ head_title: facts.piece.title, progress_bar: true, head_section: facts.piece.sections[0], stop_label: '止める', stop_right_of_text: true, stage_order: STAGE_CARD_TITLES, stage_written: 4, section_cards: facts.piece.sections.length, current_index: 0 });
+  const performanceFace = () => ({ head_title: facts.piece.title, progress_bar: true, stop_label: '止める', stage_order: STAGE_CARD_TITLES, stage_written: 4, section_cards: facts.piece.sections.length, current_index: 0 });
   switch (key) {
     case '01-arrival': return { ...base, face: 'shelf', controls: { ...base.controls, input_text: false, compose_enabled: false }, shelf: shelfFace(0, null) };
-    case '02-typing': return { ...base, face: 'shelf', controls: { ...base.controls, input_text: true, compose_enabled: true }, shelf: shelfFace(0, null) };
+    case '02-typing-first-char': case '02-typing': return { ...base, face: 'shelf', controls: { ...base.controls, input_text: true, compose_enabled: true }, shelf: shelfFace(0, null) };
     case '03-composing-s1': case '03-composing-s2': case '03-composing-s4': case '03-composing-s5': {
       const stage = busyStage[key.slice(-2)];
       const written = { materials: 0, direction: 1, skeleton: 3, section: 4 }[stage];
+      const shown = { materials: 1, direction: 2, skeleton: 4, section: 4 }[stage];
       return {
         ...base, face: 'narration', controls: { ...base.controls, input_enabled: false, compose_enabled: false, exit_enabled: true },
-        narration: narrationFace({ written, busy: stage, busyIndex: stage === 'section' ? 0 : null, sections: stage === 'section' ? facts.piece.sections.length : 0, sectionsWritten: 0, cta: false })
+        narration: narrationFace({ shown, written, busy: stage, busyIndex: stage === 'section' ? 0 : null, sections: stage === 'section' ? facts.piece.sections.length : 0, sectionsWritten: 0, cta: false })
       };
     }
-    case '04-narration': return { ...base, face: 'narration', controls: { ...base.controls, input_enabled: true }, narration: narrationFace({ written: 4, busy: null, sections: facts.piece.sections.length, sectionsWritten: facts.piece.sections.length, cta: true }) };
+    case '04-narration': return { ...base, face: 'narration', controls: { ...base.controls, input_enabled: true }, narration: narrationFace({ shown: 4, written: 4, busy: null, sections: facts.piece.sections.length, sectionsWritten: facts.piece.sections.length, cta: true }) };
     case '05-playing': return { ...base, face: 'performance', controls: { ...base.controls, input_enabled: false, compose_enabled: false }, performance: performanceFace() };
     case '06-after-play': return { ...base, face: 'shelf', controls: { ...base.controls, input_enabled: true }, shelf: shelfFace(1, true) };
     case '07-shelf': return { ...base, face: 'shelf', shelf: shelfFace(1, false) };
     case '08-replay': return { ...base, face: 'performance', controls: { ...base.controls, input_enabled: false, compose_enabled: false }, performance: performanceFace() };
     case '09-lm-error': return {
-      ...base, face: 'narration', controls: { ...base.controls, input_enabled: true, exit_enabled: true },
-      narration: narrationFace({ written: 0, busy: null, sections: 0, sectionsWritten: 0, cta: false, error: { stage: 'materials', red_line: true, retry_label: RETRY_LABEL } })
+      ...base, face: 'narration', venue: { ...base.venue, way_failed: true, retry_label: RETRY_LABEL }, controls: { ...base.controls, input_enabled: true, exit_enabled: true },
+      narration: narrationFace({ shown: 1, written: 0, busy: null, sections: 0, sectionsWritten: 0, cta: false, error: { stage: 'materials' } })
     };
     default: throw new Error(`no board expectation for capture ${key}`);
   }
@@ -427,22 +484,22 @@ function actualComposition(snapshot) {
       section_cards: face.section_cards.length,
       section_written: face.section_cards.filter((card) => card.written).length,
       cta_visible: face.cta_visible,
-      error: errorCard ? { stage: errorCard.stage, red_line: (errorCard.error_line ?? '').length > 0, retry_label: errorCard.retry_label } : null
+      error: errorCard ? { stage: errorCard.stage } : null
     };
   };
   const currentIndex = snapshot.performance.section_cards.findIndex((card) => card.current);
   return {
     face: snapshot.face,
-    stage: { corner_ornaments: snapshot.stage.corner_ornaments, caption_has_week: /第\d+週/.test(snapshot.stage.caption) },
+    venue: { name: snapshot.venue.name, way_names: snapshot.venue.way.split('（')[0], way_failed: snapshot.venue.way_failed, retry_label: snapshot.venue.retry_label },
     controls: { order: snapshot.controls.order, left_to_right: snapshot.controls.left_to_right, input_text: snapshot.controls.input_text, input_enabled: snapshot.controls.input_enabled, compose_enabled: snapshot.controls.compose_enabled, exit_enabled: snapshot.controls.exit_enabled },
     shelf: {
-      greeting: snapshot.shelf.greeting, heading: snapshot.shelf.heading.length > 0, empty_line: snapshot.shelf.empty_line, rows: snapshot.shelf.rows.length,
+      greeting: snapshot.shelf.greeting, empty_line: snapshot.shelf.empty_line, rows: snapshot.shelf.rows.length,
       columns: snapshot.shelf.rows.length ? snapshot.shelf.rows[0].columns : null, highlight_top: snapshot.shelf.rows.length ? snapshot.shelf.rows[0].highlight && snapshot.shelf.rows.slice(1).every((row) => !row.highlight) : null
     },
     narration: narrationActual(snapshot.narration),
     performance: {
-      head_title: snapshot.performance.head.title, progress_bar: snapshot.performance.head.progress !== null, head_section: snapshot.performance.head.section,
-      stop_label: snapshot.performance.head.stop_label, stop_right_of_text: snapshot.performance.head.stop_right_of_text,
+      head_title: snapshot.performance.head.title, progress_bar: snapshot.performance.head.progress !== null,
+      stop_label: snapshot.performance.head.stop_label,
       stage_order: snapshot.performance.stage_cards.map((card) => card.title), stage_written: snapshot.performance.stage_cards.filter((card) => card.written).length,
       section_cards: snapshot.performance.section_cards.length, current_index: currentIndex >= 0 ? currentIndex : null
     }
@@ -594,7 +651,7 @@ function gitHead(repoRoot) {
 }
 
 async function main() {
-  const { repoRoot, outDir, lmConfigPath } = parseArgs(process.argv.slice(2));
+  const { repoRoot, outDir, viewport, lmConfigPath } = parseArgs(process.argv.slice(2));
   const real = lmConfigPath !== null;
   const { createServer } = await import(path.join(repoRoot, 'app/src/server.mjs'));
   const { fixtureRoot } = await import(path.join(repoRoot, 'app/tests/helpers.mjs'));
@@ -653,7 +710,7 @@ async function main() {
   const lm = createLmObserver({ real, base, stub: lmStub });
 
   await app.whenReady();
-  const win = new BrowserWindow({ width: VIEWPORT.width, height: VIEWPORT.height, show: false, webPreferences: { backgroundThrottling: false } });
+  const win = new BrowserWindow({ width: viewport.width, height: viewport.height, show: false, webPreferences: { backgroundThrottling: false } });
   win.webContents.on('console-message', (_event, level, message) => { if (level >= 2) console.log(`renderer-console[${level}]: ${message}`); });
   await win.loadURL(`${base}/`);
   await sleep(1200);
@@ -666,7 +723,9 @@ async function main() {
     const visibility = await measureVisible(win, [...COMMON_VISIBLE, ...visible]);
     const snapshot = await win.webContents.executeJavaScript(SNAPSHOT);
     const file = await shoot(win, outDir, key);
-    captures[key] = { file: path.basename(file), launch: kind, state: snapshot.state, face: snapshot.face, visibility, snapshot };
+    const layout = await win.webContents.executeJavaScript(LAYOUT);
+    console.log(`LAYOUT ${key}: sigil=${layout.sigil?.element ?? 'none'} overlaps=${layout.overlap_count}${layout.overlaps.length ? ` ${JSON.stringify(layout.overlaps.map((entry) => entry.text))}` : ''} section_titles=${JSON.stringify(layout.section_titles.map((entry) => entry.lines.join('／')))} placeholder=${layout.placeholder.text_width}/${layout.placeholder.content_width}${layout.placeholder.shown ? '' : '(hidden)'}`);
+    captures[key] = { file: path.basename(file), launch: kind, state: snapshot.state, face: snapshot.face, visibility, layout, snapshot };
     return snapshot;
   }
 
@@ -715,19 +774,23 @@ async function main() {
 
   // State 1 到着: the 棚面 with the 楽師's greeting and the empty shelf line, the input empty and 奏でてもらう dead.
   const arrived = await waitForState(win, 'arrived', SHORT);
+  // The send-off's wait over the hall's art goes down once the hall has arrived.
+  check('the arrival wait is down', await waitFor(win, `document.querySelector('#place-veil').hidden`, SHORT));
   check('arrival face is the shelf', arrived.face === 'shelf', arrived);
   const arrivalDom = await win.webContents.executeJavaScript(`({
     greeting: document.querySelector('#academy-concert-hall-greeting').textContent.trim().length,
     emptyShelf: !document.querySelector('#academy-concert-hall-shelf-empty').hidden,
     composeDisabled: document.querySelector('#academy-concert-hall-compose').disabled,
-    placeholder: document.querySelector('#academy-concert-hall-input').placeholder.length,
-    controls: [...document.querySelectorAll('.academy-concert-hall-controls > *')].map((el) => el.id)
+    controls: [...document.querySelectorAll('.academy-concert-hall-composer > [id]')].map((el) => el.id)
   })`);
-  check('arrival dom', arrivalDom.greeting > 0 && arrivalDom.emptyShelf && arrivalDom.composeDisabled && arrivalDom.placeholder > 0, arrivalDom);
+  check('arrival dom', arrivalDom.greeting > 0 && arrivalDom.emptyShelf && arrivalDom.composeDisabled, arrivalDom);
   check('controls order', JSON.stringify(arrivalDom.controls) === JSON.stringify(CONTROL_ORDER), arrivalDom);
   await capture('01-arrival', SHELF_VISIBLE(0));
 
-  // State 2 入力中.
+  // State 2 入力中: the wish's first letter (the placeholder gives way), then the whole wish.
+  await setWish(win, WISH_FIRST_CHAR);
+  await waitForState(win, 'typing', SHORT);
+  await capture('02-typing-first-char', SHELF_VISIBLE(0));
   await setWish(win, WISH_TEXT);
   await waitForState(win, 'typing', SHORT);
   check('compose armed by text', await win.webContents.executeJavaScript(`!document.querySelector('#academy-concert-hall-compose').disabled`));
@@ -739,22 +802,23 @@ async function main() {
   await click(win, '#academy-concert-hall-compose');
   await waitForState(win, 'composing', SHORT);
   check('composing face is the narration', await win.webContents.executeJavaScript(`${FACE} === 'narration'`));
-  const busyCard = (stage) => `document.querySelector('.academy-concert-hall-card[data-stage="${stage}"][data-busy="true"] .academy-concert-hall-busy-label')?.textContent === ${JSON.stringify(BUSY_LABEL)}`;
+  const busyCard = (stage) => `document.querySelector('#academy-concert-hall-narration-cards .academy-concert-hall-card[data-stage="${stage}"][data-busy="true"] .venue-busy')?.getAttribute('aria-label') === ${JSON.stringify(BUSY_LABEL)}`;
+  const writtenStages = `document.querySelectorAll('#academy-concert-hall-narration-cards .academy-concert-hall-card:not([data-busy]):not([data-error])').length`;
   check('S1 card busy first', await waitFor(win, busyCard('materials'), SHORT));
   const composingDom = await win.webContents.executeJavaScript(`({
-    cardOrder: [...document.querySelectorAll('.academy-concert-hall-card-stage .academy-concert-hall-card-title')].map((el) => el.textContent),
+    cardOrder: [...document.querySelectorAll('#academy-concert-hall-narration-cards .academy-concert-hall-card-title')].map((el) => el.getAttribute('aria-label')),
     inputDisabled: document.querySelector('#academy-concert-hall-input').disabled,
     exitEnabled: !document.querySelector('#academy-concert-hall-exit').disabled
   })`);
-  check('stage cards fixed order', JSON.stringify(composingDom.cardOrder) === JSON.stringify(STAGE_CARD_TITLES) && composingDom.inputDisabled && composingDom.exitEnabled, composingDom);
+  check('the first stage comes down alone', JSON.stringify(composingDom.cardOrder) === JSON.stringify(STAGE_CARD_TITLES.slice(0, 1)) && composingDom.inputDisabled && composingDom.exitEnabled, composingDom);
   await capture('03-composing-s1', BUSY_VISIBLE);
-  check('S2 card busy after S1 written', await waitFor(win, `${busyCard('direction')} && document.querySelectorAll('.academy-concert-hall-card-stage[data-written="true"]').length === 1`, LONG));
+  check('S2 card busy after S1 written', await waitFor(win, `${busyCard('direction')} && ${writtenStages} === 1`, LONG));
   await capture('03-composing-s2', BUSY_VISIBLE);
-  check('S4 card busy after S1〜S3 written', await waitFor(win, `${busyCard('skeleton')} && document.querySelectorAll('.academy-concert-hall-card-stage[data-written="true"]').length === 3`, LONG));
+  check('S4 card busy after S1〜S3 written', await waitFor(win, `${busyCard('skeleton')} && ${writtenStages} === 3`, LONG));
   await capture('03-composing-s4', BUSY_VISIBLE);
   check('S5: first section card busy after S4 written', await waitFor(win, `
-    document.querySelector('.academy-concert-hall-card-section[data-section-index="0"][data-busy="true"] .academy-concert-hall-busy-label')?.textContent === ${JSON.stringify(BUSY_LABEL)}
-    && document.querySelectorAll('.academy-concert-hall-card-stage[data-written="true"]').length === 4
+    document.querySelector('#academy-concert-hall-narration-cards .academy-concert-hall-section[data-section-index="0"] .venue-busy')?.getAttribute('aria-label') === ${JSON.stringify(BUSY_LABEL)}
+    && ${writtenStages} === 4
   `, LONG));
   await capture('03-composing-s5', BUSY_VISIBLE);
 
@@ -763,16 +827,16 @@ async function main() {
   await waitForState(win, 'narrated', LONG);
   const composeDoneAt = Date.now();
   const narratedDom = await win.webContents.executeJavaScript(`({
-    writtenStages: document.querySelectorAll('.academy-concert-hall-card-stage[data-written="true"]').length,
-    sectionCards: [...document.querySelectorAll('.academy-concert-hall-card-section')].map((el) => ({ title: el.querySelector('.academy-concert-hall-card-title').textContent, written: el.dataset.written === 'true' })),
+    writtenStages: ${writtenStages},
+    sectionCards: [...document.querySelectorAll('#academy-concert-hall-narration-cards .academy-concert-hall-section')].map((el) => ({ title: el.querySelector('.academy-concert-hall-section-title').textContent, written: !!el.querySelector('.academy-concert-hall-written') })),
     ctaVisible: !document.querySelector('#academy-concert-hall-perform').hidden,
     inputEnabled: !document.querySelector('#academy-concert-hall-input').disabled
   })`);
   check('narrated dom', narratedDom.writtenStages === 4 && narratedDom.sectionCards.length >= 2 && narratedDom.sectionCards.every((card) => card.written) && narratedDom.ctaVisible && narratedDom.inputEnabled, narratedDom);
   await capture('04-narration', [
-    { name: 'stage card: 骨子', selector: '.academy-concert-hall-card-stage[data-stage="skeleton"]', scroll: true },
-    { name: 'last section card', selector: '.academy-concert-hall-card-section', index: narratedDom.sectionCards.length - 1, scroll: true },
-    { name: 'CTA 演奏を始める', selector: '#academy-concert-hall-perform', scroll: true }
+    { name: 'stage: 骨子', selector: '#academy-concert-hall-narration-cards .academy-concert-hall-card[data-stage="skeleton"]', scroll: true },
+    { name: 'last section', selector: '#academy-concert-hall-narration-cards .academy-concert-hall-section', index: narratedDom.sectionCards.length - 1, scroll: true },
+    { name: 'play sigil 演奏を始める', selector: '#academy-concert-hall-perform' }
   ]);
   const composeLeg = await lm.leg('compose #1');
 
@@ -796,13 +860,12 @@ async function main() {
     face: ${FACE},
     headTitle: document.querySelector('#academy-concert-hall-head-title').textContent,
     headMeta: document.querySelector('#academy-concert-hall-head-meta').textContent,
-    headSection: document.querySelector('#academy-concert-hall-head-section').textContent,
     progress: document.querySelector('.academy-concert-hall-progress').getAttribute('aria-valuenow'),
-    currentSection: document.querySelector('.academy-concert-hall-card-section[data-current="true"]')?.dataset.sectionIndex ?? null,
+    currentSection: document.querySelector('#academy-concert-hall-performance-cards .academy-concert-hall-section[data-current="true"]')?.dataset.sectionIndex ?? null,
     inputDisabled: document.querySelector('#academy-concert-hall-input').disabled
   })`);
   check('playing: start calls = note count', playingProbe.starts === noteCount, { ...playingProbe, noteCount });
-  check('playing dom', playingDom.face === 'performance' && playingDom.headTitle === piece.title && playingDom.headSection === piece.score.sections[0].name && playingDom.currentSection === '0' && playingDom.inputDisabled && Number(playingDom.progress) > 0, playingDom);
+  check('playing dom', playingDom.face === 'performance' && playingDom.headTitle === piece.title && playingDom.currentSection === '0' && playingDom.inputDisabled && Number(playingDom.progress) > 0, playingDom);
   await capture('05-playing', PERFORMANCE_VISIBLE);
 
   // State 6 演奏後 via 止める: no started source survives, the player's context is suspended, the new piece is on
@@ -829,9 +892,9 @@ async function main() {
   const replayDom = await win.webContents.executeJavaScript(`({
     face: ${FACE},
     headTitle: document.querySelector('#academy-concert-hall-head-title').textContent,
-    writtenStages: document.querySelectorAll('#academy-concert-hall-performance-cards .academy-concert-hall-card-stage[data-written="true"]').length,
-    sectionCards: document.querySelectorAll('#academy-concert-hall-performance-cards .academy-concert-hall-card-section').length,
-    currentSection: document.querySelector('#academy-concert-hall-performance-cards .academy-concert-hall-card-section[data-current="true"]')?.dataset.sectionIndex ?? null
+    writtenStages: document.querySelectorAll('#academy-concert-hall-performance-cards .academy-concert-hall-card:not([data-busy]):not([data-error])').length,
+    sectionCards: document.querySelectorAll('#academy-concert-hall-performance-cards .academy-concert-hall-section').length,
+    currentSection: document.querySelector('#academy-concert-hall-performance-cards .academy-concert-hall-section[data-current="true"]')?.dataset.sectionIndex ?? null
   })`);
   const replayLeg = await lm.leg('replay');
   check('replay: start calls = note count again, no LM call', replayProbe.starts - startsBefore === noteCount && replayLeg.calls === 0, { ...replayProbe, startsBefore, noteCount, lmCalls: replayLeg.calls });
@@ -871,18 +934,17 @@ async function main() {
   const errorDom = await win.webContents.executeJavaScript(`({
     face: ${FACE},
     errorCard: document.querySelector('.academy-concert-hall-card[data-error="true"]')?.dataset.stage ?? null,
-    message: document.querySelector('.academy-concert-hall-card-error')?.textContent ?? '',
-    retry: document.querySelector('.academy-concert-hall-retry')?.textContent ?? '',
+    wayFailed: document.querySelector('#academy-concert-hall-path').dataset.failed === 'true',
+    retry: document.querySelector('#academy-concert-hall-retry').hidden ? null : document.querySelector('#academy-concert-hall-retry').getAttribute('aria-label'),
     inputEnabled: !document.querySelector('#academy-concert-hall-input').disabled,
     exitEnabled: !document.querySelector('#academy-concert-hall-exit').disabled
   })`);
-  check('error dom', errorDom.face === 'narration' && errorDom.errorCard === 'materials' && errorDom.message.length > 0 && errorDom.retry === RETRY_LABEL && errorDom.inputEnabled && errorDom.exitEnabled, errorDom);
+  check('error dom', errorDom.face === 'narration' && errorDom.errorCard === 'materials' && errorDom.wayFailed && errorDom.retry === RETRY_LABEL && errorDom.inputEnabled && errorDom.exitEnabled, errorDom);
   const errorLeg = await lm.leg('compose #2 (LM failure)');
-  if (real) check('unreachable LM: no request recorded, transport failure surfaced', errorLeg.calls === 0 && /LM Studio|LMSTUDIO|接続|connection/i.test(errorDom.message), { ...errorLeg, message: errorDom.message });
+  if (real) check('unreachable LM: no request recorded', errorLeg.calls === 0, errorLeg);
   await capture('09-lm-error', [
-    { name: 'error card', selector: '.academy-concert-hall-card[data-error="true"]', scroll: true },
-    { name: 'error red line', selector: '.academy-concert-hall-card-error' },
-    { name: 'retry もう一度', selector: '.academy-concert-hall-retry' }
+    { name: 'error stage', selector: '.academy-concert-hall-card[data-error="true"]', scroll: true },
+    { name: 'retry sigil もう一度', selector: '#academy-concert-hall-retry' }
   ], real ? 'real-unreachable' : 'stub');
 
   // もう一度 with the LM restored: エラー → 作曲中 → 演奏前 (the recovery edge of the closed set).
@@ -893,7 +955,7 @@ async function main() {
     stubState.faultArmed = false;
   }
   const retryStartedAt = Date.now();
-  await click(win, '.academy-concert-hall-retry');
+  await click(win, '#academy-concert-hall-retry');
   await waitForState(win, 'composing', SHORT);
   await waitForState(win, 'narrated', LONG);
   const retryDoneAt = Date.now();
@@ -920,7 +982,7 @@ async function main() {
     generated_at: new Date().toISOString(),
     head,
     launch,
-    viewport: VIEWPORT,
+    viewport,
     lm: {
       mode: launch,
       real: realLm,
@@ -929,7 +991,7 @@ async function main() {
       legs: lm.legs,
       hub: { turns: hubTurns, calls: hubLeg.calls },
       compose_1: real ? composeAccounting(between(composeStartedAt, composeDoneAt + 1000), { startedAt: composeStartedAt, doneAt: composeDoneAt }) : { total_calls: composeLeg.calls, elapsed_ms: composeDoneAt - composeStartedAt },
-      compose_2_failure: { calls: errorLeg.calls, error_line: errorDom.message },
+      compose_2_failure: { calls: errorLeg.calls, way_failed: errorDom.wayFailed },
       compose_3_retry: real ? composeAccounting(between(retryStartedAt, retryDoneAt + 1000), { startedAt: retryStartedAt, doneAt: retryDoneAt }) : { total_calls: retryLeg.calls, elapsed_ms: retryDoneAt - retryStartedAt },
       replay_calls: replayLeg.calls
     },

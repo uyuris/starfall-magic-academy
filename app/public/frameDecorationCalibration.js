@@ -108,50 +108,6 @@ export const FRAME_DECORATION_CALIBRATION_TARGETS = Object.freeze([
     styleHostSelector: '.academy-map-corner-br',
     varX: '--am-corner-br-dx',
     varY: '--am-corner-br-dy'
-  }),
-  // 錬成室 stage-frame の四隅（tl/tr/bl/br）。マップと同じく四隅すべてに隅飾りを置く。オフセットは
-  // #academy-atelier-screen 実宣言の --atelier-corner-*（初期 0px・var() fallback なし）を各 .academy-atelier-corner-*
-  // が transform で consume し、host はその consuming 要素自身（実要素なので inline で直接上書きできる）。anchor は
-  // 1:1 stage frame の各隅。
-  Object.freeze({
-    id: 'academy-atelier-corner-tl',
-    label: '錬成室額装 左上',
-    screen: 'academy-atelier',
-    anchorSelector: '.academy-atelier-stage',
-    corner: 'top-left',
-    styleHostSelector: '.academy-atelier-corner-tl',
-    varX: '--atelier-corner-tl-dx',
-    varY: '--atelier-corner-tl-dy'
-  }),
-  Object.freeze({
-    id: 'academy-atelier-corner-tr',
-    label: '錬成室額装 右上',
-    screen: 'academy-atelier',
-    anchorSelector: '.academy-atelier-stage',
-    corner: 'top-right',
-    styleHostSelector: '.academy-atelier-corner-tr',
-    varX: '--atelier-corner-tr-dx',
-    varY: '--atelier-corner-tr-dy'
-  }),
-  Object.freeze({
-    id: 'academy-atelier-corner-bl',
-    label: '錬成室額装 左下',
-    screen: 'academy-atelier',
-    anchorSelector: '.academy-atelier-stage',
-    corner: 'bottom-left',
-    styleHostSelector: '.academy-atelier-corner-bl',
-    varX: '--atelier-corner-bl-dx',
-    varY: '--atelier-corner-bl-dy'
-  }),
-  Object.freeze({
-    id: 'academy-atelier-corner-br',
-    label: '錬成室額装 右下',
-    screen: 'academy-atelier',
-    anchorSelector: '.academy-atelier-stage',
-    corner: 'bottom-right',
-    styleHostSelector: '.academy-atelier-corner-br',
-    varX: '--atelier-corner-br-dx',
-    varY: '--atelier-corner-br-dy'
   })
 ]);
 

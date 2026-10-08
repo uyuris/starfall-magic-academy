@@ -8,7 +8,10 @@
 //   - Result flavor (buildArenaResultPrompt): a one-line 場内アナウンス for the tournament conclusion. The
 //     {result_info} is composed per outcome and ALWAYS names the real champion (§4/§7-1: naming only the
 //     defeated side makes the model fabricate the defeated side as the champion). The intro's handoff has no
-//     counterpart here (1 visit = 1 result・§6), so its 散らし is the 陳腐語禁止 line only. Chat 経路.
+//     counterpart here (1 visit = 1 result・§6), so its 散らし is the 陳腐語禁止 line only. A pair tournament's
+//     elimination line names two 「A と B」 units twice (defeater + champion), so its prompt and gate hold it to the
+//     result stage's two-line box (ARENA_PAIR_RESULT_CHAR_CAP); every other result prompt carries no 字数 line.
+//     Chat 経路.
 //
 // The arena is a 地の文 surface with no persona and no per-character conversation context, so — unlike
 // auctionGeneration — these prompts carry no persona / world-sync / actor-context blocks; the templates are
@@ -29,6 +32,11 @@ export const ARENA_GENERATION_FAILED_ERROR_CODE = 'ARENA_GENERATION_FAILED';
 // 紹介記事調 runaway (§1 対照群: intro C0=1094字・result C0=396字), which is unusable output.
 export const ARENA_INTRO_HARD_CAP = 300;
 export const ARENA_RESULT_HARD_CAP = 200;
+
+// The pair elimination line must fit the result stage's two-line flavor box (幅 560px・16px・word-break: auto-phrase).
+// Measured in the real box with roster names: every line of ≤66字 fit and overflow began at 67字 (whole-name
+// phrases wrap early), so 64 keeps a 2字 margin. Counted like the gate: every character, spaces included.
+export const ARENA_PAIR_RESULT_CHAR_CAP = 64;
 
 function arenaGenerationError(message) {
   const error = new Error(message);
@@ -94,6 +102,17 @@ export function buildArenaIntroPrompt({ roundLabel, formatLabel, eastNames, west
 
 // ----- 優勝/敗退実況一文 (§4・pure) -----
 
+// Whether the result line is a pair tournament's elimination — the one line held to the two-line box. The mode must
+// agree with the outcome (spectated_* only in spectate, champion / eliminated only in solo / pair).
+function isPairElimination({ outcome, mode }) {
+  if (outcome === 'spectated_champion' || outcome === 'spectated_eliminated') {
+    if (mode !== 'spectate') throw new Error(`arena result flavor mode for ${outcome} must be spectate: ${mode}`);
+    return false;
+  }
+  if (mode !== 'solo' && mode !== 'pair') throw new Error(`arena result flavor mode for ${outcome} must be solo or pair: ${mode}`);
+  return mode === 'pair' && outcome === 'eliminated';
+}
+
 // The per-outcome {result_info} block + {tail} instruction. Every branch names the REAL champion (§4/§7-1):
 // champion / spectated_champion state the winner directly; eliminated / spectated_eliminated append the
 // tournament champion so the model cannot fabricate the defeated opponent as the champion.
@@ -135,11 +154,12 @@ function arenaResultInfo({ outcome, championName, finalistName, buddyName, defea
 }
 
 // The result-flavor prompt (§4 採用テンプレ verbatim). The 陳腐語禁止 line is the sole 散らし lever (§6: 1 visit =
-// 1 result, so there is no handoff counterpart).
+// 1 result, so there is no handoff counterpart). A pair elimination appends the 字数 line its gate enforces.
 export function buildArenaResultPrompt(inputs) {
   if (!ARENA_OUTCOMES.includes(inputs?.outcome)) {
     throw new Error(`arena result flavor outcome must be one of ${ARENA_OUTCOMES.join('/')}: ${inputs?.outcome}`);
   }
+  const pairElimination = isPairElimination(inputs);
   const { info, tail } = arenaResultInfo(inputs);
   return [
     `${ARENA_ANNOUNCE_ROLE}大会の全試合が終わり、結果を告げる実況を一文だけ書く。`,
@@ -151,7 +171,8 @@ export function buildArenaResultPrompt(inputs) {
     'この大会の確定した結果（この結果に忠実に。勝敗を捏造しない・居ない出場者を出さない）:',
     ...info,
     ARENA_WORLD_GUARD_LINE,
-    tail
+    tail,
+    ...(pairElimination ? [`名は略さずそのまま書き、長さは${ARENA_PAIR_RESULT_CHAR_CAP}字以内。`] : [])
   ].join('\n');
 }
 
@@ -172,8 +193,10 @@ export function gateArenaIntro(text) {
   return gateArenaText(text, ARENA_INTRO_HARD_CAP, 'intro');
 }
 
-export function gateArenaResultFlavor(text) {
-  return gateArenaText(text, ARENA_RESULT_HARD_CAP, 'result flavor');
+// `outcome` / `mode` pick the cap: an over-cap pair elimination line fails like any unusable output.
+export function gateArenaResultFlavor(text, { outcome, mode }) {
+  const cap = isPairElimination({ outcome, mode }) ? ARENA_PAIR_RESULT_CHAR_CAP : ARENA_RESULT_HARD_CAP;
+  return gateArenaText(text, cap, 'result flavor');
 }
 
 // ----- orchestration (call the model) -----
@@ -189,5 +212,5 @@ export async function generateArenaIntro({ config, fetchImpl, onDelta, roundLabe
 export async function generateArenaResultFlavor({ config, fetchImpl, onDelta, ...inputs } = {}) {
   if (!config) throw new Error('lmStudioConfig is required for arena result flavor');
   const prompt = buildArenaResultPrompt(inputs);
-  return gateArenaResultFlavor(await callLmStudioChat({ config, prompt, fetchImpl, onDelta, title: '闘技会の結果実況生成' }));
+  return gateArenaResultFlavor(await callLmStudioChat({ config, prompt, fetchImpl, onDelta, title: '闘技会の結果実況生成' }), inputs);
 }

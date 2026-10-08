@@ -72,7 +72,6 @@ export async function buildConcertHallArrival({ state, storage, catalog } = {}) 
     performer: {
       name: checkedCatalog.performer.name,
       greeting: checkedCatalog.performer.greeting,
-      input_placeholder: checkedCatalog.performer.input_placeholder,
       empty_shelf: checkedCatalog.performer.empty_shelf
     },
     pieces: surface.entries.map((entry) => ({

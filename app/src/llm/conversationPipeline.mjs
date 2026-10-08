@@ -948,9 +948,9 @@ function assertRoutingHubActor(actorId, routingHubContext) {
   }
 }
 
-// The routing graduation phase-2 conversation with the guide persona (案内人自身) speaks in the effective
-// routing persona of the save's variant — not the raw game_data/lina profile — even though it is an ordinary
-// event conversation carrying no routing hub context. The gate is explicit (not an implicit fallback): the
+// The 案内人's graduation conversation (the guide conversation gone on past the player choosing the 案内人 herself, on
+// the terrace) speaks in the effective routing persona of the save's variant — not the raw game_data/lina profile —
+// even though it no longer carries the routing hub context. The gate is explicit (not an implicit fallback): the
 // actor is the routing persona AND there is no hub context AND the active/pending context is the graduation
 // ending event. A selectable roster partner (loop graduation or a character_### guide selection) fails this
 // gate and keeps its own disk profile; the routing hub turn is handled by its own hub-context branch above.
@@ -1254,7 +1254,8 @@ export async function editConversationUserMessage({
   stageMoveOpeningProvider = defaultStageMoveOpeningProvider,
   characterSpeechConstraints = [],
   onEmotion,
-  onAssistantComplete
+  onAssistantComplete,
+  onStageMove
 }) {
   if (!root) throw new Error('root is required');
   const normalizedIndex = Math.trunc(Number(messageIndex));
@@ -1302,7 +1303,8 @@ export async function editConversationUserMessage({
     postTurnStatePolicy: academyPostTurnStatePolicy,
     characterSpeechConstraints,
     onEmotion,
-    onAssistantComplete
+    onAssistantComplete,
+    onStageMove
   });
   return {
     ...result,
@@ -1450,6 +1452,7 @@ export async function runConversationTurn({
   graduationPersonaVariant,
   onEmotion,
   onAssistantComplete,
+  onStageMove,
   postTurnStatePolicy
 }) {
   assertPostTurnStatePolicy(postTurnStatePolicy);
@@ -1962,6 +1965,13 @@ export async function runConversationTurn({
         }) ?? '').trim();
         if (!stageMoveCutoffAssistantText) throw new Error('stage move cutoff reply is required');
         onAssistantComplete?.({ content: stageMoveCutoffAssistantText, emotion });
+        // The move is announced between the cutoff (the last line at the old stage) and the new-stage opening, so a
+        // screen can move its stage before the opening line arrives.
+        onStageMove?.({
+          to_location_id: stageMoveDestination.location_id,
+          to_location_name: stageMoveDestination.location_name,
+          to_visible_situation: stageMoveDestination.location_visible_situation
+        });
 
         const stageMoveNarration = buildStageMoveNarration(stageMoveDestination);
         const stageMoveContextMessages = [

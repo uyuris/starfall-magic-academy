@@ -68,15 +68,22 @@ export function meleeOutcome(rng, attacker, defender) {
   return { hit: true, damage, crit };
 }
 
-// `ignoreDefense` (default false) bypasses the defender's defense term — used by the composite 貫通 spell.
-// It draws exactly the same single `variance` roll either way, so an existing 4-arg caller (arena, the normal
-// cast, the AI) is byte-identical: the option only zeroes the defense subtraction it opts into.
+// A spell misses on the defender's evasion % (a defender without evasion — a dungeon enemy — is never missed);
+// a miss deals no damage. `ignoreDefense` (default false) bypasses the defender's defense term — used by the
+// composite 貫通 spell; it draws the same rolls either way and only zeroes the defense subtraction it opts into.
 export function spellOutcome(rng, power, element, defender, { ignoreDefense = false } = {}) {
+  if (rng.int(1, 100) <= (defender.evasion ?? 0)) return { damage: 0, hit: false };
   const raw = Math.round(power * variance(rng));
   const advantage = advantageMultiplier(element, defender.element ?? null);
   const defenseTerm = ignoreDefense ? 0 : Math.floor((defender.defense ?? 0) / 2);
   const damage = Math.max(1, Math.round(raw * advantage) - defenseTerm);
-  return { damage };
+  return { damage, hit: true };
+}
+
+// The defender side of a melee/spell outcome for an AI or arena target. Arena actors and companions carry
+// evasion and defense under `stats`; a dungeon enemy carries them on itself.
+export function combatDefender(target) {
+  return target.stats ? { ...target.stats, element: target.element } : target;
 }
 
 // ----- self-heal spell state -----
@@ -101,15 +108,28 @@ function healingSpellState(actor, parameters) {
 }
 
 // Casts a self-heal that a caller already validated as usable. Mutates the actor's
-// HP/MP and appends the log line through the supplied writer. Returns the same
-// acted/error shape the AI and player paths branch on.
-export function castSelfHealingSpell(actor, spell, casterName, pushLog) {
+// HP/MP and appends the log line and the {kind:'heal'} event through the supplied
+// writers. Returns the same acted/error shape the AI and player paths branch on.
+export function castSelfHealingSpell(actor, spell, casterName, { pushLog, pushEvent }) {
   if (actor.mp < spell.mp_cost) return { acted: false, error: 'insufficient_mp' };
   if (spell.recoverable_hp <= 0) return { acted: false, error: 'hp_full' };
   actor.mp -= spell.mp_cost;
-  actor.hp = Math.min(actor.max_hp, actor.hp + spell.heal_amount);
+  const tile = { x: actor.x, y: actor.y };
+  pushEvent(applyRestore(tile, actor, 'hp', 'spell', spell.heal_amount));
   pushLog(`${casterName}の回復魔法。HPが${spell.recoverable_hp}回復。`);
   return { acted: true };
+}
+
+// Restores `resource` ('hp' | 'mp') on `target` by up to `potency` (capped at its max) and returns the
+// {kind:'heal'} event for it: `from` the user's tile, `to` the receiver's tile, `source` 'spell' | 'item', and
+// `amount` the HP/MP actually restored after the cap. The single restore step every heal / MP-restore path of the
+// dungeon (C-23) and the arena (C-26) goes through, so the event amount always equals the applied change.
+export function applyRestore(from, target, resource, source, potency) {
+  if (resource !== 'hp' && resource !== 'mp') throw new Error(`unknown restore resource: ${resource}`);
+  const maxKey = resource === 'hp' ? 'max_hp' : 'max_mp';
+  const before = target[resource];
+  target[resource] = Math.min(target[maxKey], before + potency);
+  return { kind: 'heal', from, to: { x: target.x, y: target.y }, resource, source, amount: target[resource] - before };
 }
 
 // ----- equipment effect readers over an entry equipment snapshot -----

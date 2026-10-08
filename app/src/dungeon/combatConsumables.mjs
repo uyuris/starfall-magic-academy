@@ -146,10 +146,17 @@ export async function loadRunConsumables(root) {
 // Deals a consumable's flat, deterministic damage to one target: exactly the item's own `power`,
 // with no equipment/mastery/variance/elemental-advantage/defense modifier (装備・習熟の補正を受けない
 // 固定値). The element only tints the reused {kind:'cast'} event so the frontend animates it like any
-// other cast. A lethal hit routes through the supplied onDefeat, so a consumable kill is handled the
-// same as any other kill (撃破手段で差をつけない).
+// other cast; the strike's damage is that `power`. A lethal hit routes through the supplied onDefeat, so
+// a consumable kill is handled the same as any other kill (撃破手段で差をつけない).
 export function applyConsumableAttack({ target, power, element, from, pushEvent, onDefeat }) {
   target.hp = Math.max(0, target.hp - power);
-  pushEvent({ kind: 'cast', from, to: { x: target.x, y: target.y }, element, hit: true });
+  pushEvent({ kind: 'cast', from, to: { x: target.x, y: target.y }, element, hit: true, damage: power, crit: false, whiff: false });
   if (target.hp <= 0) onDefeat(target);
+}
+
+// The strike event of an area throw that caught no one (空振り): the blast still lands on the aim tile so it animates, as a
+// {kind:'cast'} with hit false and damage 0 — and `whiff` true, the one mark that tells it apart from a strike that missed
+// a fighter (a miss is hit false with whiff false).
+export function areaWhiffEvent(from, aim, element) {
+  return { kind: 'cast', from, to: { x: aim.x, y: aim.y }, element, hit: false, damage: 0, crit: false, whiff: true };
 }

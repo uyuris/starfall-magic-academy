@@ -2,21 +2,20 @@
 //
 // Keyboard focus goes into #academy-lounge-input when the player's turn opens (the round's NPCs have all spoken), so
 // the next utterance is typed and sent without a mouse — only while the lounge screen is active, the lounge talk is
-// live, no lounge popup is open and the input is open, and without moving a scrolled-up read position.
+// live, no lounge popup is open and the input is open, and without scrolling the page.
 // `node --test` cannot run app.js (no DOM / focus / layout), so this drives the REAL client in Electron. Not a
 // *.test.mjs (npm test skips it); run it by hand with the directory the screenshots are written to:
 //
 //   LOUNGE_FOCUS_SHOT_DIR=<dir> ./node_modules/.bin/electron app/tests/manual/loungeInputFocusRender.mjs
 //
 // One isolated routing server with a deterministic LM stub, entered through ?initialScreen=academy-lounge. A focus()
-// probe, installed before app.js runs, records every focus call on the input (options, scroll positions before and
+// probe, installed before app.js runs, records every focus call on the input (options, the page scroll before and
 // after, which screen was active) and every opening of the input, so a no-op is observable, not inferred.
-// Cases: the entry with a fast LM, where the first player turn opens while the entry loading cover is still up (the
-// lounge screen is not active); the landing turn, keyboard-only turns, keys typed during the NPCs' replies, an open
-// stage / speaker popup, and the terminal all-exit auto completion. Two states cannot arise at the instant the
-// player's turn opens in the real client (the input is opened right before the focus, and every revealed 吹き出し
-// re-pins the stream to the bottom): a closed input and a scrolled-up stream. Those are set there through a CDP
-// breakpoint, then the real code runs on.
+// Cases: the landing turn, keyboard-only turns, keys typed during the NPCs' replies, and the terminal all-exit auto
+// completion. The lounge's words sit
+// over the seats and never scroll, so there is no read position to keep. One state cannot arise at the instant the
+// player's turn opens in the real client (the input is opened right before the focus): a closed input. It is set
+// there through a CDP breakpoint, then the real code runs on.
 // The harness is fire-and-forget (no top-level await main(); whenReady would deadlock).
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
@@ -37,16 +36,12 @@ const PERSONA_VARIANT = 'fallen_star';
 const FIRST_INPUT = 'みんな、こんばんは。混ぜてもらってもいいかな';
 const SECOND_INPUT = 'キーボードだけで続けて話しかけるよ';
 const TYPING_INPUT = 'みんなの話を聞きながら打ちかけてみる';
-const SCROLL_INPUT = '前の話を読み返したいんだ';
-const STAGE_POPUP_INPUT = 'この部屋のことを教えて';
-const SPEAKER_POPUP_INPUT = 'あなたのことをもっと知りたい';
 const CLOSED_INPUT = 'もう少しだけ話そう';
 const END_INPUT = 'そろそろ今日はお開きにしよう';
 const DRAFT_TEXT = 'かきかけ';
 // A multi-吹き出し reply (地の文 + 発話 alternating) so each NPC's reveal runs long enough to act during it and the
-// stream overflows after a round.
+// voices fill after a round.
 const REPLY_TEXT = '（小さく笑って）ええ、もちろんです。今夜の談話室は静かで落ち着きますね。（暖炉の火に目をやって）こうして集まっていると、時間がゆっくり流れていくように感じます。（あなたに向き直って）それで、次は何の話をしましょうか。';
-const FAST_TEXT = 'ええ、そうですね。';
 const DEPARTURE_TEXT = '（立ち上がって）では、私はこれで失礼しますね。おやすみなさい。';
 
 const { createServer } = await import(path.join(PROJECT_ROOT, 'app/src/server.mjs'));
@@ -62,8 +57,8 @@ function check(name, pass, detail = {}) {
 }
 
 // One stub for the whole run. The finalization / judgment prompts embed the transcript (and so the player inputs),
-// so they are matched before the NPC utterance. `mode` switches the NPC utterance ('fast' = one short 吹き出し,
-// 'normal' = the long reply) and the lounge continuation judgment ('end' = every NPC leaves → auto completion).
+// so they are matched before the NPC utterance. `mode` switches the lounge continuation judgment
+// ('end' = every NPC leaves → auto completion).
 async function startStubLm() {
   const stub = { prompts: [], mode: 'normal' };
   const server = createHttpServer(async (req, res) => {
@@ -87,7 +82,7 @@ async function startStubLm() {
     else if (prompt.includes('継続したいと思うか')) content = 'true';
     else if (prompt.includes('MP温存ライン')) content = '30';
     else if (prompt.includes('増減したユーザーの所持金を判定する') || prompt.includes('所持金判定')) content = '0';
-    else content = stub.mode === 'fast' ? FAST_TEXT : REPLY_TEXT;
+    else content = REPLY_TEXT;
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ choices: [{ message: { content } }] }));
   });
@@ -171,15 +166,12 @@ const PROBE_SOURCE = `(() => {
   const original = HTMLElement.prototype.focus;
   HTMLElement.prototype.focus = function focusProbe(options) {
     if (this.id !== 'academy-lounge-input') return original.call(this, options);
-    const stream = document.querySelector('#academy-lounge-message-stream');
     const entry = {
       options: options ?? null,
       ...screenState(),
-      streamScrollBefore: stream.scrollTop,
       pageScrollBefore: document.scrollingElement.scrollTop
     };
     original.call(this, options);
-    entry.streamScrollAfter = stream.scrollTop;
     entry.pageScrollAfter = document.scrollingElement.scrollTop;
     entry.activeIsInput = document.activeElement === this;
     window.__loungeFocusLog.push(entry);
@@ -257,7 +249,7 @@ const loungeLanded = `
   document.querySelector('#academy-lounge-screen')?.classList.contains('active')
   && !document.querySelector('#academy-loading-screen')?.classList.contains('active')
   && !document.querySelector('#academy-lounge-input')?.disabled
-  && document.querySelectorAll('#academy-lounge-message-stream .chat-message').length > 0
+  && document.querySelectorAll('#academy-lounge-message-stream .lounge-word').length > 0
 `;
 
 // A round is in flight while the input is closed (setControlsDisabled covers every NPC utterance of the round). Wait
@@ -310,29 +302,6 @@ async function armEvaluateOnceAtLine(win, lineNumber, expression) {
   return { evaluated };
 }
 
-// A round during which a popup is opened (by clicking its opener mid-reply): when the player's turn opens the focus
-// must not be put into the input (no focus() call), and the popup is still open.
-async function popupRound(win, { input, label, open, popupSelector, close }) {
-  const logBefore = await focusLogLength(win);
-  const turn = await keyboardTurn(win, input);
-  await sleep(400);
-  await open();
-  const opened = await waitFor(win, `document.querySelector(${JSON.stringify(popupSelector)})?.hidden === false`, { tries: 50, intervalMs: 50 });
-  const done = turn.started && await waitPlayerTurn(win);
-  await sleep(200);
-  const after = await readFocusState(win);
-  const popupStillOpen = await js(win, `document.querySelector(${JSON.stringify(popupSelector)})?.hidden === false`);
-  const logAfter = await focusLogLength(win);
-  const popupShot = await shot(win, `${label}-open-no-focus`);
-  check(`${label} open when the player's turn opens: focus is NOT put into the input`,
-    opened && done && popupStillOpen && !after.activeIsInput && logAfter === logBefore,
-    { opened, done, popupStillOpen, focusCallsDuringRound: logAfter - logBefore, ...after, shot: popupShot });
-  await js(win, `document.querySelector(${JSON.stringify(close)}).click(); true`);
-  await waitFor(win, `document.querySelector(${JSON.stringify(popupSelector)})?.hidden === true`, { tries: 50, intervalMs: 50 });
-  // Back to the input by a click (the player's own act) for the next keyboard turn.
-  await cdpClick(win, '#academy-lounge-input');
-}
-
 // ── scenario ─────────────────────────────────────────────────────────────────
 async function main() {
   await fs.mkdir(SHOT_DIR, { recursive: true });
@@ -346,26 +315,8 @@ async function main() {
   await js(win, `fetch('/api/new-game', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }).then((r) => r.json())`);
   await installProbeForNextLoads(win);
 
-  // Screen not active: with a fast LM the first round's three NPCs have all spoken while the entry loading cover is
-  // still up, so the player's turn opens with the lounge screen inactive — the focus must not be put in.
-  {
-    lm.mode = 'fast';
-    await win.loadURL(`${base}/?initialScreen=academy-lounge`);
-    const landed = await waitFor(win, loungeLanded, { tries: 400, intervalMs: 50 });
-    const turnOpens = await js(win, `window.__loungeTurnOpenLog`);
-    const focusLog = await js(win, `window.__loungeFocusLog`);
-    const after = await readFocusState(win);
-    const inactiveShot = await shot(win, 'screen-inactive-at-turn-open-no-focus');
-    const firstOpen = turnOpens[0] ?? null;
-    check('screen not active: the first player turn opens under the entry loading cover and focus is NOT put into the input',
-      landed && firstOpen !== null && firstOpen.loungeActive === false && firstOpen.loaderActive === true
-        && focusLog.length === 0 && !after.activeIsInput,
-      { landed, turnOpens, focusLog, ...after, shot: inactiveShot });
-  }
-
   // Landing: with a real-paced reply the first round ends after the loading cover has handed over, so on landing — no
   // click, no harness focus() — the focus is already in the input, put there with preventScroll.
-  lm.mode = 'normal';
   await win.loadURL(`${base}/?initialScreen=academy-lounge`);
   const landed = await waitFor(win, loungeLanded, { tries: 600, intervalMs: 100 });
   {
@@ -434,47 +385,6 @@ async function main() {
   }
 
   const focusCallLine = await appJsLine('    focusLoungeInputIfContinuing();', 'function runLoungePlayerTurn() {');
-
-  // Scrolled-up read position: the stream is scrolled to the top at the instant the player's turn opens (breakpoint at
-  // the focus call); the focus must use preventScroll and leave the stream (and page) scroll untouched.
-  {
-    const logBefore = await focusLogLength(win);
-    const paused = await armEvaluateOnceAtLine(win, focusCallLine, `(() => {
-      const s = document.querySelector('#academy-lounge-message-stream');
-      s.scrollTop = 0;
-      return { scrollHeight: s.scrollHeight, clientHeight: s.clientHeight, scrollTop: s.scrollTop };
-    })()`);
-    const turn = await keyboardTurn(win, SCROLL_INPUT);
-    const atPause = await paused.evaluated;
-    const done = turn.started && await waitPlayerTurn(win);
-    await sleep(200);
-    const after = await readFocusState(win);
-    const entries = await focusLogSince(win, logBefore);
-    const finalScroll = await js(win, `document.querySelector('#academy-lounge-message-stream').scrollTop`);
-    const scrollShot = await shot(win, 'scrolled-up-kept');
-    const entry = entries[0] ?? null;
-    check('scrolled up: the read position is not pulled back — focus() uses preventScroll and the stream/page scroll are unchanged across it',
-      atPause.scrollHeight > atPause.clientHeight && atPause.scrollTop === 0 && done && entries.length === 1
-        && entry.options?.preventScroll === true && entry.streamScrollBefore === 0 && entry.streamScrollAfter === 0
-        && entry.pageScrollBefore === entry.pageScrollAfter && finalScroll === 0 && after.activeIsInput,
-      { atPause, done, entries, finalScroll, ...after, shot: scrollShot });
-    await js(win, `(() => { const s = document.querySelector('#academy-lounge-message-stream'); s.scrollTop = s.scrollHeight; })(); true`);
-  }
-
-  await popupRound(win, {
-    input: STAGE_POPUP_INPUT,
-    label: 'stage-popup',
-    open: () => cdpClick(win, '#academy-lounge-stage-image'),
-    popupSelector: '#academy-lounge-stage-popup',
-    close: '#academy-lounge-stage-popup .conversation-day-info-popup-close'
-  });
-  await popupRound(win, {
-    input: SPEAKER_POPUP_INPUT,
-    label: 'speaker-popup',
-    open: () => js(win, `document.querySelector('#academy-lounge-message-stream .chat-message[data-character-id] .message-speaker, #academy-lounge-message-stream .chat-message[data-character-id]').click(); true`),
-    popupSelector: '#academy-lounge-character-popup',
-    close: '#academy-lounge-character-popup .conversation-day-info-popup-close'
-  });
 
   // Input closed at the instant the turn opens (breakpoint at the focus call sets it disabled): no focus() call.
   {

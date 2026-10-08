@@ -298,15 +298,52 @@ export function readRoutingGraduationGuide(state) {
   return { candidate_character_ids: candidateCharacterIds, started_at: startedAt };
 }
 
-// Starts the character graduation event for the guide-selected partner (routing phase 2). Reuses the exact
-// event-flag interaction the loop graduation uses, advances the week to the graduation week (the guide ran at
-// GRADUATION_ENDING_WEEK - 1, so the ending conversation is the graduation-week content), and clears the guide
-// phase state — all in the same runtime-state write as the ending flags. The partner is either one of the presented
-// memory-ranked candidates (a selectable roster `character_###`) or the guide persona itself (案内人自身・the
-// fixed non-selectable actor id `lina`), which is a permanent option outside the presented candidate list.
-// Fail-fasts when the guide is not active, or when a `character_###` selection is not one of the presented
-// candidates, so a stray selection cannot start an off-list ending. The guide persona takes the non-selectable
-// dialogue actor path (no selectable-storage materialization) exactly as its routing hub conversation does.
+// Validates that the routing graduation guide can hand over to the ending conversation now, and returns the guide.
+// Fail-fasts when the guide is not active, the ending already completed, or elapsed_weeks is off the guide week: the
+// guide runs at GRADUATION_ENDING_WEEK - 1 (displayed as the graduation week) and the ending conversation is held in
+// that same week, so a stray start cannot silently mis-count.
+function assertGraduationGuideHandover(state) {
+  const guide = readRoutingGraduationGuide(state);
+  if (!guide) throw new Error('routing graduation guide is not active');
+  if (state.ending_completed) throw new Error('graduation ending is already completed');
+  if (state.elapsed_weeks !== GRADUATION_ENDING_WEEK - 1) {
+    throw new Error(`graduation ending must start at elapsed_weeks ${GRADUATION_ENDING_WEEK - 1}: ${state.elapsed_weeks}`);
+  }
+  return guide;
+}
+
+// The ending flags for the chosen partner, and the guide phase cleared, on one runtime state.
+function markGraduationEndingStarted(state, characterId, now) {
+  state.ending_started = true;
+  state.ending_completed = false;
+  state.ending_character_id = characterId;
+  state.global_flags[GRADUATION_ENDING_FLAG_ID] = true;
+  state.global_flags[GRADUATION_ENDING_COMPLETED_FLAG_ID] = false;
+  state.event_flag_sources[GRADUATION_ENDING_FLAG_ID] = {
+    character_id: characterId,
+    source_type: 'graduation_ending',
+    achieved_at: now
+  };
+  delete state.event_completion_sources[GRADUATION_ENDING_COMPLETED_FLAG_ID];
+  delete state[ROUTING_GRADUATION_GUIDE_STATE_KEY];
+}
+
+// The state startEventFlagInteraction wrote, with the ending flags and the guide week re-asserted over it.
+function graduationStartedState(startedState, { elapsedWeeks, characterId }) {
+  const nextState = normalizeGraduationState(startedState);
+  nextState.elapsed_weeks = elapsedWeeks;
+  nextState.ending_started = true;
+  nextState.ending_completed = false;
+  nextState.ending_character_id = characterId;
+  nextState.global_flags[GRADUATION_ENDING_COMPLETED_FLAG_ID] = false;
+  delete nextState[ROUTING_GRADUATION_GUIDE_STATE_KEY];
+  return nextState;
+}
+
+// Starts the character graduation event for an academy person the guide presented (routing phase 2). Reuses the exact
+// event-flag interaction the loop graduation uses and clears the guide phase state in the same runtime-state write as
+// the ending flags. Fail-fasts when the selection is not one of the presented memory-ranked candidates, so a stray
+// selection cannot start an off-list ending. The 案内人 herself starts through startGuideGraduationConversation.
 export async function startGraduationEndingConversationForCharacter({
   root,
   authoringRoot = root,
@@ -316,44 +353,17 @@ export async function startGraduationEndingConversationForCharacter({
 }) {
   if (typeof screen !== 'string' || !screen) throw new Error('screen is required');
   const normalizedCharacterId = String(characterId ?? '').trim();
-  const isGuidePersona = normalizedCharacterId === ROUTING_PERSONA_CHARACTER_ID;
-  if (!isGuidePersona && !CHARACTER_ID_PATTERN.test(normalizedCharacterId)) {
-    throw new Error(`graduation guide selection must be a character id or the guide persona: ${characterId}`);
+  if (!CHARACTER_ID_PATTERN.test(normalizedCharacterId)) {
+    throw new Error(`graduation guide selection must be a character id: ${characterId}`);
   }
-  let state = normalizeGraduationState(await readRuntimeState(root));
-  const guide = readRoutingGraduationGuide(state);
-  if (!guide) throw new Error('routing graduation guide is not active');
-  if (!isGuidePersona && !guide.candidate_character_ids.includes(normalizedCharacterId)) {
+  const state = normalizeGraduationState(await readRuntimeState(root));
+  const guide = assertGraduationGuideHandover(state);
+  if (!guide.candidate_character_ids.includes(normalizedCharacterId)) {
     throw new Error(`graduation guide selection is not a presented candidate: ${normalizedCharacterId}`);
   }
-  if (state.ending_completed) throw new Error('graduation ending is already completed');
-  // The guide runs at GRADUATION_ENDING_WEEK - 1 (displayed graduation week) with elapsed_weeks held there; the
-  // ending conversation is the graduation-week content, so starting it advances elapsed_weeks to the graduation
-  // week in this same write. Fail-fast on any other elapsed_weeks so a stray start cannot silently mis-count.
-  const targetElapsedWeeks = state.elapsed_weeks + 1;
-  if (targetElapsedWeeks !== GRADUATION_ENDING_WEEK) {
-    throw new Error(`graduation ending must advance elapsed_weeks to ${GRADUATION_ENDING_WEEK}: ${state.elapsed_weeks}`);
-  }
+  await ensureSelectableCharacterStorage({ root, authoringRoot, characterId: normalizedCharacterId });
 
-  // The guide persona is a non-selectable actor (its dialogue slot `game_data/characters/lina` already
-  // exists); only a selectable roster candidate needs its per-slot mutable storage materialized.
-  if (!isGuidePersona) {
-    await ensureSelectableCharacterStorage({ root, authoringRoot, characterId: normalizedCharacterId });
-  }
-
-  state.elapsed_weeks = targetElapsedWeeks;
-  state.ending_started = true;
-  state.ending_completed = false;
-  state.ending_character_id = normalizedCharacterId;
-  state.global_flags[GRADUATION_ENDING_FLAG_ID] = true;
-  state.global_flags[GRADUATION_ENDING_COMPLETED_FLAG_ID] = false;
-  state.event_flag_sources[GRADUATION_ENDING_FLAG_ID] = {
-    character_id: normalizedCharacterId,
-    source_type: 'graduation_ending',
-    achieved_at: now
-  };
-  delete state.event_completion_sources[GRADUATION_ENDING_COMPLETED_FLAG_ID];
-  delete state[ROUTING_GRADUATION_GUIDE_STATE_KEY];
+  markGraduationEndingStarted(state, normalizedCharacterId, now);
   await writeRuntimeState(root, state);
 
   const started = await startEventFlagInteraction({
@@ -361,17 +371,48 @@ export async function startGraduationEndingConversationForCharacter({
     flagId: GRADUATION_ENDING_FLAG_ID,
     screen
   });
-  const nextState = normalizeGraduationState(started.state);
-  nextState.elapsed_weeks = state.elapsed_weeks;
-  nextState.ending_started = true;
-  nextState.ending_completed = false;
-  nextState.ending_character_id = normalizedCharacterId;
-  nextState.global_flags[GRADUATION_ENDING_COMPLETED_FLAG_ID] = false;
-  delete nextState[ROUTING_GRADUATION_GUIDE_STATE_KEY];
+  const nextState = graduationStartedState(started.state, { elapsedWeeks: state.elapsed_weeks, characterId: normalizedCharacterId });
   await writeRuntimeState(root, nextState);
   return {
     route: 'graduation-ending',
     character_id: normalizedCharacterId,
+    ...started,
+    state: nextState
+  };
+}
+
+// Starts the graduation when the player chooses the 案内人 herself (the permanent option outside the presented
+// candidates, the fixed non-selectable actor id `lina`): the guide conversation itself goes on as the graduation
+// conversation on the terrace. The ending flags and the graduation event context are the ones an academy person's
+// start writes, but the interaction starts in place — the hub's location stays, and the active (guide) conversation
+// stays active, so the conversation id and its history carry on. Fail-fasts unless the active conversation is the guide
+// persona's.
+export async function startGuideGraduationConversation({ root, now = new Date().toISOString() }) {
+  const state = normalizeGraduationState(await readRuntimeState(root));
+  assertGraduationGuideHandover(state);
+  const conversationId = String(state.last_conversation_id ?? '').trim();
+  if (!CONVERSATION_ID_PATTERN.test(conversationId)) {
+    throw new Error(`guide graduation requires the active guide conversation: ${state.last_conversation_id}`);
+  }
+  if (state.current_interaction_character_id !== ROUTING_PERSONA_CHARACTER_ID) {
+    throw new Error(`guide graduation requires the guide persona as the active actor: ${state.current_interaction_character_id}`);
+  }
+
+  markGraduationEndingStarted(state, ROUTING_PERSONA_CHARACTER_ID, now);
+  await writeRuntimeState(root, state);
+
+  const started = await startEventFlagInteraction({
+    root,
+    flagId: GRADUATION_ENDING_FLAG_ID,
+    keepCurrentLocation: true
+  });
+  const nextState = graduationStartedState(started.state, { elapsedWeeks: state.elapsed_weeks, characterId: ROUTING_PERSONA_CHARACTER_ID });
+  nextState.last_conversation_id = conversationId;
+  await writeRuntimeState(root, nextState);
+  return {
+    route: 'graduation-ending',
+    character_id: ROUTING_PERSONA_CHARACTER_ID,
+    conversation_id: conversationId,
     ...started,
     state: nextState
   };
@@ -537,6 +578,12 @@ export function isInFlightGraduationPhase2(state) {
   return state?.ending_started === true
     && state?.ending_completed !== true
     && (state?.pending_interaction_context?.event_flag_id ?? null) === GRADUATION_ENDING_FLAG_ID;
+}
+
+// The in-flight graduation is the 案内人's own (the guide conversation going on as the graduation conversation on the
+// terrace): the single predicate the turn routes (the terrace scene) share.
+export function isGuideGraduationInFlight(state) {
+  return isInFlightGraduationPhase2(state) && state.current_interaction_character_id === ROUTING_PERSONA_CHARACTER_ID;
 }
 
 export function markGraduationEndingComplete(state) {

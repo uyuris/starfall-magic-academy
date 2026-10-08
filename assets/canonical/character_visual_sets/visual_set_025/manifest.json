@@ -156,7 +156,7 @@
         "row": 1,
         "col": 1
       },
-      "sha256": "c6db45facf4a177c847b7d207b078fb9cab1fc86563c8547a54d2582e968e4e8"
+      "sha256": "da50b2f774586d5ce20395d795be62d6e0991b9830b3c319f4790388f2e5def3"
     },
     {
       "id": "face_joy",
@@ -166,7 +166,7 @@
         "row": 1,
         "col": 2
       },
-      "sha256": "6dde4cb586c0d0e706fd97260e70d533b0cd2e5fad523c08e70c2e3ae7f2bcb8"
+      "sha256": "ea1f49e2166f79ddcd4931cae66826e5ac3447d0b6a11a5219cbadcc3438c57a"
     },
     {
       "id": "face_caring",
@@ -176,7 +176,7 @@
         "row": 1,
         "col": 3
       },
-      "sha256": "ad1be6c0e6165a6c1736e02db7232d685feba93fcbc923859172269433067856"
+      "sha256": "46f0904784d212bd4e3a0f855e8992d3751b896a537336847510281552bb216e"
     },
     {
       "id": "face_confident",
@@ -186,7 +186,7 @@
         "row": 1,
         "col": 4
       },
-      "sha256": "8255759b0eb7dad5453f2106c81d49a218accb60776d045d01a4ec6cb350ef19"
+      "sha256": "cf22b674d1ca5afcebb6e0a0e7cacc7f176c9c93dafd963514c208e3fbdbfe63"
     },
     {
       "id": "face_sadness",
@@ -196,7 +196,7 @@
         "row": 2,
         "col": 1
       },
-      "sha256": "dfeddbc730dcef361324301f00f792da4243cd3c0770b615f1ab0ea0d047e15c"
+      "sha256": "b5b5bcac491e4db59d4fc3ae1b33b03e5f9fa24c7c51e16911fc331d51fcb23f"
     },
     {
       "id": "face_anger",
@@ -206,7 +206,7 @@
         "row": 2,
         "col": 2
       },
-      "sha256": "0d9a4cbce1034121a1a70212d617f76eb098764214cc205e39fab2ccab23d7f1"
+      "sha256": "a05ee338df7f6c5147680397b241ef40bb9092f9b04bb9a38dbf9f9899f01ee1"
     },
     {
       "id": "face_worried",
@@ -216,7 +216,7 @@
         "row": 2,
         "col": 3
       },
-      "sha256": "2d110d746381e7146954ca10a69064879cd595c89accead0f9b1b3726c2d1a9d"
+      "sha256": "aedffbfb5aaeb1161f2e1297003bec6cc525c21cc42af2501c29288fd4567b4e"
     },
     {
       "id": "face_surprised",
@@ -226,7 +226,7 @@
         "row": 2,
         "col": 4
       },
-      "sha256": "13313c121e7596958b5e2dbb26e1875457d6618d2d7f8e0ca706973370519ec9"
+      "sha256": "85161aa7d49f4d8178389e5c22568b746b1da8f4961313ded2f6f0d9f7de394b"
     },
     {
       "id": "face_embarrassed",
@@ -236,7 +236,7 @@
         "row": 3,
         "col": 1
       },
-      "sha256": "5156cbcbe7fa59638d7253ed82fdbfa25fc265cae5e873825e266ff29bd8f171"
+      "sha256": "1cd0d9b0d9d60edd9bb4e09c9a38b766940e2efe88c6039d20da77c22df112d3"
     },
     {
       "id": "face_shy",
@@ -246,7 +246,7 @@
         "row": 3,
         "col": 2
       },
-      "sha256": "161588ec1300f4a18e9dcc59bce7e70808ed13bff2ad2503fadda3352256315e"
+      "sha256": "868cbf55ee49ac4021b3eed222cb591e7d812920e753db9f6bdd2f6bf1378a1d"
     },
     {
       "id": "face_serious",
@@ -256,7 +256,7 @@
         "row": 3,
         "col": 3
       },
-      "sha256": "54225009168c58b6bb81ec9ca3873545f4852b2ee0960fd75f98690abcb88794"
+      "sha256": "64ba9e3053f447408f01c78788fc44c016919b470781bc3356a89ba9cde01a9e"
     },
     {
       "id": "face_determined",
@@ -266,7 +266,7 @@
         "row": 3,
         "col": 4
       },
-      "sha256": "4d7d94740f1d92fae4da614990cb9af0977f6bfe5999b0d970f696a5dddd9e08"
+      "sha256": "3df313ccbf396888a2bafae4220ec14c5e68df2cb5f299235b7d0a501baa9e87"
     },
     {
       "id": "face_smug",
@@ -276,7 +276,7 @@
         "row": 4,
         "col": 1
       },
-      "sha256": "7e094dc5f9c81e1c9e9197010907c31fb401dc7ed4f233b989ac63cbde1ac2e1"
+      "sha256": "aceec47740ec25cd9a8af646ce7fbb552d256210b0f40b296c2dd46cdbefe9e1"
     },
     {
       "id": "face_tired",
@@ -286,7 +286,7 @@
         "row": 4,
         "col": 2
       },
-      "sha256": "61896301f289cd314b9e3db773e60a6526b4af5bdbb465a983ede86c29cafd6f"
+      "sha256": "02008e5d1f5bd475e2ede43316b43dc3f5fb5e455aeff6c0df99452fd44c3bb6"
     },
     {
       "id": "face_panic",
@@ -306,7 +306,7 @@
         "row": 4,
         "col": 4
       },
-      "sha256": "e9b475a07927cfcb75d357f6f4db865b103f26fb317a6c1d1986ecf2ee5998b8"
+      "sha256": "683563fbfb4ae90cd8bde31cabdd5007f3705d0987f86edd2de187fe70aedfcd"
     }
   ],
   "generation_notes": {

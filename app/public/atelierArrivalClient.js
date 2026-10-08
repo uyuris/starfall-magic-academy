@@ -11,9 +11,6 @@
 export const ATELIER_SYNTHESIS_MODES = Object.freeze(['manual', 'omakase']);
 export const ATELIER_SYNTHESIS_MODE_LABELS = Object.freeze({ manual: 'マニュアル', omakase: 'おまかせ' });
 
-// The 錬成室 spans the same 50-week run as every other content screen's week header.
-export const ATELIER_TOTAL_WEEKS = 50;
-
 function atelierString(value, label) {
   if (typeof value !== 'string' || value.trim() === '') {
     throw new Error(`atelier: ${label} must be a non-empty string (got ${JSON.stringify(value)})`);

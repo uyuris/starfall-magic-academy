@@ -156,7 +156,7 @@
         "row": 1,
         "col": 1
       },
-      "sha256": "dd50f8e7f05d2ff1cfd76af6127d52255176d111b79b25583ef6d6b0cf8e1aa8"
+      "sha256": "63d947dc77c2c64a77b1b5b71c4025478c0d313ceb7a2b98cad4f4250aede65d"
     },
     {
       "id": "face_joy",
@@ -166,7 +166,7 @@
         "row": 1,
         "col": 2
       },
-      "sha256": "52857fddb3cb89aa2614c03427e59e440c29fa66aab614ff66d808c5fb2d6c04"
+      "sha256": "fe6b6cdbe95c9904000db9ccaccdca302dc8ef25ea276d803feea886233b9569"
     },
     {
       "id": "face_caring",
@@ -176,7 +176,7 @@
         "row": 1,
         "col": 3
       },
-      "sha256": "3e860e078cfb3fdcbbc90bd9ef6cb3970100356108665849725b22b95bfd3d6d"
+      "sha256": "e416210c3588b629944fd48471fe5113a16b641de094edf2e9223a00ea950272"
     },
     {
       "id": "face_confident",
@@ -186,7 +186,7 @@
         "row": 1,
         "col": 4
       },
-      "sha256": "88a6553cb533a33f6ab062a969a782d3d01b250eb91dc51f328c3c2a6e3a14d6"
+      "sha256": "38cef4219f16ad48e141cdfba559f55b348da88984145cc738d04ba3129621f2"
     },
     {
       "id": "face_sadness",
@@ -196,7 +196,7 @@
         "row": 2,
         "col": 1
       },
-      "sha256": "4410b72d25dd72aba429c7183aec5e69e03e63a46243f72d32ecce08092c6161"
+      "sha256": "de7f4e59285607f83affd558ff225ee42a49506dbbe3cf17cb0099101475fa41"
     },
     {
       "id": "face_anger",
@@ -206,7 +206,7 @@
         "row": 2,
         "col": 2
       },
-      "sha256": "68908cd9fef2ec0820bda73fa3a6a8fe46611ad420408581bcbc3e260382f6c6"
+      "sha256": "b084addd399791454e69216082dc77e1f9c90588899e56ecb6fe03df3033559e"
     },
     {
       "id": "face_worried",
@@ -216,7 +216,7 @@
         "row": 2,
         "col": 3
       },
-      "sha256": "4c4b3e6e23ec14a59dd4fd94a49176c345abc128935309b23d4ff2289f16d729"
+      "sha256": "c1991200f9d9317c5a37f454aab80870599ee8c8ec5088189ec1a99325befc6d"
     },
     {
       "id": "face_surprised",
@@ -246,7 +246,7 @@
         "row": 3,
         "col": 2
       },
-      "sha256": "2ad83c5fe76161ade3dc1ffad85c56982c73c19fb85c87c02ca52b8bc3263a1b"
+      "sha256": "51c14fa3bcfb38259ebc289a37a276169c49b28a51f55b3106048cc7de15f351"
     },
     {
       "id": "face_serious",
@@ -256,7 +256,7 @@
         "row": 3,
         "col": 3
       },
-      "sha256": "571cea6c9ad52b713eac2973caed4d28b6fb0dcb9aaa78181d73659a5488fa05"
+      "sha256": "8ab2c5a00f184438817e1afd2f21854e7e57aafcb5700d185b08c604279c7afc"
     },
     {
       "id": "face_determined",
@@ -266,7 +266,7 @@
         "row": 3,
         "col": 4
       },
-      "sha256": "23aa5006dc83eef148aa9f9308f3801ad17e8c23f4bdaff1cb511cb9c75abfc7"
+      "sha256": "af7c186344a7fb60fb97b21b3882ee505e6648588ccdaff3f594d790736f452c"
     },
     {
       "id": "face_smug",
@@ -276,7 +276,7 @@
         "row": 4,
         "col": 1
       },
-      "sha256": "d3e025da894573379322b5ab538eaae38a53d8533290d003d1e0c3e3c556cd18"
+      "sha256": "186cdc4a960ebc340486cf737593d432172888948a333756393a4e041e6bdd7b"
     },
     {
       "id": "face_tired",

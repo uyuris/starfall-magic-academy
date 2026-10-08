@@ -11,10 +11,10 @@
 //   - all 11 parameters are present (reachable),
 //   - no horizontal overflow of the slot card or its parameter grid (the 崩れ),
 //   - head → parameters → actions stack without vertical overlap,
-//   - the 会いに行く button is the same text and the same width/height whether or not the slot is the birthed
-//     first-conversation one (there is no long first-conversation label that broke the card),
-// and, per scenario, that the filled slots spend the full board width (the auto-fit fix; auto-fill left phantom
-// tracks so the slots huddled in the left columns). A wide window (AT_WIN_W=1680) makes the width regression obvious.
+//   - the 会いに行く sigil button has the same name and the same width/height whether or not the slot is the birthed
+//     first-conversation one,
+// and, per scenario, that the three slots spend the full table width on one row and stay right of the room's art (the
+// left 38.9%). A wide window (AT_WIN_W=1680) makes a width regression obvious.
 import { app, BrowserWindow } from 'electron';
 import os from 'node:os';
 import path from 'node:path';
@@ -51,10 +51,11 @@ app.commandLine.appendSwitch('disable-http-cache');
 let server;
 let exitCode = 0;
 
-// The 11 server-authoritative labels (magic 6 + abilities 5), matching app/src/parameters.mjs — used only to build a
-// realistic injected card. Values span the low/mid/high meter tiers.
-const LABELS = ['光魔法習熟度', '闇魔法習熟度', '火魔法習熟度', '水魔法習熟度', '土魔法習熟度', '風魔法習熟度',
-  '筋力', '瞬発力', '学力', '魔力', 'カリスマ'];
+// The 11 parameters (magic 6 + abilities 5): the terrace ability sigil key and the server-authoritative label (read out
+// only), matching app/src/parameters.mjs — used only to build a realistic injected slot. Values span the meter tiers.
+const PARAMETERS = [['light', '光魔法習熟度'], ['dark', '闇魔法習熟度'], ['fire', '火魔法習熟度'], ['water', '水魔法習熟度'],
+  ['earth', '土魔法習熟度'], ['wind', '風魔法習熟度'], ['strength', '筋力'], ['agility', '瞬発力'], ['academics', '学力'],
+  ['magical_power', '魔力'], ['charisma', 'カリスマ']];
 
 async function main() {
   const root = await minRoot();
@@ -80,7 +81,8 @@ async function main() {
       for (const s of document.querySelectorAll('.screen')) s.classList.remove('active');
       const screen = document.querySelector('#academy-atelier-screen');
       screen.classList.add('active');
-      const labels = ${JSON.stringify(LABELS)};
+      const parameters = ${JSON.stringify(PARAMETERS)};
+      const sigil = (href) => '<svg class="table-room-sigil" viewBox="0 0 32 32" aria-hidden="true" focusable="false"><use href="' + href + '"></use></svg>';
       const list = document.querySelector('#academy-atelier-slots');
       list.replaceChildren();
       const MAX = 3, ACTIVE = ${scenario.active}, BIRTHED = ${scenario.birthed};
@@ -89,10 +91,11 @@ async function main() {
         const li = document.createElement('li');
         if (i >= ACTIVE) {
           li.className = 'academy-atelier-slot academy-atelier-slot--empty';
-          const p = document.createElement('p');
-          p.className = 'academy-atelier-slot-empty-label';
-          p.textContent = '空き枠';
-          li.append(p);
+          const art = document.createElement('div');
+          art.className = 'academy-atelier-slot-empty-art';
+          art.setAttribute('role', 'img');
+          art.setAttribute('aria-label', '空き');
+          li.append(art);
           list.append(li);
           continue;
         }
@@ -117,13 +120,15 @@ async function main() {
         head.append(face, identity);
         const params = document.createElement('ul');
         params.className = 'academy-atelier-parameters';
-        for (let k = 0; k < labels.length; k += 1) {
+        for (let k = 0; k < parameters.length; k += 1) {
           const value = (k * 9 + 12) % 101;
           const pli = document.createElement('li');
           pli.className = 'academy-atelier-parameter';
           const lab = document.createElement('span');
           lab.className = 'academy-atelier-parameter-label';
-          lab.textContent = labels[k];
+          lab.setAttribute('role', 'img');
+          lab.setAttribute('aria-label', parameters[k][1]);
+          lab.innerHTML = sigil('#sigil-' + parameters[k][0]);
           const meter = document.createElement('meter');
           meter.className = 'academy-atelier-parameter-meter';
           meter.min = 0; meter.max = 100; meter.low = 33; meter.high = 66; meter.optimum = 100; meter.value = value;
@@ -136,9 +141,9 @@ async function main() {
         const actions = document.createElement('div');
         actions.className = 'academy-atelier-slot-actions';
         const talk = document.createElement('button');
-        talk.type = 'button'; talk.className = 'academy-atelier-slot-talk'; talk.textContent = '会いに行く';
+        talk.type = 'button'; talk.className = 'academy-atelier-mark-button academy-atelier-slot-talk'; talk.setAttribute('aria-label', '会いに行く'); talk.innerHTML = sigil('#table-sigil-visit');
         const farewell = document.createElement('button');
-        farewell.type = 'button'; farewell.className = 'academy-atelier-slot-farewell'; farewell.textContent = 'お別れ';
+        farewell.type = 'button'; farewell.className = 'academy-atelier-mark-button academy-atelier-slot-farewell'; farewell.setAttribute('aria-label', 'お別れ'); farewell.innerHTML = sigil('#table-sigil-farewell');
         actions.append(talk, farewell);
         li.append(head, params, actions);
         list.append(li);
@@ -182,7 +187,7 @@ async function main() {
         const birthing = slot.classList.contains('academy-atelier-slot--birthing');
         const talk = slot.querySelector(':scope > .academy-atelier-slot-actions > .academy-atelier-slot-talk');
         const talkRect = talk ? talk.getBoundingClientRect() : null;
-        const talkText = talk ? talk.textContent : null;
+        const talkText = talk ? talk.getAttribute('aria-label') : null;
         const talkW = talkRect ? +talkRect.width.toFixed(1) : 0;
         const talkH = talkRect ? +talkRect.height.toFixed(1) : 0;
         return { active, birthing, rect: rect(slot), paramCount, slotOverflow:+slotOverflow.toFixed(1), paramsOverflow:+paramsOverflow.toFixed(1), cellSpill, stackOk, talkText, talkW, talkH };
@@ -191,8 +196,8 @@ async function main() {
       const usedWidth = (first && last) ? +(last.right - first.left).toFixed(1) : 0;
       const tops = perSlot.map((s) => s.rect.top);
       const rowSpread = +(Math.max(...tops) - Math.min(...tops)).toFixed(1);
-      // Direct-background (いきなり背景) standard: the layout is edge-to-edge (padding:0) so the flat obsidian atelier
-      // screen fills it with no navy-gradient border inset behind it (the frame's own padding holds the content余白).
+      // Direct-background (いきなり背景) standard: the layout is edge-to-edge (padding:0) so the room's art fills it with
+      // no navy-gradient border inset behind it.
       const layoutEl = document.querySelector('.layout');
       const layoutPadding = layoutEl ? getComputedStyle(layoutEl).padding : '';
       return { window: { w: window.innerWidth, h: window.innerHeight }, cols, ulRect, usedWidth, rowSpread, perSlot, layoutPadding };
@@ -207,12 +212,13 @@ async function main() {
       ['HEAD→PARAMS→ACTIONS STACKED', active.every((s) => s.stackOk)],
       ['SLOTS SPEND FULL WIDTH', m.usedWidth >= m.ulRect.width - 2, `used=${m.usedWidth} ul=${m.ulRect.width}`],
       ['SLOTS ON ONE ROW', m.rowSpread <= 4, `spread=${m.rowSpread}px`],
-      ['TALK BUTTON UNIFORM TEXT (会いに行く)', active.every((s) => s.talkText === '会いに行く'), `texts=${JSON.stringify(active.map((s) => s.talkText))}`],
+      ['TALK BUTTON UNIFORM NAME (会いに行く)', active.every((s) => s.talkText === '会いに行く'), `texts=${JSON.stringify(active.map((s) => s.talkText))}`],
       ['TALK BUTTON UNIFORM SIZE', active.length <= 1
         || (Math.max(...active.map((s) => s.talkW)) - Math.min(...active.map((s) => s.talkW)) <= 1
           && Math.max(...active.map((s) => s.talkH)) - Math.min(...active.map((s) => s.talkH)) <= 1),
         `w=${JSON.stringify(active.map((s) => s.talkW))} h=${JSON.stringify(active.map((s) => s.talkH))} birthing=${JSON.stringify(active.map((s) => s.birthing))}`],
-      ['LAYOUT EDGE-TO-EDGE (padding:0, no navy-gradient border inset)', m.layoutPadding === '0px', `layoutPadding=${m.layoutPadding}`]
+      ['LAYOUT EDGE-TO-EDGE (padding:0, no navy-gradient border inset)', m.layoutPadding === '0px', `layoutPadding=${m.layoutPadding}`],
+      ['SLOTS STAY RIGHT OF THE ROOM ART (left 38.9%)', m.ulRect.left >= m.window.w * 0.389 - 1, `ul.left=${m.ulRect.left}`]
     ];
     for (const [label, pass, extra] of checks) {
       console.log(`${pass ? 'PASS' : 'FAIL'}: [${scenario.name}] ${label}${extra ? ` (${extra})` : ''}`);

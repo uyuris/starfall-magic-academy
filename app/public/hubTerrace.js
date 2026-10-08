@@ -3,20 +3,20 @@
 //   ここの SVG）と、空を知らせる点線の絵。名前は読み上げの側（aria-label）にだけ持たせ、title は置かない。
 // - 行き先の名: 案内人の言葉に出た行き先の名に淡い光を差し、指を乗せるとその行き先の画面の絵を露台の向こうに透かす。
 // - 送り出しの幕: 行き先が決まった応答（routing_draining の destination_id）で、その行き先の絵を露台の向こうでゆっくり開き、
-//   送り出しの言葉が灯りきってから幕で画面を満たす（絵の無い行き先は露台の外の夜を一段沈めた夜）。ハブを離れたらその場で
+//   送り出しの言葉が灯りきってから幕で画面を満たす。ハブを離れたら（または幕の上に行き先へ入る待ちが置かれたら）その場で
 //   満たしきり、行き先の画面（またはハブ）が出たところで幕を上げる。
 // - 戻った週: 行き先から戻った直後（いまの週に適用済みの週進行）なら、ハブの開始が済んで会話のあるハブが出たところで、
 //   その場所の絵を露台の向こうに置いてから薄れさせる。
-// - 開いている間の左の列: 帯・装備の小窓・揺り籠が開いている間に別の印か天球儀を押すと、離れる側を製品の閉じる釦で閉じて
-//   から押された側を開き、いま開いている印・天球儀を押すと閉じる。
+// - 開いている間の左の列: 帯・装備の小窓が開いている間に別の印か天球儀を押すと、離れる側を製品の閉じる釦で閉じてから押された
+//   側を開き、いま開いている印を押すと閉じる。揺り籠が開いている間は、その下に隠れる左の列を inert にする。
 // 製品への要求は足さない（読むのは app.js が既に受け取った応答だけ）。
 
-// 行き先 → その行き先の画面がいま使っている一枚の絵（null は一枚の絵を持たない行き先）。行き先の id と名はハブの開始の応答
-// （routing_destinations）で届き、この表と id の集合に過不足があれば throw する（setDestinations）。
+// 行き先 → その行き先の画面がいま使っている一枚の絵。行き先の id と名はハブの開始の応答（routing_destinations）で届き、
+// この表と id の集合に過不足があれば throw する（setDestinations）。
 const DESTINATION_ART = Object.freeze({
   'academy-map': '/canonical/academy_map/overview.jpg',
   training: '/canonical/training/background.jpg',
-  dungeon: null,
+  dungeon: '/canonical/dungeon/entrance.png',
   errand: '/canonical/errand/stage.jpg',
   alchemy: '/canonical/alchemy/stage.jpg',
   study_circle: '/canonical/study_circle/stage.jpg',
@@ -156,6 +156,21 @@ function returnedDestinationId(state) {
   return latest.destination_id;
 }
 
+// 行き先の場所の絵。行き先の画面の地は、送り出しの幕と同じこの一枚を引く。
+export function destinationArt(id) {
+  if (!Object.hasOwn(DESTINATION_ART, id)) throw new Error(`hub terrace: no art entry for the destination ${JSON.stringify(id)}`);
+  return DESTINATION_ART[id];
+}
+
+// 行き先から露台へ戻る道の待ちの地にする、今週行ってきた場所の絵。行き先から戻る道でしか呼ばないので、
+// 今週の週進行が無ければ throw する。
+export function returnedPlaceArt(state) {
+  const destinationId = returnedDestinationId(state);
+  if (destinationId === null) throw new Error(`hub terrace: no destination has been visited in week ${JSON.stringify(state.elapsed_weeks)} to return from`);
+  if (!Object.hasOwn(DESTINATION_ART, destinationId)) throw new Error(`hub terrace: no art entry for the returned destination ${JSON.stringify(destinationId)}`);
+  return DESTINATION_ART[destinationId];
+}
+
 export function createHubTerrace() {
   const hub = required('#routing-hub-screen');
   const stream = required('#routing-hub-message-stream', hub);
@@ -221,7 +236,6 @@ export function createHubTerrace() {
         const span = document.createElement('span');
         span.className = 'terrace-place';
         span.dataset.destinationId = named.id;
-        if (named.art === null) span.dataset.terraceNoArt = 'true';
         span.textContent = match[0];
         fragment.append(span);
         cursor = match.index + match[0].length;
@@ -234,7 +248,6 @@ export function createHubTerrace() {
   let peekedId = null;
   function showPeek(destinationId) {
     const { art } = place(destinationId);
-    if (art === null) return;
     peekedId = destinationId;
     paint(peekArt, art);
     peekArt.classList.add('is-visible');
@@ -254,8 +267,11 @@ export function createHubTerrace() {
   });
 
   // ── 送り出しの幕 ─────────────────────────────────────────────────────────────
-  // sendoff: 送り出しの間だけ持つ（tail = 送り出しの言葉の最後の断片・fillTimer = 満たし始めの予約・leftHub = ハブを離れたか）。
+  // sendoff: 送り出しの間だけ持つ（art = 幕の絵・tail = 送り出しの言葉の最後の断片・fillTimer = 満たし始めの予約・
+  // leftHub = ハブを離れたか）。
   let sendoff = null;
+  // 幕の絵の置き方の写し（hubTerrace.css の .terrace-opened-art が読む）。
+  const CURTAIN_PLACEMENT_PROPERTIES = ['--terrace-opened-art-size', '--terrace-opened-art-position', '--terrace-opened-art-mask', '--terrace-opened-art-mask-composite'];
 
   function fillCurtain({ instant }) {
     if (instant) {
@@ -276,14 +292,25 @@ export function createHubTerrace() {
     }
   }
 
+  // ハブを離れた（読み込みの画面が出た・または幕の上に行き先へ入る待ちが置かれた）: 幕をその場で満たしきる。
+  function leaveHub() {
+    if (sendoff.leftHub) return;
+    sendoff.leftHub = true;
+    if (sendoff.fillTimer === null && curtain.hidden) {
+      console.error(`hub terrace: the send-off's last piece was never lit on the terrace (expected: ${JSON.stringify(sendoff.tail)}); filling at hand-off`);
+    }
+    fillCurtain({ instant: true });
+  }
+
   function liftCurtain() {
     if (sendoff !== null) clearTimeout(sendoff.fillTimer);
     sendoff = null;
     hub.classList.remove('terrace-is-opening');
     openingArt.style.backgroundImage = '';
     curtain.hidden = true;
-    curtain.classList.remove('is-filled', 'is-instant', 'is-night');
+    curtain.classList.remove('is-filled', 'is-instant');
     curtainArt.style.backgroundImage = '';
+    for (const property of CURTAIN_PLACEMENT_PROPERTIES) curtainArt.style.removeProperty(property);
   }
 
   // ── 戻った週 ──────────────────────────────────────────────────────────────
@@ -293,7 +320,6 @@ export function createHubTerrace() {
     if (destinationId === null || fadedWeek === state.elapsed_weeks) return;
     fadedWeek = state.elapsed_weeks;
     const { art } = place(destinationId);
-    if (art === null) return;
     paint(returnArt, art);
     returnArt.classList.remove('is-fading');
     returnArt.classList.add('is-present');
@@ -314,16 +340,16 @@ export function createHubTerrace() {
     if (!railButton && !onGlobe) return;
     closeWithProductButton(equipmentPopup);
     const sameInfo = railButton && !infoPopup.hidden && infoPopup.dataset.category === railButton.dataset.routingCategory;
-    const sameCradle = onGlobe && !cradle.hidden;
-    if (sameInfo || sameCradle) event.stopPropagation();
-    if (railButton) {
-      closeWithProductButton(cradle);
-      if (sameInfo) closeWithProductButton(infoPopup);
-    } else {
-      closeWithProductButton(infoPopup);
-      if (sameCradle) closeWithProductButton(cradle);
-    }
+    if (sameInfo) event.stopPropagation();
+    if (sameInfo || !railButton) closeWithProductButton(infoPopup);
   }, { capture: true });
+  // 揺り籠は画面いっぱいに左の列を覆うので、開いている間は列を inert にして Tab の focus も届かせない。
+  const rail = required('.routing-hub-category-rail', hub);
+  const syncRailWithCradle = () => {
+    rail.inert = !cradle.hidden;
+  };
+  syncRailWithCradle();
+  new MutationObserver(syncRailWithCradle).observe(cradle, { attributes: true, attributeFilter: ['hidden'] });
 
   return {
     // 会話の行を描いた直後（stream に入る前）に呼ぶ: 行き先の名に光を差し、送り出しの最後の断片が灯ったかを見る。
@@ -342,17 +368,22 @@ export function createHubTerrace() {
       return rows;
     },
     // routing_draining: 決まった行き先の絵を露台の向こうで開き始める。sendoffContent は送り出しの言葉（最後の assistant_complete）。
-    beginSendoff(destinationId, sendoffContent) {
+    // placement は行き先の画面が宣言した絵の置き方（app.js の placeArtPlacement の { size, position, edge }）で、幕の絵はこれで
+    // 敷く（待ちの層・着いた画面と同じ置き方）。置き方が無ければ throw。
+    beginSendoff(destinationId, sendoffContent, placement) {
       if (sendoff !== null) throw new Error('hub terrace: a send-off is already under way');
       if (typeof sendoffContent !== 'string') throw new Error('hub terrace: the send-off needs the send-off words');
+      if (placement === null) throw new Error(`hub terrace: the send-off to ${destinationId} needs an art placement`);
       const { art } = place(destinationId);
-      sendoff = { tail: lastSpokenPiece(sendoffContent), fillTimer: null, leftHub: false };
+      sendoff = { art, tail: lastSpokenPiece(sendoffContent), fillTimer: null, leftHub: false };
       hidePeek(peekedId);
-      if (art === null) {
-        curtain.classList.add('is-night');
-      } else {
-        paint(openingArt, art);
-        paint(curtainArt, art);
+      paint(openingArt, art);
+      paint(curtainArt, art);
+      curtainArt.style.setProperty('--terrace-opened-art-size', placement.size);
+      curtainArt.style.setProperty('--terrace-opened-art-position', placement.position);
+      if (placement.edge !== null) {
+        curtainArt.style.setProperty('--terrace-opened-art-mask', placement.edge.mask);
+        curtainArt.style.setProperty('--terrace-opened-art-mask-composite', placement.edge.maskComposite);
       }
       hub.classList.add('terrace-is-opening');
       watchSendoffLit(stream.children);
@@ -373,14 +404,15 @@ export function createHubTerrace() {
         fadedWeek = state.elapsed_weeks;
         return;
       }
-      if (!sendoff.leftHub) {
-        sendoff.leftHub = true;
-        if (sendoff.fillTimer === null && curtain.hidden) {
-          console.error(`hub terrace: the send-off's last piece was never lit on the terrace (expected: ${JSON.stringify(sendoff.tail)}); filling at hand-off`);
-        }
-        fillCurtain({ instant: true });
-      }
+      leaveHub();
       if (name !== 'academy-loading') liftCurtain();
+    },
+    // 行き先へ入る待ちを幕の上に置く（app.js の raiseSendoffPlaceVeil）: 画面は露台のまま、幕を満たしきってハブを離れたことにし、
+    // 幕の絵を返す。幕は行き先の画面（またはハブ）が出たところで上がる。
+    holdCurtainForWait() {
+      if (sendoff === null) throw new Error('hub terrace: no send-off curtain to wait over');
+      leaveHub();
+      return sendoff.art;
     },
     // ハブの開始が済み、会話のあるハブが出た直後に呼ぶ: 戻った週なら、戻ってきた場所の絵を薄れさせる（週に一度）。
     hubStarted(state) {
