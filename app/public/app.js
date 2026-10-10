@@ -9318,7 +9318,7 @@ async function followRoutingHubLibraryFootnote(reference) {
   const target = libraryFootnoteReadTarget(reference);
   libraryCollectionActionInFlight = true;
   setRoutingHubLibraryError('');
-  setRoutingHubLibraryBusy(true);
+  setRoutingHubLibraryBusy(true, '司書が写しを綴じている…');
   try {
     let reading;
     try {
@@ -9350,10 +9350,10 @@ function requireLibraryCollectionEntry(entries, entryId) {
   return entry;
 }
 
-// The in-drawer wait cover for a 関連する本 move: a veil holding the screen wait mark (the wait sigil turns in the
-// bottom-right corner), in the routing token layer, sized to the drawer card so the hub behind it stays visible and
-// unchanged.
-function setRoutingHubLibraryBusy(active) {
+// The in-drawer wait cover for a 関連する本 move: a veil holding three pulsing dots over a line saying what is being
+// waited for (a live region; no wait sigil), fading with the band, sized to the drawer card so the hub behind it
+// stays visible and unchanged.
+function setRoutingHubLibraryBusy(active, label) {
   const card = document.querySelector('.routing-hub-info-popup-card');
   if (!card) throw new Error('routing hub info drawer card (.routing-hub-info-popup-card) is missing (broken markup wiring)');
   const existing = card.querySelector('.routing-hub-info-library-busy');
@@ -9361,7 +9361,20 @@ function setRoutingHubLibraryBusy(active) {
   if (!active) return;
   const overlay = document.createElement('div');
   overlay.className = 'routing-hub-info-library-busy';
-  overlay.append(screenWaitMark());
+  overlay.setAttribute('role', 'status');
+  overlay.setAttribute('aria-live', 'polite');
+  const orbits = document.createElement('span');
+  orbits.className = 'routing-hub-info-library-busy-orbits';
+  orbits.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 3; i += 1) {
+    const dot = document.createElement('span');
+    dot.className = 'routing-hub-info-library-busy-dot';
+    orbits.append(dot);
+  }
+  const labelEl = document.createElement('span');
+  labelEl.className = 'routing-hub-info-library-busy-label';
+  labelEl.textContent = label;
+  overlay.append(orbits, labelEl);
   card.append(overlay);
 }
 

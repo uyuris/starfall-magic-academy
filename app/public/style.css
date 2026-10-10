@@ -9082,8 +9082,14 @@ body:has(#academy-concert-hall-screen.active) .layout {
   --library-parchment-ink-dim: rgb(74 56 38 / 0.72);
   --library-parchment-ink-faint: rgb(74 56 38 / 0.46);
   --library-parchment-rule: rgb(74 56 38 / 0.34);
-  --library-sketch-ink: rgb(46 30 16 / 0.6);
-  --library-brush-shadow: rgb(40 24 10 / 0.35);
+  --library-page-ink: #2a1c12;
+  --library-page-ink-bleed: rgb(52 32 18 / 0.45);
+  /* 選んだ字の地。墨の一枚は紙と乗算されるので、淡い焦茶（rgb(122 84 46) の 0.22）と同じ姿の不透明の色で持つ
+     （網の三角形の重なりで二度塗りの筋が出ない）。 */
+  --library-page-selection: rgb(226 217 209);
+  /* 本文が届いて、筆の書いたこの世界の文字が日本語へ訳されるときの淡い琥珀の光（紙の上で screen で重ねる）。 */
+  --library-translate-glow: #f3c46e;
+  --library-spread-shadow: drop-shadow(1vh 1.78vh 3.1vh rgb(0 0 0 / 0.7));
   --library-slip-ink: #3b2414;
   --library-slip-note-ink: #7a2a14;
   --library-ground: #050403;
@@ -9189,76 +9195,24 @@ body:has(#academy-library-screen.active) .layout {
   to { opacity: 0.78; }
 }
 
-/* 待つ: 通路の灯りが手前から奥へ一つずつ点いては消える。1周 6 秒・終わりの形を持たない。 */
-.academy-library-screen[data-scene="waiting"] .academy-library-lamp[data-depth] {
-  animation: academy-library-seek 6s linear calc(var(--depth-delay) - 6s) infinite;
-}
-
-@keyframes academy-library-seek {
-  0% { opacity: 0.16; }
-  7% { opacity: 1; }
-  24% { opacity: 0.22; }
-  100% { opacity: 0.16; }
+/* 待つ: depth のある灯りに重ねる暈。燭台の硝子に締まった芯（暈の半径の 16%）と壁の本に落ちる小さな暈で、明るみの送り
+   （不透明度）は待ちの間だけ libraryScreen.js が走らせる。吊り灯は待ちの間は落とす。 */
+.academy-library-lamp-glow {
+  position: absolute;
+  width: calc(var(--lamp-size) * 2.2);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle closest-side, rgb(255 236 190) 0%, rgb(255 200 130 / 0) 16.4%),
+    radial-gradient(circle closest-side, rgb(255 196 120) 0%, rgb(220 150 80 / 0.4) 35%, rgb(120 70 30 / 0) 100%);
+  mix-blend-mode: screen;
+  opacity: 0;
 }
 
 .academy-library-screen[data-scene="waiting"] .academy-library-lamp:not([data-depth]) {
   opacity: 0.22;
   animation: none;
-}
-
-/* 待つ: 手燭のような灯りが通路の奥を行き来し、左右の棚の前で留まっては次の棚へ移る（人の姿は出さない）。
-   灯りのまわりの棚と床が明るみ、通路はそのぶん少し沈む。座標は書庫の絵の中の位置。
-   1周 14 秒・留まりと移りを ease-in-out でつなぎ、弾まない。 */
-.academy-library-art-depth::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 22% 20% at 23.2% 49%, rgb(4 3 2 / 0.5), rgb(4 3 2 / 0.3) 60%, transparent 100%);
-  opacity: 0;
-  transition: opacity 1600ms var(--library-ease);
-}
-
-.academy-library-screen[data-scene="waiting"] .academy-library-art-depth::after { opacity: 1; }
-
-.academy-library-seeker {
-  position: absolute;
-  left: 23.2%;
-  top: 47%;
-  width: 4%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(255 236 186) 0%, rgb(255 206 128 / 0.85) 10%, rgb(255 176 88 / 0.4) 28%, rgb(255 160 70 / 0.12) 50%, transparent 70%);
-  mix-blend-mode: screen;
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* 灯りが棚と床に落とす明るみ（灯りの大きさの数倍に広がる）。 */
-.academy-library-seeker::after {
-  content: "";
-  position: absolute;
-  left: -160%;
-  right: -160%;
-  top: -150%;
-  bottom: -190%;
-  background: radial-gradient(closest-side, rgb(255 196 116 / 0.55), rgb(255 170 90 / 0.24) 50%, transparent);
-}
-
-.academy-library-screen[data-scene="waiting"] .academy-library-seeker {
-  animation: academy-library-seeker-roam 14s ease-in-out infinite;
-}
-
-@keyframes academy-library-seeker-roam {
-  0% { left: 23.2%; top: 49.2%; width: 3%; opacity: 0; }
-  8% { left: 23%; top: 49.2%; width: 3.6%; opacity: 0.95; }
-  22% { left: 16.8%; top: 49.6%; width: 6.8%; opacity: 1; }
-  34% { left: 16.2%; top: 49.6%; width: 7.2%; opacity: 0.95; }
-  48% { left: 30.6%; top: 49.8%; width: 7.6%; opacity: 1; }
-  60% { left: 31.2%; top: 49.8%; width: 8%; opacity: 0.95; }
-  76% { left: 26.4%; top: 49.5%; width: 5%; opacity: 0.9; }
-  90% { left: 23.4%; top: 49.3%; width: 3.4%; opacity: 0.6; }
-  100% { left: 23.2%; top: 49.2%; width: 3%; opacity: 0; }
 }
 
 /* 動きを減らす設定の待ち: 灯りは動かず、奥・左の棚・右の棚の三か所で順に灯っては落ちる。 */
@@ -9323,23 +9277,31 @@ body:has(#academy-library-screen.active) .layout {
 .academy-library-corner-br { right: 0; bottom: 0; transform: rotate(180deg); }
 .academy-library-corner-bl { left: 0; bottom: 0; transform: rotate(270deg); }
 
-/* ── 棚: 本は書庫の絵の中の棚の段に立つ。層は絵と同じ大きさ・位置で、段と本の位置は絵の座標（%）。
-   並べた段は奥の暗がりで埋め、そこへ絵の本の尺度の背を立てる。本の寸法の値は libraryScreen.js の SHELF_BAYS と SPINE_*。 ── */
+/* ── 棚: 本は書庫の絵の右の書架の段に、絵の背の一本ずつの姿で立つ。層は絵と同じ大きさ・位置で、段と本の位置は絵の座標（%）。
+   背の形と題箋の寸法は libraryScreen.js の PAINTED_BAYS・MIDDLE_BAY・LABEL。 ── */
 .academy-library-shelf {
   position: absolute;
   inset: 0;
-  --library-spine-font: calc(var(--library-art-size) * 0.0085);
+  /* 背の地（絵の背の画素）・本ごとに寄せる色の地（中核と周縁は表紙の絵の平均の色、生成は装丁の色）・段の奥の暗がり・題箋。 */
+  --library-shelf-stage: url('/canonical/library/stage.jpg');
+  --library-spine-core: #29180f;
+  --library-spine-periphery: #2a3622;
+  --library-shelf-gap: rgb(3 3 3);
+  --library-label-leather: linear-gradient(90deg, rgb(10 6 3 / 0.66), rgb(16 10 6 / 0.52) 35%, rgb(16 10 6 / 0.52) 65%, rgb(8 5 2 / 0.7));
+  --library-label-rule: rgb(214 176 104 / 0.55);
+  --library-label-gold: linear-gradient(180deg, #f0d79a, #c99a4c 45%, #e7c27a);
+  --library-label-shade: rgb(10 6 3 / 0.85);
+  /* 絵の px（絵の幅を 1440 としたときの 1px）。 */
+  --library-shelf-unit: calc(var(--library-art-size) / 1440);
 }
 
-/* 段の奥: 上の棚板の影から下へ、奥の板の暗い木地。形は段の四隅に合わせて切る。 */
+/* 段の奥の暗がり: 真ん中の段の口（背が縮んで空いた所）と、上と下の段の本の跡（引き出したときに見える）。形は四隅で切り、
+   満ちる長さと遅れ（--shade-duration・--shade-delay）は libraryScreen.js の renderShelf が書く。 */
 .academy-library-bay {
   position: absolute;
-  background:
-    linear-gradient(180deg, rgb(3 2 1 / 0.9), transparent 28%),
-    repeating-linear-gradient(90deg, rgb(255 220 170 / 0.018) 0 0.3vh, transparent 0.3vh 0.9vh),
-    linear-gradient(180deg, rgb(10 6 3), rgb(22 14 8) 70%, rgb(30 19 11));
+  background: var(--library-shelf-gap);
   pointer-events: none;
-  animation: academy-library-shelf-lit 1400ms var(--library-ease) 200ms both;
+  animation: academy-library-shelf-lit var(--shade-duration) var(--library-ease) var(--shade-delay) both;
 }
 
 .academy-library-shelf[data-leaving="true"] .academy-library-bay {
@@ -9356,8 +9318,8 @@ body:has(#academy-library-screen.active) .layout {
   to { opacity: 0; }
 }
 
-/* ── 本（装丁の絵＋本ごとの揺れ）: 背に縦書きで一列。背の幅は題の長さで変えず、一列に収まらない題だけ字を小さくする。
-   背は絵の遠近の四辺形（.academy-library-book-spine の切り抜き）で、装丁（.academy-library-book-skin）は天地の縁の勾配で傾く。
+/* ── 本: 背は絵の背の画素に本ごとの色を寄せ、題箋に金の題を押したもの。背の面（.academy-library-book-face）を平らに組み、
+   背の四辺形へ射影で写す（transform は libraryScreen.js の layFace）。
    指を乗せると、本は通路の側（左）へ --pull-dx だけ引き出されながら少し手前（下）へ寄り、背の右の縁から、右隣の本の陰だった
    所に表紙の面（.academy-library-book-reveal の中の .academy-library-cover-face）が引き出した分だけ見えてくる。重く静かに（0.8 秒・行き過ぎなし）。 ── */
 .academy-library-book-item {
@@ -9371,7 +9333,6 @@ body:has(#academy-library-screen.active) .layout {
   z-index: calc(2 + var(--order));
   transform-origin: 100% 100%;
   transition: transform 800ms var(--library-ease), filter 800ms var(--library-ease);
-  filter: drop-shadow(0.15vh 0.3vh 0.25vh rgb(0 0 0 / 0.6));
   outline: none;
 }
 
@@ -9401,9 +9362,104 @@ body:has(#academy-library-screen.active) .layout {
   pointer-events: none;
 }
 
-.academy-library-book-skin {
+.academy-library-book-face {
   position: absolute;
-  transform-origin: 0 50%;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+  isolation: isolate;
+}
+
+/* 背の地: 絵の背の画素（絵の source の四辺形を背の面へ写したもの）。 */
+.academy-library-book-paint {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  background-image: var(--library-shelf-stage);
+  background-repeat: no-repeat;
+}
+
+/* 本ごとの色: 色の合成で、絵の背の丸みの陰影・金の帯・灯りの側の明るみはそのまま。 */
+.academy-library-book-tint {
+  position: absolute;
+  inset: 0;
+  background-color: var(--paper);
+  filter: hue-rotate(var(--hue)) saturate(var(--sat)) brightness(var(--bright));
+  mix-blend-mode: color;
+  opacity: 0.42;
+}
+
+.academy-library-book-item[data-cover="core"] .academy-library-book-tint { background-color: var(--library-spine-core); }
+.academy-library-book-item[data-cover="periphery"] .academy-library-book-tint { background-color: var(--library-spine-periphery); }
+
+/* 題箋: 背の丸みに合わせて縁へ向かって暗い革に、金の罫と明朝の金の字（影を落とす）。字の大きさは layFace が書く。 */
+.academy-library-book-label {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  padding-top: 0.55em;
+  background: var(--library-label-leather);
+}
+
+.academy-library-book-label::after {
+  content: "";
+  position: absolute;
+  inset: calc(var(--library-shelf-unit) * 1.1);
+  border: calc(var(--library-shelf-unit) * 0.8) solid var(--library-label-rule);
+}
+
+.academy-library-book-title-text {
+  display: block;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-family: var(--library-font);
+  font-weight: 600;
+  font-size: 1em;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: transparent;
+  background: var(--library-label-gold);
+  background-clip: text;
+  -webkit-background-clip: text;
+  filter: drop-shadow(0.055em 0.073em 0 var(--library-label-shade));
+}
+
+/* 副題は同じ列に小さな字で続ける。 */
+.academy-library-book-subtitle {
+  font-size: 0.72em;
+  padding-inline-start: 0.5em;
+}
+
+/* 下の段の副題のある題: 題の列（右）と副題の細い列（左）を並べ、副題の列は題の列の天地の真ん中に置く。 */
+.academy-library-book-title-columns {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  background: none;
+  filter: none;
+}
+
+.academy-library-book-title-column {
+  display: block;
+  background: var(--library-label-gold);
+  background-clip: text;
+  -webkit-background-clip: text;
+  filter: drop-shadow(0.055em 0.073em 0 var(--library-label-shade));
+}
+
+.academy-library-book-subtitle-column { font-size: calc(1em * var(--subtitle-scale)); }
+
+/* 題の一列の長さを測る（画面に出さない）。 */
+.academy-library-book-title-measure {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 100px;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .academy-library-book-reveal {
@@ -9431,115 +9487,6 @@ body:has(#academy-library-screen.active) .layout {
   top: 0;
   height: 100%;
   aspect-ratio: var(--cover-aspect);
-}
-
-.academy-library-book-face,
-.academy-library-book-deco,
-.academy-library-book-wear,
-.academy-library-book-light {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.academy-library-book-face {
-  background-color: var(--paper);
-  background-image: var(--cover);
-  background-blend-mode: var(--blend);
-  background-size: auto 100%;
-  background-position: var(--spine-pos) 50%;
-  filter: hue-rotate(var(--hue)) saturate(var(--sat)) brightness(var(--bright)) sepia(var(--sepia));
-}
-
-/* 背の綴じ目の帯・天地の金の線・天地の革。 */
-.academy-library-book-deco { background: var(--deco); }
-
-/* 擦れ・染み・焼け（本ごとに場所と強さが違う）。 */
-.academy-library-book-wear {
-  background: var(--wear);
-  mix-blend-mode: multiply;
-}
-
-/* 灯りの当たり方と、上の棚板の落とす影。 */
-.academy-library-book-light {
-  background:
-    linear-gradient(180deg, rgb(0 0 0 / 0.38), transparent 22%),
-    linear-gradient(var(--light-angle), rgb(255 222 170 / var(--light-a)), transparent 42%, rgb(0 0 0 / 0.32)),
-    linear-gradient(90deg, rgb(0 0 0 / 0.45), transparent 22%, rgb(255 230 180 / 0.1) 45%, transparent 70%, rgb(0 0 0 / 0.5));
-}
-
-.academy-library-book-title {
-  position: absolute;
-  inset: calc(var(--library-art-size) * 0.0045) calc(var(--library-art-size) * 0.003);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-}
-
-.academy-library-book-title-text {
-  display: block;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-family: var(--library-font);
-  font-size: calc(var(--library-spine-font) * var(--title-scale));
-  line-height: 1.2;
-  letter-spacing: 0.03em;
-  padding: 0.15em 0.1em;
-  white-space: nowrap;
-  transition: text-shadow 300ms var(--library-ease), color 300ms var(--library-ease);
-}
-
-/* 副題は同じ列に小さな字で続ける。 */
-.academy-library-book-subtitle {
-  font-size: 0.72em;
-  padding-inline-start: 0.5em;
-}
-
-/* 題の一列の長さを測る（画面に出さない）。 */
-.academy-library-book-title-measure {
-  position: absolute;
-  left: 0;
-  top: 0;
-  --title-scale: 1;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.academy-library-book-item[data-cover="core"] .academy-library-book-title-text {
-  color: #efcf86;
-  text-shadow: 0 1px 1px rgb(0 0 0 / 0.9), 0 0 0.6vh rgb(0 0 0 / 0.6);
-}
-
-.academy-library-book-item[data-cover="periphery"] .academy-library-book-title-text {
-  color: #e7d9a8;
-  text-shadow: 0 1px 1px rgb(0 0 0 / 0.85);
-}
-
-.academy-library-book-item[data-cover="generated"] .academy-library-book-title-text {
-  color: var(--ink);
-  text-shadow: 0 1px 1px rgb(0 0 0 / 0.85);
-}
-
-/* 題の革片: 金の題は暗い革片に金の縁、墨の題は鞣した明るめの革片に載せる。 */
-.academy-library-book-item[data-piece="gold"] .academy-library-book-title-text {
-  background: var(--label);
-  box-shadow: inset 0 0 0 1px rgb(214 176 100 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.5);
-}
-
-.academy-library-book-item[data-piece="sumi"] .academy-library-book-title-text {
-  background: linear-gradient(90deg, rgb(0 0 0 / 0.25), transparent 30%, transparent 70%, rgb(0 0 0 / 0.3)), var(--label);
-  box-shadow: 0 0 0 1px rgb(20 12 6 / 0.6);
-  text-shadow: 0 0 1px rgb(255 230 190 / 0.25);
-}
-
-.academy-library-book-item[data-drawn="true"] .academy-library-book-title-text {
-  text-shadow: 0 0 0.5vh rgb(255 210 130 / 0.9), 0 0 1.4vh rgb(255 190 100 / 0.55), 0 1px 1px rgb(0 0 0 / 0.8);
-}
-
-.academy-library-book-item[data-cover="generated"][data-drawn="true"] .academy-library-book-title-text {
-  text-shadow: 0 0 0.9vh rgb(255 214 140 / 0.95);
 }
 
 /* ── 請求票（紙地は見開きの絵の切り出し・インクは鉄褐色）。書庫の絵の机の上に置く。 ─────────── */
@@ -9686,17 +9633,38 @@ body:has(#academy-library-screen.active) .layout {
   perspective: 260vh;
 }
 
-/* 見開きの絵から本の部分（x 60〜1980・y 80〜1210 / 2000×1250）だけを切り出す。めくる一枚の面の紙も同じ置き方で描く。 */
+/* 見開きの絵から本の部分（x 60〜1980・y 80〜1210 / 2000×1250）だけを切り出す置き方。めくる一枚の面の紙も同じ置き方で描く。
+   見開きは置き方だけを持ち（libraryScreen.js が頁の紙の形をこの値から取る）、絵は ::before が描く。 */
 .academy-library-spread,
-.academy-library-turn-paper { background: url('/canonical/library/book_spread.jpg') 75% 66.7% / 104.17% 110.62% no-repeat; }
+.academy-library-turn-paper { background: 75% 66.7% / 104.17% 110.62% no-repeat; }
 
+.academy-library-turn-paper,
+.academy-library-spread::before { background-image: url('/canonical/library/book_spread.jpg'); }
+
+/* 見開きの絵は本の革の縁（絵の上でなぞった多角形・下の中央は留め金）で切り抜き、机・ランプ・器は出さない。綴じ目の両側で
+   紙が革の縁より上へ膨らむ所は、紙の上の縁に沿って通し、頁を膨らみの頂まで見せる。本の外は書庫の舞台のまま見え、本は舞台に
+   右下へ影を落とす（閉じた表紙の影と同じ向き）。 */
 .academy-library-spread {
   position: absolute;
   inset: 0;
-  border-radius: 1vh;
-  box-shadow: 0 3vh 6vh rgb(0 0 0 / 0.75), 0 0 0 0.3vh rgb(10 6 3 / 0.6);
+  filter: var(--library-spread-shadow);
   perspective: 260vh;
   opacity: 0;
+}
+
+.academy-library-spread::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-position: inherit;
+  background-size: inherit;
+  background-repeat: inherit;
+  clip-path: polygon(5.28% 1.65%, 27.02% 1.05%,
+    30.2% 1%, 31.25% 0.7%, 32.3% 0.6%, 33.3% 0.43%, 34.4% 0.17%, 35.4% 0.08%, 36.5% 0%, 41.7% 0%, 42.7% 0.17%, 43.75% 0.43%, 44.8% 0.7%, 45.3% 0.81%,
+    49.65% 0.75%,
+    54.17% 0.78%, 55.2% 0.43%, 56.25% 0.17%, 57.3% 0%, 62.5% 0%, 63.5% 0.08%, 64.6% 0.25%, 65.6% 0.43%, 66.7% 0.61%, 67.7% 0.78%, 68.75% 1.05%,
+    72.09% 1.2%, 93.04% 1.95%, 94.36% 28.38%, 98.78% 72.67%, 100.02% 97.3%,
+    51.77% 98.05%, 50.71% 99.55%, 48.59% 99.55%, 47.53% 98.05%, 0.16% 97.6%, 1.39% 72.67%, 4.04% 28.38%);
 }
 
 .academy-library-book[data-open="true"] .academy-library-spread { opacity: 1; }
@@ -9705,7 +9673,7 @@ body:has(#academy-library-screen.active) .layout {
 .academy-library-spread,
 .academy-library-cover-leaf { transition: filter 900ms var(--library-ease); }
 
-.academy-library-book[data-sealed="true"] .academy-library-spread { filter: brightness(0.5) saturate(0.8); }
+.academy-library-book[data-sealed="true"] .academy-library-spread { filter: var(--library-spread-shadow) brightness(0.5) saturate(0.8); }
 .academy-library-book[data-sealed="true"] .academy-library-cover-leaf { filter: brightness(0.62); }
 
 .academy-library-book[data-sealed="true"] .academy-library-sketch,
@@ -9738,9 +9706,10 @@ body:has(#academy-library-screen.active) .layout {
 .academy-library-page-right,
 .academy-library-sketch-right { left: 52.6%; }
 
-/* 頁の字: 頁の箱の中に平らに組み、libraryScreen.js が紙の上の字の台形へ射影で写す（transform: matrix3d・奥ほど小さく細い）。
-   字は一字ずつの span で、紙の反りの分だけ top で持ち上げる（組みは動かさない）。いちばん奥の行は約 0.87 倍に縮むので、頁の上の
-   字は 1.6vh より小さくしない（奥の行でも 1440×900 で 12px・1920×1080 で 14px を割らない）。 */
+/* 頁の字: 頁の箱の中に平らに組み、libraryScreen.js が組んだ頁を一枚の墨（canvas・.academy-library-page-sheet）に書いて紙の
+   反りの網で持ち上げ、インクごと紙の上の字の台形へ射影で写す（transform: matrix3d・奥ほど小さく細い）。インクは紙と乗算する。
+   いちばん奥の行は約 0.87 倍に縮むので、頁の上の字は 1.6vh より小さくしない（奥の行でも 1440×900 で 12px・1920×1080 で 14px
+   を割らない）。 */
 .academy-library-page-ink {
   position: absolute;
   left: 0;
@@ -9748,30 +9717,42 @@ body:has(#academy-library-screen.active) .layout {
   width: 100%;
   height: 100%;
   transform-origin: 0 0;
+  mix-blend-mode: multiply;
   transition: opacity 900ms var(--library-ease), filter 900ms var(--library-ease);
+}
+
+.academy-library-page-sheet {
+  position: absolute;
+  pointer-events: none;
 }
 
 .academy-library-book[data-ink="waiting"] .academy-library-page-ink { opacity: 0; filter: blur(0.3vh); }
 
-.academy-library-glyph { position: relative; }
+/* 訳しの間: 頁のインクはすぐに出て、墨は一枚ではなく行ごとの一枚（.academy-library-page-line）が行の順に結ぶ。 */
+.academy-library-book[data-ink="translating"] .academy-library-page-ink { transition: none; }
+.academy-library-book[data-ink="translating"] .academy-library-page-sheet { visibility: hidden; }
+
+.academy-library-page-line {
+  position: absolute;
+  pointer-events: none;
+}
 
 .academy-library-page-head { margin: 0 0 1.4vh; }
 
-/* 頁の上の細い線（題の下・脚注の上）: 線は紙の反りに沿って引いた path。 */
+/* 字の span は見えない: 字は墨の一枚に書かれ、span は一枚の上のその字の所へ left・top で動いて当たりと選択だけを持つ。
+   選んだ字の地（--library-page-selection）も一枚に敷く。 */
+.academy-library-glyph { position: relative; opacity: 0; }
+
+/* 頁の上の細い線（題の下・脚注の上）: 線は墨の一枚に、この色で書く。 */
 .academy-library-page-rule {
   display: block;
   height: 0;
+  color: var(--library-parchment-rule);
 }
 
 .academy-library-page-head .academy-library-page-rule { margin-top: 1vh; }
 
-.academy-library-page-rule svg {
-  display: block;
-  overflow: visible;
-  fill: none;
-  stroke: var(--library-parchment-rule);
-  stroke-width: 1;
-}
+.academy-library-page-rule svg { display: block; }
 
 .academy-library-page-title {
   margin: 0;
@@ -9788,30 +9769,30 @@ body:has(#academy-library-screen.active) .layout {
   letter-spacing: 0.12em;
 }
 
-/* 本文の待ち: 白い見開きの行の上を筆先が左から右へ走り、墨の線が行の頭から生まれる（線と筆の動きは libraryScreen.js）。
-   線は頁の箱と同じ大きさの svg で、頁の字と同じ射影（matrix3d）で紙へ載る。 */
+/* 本文の待ち: 白い見開きの行の上を小筆がこの世界の文字を一画ずつ書く（字と筆の動きは libraryScreen.js）。字は行ごとの canvas
+   （.academy-library-sketch-row の中）に書かれ、頁の箱と同じ大きさの層が頁の字と同じ射影（matrix3d）で紙へ載る。墨の層は紙と
+   乗算し、訳しの光の層は頁のインクの上で screen で重なる。 */
 .academy-library-sketch { pointer-events: none; }
 
-.academy-library-sketch-lines {
+.academy-library-sketch-ink,
+.academy-library-sketch-glow {
   position: absolute;
   left: 0;
   top: 0;
-  overflow: visible;
+  width: 100%;
+  height: 100%;
   transform-origin: 0 0;
-  fill: none;
-  stroke: var(--library-sketch-ink);
-  stroke-width: 0.2vh;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
-.academy-library-sketch-lines path[data-kind="title"] { stroke-width: 0.34vh; }
-.academy-library-sketch-lines path[data-kind="category"] { stroke-width: 0.14vh; opacity: 0.6; }
+.academy-library-sketch-ink { mix-blend-mode: multiply; }
+.academy-library-sketch-glow { mix-blend-mode: screen; z-index: 1; }
 
-/* 筆: 筆先（要素の原点）を紙の上の一点に置き、軸は右上へ傾ける。--brush-lift は紙から離れた高さ（行の丈の倍数）で、
-   離れるほど筆は上へ上がり、筆先の影は薄く広がる。 */
+.academy-library-sketch-row,
+.academy-library-sketch-row canvas,
+.academy-library-sketch-glow canvas { position: absolute; left: 0; top: 0; }
+
+/* 筆: 筆先のまわりを写す二枚の canvas（影と筆）を、筆先の位置へ動かす（要素の原点は見開きの左上）。影は紙と乗算する。 */
 .academy-library-brush {
-  --brush-lift: 0;
   position: absolute;
   left: 0;
   top: 0;
@@ -9819,35 +9800,20 @@ body:has(#academy-library-screen.active) .layout {
   height: 0;
   opacity: 0;
   pointer-events: none;
-  z-index: 2;
 }
 
 .academy-library-book[data-writing="moving"] .academy-library-brush,
 .academy-library-book[data-writing="lifting"] .academy-library-brush { opacity: 1; }
 
+.academy-library-brush-shadow,
 .academy-library-brush-body {
   position: absolute;
-  left: -1.3vh;
-  bottom: 0;
-  /* viewBox（40×200）と同じ縦横比: 筆先（viewBox の下端の中央）が要素の原点に来る。 */
-  width: 2.6vh;
-  height: 13vh;
-  transform-origin: 50% 100%;
-  transform: translateY(calc(var(--brush-lift) * -3.9vh)) rotate(24deg);
-  filter: drop-shadow(0.3vh 0.4vh 0.4vh rgb(0 0 0 / 0.35));
+  left: 0;
+  top: 0;
+  z-index: 2;
 }
 
-.academy-library-brush-shadow {
-  position: absolute;
-  left: calc(-1vh - var(--brush-lift) * 0.6vh);
-  top: calc(-0.5vh - var(--brush-lift) * 0.3vh);
-  width: calc(2.2vh + var(--brush-lift) * 1.2vh);
-  height: calc(1vh + var(--brush-lift) * 0.6vh);
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--library-brush-shadow), transparent);
-  opacity: calc(1 - var(--brush-lift) * 0.4);
-  transform: translate(0.6vh, 0.3vh);
-}
+.academy-library-brush-shadow { mix-blend-mode: multiply; }
 
 /* 続きの手掛かり: 見開きが二つ以上ある本の一つ目の見開きで、右の頁の小口に残りの頁の重なりが見え、右下の角がわずかに反る。
    svg の座標は見開きの絵の px（2000×1250）で、箱は見開きの背景の置き方（位置 75% 66.7%・大きさ 104.17% 110.62%）と同じ所に
@@ -9883,11 +9849,17 @@ body:has(#academy-library-screen.active) .layout {
   position: absolute;
   inset: 0;
   container-type: size;
+}
+
+/* 表紙の地: 本ごとの色合い（filter）はこの層だけに掛け、金の題（兄弟の .academy-library-cover-title）には掛けない。 */
+.academy-library-cover-paint {
+  position: absolute;
+  inset: 0;
   background-color: var(--paper);
-  background-image: var(--cover);
+  /* 面の縦横比に組み直した表紙の絵（COVER_FACES）を面いっぱいに敷く。 */
+  background-image: var(--cover-face);
   background-blend-mode: var(--blend);
-  background-size: var(--bg-size);
-  background-position: var(--bg-pos);
+  background-size: 100% 100%;
   filter: hue-rotate(var(--hue)) saturate(var(--sat)) brightness(var(--bright)) sepia(var(--sepia));
   /* 角の丸みは面の大きさに対する %（棚の小さな表紙と手の中の表紙で同じ姿）。 */
   border-radius: 0.5% 1.35% 1.35% 0.5% / 0.4% 1.1% 1.1% 0.4%;
@@ -9895,7 +9867,7 @@ body:has(#academy-library-screen.active) .layout {
 
 /* 表紙の金の題: 縦書きの列のまとまりを、本ごとの内側の枠の真ん中に置く。left・right・top・bottom は題を置ける長方形（真ん中が
    枠の真ん中・buildCoverTitle が本ごとに書く）で、まとまりはその中で自分の大きさになり、上下左右の余りが等しく分かれる。
-   列は長方形の丈で折り返して背の側（左）へ足す。字の大きさは面の幅に対する割合（棚で引き出した表紙と手の中の表紙で同じ姿）。 */
+   列は語の切れ目で折り、背の側（左）へ足す。字の大きさは面の幅に対する割合（棚で引き出した表紙と手の中の表紙で同じ姿）。 */
 .academy-library-cover-title {
   position: absolute;
   width: fit-content;
@@ -9905,6 +9877,8 @@ body:has(#academy-library-screen.active) .layout {
   text-orientation: mixed;
   /* 列は天から揃える（棚の本は button なので、指定しないと中央揃えを受け継いで引き出した表紙だけ列の頭がずれる）。 */
   text-align: start;
+  /* 列は buildCoverTitle が語の切れ目に置いた改行でだけ折る。 */
+  white-space: nowrap;
   font-size: calc(10.5cqw * var(--cover-title-scale));
   line-height: 1.25;
   letter-spacing: 0.08em;
@@ -9913,7 +9887,7 @@ body:has(#academy-library-screen.active) .layout {
   z-index: 1;
 }
 
-.academy-library-cover-face::after {
+.academy-library-cover-paint::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -9922,10 +9896,12 @@ body:has(#academy-library-screen.active) .layout {
   border-radius: inherit;
 }
 
-/* 蔵書票（素材）が押されて琥珀の光。押す位置は内枠の右下で、箱の真ん中（left・top）は setCoverLook が本ごとに書く（題の列に
-   重なる本だけ右下の角へ移す・EX_LIBRIS）。一辺は面の幅の 27%。 */
+/* 蔵書票（素材）が押されて琥珀の光。押す位置はどの本でも内枠の右下の角で、箱の真ん中（left・top）と一辺（面の幅の 27%）は
+   EX_LIBRIS と同じ値。 */
 .academy-library-ex-libris {
   position: absolute;
+  left: 80%;
+  top: 77%;
   width: 27%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
@@ -9995,8 +9971,9 @@ body:has(#academy-library-screen.active) .layout {
 .academy-library-turn-back .academy-library-turn-paper { left: calc((var(--turn-left) - var(--turn-width)) / var(--turn-width) * -100%); }
 
 /* ── 脚注（関連する本）: 本文の終わりの下に細い線、控えめな見出し、題は頁と同じインクの字。 ─────────────────────
-   禁書は淡いインクの題に「今は開けない」の字を添えるだけで、枠も札も付けない。字は紙の反りで一字ずつ持ち上がるので、
-   押せる題の当たりと下線は題の箱ではなく一字ずつの span が持つ（箱は持ち上がらない元の位置に残る）。 */
+   禁書は淡いインクの題に「今は開けない」の字を添えるだけで、枠も札も付けない。字の場所は紙の反りで持ち上がるので、押せる題の
+   当たりは題の箱ではなく一字ずつの span が持ち（箱は持ち上がらない元の位置に残る）、下線はその span の text-decoration の値で
+   墨の一枚に書く。 */
 .academy-library-footnotes {
   margin-top: 2.2vh;
   white-space: normal;
@@ -10136,8 +10113,6 @@ body:has(#academy-library-screen.active) .layout {
   .academy-library-screen[data-scene="waiting"] .academy-library-lamp[data-depth] {
     animation: academy-library-breathe 4.8s ease-in-out infinite alternate;
   }
-
-  .academy-library-screen[data-scene="waiting"] .academy-library-seeker { animation: none; opacity: 0; }
 
   .academy-library-screen[data-scene="waiting"] .academy-library-seek-spot {
     display: block;

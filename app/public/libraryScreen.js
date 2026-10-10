@@ -7,6 +7,7 @@
 // 画面の中の場面と動きだけを持つ。失敗は場所の中の短い一文（票か頁の紙の上のインクの字）で見せ、server の内部文は
 // console へだけ渡す。
 import { parseLibraryFootnotes, libraryFootnoteReadTarget } from './libraryFootnotesClient.js';
+import { LETTER_GAP, WORD_SPACE, createLanguage, placeLetter, shapeKey, wordWidth } from './libraryScript.js';
 
 // 失敗の一文（説明の地の文は置かない）。
 const SEARCH_FAILED_LINE = '書庫は答えを連れてこられませんでした';
@@ -121,33 +122,19 @@ function bookLook(key, cover) {
     spots.push(`radial-gradient(circle at ${between(5, 95).toFixed(0)}% ${between(4, 96).toFixed(0)}%, rgb(255 236 200 / ${between(0.1, 0.24).toFixed(2)}), transparent ${between(8, 26).toFixed(0)}%)`);
   }
   const hueRange = cover === 'periphery' ? 26 : 12;
-  const heightF = cover === 'core' ? between(0.9, 0.98) : between(0.86, 0.97);
-  // 背の幅は絵の中の本の幅（絵の幅の約 1.4〜1.7%）の中で本ごとに決まり、題の長さでは変わらない。
-  const spineW = between(1.48, 1.74);
-  const spineGap = between(0.02, 0.12);
   const lightAngle = between(118, 152).toFixed(0);
   const lightA = between(0.08, 0.3).toFixed(2);
-  const bgSize = Number(between(104, 116).toFixed(0));
-  const bgX = Number(between(20, 80).toFixed(0));
-  const bgY = Number(between(20, 80).toFixed(0));
   const light = {
     '--light-angle': `${lightAngle}deg`,
-    '--light-a': lightA,
-    '--bg-size': `${bgSize}%`,
-    '--bg-pos': `${bgX}% ${bgY}%`
+    '--light-a': lightA
   };
-  // 表紙の絵の置き方（--bg-size・--bg-pos と同じ値）。題はこれで面の上へ写した内側の枠の真ん中に置く。
-  const frame = (image) => ({ image, size: bgSize / 100, x: bgX / 100, y: bgY / 100 });
   if (cover === 'generated') {
     const b = bindingLook(r, between, pick);
     return {
-      heightF,
-      spineW,
-      spineGap,
-      frame: frame(b.image),
-      piece: b.piece === null ? 'none' : (b.ink === SUMI_INK ? 'sumi' : 'gold'),
+      frame: b.image,
       vars: {
         '--cover': b.cover,
+        '--cover-face': COVER_FACES[b.image],
         '--paper': b.color,
         '--blend': 'luminosity',
         '--hue': '0deg',
@@ -170,13 +157,10 @@ function bookLook(key, cover) {
     bands.push(raisedBand(at, true));
   }
   return {
-    heightF,
-    spineW,
-    spineGap,
-    frame: frame(cover),
-    piece: 'none',
+    frame: cover,
     vars: {
       '--cover': COVER_IMAGES[cover],
+      '--cover-face': COVER_FACES[cover],
       '--paper': '#ffffff',
       '--blend': 'multiply',
       '--hue': `${between(-hueRange, hueRange).toFixed(1)}deg`,
@@ -197,60 +181,211 @@ function applyLookVars(el, look) {
 
 // ── 灯り（絵の上の層。座標は書庫の絵の中の位置） ─────────────────────────────────────────────────
 // depth は通路の手前から奥への順（待ちの移ろいと退出の消灯の順）。depth の無い灯り（吊り灯）は待ちの間は落とす。
+// depth のある灯りは絵の燭台の硝子の真ん中に置く（depth 4 は奥の格子扉の上の灯り）。
 const LAMPS = [
-  { x: 5.0, y: 50.2, size: 8, depth: 0 },
-  { x: 41.0, y: 50.3, size: 6.5, depth: 0 },
-  { x: 11.8, y: 49.9, size: 5.4, depth: 1 },
-  { x: 35.4, y: 50.3, size: 5, depth: 1 },
-  { x: 13.5, y: 50.1, size: 4, depth: 2 },
-  { x: 31.3, y: 50.5, size: 3.6, depth: 2 },
-  { x: 14.9, y: 50.5, size: 3, depth: 3 },
-  { x: 22.3, y: 44.2, size: 3.2, depth: 4 },
+  { x: 5.0, y: 51.25, size: 8, depth: 0 },
+  { x: 42.5, y: 51.94, size: 6.5, depth: 0 },
+  { x: 12.36, y: 51.67, size: 5.4, depth: 1 },
+  { x: 36.67, y: 52.08, size: 5, depth: 1 },
+  { x: 14.24, y: 52.22, size: 4, depth: 2 },
+  { x: 32.43, y: 52.29, size: 3.6, depth: 2 },
+  { x: 15.28, y: 52.43, size: 3, depth: 3 },
+  { x: 22.99, y: 45.49, size: 3.2, depth: 4 },
   { x: 20.8, y: 28.2, size: 3.4 },
   { x: 23.5, y: 28.6, size: 3.8 },
   { x: 26.2, y: 27.8, size: 3.4 },
   { x: 75.5, y: 59.5, size: 7 }
 ];
 const LAMP_DEPTHS = 5;
-const SEEK_CYCLE_MS = 6000;
 
-// ── 棚: 書庫の絵の中の棚の段に並べる ─────────────────────────────────────────────────────────────────
-// 右の棚は通路と並行に立ち、一点透視で奥（消失点・絵の 23.2% / 50%）へ退く壁の面にある。本の背はその面の上の、縦の縁が
-// 鉛直で天地の縁が消失点へ向かう四辺形で、奥（左）ほど低く細い。段の値はどれも stage.jpg の上で線分として実測したもの
-// （絵の幅に対する %・絵は正方形）: x は左右の柱のあいだ（reach は本を置ける右端）、top は上の棚板の下の縁、bottom は本の
-// 足もと（棚板の奥の縁）で、どちらも [左の柱, 右の柱] での値。lean は背の縦の縁の傾き（度・正は上が左）、squeeze は背の
-// 幅の倍率 [左の柱, 右の柱]（絵の本の幅は消失点からの距離の 0.87 乗で詰まる。倍率 1 は x=95.5% の幅）。pull は引き出す向き
-// [横, 縦]（引き出す量 1 あたり・絵の上）: 棚の面に垂直な向きは、奥の壁の横の線が水平（実測 0.5〜0.75°）なので真左の -1、
-// そこへ手前（下）へ寄せる 0.2 を足す。
-// 絵の中で手前にあるもの（卓上ランプ・その引き紐・梯子・机・机の上の本の山・四隅の飾り）に重ならず、1440×900 と
-// 1920×1080 のどちらでも画面に収まる段だけを選んである。並べた段は奥の暗がりで埋め（絵の本は退く）、そこへ本を立てる。
-// 段は背の高い順（長い題の本から置き場を選ぶ）。
-const SHELF_BAYS = [
-  { x: [90.7, 100], reach: 99.2, top: [58.74, 59.47], bottom: [72.0, 74.89], lean: -0.25, squeeze: [0.942, 1.054], pull: [-1, 0.2] },
-  { x: [90.7, 100], reach: 99.2, top: [45.02, 44.08], bottom: [57.29, 57.9], lean: -0.25, squeeze: [0.942, 1.054], pull: [-1, 0.2] },
-  { x: [79.2, 88.7], reach: 88.6, top: [34.94, 32.48], bottom: [45.97, 45.01], lean: -0.25, squeeze: [0.801, 0.918], pull: [-1, 0.2] },
-  { x: [70.45, 74.4], reach: 74.3, top: [37.39, 36.37], bottom: [46.07, 45.58], lean: -0.25, squeeze: [0.691, 0.741], pull: [-1, 0.2] },
-  { x: [63.15, 69.2], reach: 69.1, top: [56.34, 56.84], bottom: [64.91, 66.7], lean: -0.25, squeeze: [0.597, 0.675], pull: [-1, 0.2] },
-  { x: [63.15, 69.2], reach: 69.1, top: [47.76, 47.18], bottom: [55.44, 55.84], lean: -0.25, squeeze: [0.597, 0.675], pull: [-1, 0.2] },
-  { x: [63.15, 69.2], reach: 69.1, top: [39.29, 37.72], bottom: [46.82, 46.18], lean: -0.5, squeeze: [0.597, 0.675], pull: [-1, 0.2] },
-  { x: [82.6, 88.7], reach: 88.6, top: [61.74, 62.22], bottom: [68.96, 70.59], lean: -0.25, squeeze: [0.843, 0.918], pull: [-1, 0.2] }
-];
-// 背の寸法（絵の幅に対する %）: 題の字の天地の余白。背の幅は本ごとの look.spineW に段の squeeze を掛けたもの（題の長さでは
-// 変わらない）。題は背に一列で置く。字の大きさは CSS の --library-spine-font で、一列に収まらない題（目録の長い題）だけ字を
-// 小さくする。小さくできるのは TITLE_MIN_SCALE まで（それより小さい字は棚を見渡して読めない）。
-const SPINE_PAD_Y = 0.45;
+// 待つ: 灯りの明るみが手前（depth 0）から奥へ送られ、奥の格子扉の上の灯りで一度強まり、また手前へ戻る（書庫番が灯りを手に
+// 奥へ探しに行く気配）。明るみは depth のある灯りに重ねた暈（燭台の硝子に締まった芯と壁に落ちる小さな暈）の不透明度で、
+// 灯りそのものの息はそのまま続く。1周のうち SEEK_OUT を奥へ行き、残りで戻る。明るみの中心は奥の灯りを少し越えた
+// SEEK_REACH まで届く。暈の強さは中心からの depth の距離のガウスで、奥の灯りだけ SEEK_FAR_GAIN 倍強い（その強さが不透明度 1）。
+const SEEK_CYCLE_MS = 3200;
+const SEEK_OUT = 0.6;
+const SEEK_REACH = LAMP_DEPTHS - 0.4;
+const SEEK_SPREAD = 0.55;
+const SEEK_FAR_GAIN = 1.35;
+const SEEK_STEPS = 64;
+// 暈は待ちに入ると SEEK_FADE_MS で現れ、応答が来るとその時の明るさのまま SEEK_FADE_MS で引く。
+const SEEK_FADE_MS = 400;
+
+function seekKeyframes(depth) {
+  const gain = depth === LAMP_DEPTHS - 1 ? SEEK_FAR_GAIN : 1;
+  return Array.from({ length: SEEK_STEPS + 1 }, (_, step) => {
+    const phase = step / SEEK_STEPS;
+    const reach = phase < SEEK_OUT ? (phase / SEEK_OUT) * SEEK_REACH : (1 - (phase - SEEK_OUT) / (1 - SEEK_OUT)) * SEEK_REACH;
+    const light = (Math.exp(-((reach - depth) ** 2) / SEEK_SPREAD) * gain) / SEEK_FAR_GAIN;
+    return { offset: phase, opacity: light.toFixed(3) };
+  });
+}
+
+// ── 棚: 書庫の絵の右の書架の 3 段に、本を絵の背の一本ずつの姿で並べる ─────────────────────────────────────────
+// 右の書架は一点透視で、横の線（段の板の縁・本の天・金の帯）は消失点 SHELF_VP へ集まり、縦の線（背の縁）は縦のまま。値はどれも
+// stage.jpg の上の実測で、単位は絵の幅を ART_UNIT としたときの絵の px。
+// - 上の段（7 冊）と下の段（2 冊）: 本は絵の背の枠（左右の縁 xs・背の真ん中の列での天 tops と足もと floors）に当たる。背の地は
+//   絵の背の画素そのもので、色だけ本ごとに寄せる。背の面は、背の真ん中の列を基準に、消失点の高さを軸として列ごとに縦に伸び
+//   縮みさせた平らな面で、天（背の天の SPINE_HEADROOM 上。背の上の隙間は暗く、色の混ぜで変わらない）と地は消失点への線。題箋は
+//   背の金の帯の無い間の真ん中（labels: 背の真ん中の列での y）に置く。下の段の 3 本目の背は絵の本のまま残す。下の段の背の
+//   足もとは机の上の本の山の陰で、山の奥の縁（cut）より下は描かない。
+// - 真ん中の段（6 冊）: 段の奥の壁を奥行き u の面とみて（x = vx + C/u・y = vy + (Y − vy)/u。u = 1 の列が xRef）、本は厚み d・
+//   高さ height の長方形の背としてこの面に置く。背は奥（左）ほど細く低く、天と足もと（床の板の縁の xRef での高さ）は消失点への
+//   一本の線に並ぶ。背の地は、絵の真ん中の段の背の枠 source（sources の左右の縁・sourceTops の天）の画素を本の背の面へ写したもの。題箋の天は一本の線（labelTop）にそろい、
+//   字の大きさは本の背の面の上で一定（画面では奥ほど小さい）。背が縮んで空いた段の口（mouth）は段の奥の暗がりで埋める。右の端の
+//   本は画面の端で切れる（題箋が画面に収まる薄い本にしてある）。
+// 本ごとの背の面・題箋は、平らに組んでから背の四辺形へ射影で写す（quadProjection）。
+const ART_UNIT = 1440;
+const SHELF_VP = [202.1, 754.7];
+const SPINE_HEADROOM = 3;
+const PAINTED_BAYS = {
+  upper: {
+    xs: [1145, 1162, 1176, 1199, 1222, 1240, 1263, 1278],
+    tops: [524, 524, 510, 506, 500, 496, 500],
+    floors: [645.75, 643.94, 641.77, 639.07, 636.67, 634.27, 632.04],
+    labels: [592.39, 589.27, 584.64, 580.67, 576.63, 572.04, 564.5]
+  },
+  lower: { xs: [1306, 1346, 1394], tops: [875, 877], floors: [1065.53, 1077.7], labels: [966.82, 975.62], wide: true, cut: [[1306, 1058], [1440, 1078]] }
+};
+const MIDDLE_BAY = {
+  mouth: { left: 1305, right: 1440, top: [[1306, 649.2], [1438, 636.0]], floor: [[1306, 824.5], [1438, 833.4]] },
+  xRef: 1373.5,
+  height: 159,
+  firstLeft: 1307,
+  labelTop: 703,
+  books: [{ d: 0.02, source: 0 }, { d: 0.0195, source: 1 }, { d: 0.0205, source: 2 }, { d: 0.02, source: 3 }, { d: 0.02, source: 4 }, { d: 0.015, source: 3 }],
+  sources: [1307, 1329, 1351, 1375, 1400, 1424, 1440],
+  sourceTops: [674, 673, 669, 664, 661, 661]
+};
+// 題箋（絵の px・字の大きさは em。字の送りは CSS の字間込みで 1.04em）: 字の列の天地に空ける分の和、題箋の幅（字の大きさの倍・
+// 背の幅から side を引いた幅まで）。上と下の段の字の大きさは背の幅から（(幅 − 4)×0.66 を 9〜11.5 に収める）、真ん中の段は middleChar。
+// 下の段の副題のある題は、題を wideTitle・副題を wideSub の字で別の列に置き、題箋は背の幅の wideWidth 倍。題箋は背の中の room
+// （背の面の上の [天, 地]）に収め、収まらない題だけ字を小さくする。小さくできるのは TITLE_MIN_SCALE まで（それより小さい字は
+// 棚を見渡して読めない）。
+const LABEL = { ends: 1.1, widthEm: 1.75, side: 3, minChar: 9, maxChar: 11.5, middleChar: 11, wideTitle: 14, wideSub: 7.5, wideWidth: 0.74, foot: 4 };
 const TITLE_MIN_SCALE = 0.72;
-// 引き出す: 本は段の pull の向きへ、背の右の縁の丈の PULL_REACH 倍だけ引き出され、PULL_SCALE に近づく。
-// 横に出た分だけ、右隣の本の陰から表紙の面（開くときの表紙と同じ縦横比 COVER_ASPECT の面）が見えてくる。
+// 引き出す: 本は SHELF_PULL の向き（引き出す量 1 あたり・絵の上。棚の面に垂直な真左に、手前〈下〉へ寄せる 0.2 を足す）へ、背の
+// 右の縁の丈の PULL_REACH 倍だけ引き出され、PULL_SCALE に近づく。横に出た分だけ、右隣の本の陰から表紙の面（開くときの表紙と
+// 同じ縦横比 COVER_ASPECT の面）が見えてくる。
+const SHELF_PULL = [-1, 0.2];
 const PULL_REACH = 0.44;
 const PULL_SCALE = 1.03;
 // 開くときの表紙（.academy-library-cover-leaf: 本の幅 74vh×1.699 の 47%、高さ 74vh の 99%）の横÷縦。
 const COVER_ASPECT = (74 * 1.699 * 0.47) / (74 * 0.99);
+// 棚へ押し込む: 1 冊 SHELVE_MS・SHELVE_STAGGER_MS ずつずらし。本は SHELVE_SHOWN の所で見えきる（本の跡の暗がりもそこまでに満ちる）。
 const SHELVE_REACH = 1.6;
+const SHELVE_MS = 900;
+const SHELVE_STAGGER_MS = 120;
+const SHELVE_SHOWN = 0.35;
 
 function lineAt(xs, ys, x) {
   return ys[0] + ((ys[1] - ys[0]) * (x - xs[0])) / (xs[1] - xs[0]);
 }
+
+// 多角形を、線 line（x → y）より上（y が小さい側）だけに切り詰める。
+function above(points, line) {
+  const out = [];
+  points.forEach((point, i) => {
+    const next = points[(i + 1) % points.length];
+    const [inside, nextInside] = [point[1] <= line(point[0]), next[1] <= line(next[0])];
+    if (inside) out.push(point);
+    if (inside !== nextInside) {
+      const [d0, d1] = [point[1] - line(point[0]), next[1] - line(next[0])];
+      const t = d0 / (d0 - d1);
+      out.push([point[0] + (next[0] - point[0]) * t, point[1] + (next[1] - point[1]) * t]);
+    }
+  });
+  return out;
+}
+
+const throughVp = ([x0, y0]) => (x) => SHELF_VP[1] + ((y0 - SHELF_VP[1]) * (x - SHELF_VP[0])) / (x0 - SHELF_VP[0]);
+const segmentLine = ([[x0, y0], [x1, y1]]) => (x) => lineAt([x0, x1], [y0, y1], x);
+
+// 上と下の段の背: 背の面は [左の縁, 右の縁] × [天, 足もと]（背の真ん中の列での y）の長方形で、四隅は列ごとの伸び縮みで写す。
+function paintedSlots(bay, key) {
+  return bay.tops.map((spineTop, i) => {
+    const [x0, x1] = [bay.xs[i], bay.xs[i + 1]];
+    const centre = (x0 + x1) / 2;
+    const top = spineTop - SPINE_HEADROOM;
+    const floor = bay.floors[i];
+    const [up, down] = [throughVp([centre, top]), throughVp([centre, floor])];
+    const quad = [[x0, up(x0)], [x1, up(x1)], [x1, down(x1)], [x0, down(x0)]];
+    const width = x1 - x0;
+    const height = floor - top;
+    const spine = height - SPINE_HEADROOM;
+    return {
+      bay: key,
+      order: i,
+      quad,
+      cut: bay.cut ? segmentLine(bay.cut) : null,
+      face: { width, height },
+      source: quad,
+      wide: bay.wide === true,
+      char: Math.max(LABEL.minChar, Math.min(LABEL.maxChar, (width - 4) * 0.66)),
+      label: { centre: bay.labels[i] - top },
+      room: [SPINE_HEADROOM + spine * 0.06, height - spine * 0.04]
+    };
+  });
+}
+
+// 真ん中の段の背: 奥（左の柱）から手前へ、u を厚みの分ずつ減らして並べる。
+function middleSlots() {
+  const { mouth, xRef, height, firstLeft, labelTop, books, sources, sourceTops } = MIDDLE_BAY;
+  const [vx, vy] = SHELF_VP;
+  const C = xRef - vx;
+  const uOf = (x) => C / (x - vx);
+  const xOf = (u) => vx + C / u;
+  const toPlane = (y, u) => vy + (y - vy) * u;
+  const toScreen = (Y, u) => vy + (Y - vy) / u;
+  const floor = segmentLine(mouth.floor);
+  const floorY = toPlane(floor(xRef), 1);
+  const topY = floorY - height;
+  let u = uOf(firstLeft);
+  return books.map(({ d, source }, i) => {
+    const [u0, u1] = [u, u - d];
+    u = u1;
+    const [xa, xb] = [xOf(u0), xOf(u1)];
+    const [sx0, sx1] = [sources[source], sources[source + 1]];
+    const sourceTop = toPlane(sourceTops[source], uOf((sx0 + sx1) / 2));
+    const quad = [[xa, toScreen(topY, u0)], [xb, toScreen(topY, u1)], [xb, toScreen(floorY, u1)], [xa, toScreen(floorY, u0)]];
+    return {
+      bay: 'middle',
+      order: i,
+      quad,
+      cut: null,
+      face: { width: d * C, height },
+      source: [[sx0, toScreen(sourceTop, uOf(sx0))], [sx1, toScreen(sourceTop, uOf(sx1))], [sx1, floor(sx1)], [sx0, floor(sx0)]],
+      wide: false,
+      char: LABEL.middleChar,
+      label: { top: labelTop - topY },
+      room: [labelTop - topY, height - LABEL.foot]
+    };
+  });
+}
+
+// 本を当てる背（上の段・真ん中の段・下の段の順）。
+const SHELF_SLOTS = [...paintedSlots(PAINTED_BAYS.upper, 'upper'), ...middleSlots(), ...paintedSlots(PAINTED_BAYS.lower, 'lower')];
+// 段の奥の暗がりの層: 真ん中の段の口（本が並ぶと暗がりが満ちる）と、上と下の段の本の下の背の形（引き出した本の跡。背の形より
+// 少し内に取り、収まった本の縁から覗かない。本が棚へ押し込まれはじめると暗がりになる）。
+const MIDDLE_MOUTH = (() => {
+  const { left, right, top, floor } = MIDDLE_BAY.mouth;
+  const [up, down] = [segmentLine(top), segmentLine(floor)];
+  return [[left, up(left)], [right, up(right)], [right, down(right)], [left, down(left)]];
+})();
+const SHADE_INSET = 0.6;
+
+function slotShade({ quad: [tl, tr, br, bl], cut }) {
+  const i = SHADE_INSET;
+  const shade = [[tl[0] + i, tl[1] + i], [tr[0] - i, tr[1] + i], [br[0] - i, br[1] - i], [bl[0] + i, bl[1] - i]];
+  return cut ? above(shade, cut) : shade;
+}
+
+const boundsOf = (points) => {
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  return { left: Math.min(...xs), top: Math.min(...ys), width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys) };
+};
+const artPct = (value) => pct((value / ART_UNIT) * 100);
 
 // 背の題: 副題（「 — 」の後ろ）は同じ列に小さな字で続ける（本の背の副題の組み方）。
 const SUBTITLE_SEPARATOR = ' — ';
@@ -267,185 +402,288 @@ function fillSpineTitle(el, title) {
   el.replaceChildren(document.createTextNode(title.slice(0, at)), subtitle);
 }
 
-// 題を一列に書いたときの長さ（絵の幅に対する %・字の大きさはそのまま）。画面の字そのもので測る。
-function titleLength(measure, title, artPx) {
-  fillSpineTitle(measure, title);
-  return (measure.getBoundingClientRect().height / artPx) * 100;
+function splitTitle(title) {
+  const at = title.indexOf(SUBTITLE_SEPARATOR);
+  return at < 0 ? { main: title, sub: null } : { main: title.slice(0, at), sub: title.slice(at + SUBTITLE_SEPARATOR.length) };
 }
 
-// 段の丈（絵の %）: 左右の柱での丈の小さいほう。
-function bayHeight(bay) {
-  return Math.min(bay.bottom[0] - bay.top[0], bay.bottom[1] - bay.top[1]);
+// 題箋の大きさ（字の大きさ 1 倍で・絵の px）。lengths は題を一列に書いた長さ（字の大きさ 1em あたり）: line は副題を同じ列に
+// 続けたもの、main・sub は題と副題それぞれ。
+function labelAt(slot, lengths) {
+  if (slot.wide && lengths.sub !== null) {
+    return { char: LABEL.wideTitle, sub: LABEL.wideSub, width: slot.face.width * LABEL.wideWidth, height: Math.max(lengths.main * LABEL.wideTitle, lengths.sub * LABEL.wideSub) + LABEL.ends * LABEL.wideTitle };
+  }
+  return { char: slot.char, sub: null, width: Math.min(slot.face.width - LABEL.side, slot.char * LABEL.widthEm), height: (lengths.line + LABEL.ends) * slot.char };
 }
 
-// 段への置き方。本を置けるのは、その本の姿（heightF）の背で題が下限の字（TITLE_MIN_SCALE）に収まる段だけ（fits[本][段]。段は
-// 背の高い順なので、収まる段は先頭からの連なり）。置ける段の少ない本（同じなら題の長い本）から順に、背の高い段を先に試し、
-// 行き詰まれば戻って置き直す。段に入るかは段の右端の幅（いちばん太い squeeze）で見積もるので、段の中を届いた順に並べ直しても
-// reach を越えない。どう置いても入りきらないときだけ null。返すのは段ごとの本の index（届いた順）。
-function assignBays(fits, looks, lengths) {
-  const rooms = SHELF_BAYS.map((bay) => bay.reach - bay.x[0]);
-  const widest = SHELF_BAYS.map((bay) => bay.squeeze[1]);
-  const used = SHELF_BAYS.map(() => 0);
-  const spines = SHELF_BAYS.map(() => 0);
-  const members = SHELF_BAYS.map(() => []);
-  const lowest = fits.map((row) => row.lastIndexOf(true));
-  const order = looks.map((_look, index) => index).sort((a, b) => lowest[a] - lowest[b] || lengths[b] - lengths[a] || a - b);
-  // 見込みの無い枝を早く切る: 段 0〜k にしか置けない残りの本の背の幅が、段 0〜k に残る幅を越えるなら入りきらない。
-  const hopeless = (next) => {
-    let room = 0;
-    let need = 0;
-    let narrowest = Infinity;
-    for (let bay = 0; bay < SHELF_BAYS.length; bay += 1) {
-      room += rooms[bay] - spines[bay] * widest[bay];
-      narrowest = Math.min(narrowest, widest[bay]);
-      for (let k = next; k < order.length; k += 1) if (lowest[order[k]] === bay) need += looks[order[k]].spineW;
-      if (need * narrowest > room) return true;
-    }
-    return false;
+// 題箋を背の room に収める字の倍率（1 まで）。
+function labelScale(slot, label) {
+  return Math.min(1, (slot.room[1] - slot.room[0]) / label.height);
+}
+
+// 本を背へ当てる。本を置けるのは題箋が下限の字（TITLE_MIN_SCALE）で収まる背だけ（fits[本][背]）。届いた順に、残りの本が
+// まだ全部どこかへ置ける限りで、いちばん前の背（上の段の奥 → 真ん中の段 → 下の段）へ置く。どう置いても入りきらないときだけ
+// null。返すのは本ごとの背の index。
+function assignSlots(fits) {
+  // 残りの本 books を、空いた背 free へ全部置けるか（二部グラフの完全な割り当てがあるか）。
+  const placeable = (books, free) => {
+    const holder = new Map();
+    const reach = (book, seen) => {
+      for (const slot of free) {
+        if (!fits[book][slot] || seen.has(slot)) continue;
+        seen.add(slot);
+        if (!holder.has(slot) || reach(holder.get(slot), seen)) {
+          holder.set(slot, book);
+          return true;
+        }
+      }
+      return false;
+    };
+    return books.every((book) => reach(book, new Set()));
   };
-  const place = (next) => {
-    if (next === order.length) return true;
-    if (hopeless(next)) return false;
-    const index = order[next];
-    const { spineW, spineGap } = looks[index];
-    for (let bay = 0; bay <= lowest[index]; bay += 1) {
-      const [usedBefore, spinesBefore] = [used[bay], spines[bay]];
-      if (usedBefore + spineW * widest[bay] > rooms[bay]) continue;
-      used[bay] = usedBefore + (spineW + spineGap) * widest[bay];
-      spines[bay] = spinesBefore + spineW;
-      members[bay].push(index);
-      if (place(next + 1)) return true;
-      members[bay].pop();
-      [used[bay], spines[bay]] = [usedBefore, spinesBefore];
-    }
-    return false;
-  };
-  return place(0) ? members.map((set) => [...set].sort((a, b) => a - b)) : null;
+  const free = SHELF_SLOTS.map((_slot, index) => index);
+  const slotOf = [];
+  for (let book = 0; book < fits.length; book += 1) {
+    const rest = fits.map((_row, index) => index).slice(book + 1);
+    const slot = free.find((candidate) => fits[book][candidate] && placeable(rest, free.filter((other) => other !== candidate)));
+    if (slot === undefined) return null;
+    slotOf.push(slot);
+    free.splice(free.indexOf(slot), 1);
+  }
+  return slotOf;
 }
 
-// 背の四辺形（絵の %）: 縦の縁は x=left と x=left+width（lean だけ傾く）、足もとは段の bottom の線、天は段の高さの heightF 倍。
-// 表紙の面は背の右の縁に付き、その縁の丈と COVER_ASPECT の横幅を持つ。order は段の中の並び（右ほど手前）。
-function spineQuad(bay, left, width, heightF, titleScale, order) {
-  const right = left + width;
-  const bottomL = lineAt(bay.x, bay.bottom, left);
-  const bottomR = lineAt(bay.x, bay.bottom, right);
-  const heightL = (bottomL - lineAt(bay.x, bay.top, left)) * heightF;
-  const heightR = (bottomR - lineAt(bay.x, bay.top, right)) * heightF;
-  const lean = -Math.tan((bay.lean * Math.PI) / 180);
-  return {
-    left,
-    width,
-    order,
-    titleScale,
-    corners: [
-      [left + heightL * lean, bottomL - heightL],
-      [right + heightR * lean, bottomR - heightR],
-      [right, bottomR],
-      [left, bottomL]
-    ],
-    heightR,
-    pullDistance: heightR * PULL_REACH,
-    pull: bay.pull,
-    bayLeft: bay.x[0]
-  };
-}
-
-function buildBayNode(bay) {
+// duration・delay は暗がりが満ちる長さと遅れ（ms）。
+function buildShadeNode(points, { duration, delay }) {
   const node = document.createElement('div');
   node.className = 'academy-library-bay';
-  const left = bay.x[0];
-  const top = Math.min(...bay.top);
-  const width = bay.x[1] - left;
-  const height = Math.max(...bay.bottom) - top;
-  node.style.left = `${left}%`;
-  node.style.top = `${top}%`;
-  node.style.width = `${width}%`;
-  node.style.height = `${height}%`;
-  const y = (value) => `${(((value - top) / height) * 100).toFixed(2)}%`;
-  node.style.clipPath = `polygon(0% ${y(bay.top[0])}, 100% ${y(bay.top[1])}, 100% ${y(bay.bottom[1])}, 0% ${y(bay.bottom[0])})`;
+  node.style.setProperty('--shade-duration', `${duration}ms`);
+  node.style.setProperty('--shade-delay', `${delay}ms`);
+  const box = boundsOf(points);
+  node.style.left = artPct(box.left);
+  node.style.top = artPct(box.top);
+  node.style.width = artPct(box.width);
+  node.style.height = artPct(box.height);
+  node.style.clipPath = `polygon(${points.map(([x, y]) => `${pct(((x - box.left) / box.width) * 100)} ${pct(((y - box.top) / box.height) * 100)}`).join(', ')})`;
   return node;
 }
 
-// 表紙の金の題（棚で引き出したときと、手の中の表紙で同じもの）。副題は背と同じく小さな字で続ける。題のまとまりは、その本の
-// 絵の置き方で面の上へ写した内側の枠（中核の絵は額縁の中・周縁の絵は空押しの内枠の中）の真ん中に、左右も上下も揃えて置く。
-// 一列が枠の丈に収まらない題は字を下限まで小さくし、それでも収まらなければ列を左へ足して、列のまとまり全体を真ん中に置く。
-// 内側の枠は絵（900×1200 px）の中の真ん中と、真ん中に置いた長方形が模様から 20px 離れて収まる大きさ（room: 半幅がその値
-// 以下なら、その半丈まで収まる）。額縁は天地が弧で細るので、幅の広いまとまりほど丈が短い。
+// 表紙の面の絵: 素材（900×1200 px）を面の丈に合わせて一様に縮め、背の側（左上）に付ける。面は絵より横に広いので、小口の側
+// （右）に足りない COVER_FILL px（絵の px）を、外の罫より外の模様の無い帯（strip: 絵の x の [始め, 終わり)）で補う。絵を帯の
+// 右端で縦に切ってそこから右の縁（擦れ・角の丸み）を面の右端へ付け、間は帯の列を鏡写しの順に並べて埋め、縁の手前では縁へ向かう
+// 並びへ帯の幅でぼかして移る。帯の擦れの横筋が横へ繰り返されないよう、列ごとに縦へ最大 COVER_FILL_SHIFT px ずらす（ずれは天地と
+// 両端で 0 へ細る）。組んだ一枚は絵の種類ごとに一度だけ作り、画面の root の --library-cover-face-<種類> に置く。生成の本も
+// 同じ二枚（革は中核・布は周縁）を装丁の色に染めて使う。
+const COVER_ART = {
+  core: { src: '/canonical/library/cover_core.jpg', strip: [880, 887], seed: 11 },
+  periphery: { src: '/canonical/library/cover_periphery.jpg', strip: [858, 882], seed: 13 }
+};
+const COVER_IMAGE_PX = [900, 1200];
+const COVER_FILL = Math.round(COVER_IMAGE_PX[1] * COVER_ASPECT - COVER_IMAGE_PX[0]);
+const COVER_FILL_SHIFT = 30;
+const COVER_FACES = Object.fromEntries(Object.keys(COVER_ART).map((image) => [image, `var(--library-cover-face-${image})`]));
+
+async function layCoverFace(image) {
+  const { src, strip: [s0, s1], seed } = COVER_ART[image];
+  const [w, h] = COVER_IMAGE_PX;
+  const art = new Image();
+  art.src = src;
+  await art.decode();
+  if (art.naturalWidth !== w || art.naturalHeight !== h) throw new Error(`cover art ${src} is ${art.naturalWidth}×${art.naturalHeight}, not ${w}×${h}`);
+  const canvas = document.createElement('canvas');
+  canvas.width = w + COVER_FILL;
+  canvas.height = h;
+  const g = canvas.getContext('2d', { willReadFrequently: true });
+  g.drawImage(art, 0, 0);
+  const source = g.getImageData(0, 0, w, h).data;
+  g.drawImage(art, s1, 0, w - s1, h, s1 + COVER_FILL, 0, w - s1, h);
+  const n = s1 - s0;
+  const mirror = (t) => (t % (2 * n) < n ? s1 - 1 - (t % (2 * n)) : s0 + (t % (2 * n)) - n);
+  const random = seededRandom(seed);
+  const shiftOf = (j) => (random() - 0.5) * 2 * COVER_FILL_SHIFT * Math.min(1, j / 4, (COVER_FILL - 1 - j) / 4);
+  const rowAt = (y, shift) => Math.min(h - 1, Math.max(0, Math.round(y + shift * Math.sin((Math.PI * y) / h))));
+  const fill = g.createImageData(COVER_FILL, h);
+  const out = fill.data;
+  const put = (x, y, sx, sy, a) => {
+    const i = (y * COVER_FILL + x) * 4;
+    const k = (sy * w + sx) * 4;
+    for (let c = 0; c < 3; c += 1) out[i + c] = out[i + c] * (1 - a) + source[k + c] * a;
+    out[i + 3] = 255;
+  };
+  for (let j = 0; j < COVER_FILL; j += 1) {
+    const fromLeft = mirror(j);
+    const fromRight = mirror(COVER_FILL - 1 - j);
+    const a = Math.min(1, Math.max(0, (j - (COVER_FILL - 1 - n)) / n));
+    const shiftL = shiftOf(j);
+    const shiftR = shiftOf(j);
+    for (let y = 0; y < h; y += 1) {
+      put(j, y, fromLeft, rowAt(y, shiftL), 1);
+      if (a > 0) put(j, y, fromRight, rowAt(y, shiftR), a);
+    }
+  }
+  g.putImageData(fill, s1, 0);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  if (!blob) throw new Error(`cover art ${src}: the laid face could not be encoded`);
+  return URL.createObjectURL(blob);
+}
+
+function layCoverFaces(root) {
+  return Promise.all(Object.keys(COVER_ART).map(async (image) => {
+    root.style.setProperty(`--library-cover-face-${image}`, `url('${await layCoverFace(image)}')`);
+  }));
+}
+
+// 表紙の金の題（棚で引き出したときと、手の中の表紙で同じもの）。副題は背と同じく小さな字で続ける。題のまとまりは、面の上の
+// 内側の枠（中核の絵は額縁の中・周縁の絵は空押しの内枠の中）の真ん中に、左右も上下も揃えて置く。列は語の切れ目（仮名・約物・
+// 空白の後ろで、仮名でない字が始まる所と、副題の頭）でだけ折る。一列で収まる大きさが下限に届かない題は、列の丈がいちばん
+// 揃う切れ目で列を左へ足し、収まるいちばん大きい字にする。内側の枠は絵（900×1200 px）の中の真ん中と、真ん中に置いた長方形が
+// 模様から 20px 離れて収まる大きさ（room: 半幅がその値以下なら、その半丈まで収まる）。額縁は天地が弧で細るので、幅の広い
+// まとまりほど丈が短い。
 const COVER_FRAMES = {
   core: { center: [474.5, 599], room: [[110, 308], [120, 293], [140, 261], [150, 243], [170, 224], [180, 211]] },
   periphery: { center: [470.5, 594], room: [[210, 444], [220, 427], [230, 402], [240, 398], [250, 392], [260, 386]] }
 };
-const COVER_IMAGE_PX = [900, 1200];
 // 字の大きさは面の幅に対する割合（CSS の 10.5cqw・字間 0.08em・列の間 line-height 1.25 と同じ値）。
 const COVER_TITLE_EM = 0.105;
 const COVER_TITLE_ADVANCE = 1.08;
 const COVER_TITLE_PITCH = 1.25;
 const COVER_TITLE_MIN_SCALE = 0.62;
+// 副題の字の大きさ（CSS の .academy-library-book-subtitle の 0.72em）。
+const COVER_SUBTITLE_EM = 0.72;
 // 閉じるときに押す蔵書票（面の %）: 票の箱の一辺（面の幅に対する %・CSS の width と同じ値）と、絵（512 px 四方）の中で描かれて
-// いる所、題の字との間に空ける幅、箱の真ん中の置き場。題の字が rest に押した票の描かれた所（と空ける幅）に掛かる本だけ、票を
-// aside（内枠の右下の角。中核の絵では額縁の右下の段の角に押す）へ移す。aside は、枠に 2 列以内で収まるどの題にも、絵のどの
-// 置き方でも掛からない所にある。
-const EX_LIBRIS = { size: 27, ink: [49 / 512, 32 / 512, 462 / 512, 478 / 512], clear: 1, rest: [70, 71], aside: [80, 77] };
+// いる所、題の字との間に空ける幅、箱の真ん中（内枠の右下の角。中核の絵では額縁の右下の段の角・CSS の left・top と同じ値）。
+// 票はどの本でもここに押し、題の字はその描かれた所（と空ける幅）に掛からない。
+const EX_LIBRIS = { size: 27, ink: [49 / 512, 32 / 512, 462 / 512, 478 / 512], clear: 1, at: [80, 77] };
 
-function exLibrisInk([x, y]) {
+const EX_LIBRIS_INK = (() => {
+  const [x, y] = EX_LIBRIS.at;
   const width = EX_LIBRIS.size;
   const height = EX_LIBRIS.size * COVER_ASPECT;
   const [x0, y0, x1, y1] = EX_LIBRIS.ink;
   const clear = EX_LIBRIS.clear;
   return { x0: x + (x0 - 0.5) * width - clear, y0: y + (y0 - 0.5) * height - clear, x1: x + (x1 - 0.5) * width + clear, y1: y + (y1 - 0.5) * height + clear };
-}
+})();
 
 const boxesMeet = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
-// 題の字の大きさと、題を置く長方形（面の % の left・right・top・bottom）、蔵書票の置き場（面の %）。長さは面の幅を 1 とした値。
-function coverTitleLayout(title, frame) {
-  const { center, room } = COVER_FRAMES[frame.image];
-  const unit = frame.size / COVER_IMAGE_PX[0];
-  const faceHeight = 1 / COVER_ASPECT;
-  const cx = (1 - frame.size) * frame.x + center[0] * unit;
-  const cy = (faceHeight - (frame.size * COVER_IMAGE_PX[1]) / COVER_IMAGE_PX[0]) * frame.y + center[1] * unit;
-  const roomFor = (halfWidth) => room.find(([hw]) => hw * unit >= halfWidth);
+// 語の切れ目: 前の字が仮名・約物（開きかっこを除く）・空白で、次の字がそのどれでもない（開きかっこは始まりの側）所。
+const isPhraseTail = (char) => /[\p{Script=Hiragana}\s]/u.test(char) || (/\p{P}/u.test(char) && !/\p{Ps}/u.test(char));
+const isPhraseHead = (char) => !isPhraseTail(char);
+
+// 題を語の切れ目で句に分ける。句は字（text）・副題か（sub）・字の送りで数えた丈（length: 本題の字 1・副題の字 0.72。副題の
+// 頭の「 — 」の分は最初の句に足す）。
+function coverTitlePhrases(title) {
   const at = title.indexOf(SUBTITLE_SEPARATOR);
-  const chars = at < 0 ? [...title].length : [...title.slice(0, at)].length + 0.72 * [...title.slice(at)].length;
-  const em = (scale) => COVER_TITLE_EM * scale;
-  // 列の長さは字の送りの計算どおりに出るので、ちょうどに合わせると端数で最後の一字が次の列へ落ちる。その分の余り。
-  const slack = 1.02;
-  // halfWidth・halfHeight は題を置く長方形、columns・length は題のまとまり（列の数と列の丈）。まとまりの幅は字の箱の端から端
-  // （列の間は行の送り、両端の列は字の幅 1em）。
-  const place = (scale, halfWidth, halfHeight, columns, length) => {
-    const groupHalf = (((columns - 1) * COVER_TITLE_PITCH + 1) * em(scale)) / 2;
-    const group = { x0: (cx - groupHalf) * 100, x1: (cx + groupHalf) * 100, y0: ((cy - length / 2) / faceHeight) * 100, y1: ((cy + length / 2) / faceHeight) * 100 };
-    const exLibris = [EX_LIBRIS.rest, EX_LIBRIS.aside].find((spot) => !boxesMeet(group, exLibrisInk(spot)));
-    if (!exLibris) throw new Error(`cover title reaches the ex-libris at both of its places: ${title}`);
-    return {
-      scale,
-      exLibris,
-      left: (cx - halfWidth) * 100,
-      right: (1 - cx - halfWidth) * 100,
-      top: ((cy - halfHeight) / faceHeight) * 100,
-      bottom: (1 - (cy + halfHeight) / faceHeight) * 100
-    };
-  };
-  const single = roomFor((em(1) * COVER_TITLE_PITCH) / 2);
-  const scale = Math.min(1, (2 * single[1] * unit) / (chars * em(1) * COVER_TITLE_ADVANCE * slack));
-  if (scale >= COVER_TITLE_MIN_SCALE) return place(scale, single[0] * unit, single[1] * unit, 1, chars * em(scale) * COVER_TITLE_ADVANCE);
-  // 二列以上: 列の丈を字数で等分した長さにし（長方形の丈が列の丈になり、まとまりの天地が揃う）、それが枠に収まる最少の列数。
-  const advance = em(COVER_TITLE_MIN_SCALE) * COVER_TITLE_ADVANCE;
-  for (let columns = 2; ; columns += 1) {
-    const fit = roomFor((columns * em(COVER_TITLE_MIN_SCALE) * COVER_TITLE_PITCH) / 2);
-    if (!fit) throw new Error(`cover title does not fit the ${frame.image} frame at the smallest letters: ${title}`);
-    const length = Math.ceil(chars / columns) * advance * slack;
-    if (length <= 2 * fit[1] * unit) return place(COVER_TITLE_MIN_SCALE, fit[0] * unit, length / 2, columns, length);
+  const runs = at < 0 ? [{ chars: [...title], sub: false }] : [{ chars: [...title.slice(0, at)], sub: false }, { chars: [...title.slice(at + SUBTITLE_SEPARATOR.length)], sub: true }];
+  const phrases = [];
+  for (const { chars, sub } of runs) {
+    let start = 0;
+    for (let i = 1; i <= chars.length; i += 1) {
+      if (i < chars.length && !(isPhraseTail(chars[i - 1]) && isPhraseHead(chars[i]))) continue;
+      const text = chars.slice(start, i).join('');
+      phrases.push(sub
+        ? { text: start === 0 ? `— ${text}` : text, sub, length: COVER_SUBTITLE_EM * (i - start + (start === 0 ? [...SUBTITLE_SEPARATOR].length : 0)) }
+        : { text, sub, length: i - start });
+      start = i;
+    }
   }
+  return phrases;
 }
 
-function buildCoverTitle(title, layout) {
+// 句の並びを columns 列に分ける。最も長い列の丈がいちばん短くなる切り方（同じ丈なら前の列を長く）。(句の頭, 残りの列数) ごとに
+// 一度だけ求める（句 m 個・columns 列で m²・columns 回の比べ）。
+function splitCoverColumns(phrases, columns) {
+  const start = [0];
+  for (const phrase of phrases) start.push(start[start.length - 1] + phrase.length);
+  const memo = new Map();
+  const best = (from, left) => {
+    if (left === 1) return { longest: start[phrases.length] - start[from], cuts: [] };
+    const id = from * columns + left;
+    if (memo.has(id)) return memo.get(id);
+    let found = null;
+    for (let cut = phrases.length - left + 1; cut > from; cut -= 1) {
+      const rest = best(cut, left - 1);
+      const longest = Math.max(start[cut] - start[from], rest.longest);
+      if (!found || longest < found.longest) found = { longest, cuts: [cut, ...rest.cuts] };
+    }
+    memo.set(id, found);
+    return found;
+  };
+  const { longest, cuts } = best(0, columns);
+  const edges = [0, ...cuts, phrases.length];
+  return { longest, columns: cuts.concat(phrases.length).map((to, index) => phrases.slice(edges[index], to)) };
+}
+
+// 題の字の大きさ・列（句の並びの並び）と、題を置く長方形（面の % の left・right・top・bottom）。
+// 長さは面の幅を 1 とした値。絵は面の丈に合わせて左上に付いているので、絵の 1 px は面の丈 ÷ 1200。
+function coverTitleLayout(title, image) {
+  const { center, room } = COVER_FRAMES[image];
+  const faceHeight = 1 / COVER_ASPECT;
+  const unit = faceHeight / COVER_IMAGE_PX[1];
+  const cx = center[0] * unit;
+  const cy = center[1] * unit;
+  // 列の丈は字の送りの計算どおりに出るので、ちょうどに合わせると端数で最後の一字がはみ出す。その分の余り。
+  const slack = 1.02;
+  const phrases = coverTitlePhrases(title);
+  for (let count = 1; count <= phrases.length; count += 1) {
+    const { longest, columns } = splitCoverColumns(phrases, count);
+    // まとまりの幅（字の箱の端から端。列の間は行の送り、両端の列は字の幅 1em）と列の丈を、字の大きさ 1 で。
+    const across = ((count - 1) * COVER_TITLE_PITCH + 1) * COVER_TITLE_EM;
+    const along = longest * COVER_TITLE_EM * COVER_TITLE_ADVANCE;
+    const fit = room
+      .map(([halfWidth, halfHeight]) => ({ halfWidth, halfHeight, scale: Math.min(1, (2 * halfWidth * unit) / across, (2 * halfHeight * unit) / (along * slack)) }))
+      .reduce((a, b) => (b.scale > a.scale ? b : a));
+    if (fit.scale < COVER_TITLE_MIN_SCALE) continue;
+    const group = {
+      x0: (cx - (across * fit.scale) / 2) * 100,
+      x1: (cx + (across * fit.scale) / 2) * 100,
+      y0: ((cy - (along * fit.scale) / 2) / faceHeight) * 100,
+      y1: ((cy + (along * fit.scale) / 2) / faceHeight) * 100
+    };
+    if (boxesMeet(group, EX_LIBRIS_INK)) throw new Error(`cover title reaches the ex-libris: ${title}`);
+    return {
+      scale: fit.scale,
+      columns,
+      left: (cx - fit.halfWidth * unit) * 100,
+      right: (1 - cx - fit.halfWidth * unit) * 100,
+      top: ((cy - fit.halfHeight * unit) / faceHeight) * 100,
+      bottom: (1 - (cy + fit.halfHeight * unit) / faceHeight) * 100
+    };
+  }
+  throw new Error(`cover title does not fit the ${image} frame at the smallest letters: ${title}`);
+}
+
+// 列は改行（br）で折る。副題は一つの span に入れ、列をまたぐときは span の中で折る（副題の頭の空きは最初の列にだけ付く）。
+function buildCoverTitle(layout) {
   const node = document.createElement('span');
   node.className = 'academy-library-cover-title';
-  fillSpineTitle(node, title);
+  let subtitle = null;
+  layout.columns.forEach((column, index) => {
+    if (index > 0) (subtitle ?? node).append(document.createElement('br'));
+    for (const phrase of column) {
+      if (!phrase.sub) {
+        node.append(phrase.text);
+        continue;
+      }
+      if (!subtitle) {
+        subtitle = document.createElement('span');
+        subtitle.className = 'academy-library-book-subtitle';
+        node.append(subtitle);
+      }
+      subtitle.append(phrase.text);
+    }
+  });
   node.style.setProperty('--cover-title-scale', layout.scale.toFixed(3));
   for (const side of ['left', 'right', 'top', 'bottom']) node.style[side] = pct(layout[side]);
   return node;
+}
+
+// 表紙の面の中身: 本ごとの色合い（hue・saturate・brightness の filter）を掛ける地 -paint と、その外に置く金の題。題の金は
+// 本ごとの色に引かれず、どの本でも同じ。
+function coverFaceLayers(title, frame) {
+  const paint = document.createElement('span');
+  paint.className = 'academy-library-cover-paint';
+  return [paint, buildCoverTitle(coverTitleLayout(title, frame))];
 }
 
 const pct = (value) => `${value.toFixed(3)}%`;
@@ -467,8 +705,8 @@ function pulledBack() {
 
 // ── 頁の紙: 見開きの絵（book_spread.jpg・2000×1250）の上で測った頁の形 ─────────────────────────────────────────
 // 開いた本は手前（下）ほど広い台形に描かれ、紙は綴じ目から頁の幅の 1/4 ほどの所で盛り上がって、外の縁と綴じ目へ落ちる。
-// 頁に書かれるものは全部この紙の上に載せる: 平らに組んだ頁の字（頁の箱）を、紙の内側に取った字の台形へ射影で写し（奥ほど
-// 小さく細い）、字ごとに紙の反りの分だけ持ち上げる。値はどれも絵の px。
+// 頁に書かれるものは全部この紙の上に載せる: 平らに組んだ頁（頁の箱）を一枚として紙の反りの網で持ち上げ、紙の内側に取った
+// 字の台形へ射影で写す（奥ほど小さく細い）。値はどれも絵の px。
 const SPREAD_IMAGE = { width: 2000, height: 1250 };
 // 字を置く台形。角は頁の箱の [左上, 右上, 右下, 左下] に当たる。外の縁・綴じ目・天地から、手前ほど広い余白を取り（奥の余白は
 // 手前の 0.88 倍）、綴じ目の側は紙が綴じ目へ急に落ちる所（綴じ目から頁の幅の 1 割）より外に取る。
@@ -565,7 +803,8 @@ function paintedFrame(painter) {
   };
 }
 
-// 字は一字ずつの span（.academy-library-glyph）に入れて組む（紙の反りで一字ずつ持ち上げるため）。改行はそのまま置く。
+// 字は一字ずつの span（.academy-library-glyph）に入れて組む（墨の一枚へ一字ずつ書き写し、見えない span は紙の上の字の場所へ
+// 動かして当たりと選択を持たせるため）。改行はそのまま置く。
 function glyphText(text) {
   const fragment = document.createDocumentFragment();
   for (const char of text) {
@@ -581,7 +820,7 @@ function glyphText(text) {
   return fragment;
 }
 
-// 頁の上の細い線（題の下・脚注の上）。線の形は頁を紙へ載せるときに反りに沿って引く。
+// 頁の上の細い線（題の下・脚注の上）。線は頁を紙へ載せるときに墨の一枚へ書く。
 function pageRule() {
   const rule = document.createElement('span');
   rule.className = 'academy-library-page-rule';
@@ -590,10 +829,10 @@ function pageRule() {
 }
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
-const RULE_SAMPLES = 24;
 
 // 頁の箱（平らに組む面）と紙の対応。箱を描いた要素（見開きか、めくる一枚の面の紙）が offsetParent で、紙の形はその要素の上の
-// 絵から取る。projection は組みの上の点を箱の上の点へ写し、liftAt は組みの上の一点を紙の反りの分だけ持ち上げる縦のずれを返す。
+// 絵から取る。projection は箱の上の点を紙の上の字の台形へ写し、lift は組みの上の一点を、紙の反りで持ち上がった先の点（同じ
+// 箱の上・projection を掛ける前）へ写す。頁の字の一枚・当たりの span・待ちの線はどれもこの二つで紙へ載る。
 function paperMap(boxEl, side) {
   const painter = boxEl.offsetParent;
   if (!painter) throw new Error('library screen: a page is laid on paper while it is not displayed');
@@ -601,74 +840,315 @@ function paperMap(boxEl, side) {
   const toLocal = ([x, y]) => [x * frame.scaleX + frame.left - boxEl.offsetLeft, y * frame.scaleY + frame.top - boxEl.offsetTop];
   const toImage = ([x, y]) => [(x + boxEl.offsetLeft - frame.left) / frame.scaleX, (y + boxEl.offsetTop - frame.top) / frame.scaleY];
   const projection = quadProjection(boxEl.offsetWidth, boxEl.offsetHeight, PAGE_TEXT_QUADS[side].map(toLocal));
-  const liftAt = (point) => {
+  const lift = (point) => {
     const [x, y] = toImage(projection.forward(point));
-    return projection.inverse(toLocal([x, y - paperLift(side, [x, y])]))[1] - point[1];
+    return projection.inverse(toLocal([x, y - paperLift(side, [x, y])]));
   };
-  return { projection, liftAt };
+  return { projection, lift };
 }
+
+// ── 頁の墨: 組んだ頁を一枚の canvas に書き、紙の反りの網（三角形ごとの affine）で写す ─────────────────────────────
+// 字の span は組みと当たり・選択のために残し、見えない（opacity 0）。選んだ字には、その字の箱に淡い焦茶の地を一枚の上へ敷く
+// （地も字と同じく反りに沿う）。墨の一枚は頁のインク（.academy-library-page-ink）の中に
+// 置かれ、インクと同じ射影（matrix3d）で紙へ載り、インクごと紙と乗算される。墨は焦茶で、ごく薄いにじみと字ごとの濃淡を持つ
+// （位置は動かさない）。濃淡は頁に書かれた字の並びから決まるので、同じ頁はめくる一枚の面の上でも同じ墨になる。
+const SHEET_SCALE = 2;                  // 一枚の解像度（CSS px あたりの画素・devicePixelRatio に掛ける）
+const SHEET_MESH = { columns: 40, rows: 28 };
+const SHEET_BLEED_BLUR = 0.37;          // にじみの幅（CSS px）
+const SHEET_DENSITY = [0.8, 0.94];      // 字ごとの墨の濃さの幅
+// 約物の詰め: Chrome は隣り合う約物の空きを半分に詰め、詰めた字の span は半分の幅になる。開き括弧は左の空きが詰められるので、
+// 詰めた分だけ左へ寄せて書く（閉じ括弧・句読点は右の空きなので、そのままの位置）。
+const SHEET_OPENERS = new Set([...'「『（〈《【〔']);
+const PRESSABLE = '.academy-library-footnote-link, .academy-library-page-retry';
+
+const sheets = new WeakMap();
+// 載せた頁のインク（選択が変わったとき、選択に掛かった頁と掛かっていた頁を描き直すため。外れたインクは次の変化で落とす）。
+const laidInks = new Set();
+
+function cssPx(value, label) {
+  if (!/^-?[\d.]+px$/.test(value)) throw new Error(`library screen: ${label} must be a px length, got ${JSON.stringify(value)}`);
+  return Number.parseFloat(value);
+}
+
+function colorAlpha(value) {
+  const match = /^rgba?\(([^)]+)\)$/.exec(value);
+  if (!match) throw new Error(`library screen: the page ink color must be rgb()/rgba(), got ${JSON.stringify(value)}`);
+  const parts = match[1].split(/[\s,/]+/).filter(Boolean);
+  return parts.length === 4 ? Number.parseFloat(parts[3]) : 1;
+}
+
+function screenToken(el, name) {
+  const value = getComputedStyle(el).getPropertyValue(name).trim();
+  if (!value) throw new Error(`library screen: ${name} is not defined`);
+  return value;
+}
+
+// el の、ancestor（その offsetParent の鎖の上にある）の中での位置。
+function offsetIn(el, ancestor) {
+  let x = 0;
+  let y = 0;
+  for (let node = el; node !== ancestor; node = node.offsetParent) {
+    if (!node) throw new Error('library screen: a page letter is not laid inside its ink');
+    x += node.offsetLeft;
+    y += node.offsetTop;
+  }
+  return [x, y];
+}
+
+// 一枚を書き直す（頁を載せたとき・押せる題の上で指や focus が出入りして下線の色が変わったとき）。
+function paintSheet(ink) {
+  const state = sheets.get(ink);
+  const selection = window.getSelection();
+  const selecting = !selection.isCollapsed && selection.containsNode(ink, true);
+  state.selected = selecting;
+  drawSheet(ink, state.sheet, { letters: state.letters, rules: state.rules, selection: selecting ? selection : null });
+}
+
+// 頁の字と罫（letters・rules・頁の全部かその一部）を target の canvas に書いて紙の反りの網で写す。band（平らな頁の y の範囲）を
+// 渡すと、その範囲に掛かる網の段だけを写し、canvas もその範囲の大きさになる（訳しで一行ずつ墨を結ぶため）。flat は平らな一枚に
+// 使い回す canvas。
+function drawSheet(ink, target, { letters, rules, selection = null, band = null, flat = document.createElement('canvas') }) {
+  const { map, letters: all } = sheets.get(ink);
+  const width = ink.offsetWidth;
+  const height = ink.offsetHeight;
+  const scale = SHEET_SCALE * window.devicePixelRatio;
+  const color = screenToken(ink, '--library-page-ink');
+  const bleed = screenToken(ink, '--library-page-ink-bleed');
+  const margin = Math.ceil(Math.max(0, ...all.map((letter) => letter.h)));
+
+  // 平らな一枚: 頁の箱の外へ margin ずつ広げた範囲（はみ出した字の頭・下線も入る）。
+  flat.width = Math.ceil((width + 2 * margin) * scale);
+  flat.height = Math.ceil((height + 2 * margin) * scale);
+  const f = flat.getContext('2d');
+  if (!f) throw new Error('library screen: no 2d context for the page ink');
+  f.setTransform(scale, 0, 0, scale, margin * scale, margin * scale);
+  f.textBaseline = 'alphabetic';
+  if (selection) {
+    f.fillStyle = screenToken(ink, '--library-page-selection');
+    for (const { glyph, x, y, w, h } of letters) if (selection.containsNode(glyph, true)) f.fillRect(x, y, w, h);
+  }
+  for (const { glyph, x, y, w, h, density } of letters) {
+    const style = getComputedStyle(glyph);
+    f.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const metrics = f.measureText(glyph.textContent);
+    const ascent = metrics.fontBoundingBoxAscent;
+    const baseline = y + (h * ascent) / (ascent + metrics.fontBoundingBoxDescent);
+    const advance = metrics.width + (style.letterSpacing === 'normal' ? 0 : cssPx(style.letterSpacing, 'letter-spacing'));
+    const trimmed = SHEET_OPENERS.has(glyph.textContent) && w < advance * 0.75 ? advance - w : 0;
+    f.globalAlpha = colorAlpha(style.color) * density;
+    f.shadowColor = bleed;
+    f.shadowBlur = SHEET_BLEED_BLUR * scale;
+    f.fillStyle = color;
+    f.fillText(glyph.textContent, x - trimmed, baseline);
+    if (style.textDecorationLine.split(' ').includes('underline')) {
+      f.globalAlpha = 1;
+      f.shadowBlur = 0;
+      f.fillStyle = style.textDecorationColor;
+      f.fillRect(x, baseline + cssPx(style.textUnderlineOffset, 'text-underline-offset'), w, cssPx(style.textDecorationThickness, 'text-decoration-thickness'));
+    }
+  }
+  f.globalAlpha = 1;
+  f.shadowBlur = 0;
+  f.lineWidth = 1;
+  for (const { left, top, width: ruleWidth, color: ruleColor } of rules) {
+    f.strokeStyle = ruleColor;
+    f.beginPath();
+    f.moveTo(left, top);
+    f.lineTo(left + ruleWidth, top);
+    f.stroke();
+  }
+
+  // 網: 平らな一枚の格子の点を紙の反りで持ち上げた先へ、三角形ごとの affine で写す。
+  const { columns, rows } = SHEET_MESH;
+  const flatAt = (i, j) => [(i / columns) * (width + 2 * margin) - margin, (j / rows) * (height + 2 * margin) - margin];
+  const nodes = Array.from({ length: rows + 1 }, (_r, j) => Array.from({ length: columns + 1 }, (_c, i) => map.lift(flatAt(i, j))));
+  let firstRow = 0;
+  let lastRow = rows - 1;
+  if (band) {
+    while (firstRow < rows - 1 && flatAt(0, firstRow + 1)[1] < band[0]) firstRow += 1;
+    while (lastRow > firstRow && flatAt(0, lastRow)[1] > band[1]) lastRow -= 1;
+  }
+  const covered = nodes.slice(firstRow, lastRow + 2).flat();
+  const left = Math.floor(Math.min(...covered.map(([x]) => x)));
+  const top = Math.floor(Math.min(...covered.map(([, y]) => y)));
+  const right = Math.ceil(Math.max(...covered.map(([x]) => x)));
+  const bottom = Math.ceil(Math.max(...covered.map(([, y]) => y)));
+  Object.assign(target.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px` });
+  target.width = Math.ceil((right - left) * scale);
+  target.height = Math.ceil((bottom - top) * scale);
+  const g = target.getContext('2d');
+  if (!g) throw new Error('library screen: no 2d context for the page ink');
+  const src = (i, j) => [((i / columns) * (width + 2 * margin)) * scale, ((j / rows) * (height + 2 * margin)) * scale];
+  const dst = (i, j) => [(nodes[j][i][0] - left) * scale, (nodes[j][i][1] - top) * scale];
+  const triangle = (s, d) => {
+    const [[x0, y0], [x1, y1], [x2, y2]] = s;
+    const [[u0, v0], [u1, v1], [u2, v2]] = d;
+    const det = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
+    const a = ((u1 - u0) * (y2 - y0) - (u2 - u0) * (y1 - y0)) / det;
+    const b = ((u2 - u0) * (x1 - x0) - (u1 - u0) * (x2 - x0)) / det;
+    const c = ((v1 - v0) * (y2 - y0) - (v2 - v0) * (y1 - y0)) / det;
+    const e = ((v2 - v0) * (x1 - x0) - (v1 - v0) * (x2 - x0)) / det;
+    // 継ぎ目が出ないよう、切り抜きの三角形を重心から少し広げる。
+    const cx = (u0 + u1 + u2) / 3;
+    const cy = (v0 + v1 + v2) / 3;
+    const grow = ([x, y]) => [x + (x - cx) * 0.04 + Math.sign(x - cx) * 0.35, y + (y - cy) * 0.04 + Math.sign(y - cy) * 0.35];
+    g.save();
+    g.beginPath();
+    d.map(grow).forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.closePath();
+    g.clip();
+    g.setTransform(a, c, b, e, u0 - a * x0 - b * y0, v0 - c * x0 - e * y0);
+    g.drawImage(flat, 0, 0);
+    g.restore();
+  };
+  for (let j = firstRow; j <= lastRow; j += 1) {
+    for (let i = 0; i < columns; i += 1) {
+      triangle([src(i, j), src(i + 1, j), src(i, j + 1)], [dst(i, j), dst(i + 1, j), dst(i, j + 1)]);
+      triangle([src(i + 1, j), src(i + 1, j + 1), src(i, j + 1)], [dst(i + 1, j), dst(i + 1, j + 1), dst(i, j + 1)]);
+    }
+  }
+}
+
+// 押せる題・再試行の上で指や focus が出入りすると下線の色が変わるので、一枚を次の描画で書き直す。
+function watchPressable(ink) {
+  let queued = false;
+  const repaint = (event) => {
+    const from = event.target.closest(PRESSABLE);
+    const to = event.relatedTarget instanceof Element ? event.relatedTarget.closest(PRESSABLE) : null;
+    if ((!from && !to) || from === to) return;
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      if (ink.isConnected && sheets.has(ink)) paintSheet(ink);
+    });
+  };
+  for (const type of ['pointerover', 'pointerout', 'focusin', 'focusout']) ink.addEventListener(type, repaint);
+}
+
+// 選択が変わったら、選択に掛かった頁と、前に描いたとき掛かっていた頁の一枚を次の描画で描き直す。
+let selectionQueued = false;
+function repaintSelection() {
+  if (selectionQueued) return;
+  selectionQueued = true;
+  requestAnimationFrame(() => {
+    selectionQueued = false;
+    const selection = window.getSelection();
+    for (const ink of laidInks) {
+      if (!ink.isConnected || !sheets.has(ink)) {
+        laidInks.delete(ink);
+        continue;
+      }
+      const selecting = !selection.isCollapsed && selection.containsNode(ink, true);
+      if (selecting || sheets.get(ink).selected) paintSheet(ink);
+    }
+  });
+}
+document.addEventListener('selectionchange', repaintSelection);
 
 // 頁（.academy-library-page）の字を紙へ載せる。頁の大きさが変わったら（窓の大きさが変わったら）載せ直す。
 function layPageOnPaper(pageEl, side) {
   const ink = pageEl.querySelector('.academy-library-page-ink');
   if (!ink) return;
-  const { projection, liftAt } = paperMap(pageEl, side);
-  ink.style.transform = projection.css;
-  const glyphs = [...ink.querySelectorAll('.academy-library-glyph')];
-  for (const glyph of glyphs) glyph.style.top = '';
-  const centres = glyphs.map((glyph) => [glyph.offsetLeft + glyph.offsetWidth / 2, glyph.offsetTop + glyph.offsetHeight / 2]);
-  const rules = [...ink.querySelectorAll('.academy-library-page-rule')].map((rule) => ({ rule, left: rule.offsetLeft, top: rule.offsetTop, width: rule.offsetWidth }));
-  glyphs.forEach((glyph, index) => { glyph.style.top = `${liftAt(centres[index]).toFixed(2)}px`; });
-  for (const { rule, left, top, width } of rules) {
-    const points = Array.from({ length: RULE_SAMPLES + 1 }, (_unused, i) => {
-      const x = (width * i) / RULE_SAMPLES;
-      return `${x.toFixed(2)} ${liftAt([left + x, top]).toFixed(2)}`;
-    });
+  const map = paperMap(pageEl, side);
+  ink.style.transform = map.projection.css;
+  // 罫の span には高さ 1 の svg を置く（組みの深さは罫の上の margin と頭の下の margin が潰れずに足された深さ）。線は一枚に書く。
+  for (const rule of ink.querySelectorAll('.academy-library-page-rule')) {
+    if (rule.firstElementChild) continue;
     const line = document.createElementNS(SVG_NS, 'svg');
-    line.setAttribute('width', String(width));
+    line.setAttribute('width', '100%');
     line.setAttribute('height', '1');
-    const path = document.createElementNS(SVG_NS, 'path');
-    path.setAttribute('d', `M ${points.join(' L ')}`);
-    line.append(path);
-    rule.replaceChildren(line);
+    rule.append(line);
   }
+  const glyphs = [...ink.querySelectorAll('.academy-library-glyph')];
+  for (const glyph of glyphs) {
+    glyph.style.left = '';
+    glyph.style.top = '';
+  }
+  const random = seededRandom(hash32(glyphs.map((glyph) => glyph.textContent).join('')));
+  const [low, high] = SHEET_DENSITY;
+  const letters = glyphs.map((glyph) => {
+    const [x, y] = offsetIn(glyph, ink);
+    return { glyph, x, y, w: glyph.offsetWidth, h: glyph.offsetHeight, density: low + (high - low) * random() };
+  });
+  const rules = [...ink.querySelectorAll('.academy-library-page-rule')].map((rule) => {
+    const [left, top] = offsetIn(rule, ink);
+    return { left, top, width: rule.offsetWidth, color: getComputedStyle(rule).color };
+  });
+  // 見えない字の span を、一枚の上でその字が書かれた所（字の中心を持ち上げた先）へ動かす: 押せる題の当たりと字の選択は、見えて
+  // いる字の上にある。
+  for (const { glyph, x, y, w, h } of letters) {
+    const centre = [x + w / 2, y + h / 2];
+    const [lx, ly] = map.lift(centre);
+    glyph.style.left = `${(lx - centre[0]).toFixed(2)}px`;
+    glyph.style.top = `${(ly - centre[1]).toFixed(2)}px`;
+  }
+  let sheet = ink.querySelector(':scope > .academy-library-page-sheet');
+  if (!sheet) {
+    sheet = document.createElement('canvas');
+    sheet.className = 'academy-library-page-sheet';
+    sheet.setAttribute('aria-hidden', 'true');
+    ink.prepend(sheet);
+    watchPressable(ink);
+  }
+  sheets.set(ink, { map, letters, rules, sheet, selected: false });
+  laidInks.add(ink);
+  paintSheet(ink);
 }
 
-// ── 筆の線: 一行ぶんの墨の線を、続け字の山と輪（サイクロイド）を語ごとにつないで作る ─────────────────────────────
-// 字ごとに、輪を作らない山（loop < 1）・足もとに輪を作る字（loop > 1）・丈の高い字が混ざり、語の長さ・字の幅・語の間・
-// 行の傾きも行ごとの乱数で変わるので、同じ線は二度と出ない。値は頁の行の丈（lineH）に対する割合。
-// 返すのは語ごとの点の列（組みの上の x と、行の中心からの縦のずれ）。
-function sketchWords(random, { from, to, lineH, scale = 1 }) {
-  const between = (min, max) => min + (max - min) * random();
-  const words = [];
-  let x = from;
-  for (;;) {
-    const letters = 2 + Math.floor(random() * 6);
-    const widths = Array.from({ length: letters }, () => lineH * scale * between(0.26, 0.42));
-    const length = widths.reduce((sum, width) => sum + width, 0);
-    if (x + length > to) {
-      // 行の終わりに残った幅が語に足りれば、短い語で行を埋める。
-      if (to - x < lineH * scale * 0.6) break;
-      widths.length = Math.max(1, Math.floor(((to - x) / length) * letters));
-    }
-    const points = [];
-    const drift = between(-0.03, 0.03) * lineH;
-    for (const width of widths) {
-      const loop = random() < 0.4 ? between(1.3, 2.2) : between(0.2, 0.9);
-      const rise = lineH * scale * 0.26 * (random() < 0.2 ? between(1.5, 2.1) : between(0.55, 1.1));
-      const a = width / (2 * Math.PI);
-      const start = points.length ? 1 : 0;
-      for (let i = start; i <= 16; i += 1) {
-        const t = (i / 16) * 2 * Math.PI;
-        points.push([x + a * t - a * loop * Math.sin(t), lineH * scale * 0.14 - rise * (0.5 - 0.5 * Math.cos(t)) + drift * ((x - from + a * t) / lineH)]);
-      }
-      x += width;
-    }
-    words.push(points);
-    x += lineH * scale * between(0.18, 0.46);
-    if (x >= to) break;
+// 字の基線（字の span の箱の上端 top・高さ h から。墨の一枚の字と同じ決め方）。
+function letterBaseline(context, glyph, top, h) {
+  const style = getComputedStyle(glyph);
+  context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+  const metrics = context.measureText(glyph.textContent);
+  const ascent = metrics.fontBoundingBoxAscent;
+  return top + (h * ascent) / (ascent + metrics.fontBoundingBoxDescent);
+}
+
+// ── 訳し: 載せた頁の墨を行に分ける（本文が届いたとき、行の順にこの世界の文字から日本語へ移るため） ─────────────────────────
+// 行は字の span の箱の中心の高さで分け、罫は一本ずつの行にする。base は行の基線、size は字の大きさ、from・to は字の左右の端
+// （行の頭の空白を除く）。値はどれも頁の箱（平らな組み）の px。
+function pageLines(ink) {
+  const { letters, rules } = sheets.get(ink);
+  const context = document.createElement('canvas').getContext('2d');
+  if (!context) throw new Error('library screen: no 2d context for the page lines');
+  const rows = [];
+  for (const letter of [...letters].sort((a, b) => a.y + a.h / 2 - (b.y + b.h / 2))) {
+    const centre = letter.y + letter.h / 2;
+    const row = rows.at(-1);
+    if (row && Math.abs(centre - row.centre) <= letter.h * 0.5) row.letters.push(letter);
+    else rows.push({ centre, letters: [letter] });
   }
-  return words;
+  const lines = rows.map(({ letters: line }) => {
+    const first = line[0];
+    const inked = line.filter((letter) => letter.glyph.textContent.trim());
+    const span = inked.length ? inked : line;
+    const kind = first.glyph.closest('.academy-library-page-title') ? 'title' : first.glyph.closest('.academy-library-page-category') ? 'category' : 'body';
+    return {
+      kind,
+      letters: line,
+      rules: [],
+      base: letterBaseline(context, first.glyph, first.y, first.h),
+      size: cssPx(getComputedStyle(first.glyph).fontSize, 'the page letter size'),
+      from: Math.min(...span.map((letter) => letter.x)),
+      to: Math.max(...span.map((letter) => letter.x + letter.w)),
+      top: Math.min(...line.map((letter) => letter.y)),
+      bottom: Math.max(...line.map((letter) => letter.y + letter.h))
+    };
+  });
+  for (const rule of rules) lines.push({ kind: 'rule', letters: [], rules: [rule], base: rule.top, from: rule.left, to: rule.left + rule.width, top: rule.top, bottom: rule.top });
+  return lines.sort((a, b) => a.base - b.base);
+}
+
+// 頁の一行ぶんの墨を、頁の一枚と同じ網で写した一枚（.academy-library-page-line）にして頁のインクへ置く。
+function paintPageLine(ink, line, flat) {
+  const canvas = document.createElement('canvas');
+  canvas.className = 'academy-library-page-line';
+  canvas.setAttribute('aria-hidden', 'true');
+  const reach = Math.max(4, ...line.letters.map((letter) => letter.h * 0.5));
+  drawSheet(ink, canvas, { letters: line.letters, rules: line.rules, band: [line.top - reach, line.bottom + reach], flat });
+  ink.append(canvas);
+  return canvas;
 }
 
 // ── 応答の形: DOM に触れる前に確かめる（壊れた応答で半端な棚や頁を出さない） ─────────────────────────
@@ -754,6 +1234,8 @@ export function createLibraryScreen(deps) {
     sketchLeft: $('.academy-library-sketch-left'),
     sketchRight: $('.academy-library-sketch-right'),
     brush: $('.academy-library-brush'),
+    brushShadow: $('.academy-library-brush-shadow'),
+    brushBody: $('.academy-library-brush-body'),
     coverLeaf: $('.academy-library-cover-leaf'),
     coverFace: $('.academy-library-cover-face'),
     exLibris: $('.academy-library-ex-libris'),
@@ -766,6 +1248,7 @@ export function createLibraryScreen(deps) {
   const syncMotion = () => { root.dataset.motion = reduced() ? 'reduced' : 'full'; };
   syncMotion();
   const isActive = () => root.classList.contains('active');
+  let coverFaces = null;
 
   // 一度の訪れ（enter から次の enter / suspend まで）。流れは始めた訪れの番号を持ち、訪れが替わっていたら止まる。
   let visit = 0;
@@ -831,13 +1314,43 @@ export function createLibraryScreen(deps) {
       node.style.setProperty('--lamp-size', `${lamp.size}%`);
       node.style.setProperty('--breath', `${(4 + ((index * 7) % 5) * 0.5).toFixed(1)}s`);
       node.style.setProperty('--breath-delay', `${(-index * 0.83).toFixed(2)}s`);
-      if (lamp.depth !== undefined) {
-        node.dataset.depth = String(lamp.depth);
-        node.style.setProperty('--depth-delay', `${(lamp.depth * SEEK_CYCLE_MS) / 6 / 1000}s`);
-      }
       els.lamps.append(node);
+      if (lamp.depth === undefined) continue;
+      node.dataset.depth = String(lamp.depth);
+      const glow = document.createElement('span');
+      glow.className = 'academy-library-lamp-glow';
+      glow.dataset.depth = String(lamp.depth);
+      glow.style.left = `${lamp.x}%`;
+      glow.style.top = `${lamp.y}%`;
+      glow.style.setProperty('--lamp-size', `${lamp.size}%`);
+      els.lamps.append(glow);
     }
   }
+
+  // 待ちの間だけ、depth のある灯りの暈に明るみの送りを走らせる（応答まで途切れない）。動きを減らす設定では走らせない
+  // （そのときの待ちの灯りは CSS の三か所の順の灯り）。場面か動きの設定が変わるたびに sync で合わせ直す。
+  // 現れと引きは filter の opacity で掛け、送りの opacity とは別の値にする。
+  const seek = (() => {
+    let sweeps = [];
+    function sync() {
+      const glows = [...els.lamps.querySelectorAll('.academy-library-lamp-glow')];
+      const waiting = root.dataset.scene === 'waiting' && !reduced();
+      const sweeping = sweeps.some((sweep) => sweep.playState === 'running');
+      if (waiting === sweeping) return;
+      if (waiting) {
+        sweeps = glows.map((glow) => glow.animate(seekKeyframes(Number(glow.dataset.depth)), { duration: SEEK_CYCLE_MS, iterations: Infinity }));
+        for (const glow of glows) glow.animate([{ filter: 'opacity(0)' }, { filter: 'opacity(1)' }], { duration: SEEK_FADE_MS, easing: EASE });
+        return;
+      }
+      for (const [index, sweep] of sweeps.entries()) {
+        sweep.pause();
+        const fade = glows[index].animate([{ filter: 'opacity(1)' }, { filter: 'opacity(0)' }], { duration: SEEK_FADE_MS, easing: EASE, fill: 'forwards' });
+        fade.finished.then(() => { sweep.cancel(); fade.cancel(); }, () => {});
+      }
+      sweeps = [];
+    }
+    return { sync };
+  })();
 
   // 消失点（通路の奥）の画面座標。
   function vanishingPoint() {
@@ -942,7 +1455,10 @@ export function createLibraryScreen(deps) {
 
   reducedQuery.addEventListener('change', () => {
     syncMotion();
-    if (isActive()) dust.restart();
+    if (isActive()) {
+      dust.restart();
+      seek.sync();
+    }
   });
 
   // ── 請求票と机の灯り: 票は机の上に置いたまま動かない。渡すと、票を照らしていた机の灯りが票を離れて通路の奥へ移り、
@@ -1008,115 +1524,147 @@ export function createLibraryScreen(deps) {
   }
 
   // ── 棚 ────────────────────────────────────────────────────────────────────────────────────────
-  const shelfState = { books: [], nodes: [] };
+  // lays は本ごとの背の面を今の絵の大きさで組み直す手続き（射影は px で書くので、窓の大きさが変わると組み直す）。
+  const shelfState = { books: [], nodes: [], lays: [] };
 
-  // 本はその題が下限の字で収まる段にだけ置く（長い題の本ほど背の高い段へ。置き方は assignBays）。段の中は届いた順に並べる。
-  // 下限の字でもどの段にも収まらない本があるとき、どう置いても段に入りきらないときは throw（棚を出さない）。
-  function layoutShelf(books, looks) {
-    const artPx = els.art.getBoundingClientRect().width;
+  // 題を一列に書いた長さ（字の大きさ 1em あたり）を画面の字そのもので測る。
+  function measureTitles(books) {
     const measure = document.createElement('span');
     measure.className = 'academy-library-book-title-text academy-library-book-title-measure';
     els.shelf.append(measure);
-    let lengths;
+    const em = (fill) => {
+      fill();
+      return measure.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(measure).fontSize);
+    };
     try {
-      lengths = books.map((book) => titleLength(measure, book.title, artPx));
+      return books.map((book) => {
+        const { main, sub } = splitTitle(book.title);
+        return {
+          line: em(() => fillSpineTitle(measure, book.title)),
+          main: em(() => measure.replaceChildren(document.createTextNode(main))),
+          sub: sub === null ? null : em(() => measure.replaceChildren(document.createTextNode(sub)))
+        };
+      });
     } finally {
       measure.remove();
     }
-    const scales = books.map((_book, index) => SHELF_BAYS.map((bay) => Math.min(1, (bayHeight(bay) * looks[index].heightF - 2 * SPINE_PAD_Y) / lengths[index])));
-    const fits = scales.map((row) => row.map((scale) => scale >= TITLE_MIN_SCALE));
+  }
+
+  // 本はその題箋が下限の字で収まる背にだけ置く（置き方は assignSlots）。下限の字でもどの背にも収まらない本があるとき、どう
+  // 置いても背に入りきらないときは throw（棚を出さない）。
+  function layoutShelf(books) {
+    const lengths = measureTitles(books);
+    const labels = lengths.map((length) => SHELF_SLOTS.map((slot) => labelAt(slot, length)));
+    const fits = labels.map((row) => row.map((label, slot) => labelScale(SHELF_SLOTS[slot], label) >= TITLE_MIN_SCALE));
     books.forEach((book, index) => {
-      if (!fits[index].includes(true)) throw new Error(`library screen: no painted shelf holds 「${book.title}」 at the smallest title scale`);
+      if (!fits[index].includes(true)) throw new Error(`library screen: no painted spine holds 「${book.title}」 at the smallest title scale`);
     });
-    const members = assignBays(fits, looks, lengths);
-    if (!members) throw new Error(`library screen: the painted shelves have no room for all ${books.length} books`);
-    const placements = new Array(books.length);
-    const used = [];
-    for (const [bayIndex, bay] of SHELF_BAYS.entries()) {
-      if (!members[bayIndex].length) continue;
-      used.push(bay);
-      let x = bay.x[0];
-      for (const [position, index] of members[bayIndex].entries()) {
-        const look = looks[index];
-        const squeeze = lineAt(bay.x, bay.squeeze, x);
-        placements[index] = spineQuad(bay, x, look.spineW * squeeze, look.heightF, scales[index][bayIndex], position);
-        x += (look.spineW + look.spineGap) * squeeze;
-      }
-    }
-    return { placements, bays: used };
+    const slotOf = assignSlots(fits);
+    if (!slotOf) throw new Error(`library screen: the painted spines have no room for all ${books.length} books`);
+    return slotOf.map((slot, index) => {
+      const label = labels[index][slot];
+      return { slot: SHELF_SLOTS[slot], label, scale: labelScale(SHELF_SLOTS[slot], label) };
+    });
+  }
+
+  // 背の面（平らに組んだ背の地・色・題箋）を背の四辺形へ写す。単位は絵の px を今の絵の大きさの px に直したもの。背の地は絵の
+  // source の四辺形を背の面へ写したもの（上と下の段では背そのものの所）。
+  function layFace({ face, paint, label, text }, { slot, label: size, scale }, box) {
+    const unit = els.art.getBoundingClientRect().width / ART_UNIT;
+    const px = (value) => `${(value * unit).toFixed(3)}px`;
+    const { width, height } = slot.face;
+    face.style.width = px(width);
+    face.style.height = px(height);
+    face.style.transform = quadProjection(width * unit, height * unit, slot.quad.map(([x, y]) => [(x - box.left) * unit, (y - box.top) * unit])).css;
+    const source = boundsOf(slot.source);
+    const toSource = quadProjection(width * unit, height * unit, slot.source.map(([x, y]) => [(x - source.left) * unit, (y - source.top) * unit]));
+    paint.style.width = px(source.width);
+    paint.style.height = px(source.height);
+    paint.style.backgroundSize = px(ART_UNIT);
+    paint.style.backgroundPosition = `${px(-source.left)} ${px(-source.top)}`;
+    paint.style.transform = quadProjection(source.width * unit, source.height * unit,
+      [[0, 0], [source.width, 0], [source.width, source.height], [0, source.height]].map(([x, y]) => toSource.inverse([x * unit, y * unit]))).css;
+    const labelWidth = Math.min(size.width, size.sub === null ? size.char * scale * LABEL.widthEm : size.width);
+    const labelHeight = size.height * scale;
+    const labelTop = slot.label.top ?? Math.min(slot.room[1] - labelHeight, Math.max(slot.room[0], slot.label.centre - labelHeight / 2));
+    label.style.left = px((width - labelWidth) / 2);
+    label.style.top = px(labelTop);
+    label.style.width = px(labelWidth);
+    label.style.height = px(labelHeight);
+    label.style.fontSize = px(size.char * scale);
+    if (size.sub !== null) text.style.setProperty('--subtitle-scale', String(size.sub / size.char));
   }
 
   function buildBookNode(book, index, look, place) {
+    const { slot } = place;
     const node = document.createElement('button');
     node.type = 'button';
     node.className = 'academy-library-book-item';
     node.dataset.cover = book.cover;
     node.dataset.index = String(index);
-    node.dataset.piece = look.piece;
     node.setAttribute('aria-label', book.title);
     applyLookVars(node, look);
     // 箱は背の四辺形を囲む長方形。中の位置はどれも箱に対する %。
-    const [tl, tr, br, bl] = place.corners;
-    const boxLeft = Math.min(tl[0], bl[0]);
-    const boxTop = Math.min(tl[1], tr[1]);
-    const boxWidth = Math.max(tr[0], br[0]) - boxLeft;
-    const boxHeight = Math.max(bl[1], br[1]) - boxTop;
-    const bx = (x) => pct(((x - boxLeft) / boxWidth) * 100);
-    const by = (y) => pct(((y - boxTop) / boxHeight) * 100);
-    node.style.left = pct(boxLeft);
-    node.style.top = pct(boxTop);
-    node.style.width = pct(boxWidth);
-    node.style.height = pct(boxHeight);
-    node.style.setProperty('--order', String(place.order));
+    const box = boundsOf(slot.quad);
+    const [, tr, br] = slot.quad;
+    const heightR = br[1] - tr[1];
+    const bx = (x) => pct(((x - box.left) / box.width) * 100);
+    const by = (y) => pct(((y - box.top) / box.height) * 100);
+    node.style.left = artPct(box.left);
+    node.style.top = artPct(box.top);
+    node.style.width = artPct(box.width);
+    node.style.height = artPct(box.height);
+    node.style.setProperty('--order', String(slot.order));
     node.style.setProperty('--drawn-transform', pulledOut(1).transform);
     node.style.setProperty('--rest-transform', pulledBack());
-    node.style.setProperty('--title-scale', place.titleScale.toFixed(3));
-    node.style.setProperty('--pull-dx', `calc(var(--library-art-size) * ${(place.pullDistance / 100).toFixed(5)})`);
-    node.style.setProperty('--pull-x', String(place.pull[0]));
-    node.style.setProperty('--pull-y', String(place.pull[1]));
-    node.dataset.bayLeft = String(place.bayLeft);
+    node.style.setProperty('--pull-dx', `calc(var(--library-art-size) * ${((heightR * PULL_REACH) / ART_UNIT).toFixed(5)})`);
+    node.style.setProperty('--pull-x', String(SHELF_PULL[0]));
+    node.style.setProperty('--pull-y', String(SHELF_PULL[1]));
 
-    // 背: 四辺形で切り抜き、中の装丁は天地の縁の平均の勾配で傾ける（天地のずれは切り抜きが吸う）。
+    // 背: 背の面（地・色・題箋）を平らに組み、layFace が背の四辺形へ写す。
     const spine = document.createElement('span');
     spine.className = 'academy-library-book-spine';
-    spine.style.clipPath = `polygon(${place.corners.map(([x, y]) => `${bx(x)} ${by(y)}`).join(', ')})`;
-    const slopeTop = (tr[1] - tl[1]) / place.width;
-    const slopeBottom = (br[1] - bl[1]) / place.width;
-    const pad = (place.width * Math.abs(slopeTop - slopeBottom)) / 2 + 0.05;
-    const skinHeight = Math.max(bl[1] - tl[1], br[1] - tr[1]) + 2 * pad;
-    const skin = document.createElement('span');
-    skin.className = 'academy-library-book-skin';
-    skin.style.left = bx(bl[0]);
-    skin.style.width = pct((place.width / boxWidth) * 100);
-    skin.style.top = by(tl[1] - pad);
-    skin.style.height = pct((skinHeight / boxHeight) * 100);
-    skin.style.transform = `skewY(${Math.atan((slopeTop + slopeBottom) / 2).toFixed(4)}rad)`;
-    const parts = ['face', 'deco', 'wear', 'light'].map((part) => {
-      const el = document.createElement('span');
-      el.className = `academy-library-book-${part}`;
-      return el;
-    });
-    const title = document.createElement('span');
-    title.className = 'academy-library-book-title';
-    const titleText = document.createElement('span');
-    titleText.className = 'academy-library-book-title-text';
-    fillSpineTitle(titleText, book.title);
-    title.append(titleText);
-    skin.append(...parts, title);
-    spine.append(skin);
+    if (slot.cut) spine.style.clipPath = `polygon(${above(slot.quad, slot.cut).map(([x, y]) => `${bx(x)} ${by(y)}`).join(', ')})`;
+    const face = document.createElement('span');
+    face.className = 'academy-library-book-face';
+    const paint = document.createElement('span');
+    paint.className = 'academy-library-book-paint';
+    const tint = document.createElement('span');
+    tint.className = 'academy-library-book-tint';
+    const label = document.createElement('span');
+    label.className = 'academy-library-book-label';
+    const text = document.createElement('span');
+    text.className = 'academy-library-book-title-text';
+    if (place.label.sub === null) {
+      fillSpineTitle(text, book.title);
+    } else {
+      const { main, sub } = splitTitle(book.title);
+      const columns = [main, sub].map((part, column) => {
+        const el = document.createElement('span');
+        el.className = column === 0 ? 'academy-library-book-title-column' : 'academy-library-book-title-column academy-library-book-subtitle-column';
+        el.textContent = part;
+        return el;
+      });
+      text.classList.add('academy-library-book-title-columns');
+      text.replaceChildren(...columns);
+    }
+    label.append(text);
+    face.append(paint, tint, label);
+    spine.append(face);
+    const lay = () => layFace({ face, paint, label, text }, place, box);
 
     // 表紙の面: 背の右の縁から、右隣の本の陰だった所へ。見える幅は引き出した分（--pull-dx）だけ。
     const reveal = document.createElement('span');
     reveal.className = 'academy-library-book-reveal';
     reveal.style.left = bx(br[0]);
     reveal.style.top = by(tr[1]);
-    reveal.style.height = pct((place.heightR / boxHeight) * 100);
+    reveal.style.height = pct((heightR / box.height) * 100);
     const cover = document.createElement('span');
     cover.className = 'academy-library-book-cover';
     cover.style.setProperty('--cover-aspect', COVER_ASPECT.toFixed(4));
     const coverFace = document.createElement('span');
     coverFace.className = 'academy-library-cover-face';
-    coverFace.append(buildCoverTitle(book.title, coverTitleLayout(book.title, look.frame)));
+    coverFace.append(...coverFaceLayers(book.title, look.frame));
     cover.append(coverFace);
     reveal.append(cover);
     node.append(spine, reveal);
@@ -1125,16 +1673,26 @@ export function createLibraryScreen(deps) {
     node.addEventListener('focus', () => drawOut(node));
     node.addEventListener('blur', () => pushBack(node));
     node.addEventListener('click', () => { openFromShelf(node, book).catch(quietly); });
-    return node;
+    return { node, lay };
+  }
+
+  function layShelf() {
+    for (const lay of shelfState.lays) lay();
   }
 
   function renderShelf(books) {
     const looks = books.map((book) => bookLook(book.key, book.cover));
-    const { placements, bays } = layoutShelf(books, looks);
-    const nodes = books.map((book, index) => buildBookNode(book, index, looks[index], placements[index]));
-    els.shelf.replaceChildren(...bays.map(buildBayNode), ...nodes);
+    const places = layoutShelf(books);
+    const built = books.map((book, index) => buildBookNode(book, index, looks[index], places[index]));
+    const shades = [
+      buildShadeNode(MIDDLE_MOUTH, { duration: 1400, delay: 200 }),
+      ...places.flatMap(({ slot }, index) => (slot.bay === 'middle' ? [] : [buildShadeNode(slotShade(slot), { duration: SHELVE_MS * SHELVE_SHOWN, delay: index * SHELVE_STAGGER_MS })]))
+    ];
+    els.shelf.replaceChildren(...shades, ...built.map(({ node }) => node));
     shelfState.books = books;
-    shelfState.nodes = nodes;
+    shelfState.nodes = built.map(({ node }) => node);
+    shelfState.lays = built.map(({ lay }) => lay);
+    layShelf();
   }
 
   // 通路の側から一冊ずつ、引き出したときと逆の向きで棚へ押し込まれる（1冊 0.9 秒・0.12 秒ずつずらし・弾まずに止まる）。
@@ -1146,11 +1704,11 @@ export function createLibraryScreen(deps) {
     }
     const from = pulledOut(SHELVE_REACH);
     await Promise.all(shelfState.nodes.flatMap((node, index) => {
-      const timing = { duration: 900, delay: index * 120 };
+      const timing = { duration: SHELVE_MS, delay: index * SHELVE_STAGGER_MS };
       return [
         run(node, [
           { transform: from.transform, opacity: '0', filter: 'brightness(0.35)' },
-          { opacity: '1', offset: 0.35 },
+          { opacity: '1', offset: SHELVE_SHOWN },
           { transform: 'none', opacity: '1', filter: 'none' }
         ], timing),
         run(node.querySelector('.academy-library-book-reveal'), [{ width: from.width }, { width: '0px' }], timing)
@@ -1168,6 +1726,7 @@ export function createLibraryScreen(deps) {
     const nodes = shelfState.nodes;
     shelfState.nodes = [];
     shelfState.books = [];
+    shelfState.lays = [];
     els.shelf.dataset.leaving = 'true';
     try {
       if (nodes.length && !reduced()) {
@@ -1219,10 +1778,12 @@ export function createLibraryScreen(deps) {
     try {
       await keep(Promise.all([slipLeaves(), clearShelf()]));
       root.dataset.scene = 'waiting';
+      seek.sync();
       const books = await keep(request);
       renderShelf(books);
       for (const node of shelfState.nodes) node.style.opacity = '0';
       root.dataset.scene = 'returning';
+      seek.sync();
       await keep(slideBooksIn());
       for (const node of shelfState.nodes) node.style.opacity = '';
       await keep(slipReturns({ blank: true }));
@@ -1233,6 +1794,7 @@ export function createLibraryScreen(deps) {
       console.error(error);
       // 通路の灯りが戻って消え、票の字が机に戻る。棚は空のまま、票の上に一文。票を渡し直せば再試行になる。
       root.dataset.scene = 'returning';
+      seek.sync();
       await keep(slipReturns({ blank: false }));
       setSlipNote(SEARCH_FAILED_LINE);
       root.dataset.scene = shelfState.nodes.length ? 'shelf' : 'arrival';
@@ -1265,16 +1827,225 @@ export function createLibraryScreen(deps) {
     return reading.pages.length / 2;
   }
 
-  // ── 筆: 本文を待つ白い見開きの行の上を、筆先が左から右へ走り、行の頭から墨の線が生まれていく ──────────────────────
-  // 線は頁と同じ組み（行の丈・最初の頁の題と層の名前の行）の上に置き、頁の字と同じ射影と紙の反りで紙へ載せる（本文が届くと、
-  // 線はその行の字へほどける）。左の頁の天から右の頁の地まで書き終えたら、書いた線が紙へ沈み、新しい線で天から書き直す。
-  // 動きを減らす設定では筆を出さず、見開きの全部の行の線が静かに濃くなる。
-  const WRITE_SPEED = 13;         // 筆が行の上を右へ進む速さ（行の丈 / 秒・見開きの一巡は 1440×900 で約 25 秒）
-  const WRITE_SPEED_TITLE = 9;    // 題の行は少しゆっくり
-  const TRAVEL_SPEED = 26;        // 語から語・行から行へ移る筆の速さ（行の丈 / 秒）
-  const LINE_RESTS_MS = 900;      // 見開きを書き終えてから線が沈み始めるまで
-  const SINK_MS = 1400;           // 書いた線が紙へ沈む長さ
-  const RELEASE_MS = 700;         // 本文が届いて、線が字へほどける長さ
+  // ── 筆: 本文を待つ白い見開きに、小筆がこの世界の文字を書き順どおりに一画ずつ書く ──────────────────────────────────
+  // 書く行は頁と同じ組みの行（最初の頁の題・層の名前・罫・本文）。待っている間は段落を知らないので、本文の行は行末まで満たす。
+  // 字は頁の字と同じ射影と紙の反り（paperMap の projection と lift）で紙へ載り、墨は頁の字と同じ焦茶で紙と乗算する。左の頁の天
+  // から右の頁の地まで書き終えたら、書いた字が紙へ沈み、新しい字で天から書き直す。
+  // 本文が届くと、筆は持ち上がって右手前へ退いて消え、まだ書いていない行のこの世界の文字が染み出す。続いて行の順に（左の頁の題
+  // から右の頁の最後の行へ）字が淡い琥珀に光ってほどけ、同じ行に日本語の墨（頁の一枚の一行）が結ぶ。まだ書いていなかった行は
+  // 届いた頁の行（段落の切れ目・段落の終わりの短い行）に組んで染み出させ、書いた行は訳しの光の中で頁の行へ移る。
+  // 動きを減らす設定では筆を出さず、見開きの全部の行の字が淡く現れて濃くなり、届くと字がほどけて頁のインクが浮かぶ。
+  const X_HEIGHT = 0.62;                // この世界の文字の体の高さ（行の字の大きさに対する割合）
+  const INK_WIDTH = 0.14;               // 画の太さ（体の高さに対する割合）
+  const INK_DENSITY = [0.8, 0.94];      // 字ごとの墨の濃さの幅（頁の字と同じ）
+  // 筆の運び（本文の字の大きさ / 秒）と、画と画・語と語・行と行の間の移り（ms。移る道のりには本文の字の大きさあたり perEm を
+  // 足す）。lead は書き始める前に筆が紙へ降りる間。
+  const WRITE_SPEED = { title: 27.8, category: 27.8, body: 50, rule: 77.8 };
+  const MOVE = { stroke: 8, word: 30, line: 120, perEm: 4.5, lead: 200 };
+  const LINE_RESTS_MS = 900;            // 見開きを書き終えてから字が沈み始めるまで
+  const SINK_MS = 1400;                 // 書いた字が紙へ沈む長さ（筆はその間に左の頁の天へ戻る）
+  const RELEASE_MS = 700;               // 本文が届かなかった: 字がほどける長さ
+  // 本文が届いてから（ms）: 筆が退く・まだ書いていない行が染み出す・行の順に訳される（全部の行を from〜to で渡り、一行は perLine）。
+  // 行の数に依らず、届いてから頁が読めるまでは to で決まる。
+  const ARRIVAL = { leave: 300, bloom: 260, from: 280, to: 1080, perLine: 320 };
+  const GLOW = { widen: 2.2, blur: 0.55, peak: 0.55 };   // 訳しの光（画の太さの倍・ぼかし CSS px・いちばん明るい所の不透明）
+  // 筆（cm と度）。頁の紙の幅（1440×900 で本の幅 1131.5px のうち 460px）を頁 24cm とみた小筆。読み手の側に座った右手の書き手の
+  // 持ち方: 紙に 50°（法線から tilt）・真手前から右へ azimuth に倒し、見下ろし view で写す。影は灯り（左上の奥）の反対の右手前へ、
+  // 高さ h の点が light × h だけずれた紙の上に落ちる。穂は書く向きと逆へ bend まで撓む。画と画の間は高々 travelLift まで持ち上がり、
+  // 退くときは右手前へ leave・高さ lift まで上がって消える。
+  const BRUSH = { pageCm: 24, pageOfBook: 460 / 1131.53, shaft: 17, dia: 0.8, hair: 3.0, hairBase: 0.75, ferrule: 0.8, tilt: 40, azimuth: 30, view: 72, light: [0.26, 0.17], bend: 0.365, travelLift: 1.6, leave: [2.09, 1.56], lift: 4 };
+  const BRUSH_BOX = { left: -2, top: -5, right: 14, bottom: 17 };   // 筆の canvas が筆先のまわりに取る範囲（cm・右と下が正）
+  const easeInOut = (x) => 0.5 - Math.cos(Math.PI * Math.min(1, Math.max(0, x))) / 2;
+
+  // 筆の姿（竹の軸・真鍮の口金・穂と、紙に落ちる影）。筆先を原点に描く。sg は影（紙と乗算する canvas）、bg は筆。
+  function paintBrush(sg, bg, s, { z, dir, press, opacity }) {
+    const rad = (d) => (d * Math.PI) / 180;
+    const [ta, az, vw] = [rad(BRUSH.tilt), rad(BRUSH.azimuth), rad(BRUSH.view)];
+    // 紙の上の cm（右・奥・上）→ 画面の px のずれ。奥は sin(見下ろし) で縮み、上は cos(見下ろし) で画面の上へ。
+    const screen = ([dx, dy, dz]) => [s * dx, -s * Math.sin(vw) * dy - s * Math.cos(vw) * dz];
+    const axis = [Math.sin(ta) * Math.sin(az), -Math.sin(ta) * Math.cos(az), Math.cos(ta)];
+    const at = (len) => screen([axis[0] * len, axis[1] * len, axis[2] * len + z]);
+    const shadowAt = (len) => {
+      const h = axis[2] * len + z;
+      return screen([axis[0] * len + BRUSH.light[0] * h, axis[1] * len - BRUSH.light[1] * h, 0]);
+    };
+    const full = BRUSH.hair + BRUSH.shaft;
+    const hairTop = at(BRUSH.hair);
+    const ferruleTop = at(BRUSH.hair + BRUSH.ferrule);
+    const top = at(full);
+    const tip = at(0);
+    const along = [top[0] - hairTop[0], top[1] - hairTop[1]];
+    const length = Math.hypot(...along);
+    const [ux, uy] = [along[0] / length, along[1] / length];
+    const [nx, ny] = [-uy, ux];
+    const w0 = BRUSH.dia * s;
+    const w1 = w0 * 1.08;
+    const dpr = window.devicePixelRatio;
+    // 影: 穂先に近い所ほど濃く鋭く、紙から高い所ほど淡く散る。
+    const sh0 = shadowAt(0);
+    const sh1 = shadowAt(full);
+    for (const [blur, alpha, from] of [[0.063, 0.22, 0], [0.21, 0.12, 0.15]]) {
+      const start = from ? shadowAt(full * from) : sh0;
+      sg.save();
+      sg.filter = `blur(${((blur + z * 0.104) * s * dpr).toFixed(2)}px)`;
+      sg.globalAlpha = opacity * alpha * (1 - Math.min(0.7, z / 4));
+      const fade = sg.createLinearGradient(...start, ...sh1);
+      fade.addColorStop(0, 'rgba(58,38,20,1)');
+      fade.addColorStop(1, 'rgba(58,38,20,0.15)');
+      sg.strokeStyle = fade;
+      sg.lineCap = 'round';
+      sg.lineWidth = w0 * 0.9;
+      sg.beginPath();
+      sg.moveTo(...start);
+      sg.lineTo(...sh1);
+      sg.stroke();
+      sg.restore();
+    }
+    bg.save();
+    bg.globalAlpha = opacity;
+    // 軸（竹）。丸みの陰影は軸に直交する向きのグラデーション。上端は手前の分だけ太い。
+    const mid = [(ferruleTop[0] + top[0]) / 2, (ferruleTop[1] + top[1]) / 2];
+    const bamboo = bg.createLinearGradient(mid[0] + (nx * w1) / 2, mid[1] + (ny * w1) / 2, mid[0] - (nx * w1) / 2, mid[1] - (ny * w1) / 2);
+    bamboo.addColorStop(0, '#e2c08a');
+    bamboo.addColorStop(0.3, '#c69a5c');
+    bamboo.addColorStop(0.7, '#8a6236');
+    bamboo.addColorStop(1, '#4a321a');
+    bg.fillStyle = bamboo;
+    bg.beginPath();
+    bg.moveTo(ferruleTop[0] + (nx * w0) / 2, ferruleTop[1] + (ny * w0) / 2);
+    bg.lineTo(top[0] + (nx * w1) / 2, top[1] + (ny * w1) / 2);
+    bg.lineTo(top[0] - (nx * w1) / 2, top[1] - (ny * w1) / 2);
+    bg.lineTo(ferruleTop[0] - (nx * w0) / 2, ferruleTop[1] - (ny * w0) / 2);
+    bg.closePath();
+    bg.fill();
+    // 節。
+    for (const f of [0.38, 0.72]) {
+      const p = at(BRUSH.hair + BRUSH.ferrule + (BRUSH.shaft - BRUSH.ferrule) * f);
+      const w = w0 + (w1 - w0) * f;
+      bg.strokeStyle = 'rgba(70,46,22,0.85)';
+      bg.lineWidth = w0 * 0.105;
+      bg.beginPath();
+      bg.moveTo(p[0] + (nx * w) / 2, p[1] + (ny * w) / 2);
+      bg.lineTo(p[0] - (nx * w) / 2, p[1] - (ny * w) / 2);
+      bg.stroke();
+      const shift = w0 * 0.092;
+      bg.strokeStyle = 'rgba(246,222,170,0.5)';
+      bg.lineWidth = w0 * 0.052;
+      bg.beginPath();
+      bg.moveTo(p[0] + (nx * w) / 2 + ux * shift, p[1] + (ny * w) / 2 + uy * shift);
+      bg.lineTo(p[0] - (nx * w) / 2 + ux * shift, p[1] - (ny * w) / 2 + uy * shift);
+      bg.stroke();
+    }
+    // 上端の切り口（手前を向くので楕円に見える）。
+    bg.fillStyle = '#5a3c1e';
+    bg.beginPath();
+    bg.ellipse(top[0], top[1], w1 / 2, w1 * 0.32, Math.atan2(ny, nx), 0, Math.PI * 2);
+    bg.fill();
+    bg.strokeStyle = 'rgba(232,200,140,0.7)';
+    bg.lineWidth = w0 * 0.052;
+    bg.stroke();
+    // 口金（真鍮の帯）。
+    const brass = bg.createLinearGradient(hairTop[0] + (nx * w0) / 2, hairTop[1] + (ny * w0) / 2, hairTop[0] - (nx * w0) / 2, hairTop[1] - (ny * w0) / 2);
+    brass.addColorStop(0, '#f2d68e');
+    brass.addColorStop(0.45, '#b98a3e');
+    brass.addColorStop(1, '#5a3e16');
+    bg.fillStyle = brass;
+    bg.beginPath();
+    bg.moveTo(hairTop[0] + nx * w0 * 0.47, hairTop[1] + ny * w0 * 0.47);
+    bg.lineTo(ferruleTop[0] + (nx * w0) / 2, ferruleTop[1] + (ny * w0) / 2);
+    bg.lineTo(ferruleTop[0] - (nx * w0) / 2, ferruleTop[1] - (ny * w0) / 2);
+    bg.lineTo(hairTop[0] - nx * w0 * 0.47, hairTop[1] - ny * w0 * 0.47);
+    bg.closePath();
+    bg.fill();
+    // 穂: 毛の束。口金の口から腹でわずかに膨らみ、命毛へ凹んですぼまる。根元は乾いた毛の色、腹から先は墨を含んで黒い。
+    // 書いている間は、書く向きと逆へ撓む（押さえの分だけ・中ほどがいちばん撓み、根元と穂先は動かない）。
+    const wb = BRUSH.hairBase * s;
+    const bend = [-dir[0] * press * BRUSH.bend * s, -dir[1] * press * BRUSH.bend * s];
+    // f: 根元 0 → 穂先 1、side: 束の幅の中の位置（-1〜1）。幅は腹（f 0.3）で根元の 1.06 倍。
+    const hairAt = (f, side) => {
+      const half = (wb / 2) * (f < 0.3 ? 1 + 0.06 * Math.sin((f / 0.3) * (Math.PI / 2)) : 1.06 * Math.pow(1 - (f - 0.3) / 0.7, 1.45));
+      const sway = 2 * f * (1 - f);
+      return [hairTop[0] + (tip[0] - hairTop[0]) * f + bend[0] * sway + nx * half * side, hairTop[1] + (tip[1] - hairTop[1]) * f + bend[1] * sway + ny * half * side];
+    };
+    const steps = 14;
+    const outline = () => {
+      bg.beginPath();
+      bg.moveTo(...hairAt(0, 1));
+      for (let i = 1; i <= steps; i += 1) bg.lineTo(...hairAt(i / steps, 1));
+      for (let i = steps - 1; i >= 0; i -= 1) bg.lineTo(...hairAt(i / steps, -1));
+      bg.closePath();
+    };
+    const hair = bg.createLinearGradient(...hairTop, ...tip);
+    hair.addColorStop(0, '#b89a6e');
+    hair.addColorStop(0.16, '#7a5c3c');
+    hair.addColorStop(0.34, '#22180f');
+    hair.addColorStop(1, '#050302');
+    bg.fillStyle = hair;
+    outline();
+    bg.fill();
+    bg.save();
+    outline();
+    bg.clip();
+    // 毛の筋: 根元から穂先へ寄っていく細い線を、明るい筋と暗い筋の交互に。
+    bg.lineWidth = Math.max(0.5, wb * 0.05);
+    for (const [k, side] of [-0.7, -0.42, -0.14, 0.14, 0.42, 0.7].entries()) {
+      bg.strokeStyle = k % 2 ? 'rgba(10,6,4,0.55)' : 'rgba(236,214,176,0.32)';
+      bg.beginPath();
+      bg.moveTo(...hairAt(0, side));
+      for (let i = 1; i <= steps - 2; i += 1) bg.lineTo(...hairAt(i / steps, side));
+      bg.stroke();
+    }
+    // 墨の濡れの照り: 腹から先の光の側に一筋。
+    bg.strokeStyle = 'rgba(255,244,222,0.36)';
+    bg.lineWidth = Math.max(0.6, wb * 0.09);
+    bg.beginPath();
+    bg.moveTo(...hairAt(0.3, 0.42));
+    for (let i = 5; i <= 11; i += 1) bg.lineTo(...hairAt(i / steps, 0.42));
+    bg.stroke();
+    bg.restore();
+    bg.restore();
+  }
+
+  // 筆の canvas: 筆先のまわりの BRUSH_BOX を写す小さな二枚（影と筆）を、筆先の位置へ動かす。大きさは本の幅から決まる
+  // （頁の紙の幅を頁 24cm とみる）。
+  const brush = (() => {
+    const canvases = [els.brushShadow, els.brushBody];
+    const contexts = canvases.map((canvas) => {
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('library screen: no 2d context for the brush');
+      return context;
+    });
+    const pxPerCm = () => (els.spread.offsetWidth * BRUSH.pageOfBook) / BRUSH.pageCm;
+    function draw({ tip, z = 0, dir = [1, 0], press = 0, opacity = 1 }) {
+      const s = pxPerCm();
+      const dpr = window.devicePixelRatio;
+      const width = (BRUSH_BOX.right - BRUSH_BOX.left) * s;
+      const height = (BRUSH_BOX.bottom - BRUSH_BOX.top) * s;
+      for (const canvas of canvases) {
+        const [w, h] = [Math.ceil(width * dpr), Math.ceil(height * dpr)];
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+          canvas.style.width = `${width}px`;
+          canvas.style.height = `${height}px`;
+        }
+      }
+      for (const context of contexts) {
+        context.setTransform(dpr, 0, 0, dpr, -BRUSH_BOX.left * s * dpr, -BRUSH_BOX.top * s * dpr);
+        context.clearRect(BRUSH_BOX.left * s, BRUSH_BOX.top * s, width, height);
+      }
+      els.brush.style.transform = `translate(${(tip[0] + BRUSH_BOX.left * s).toFixed(2)}px, ${(tip[1] + BRUSH_BOX.top * s).toFixed(2)}px)`;
+      paintBrush(contexts[0], contexts[1], s, { z, dir, press, opacity });
+    }
+    function hide() {
+      for (const [k, context] of contexts.entries()) {
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, canvases[k].width, canvases[k].height);
+      }
+      els.brush.style.transform = '';
+    }
+    return { draw, hide, pxPerCm };
+  })();
 
   const writer = (() => {
     let handle = null;
@@ -1282,173 +2053,390 @@ export function createLibraryScreen(deps) {
     let seed = 0;
     let lastTime = 0;
     let generation = 0;
+    let finishTranslation = null;
     const boxes = { left: els.sketchLeft, right: els.sketchRight };
+    const metrics = document.createElement('canvas').getContext('2d');
+    if (!metrics) throw new Error('library screen: no 2d context for the brush lines');
 
-    // 頁の組みの見えない枠で、最初の頁の題の行（字の左右の端）・層の名前の行・本文の一行目の中心を測る。
+    // 頁の組みの見えない枠で、最初の頁の題の行（字の左右の端）・層の名前の行・罫・本文の行の基線を測る。
     function measureRows(headTitle) {
       const measure = els.measure;
       const width = els.pageLeft.offsetWidth;
+      const height = els.pageLeft.offsetHeight;
       measure.style.width = `${width}px`;
-      measure.style.height = `${els.pageLeft.offsetHeight}px`;
+      measure.style.height = `${height}px`;
       const lineH = Number.parseFloat(getComputedStyle(els.pageLeft).lineHeight);
       if (!Number.isFinite(lineH) || lineH <= 0) throw new Error('library screen: the page line height is not a length');
-      const centre = (glyph) => glyph.offsetTop + glyph.offsetHeight / 2;
       const probe = () => measure.querySelector(':scope > .academy-library-glyph');
+      const at = (glyph) => ({
+        centre: glyph.offsetTop + glyph.offsetHeight / 2,
+        base: letterBaseline(metrics, glyph, glyph.offsetTop, glyph.offsetHeight),
+        size: cssPx(getComputedStyle(glyph).fontSize, 'the page letter size')
+      });
       measure.replaceChildren(glyphText('字'));
-      const bodyTop = centre(probe());
+      const body = at(probe());
       const head = pageHead({ title: headTitle, category: '字' });
       measure.replaceChildren(head, glyphText('字'));
-      const titleRows = new Map();
+      const lines = [];
       for (const glyph of head.querySelectorAll('.academy-library-page-title .academy-library-glyph')) {
-        const y = Math.round(centre(glyph));
-        const row = titleRows.get(y) ?? { y: centre(glyph), from: Infinity, to: -Infinity };
+        const place = at(glyph);
+        let row = lines.find((line) => Math.abs(line.centre - place.centre) <= glyph.offsetHeight * 0.5);
+        if (!row) {
+          row = { side: 'left', kind: 'title', ...place, from: Infinity, to: -Infinity };
+          lines.push(row);
+        }
         row.from = Math.min(row.from, glyph.offsetLeft);
         row.to = Math.max(row.to, glyph.offsetLeft + glyph.offsetWidth);
-        titleRows.set(y, row);
       }
-      const categoryGlyph = head.querySelector('.academy-library-page-category .academy-library-glyph');
-      const rows = {
-        lineH,
-        width,
-        height: els.pageLeft.offsetHeight,
-        title: [...titleRows.values()],
-        category: { y: centre(categoryGlyph), from: 0, to: width * 0.28 },
-        headBodyTop: centre(probe()),
-        bodyTop
-      };
+      lines.push({ side: 'left', kind: 'category', ...at(head.querySelector('.academy-library-page-category .academy-library-glyph')), from: 0, to: width * 0.28 });
+      const rule = head.querySelector('.academy-library-page-rule');
+      lines.push({ side: 'left', kind: 'rule', base: rule.offsetTop, from: rule.offsetLeft, to: rule.offsetLeft + rule.offsetWidth });
+      const headBody = at(probe());
+      for (const [side, first] of [['left', headBody], ['right', body]]) {
+        for (let k = 0; first.centre + k * lineH + lineH / 2 <= height; k += 1) {
+          lines.push({ side, kind: 'body', base: first.base + k * lineH, size: first.size, from: 0, to: width });
+        }
+      }
       measure.replaceChildren();
-      return rows;
+      return { lineH, em: body.size, lines };
     }
 
-    // 見開きひとつぶんの線を組む: 題の行（太い線）・層の名前の行（細く淡い線）・本文の行。本文の行は段落の頭を一字下げ、段落の
-    // 終わりの行は短い。返すのは紙へ載せた svg と、筆が辿る区間（書く・移る）の列。
-    function compose(headTitle) {
+    // 色を、紙と乗算したときに不透明 alpha で重ねたのと同じ姿になる不透明の色にする（一画ずつ書き足しても重なりが濃くならない）。
+    function premixed(color, alpha = 1) {
+      metrics.fillStyle = '#000';
+      metrics.fillStyle = color;
+      const value = metrics.fillStyle;
+      const hex = /^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(value);
+      const rgba = /^rgba\((\d+), (\d+), (\d+), ([\d.]+)\)$/.exec(value);
+      if (!hex && !rgba) throw new Error(`library screen: cannot read the colour ${JSON.stringify(color)}`);
+      const channels = hex ? hex.slice(1).map((h) => Number.parseInt(h, 16)) : rgba.slice(1, 4).map(Number);
+      const a = alpha * (rgba ? Number(rgba[4]) : 1);
+      return `rgb(${channels.map((c) => Math.round(255 - a * (255 - c))).join(' ')})`;
+    }
+
+    function catmull(points, per = 8) {
+      const out = [];
+      const p = [points[0], ...points, points[points.length - 1]];
+      for (let i = 1; i < p.length - 2; i += 1) {
+        for (let k = 0; k < per; k += 1) {
+          const t = k / per;
+          const t2 = t * t;
+          const t3 = t2 * t;
+          const f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+          out.push([f(p[i - 1][0], p[i][0], p[i + 1][0], p[i + 2][0]), f(p[i - 1][1], p[i][1], p[i + 1][1], p[i + 2][1])]);
+        }
+      }
+      out.push(points[points.length - 1]);
+      return out;
+    }
+
+    // 一画: 組みの上の点の並び（flat）と、紙の反りで持ち上げた先（lifted）。長さは組みの上で測る。
+    function strokeOf(map, flat, extra) {
+      const cum = [0];
+      for (let i = 1; i < flat.length; i += 1) cum.push(cum[i - 1] + Math.hypot(flat[i][0] - flat[i - 1][0], flat[i][1] - flat[i - 1][1]));
+      return { flat, lifted: flat.map(map.lift), cum, len: cum[cum.length - 1], next: 0, t0: 0, t1: 0, ...extra };
+    }
+
+    // 画の上の、頭から length の所（持ち上げた先の点）。
+    function pointOf(stroke, length) {
+      const { cum, lifted } = stroke;
+      let i = 1;
+      while (i < cum.length - 1 && cum[i] < length) i += 1;
+      const k = cum[i] > cum[i - 1] ? Math.min(1, Math.max(0, (length - cum[i - 1]) / (cum[i] - cum[i - 1]))) : 0;
+      return [lifted[i - 1][0] + (lifted[i][0] - lifted[i - 1][0]) * k, lifted[i - 1][1] + (lifted[i][1] - lifted[i - 1][1]) * k];
+    }
+
+    // 筆の圧（画の頭で押さえて少し太り、終わりへ細る）。
+    const pressure = (u) => (u < 0.08 ? 0.75 + (u / 0.08) * 0.35 : u < 0.7 ? 1.1 - ((u - 0.08) / 0.62) * 0.2 : 0.9 - ((u - 0.7) / 0.3) * 0.45);
+
+    // 画を、書いた所（stroke.next）から upto まで書き足す。罫は細い線、字は筆の圧の丸を 0.25px おきに置く。
+    function inkStroke(g, stroke, upto, { color = stroke.color, widen = 1 } = {}) {
+      if (stroke.rule) {
+        if (upto <= stroke.next) return;
+        g.strokeStyle = color;
+        g.lineWidth = stroke.width * widen;
+        g.beginPath();
+        g.moveTo(...pointOf(stroke, stroke.next));
+        for (let i = 1; i < stroke.cum.length && stroke.cum[i] < upto; i += 1) if (stroke.cum[i] > stroke.next) g.lineTo(...stroke.lifted[i]);
+        g.lineTo(...pointOf(stroke, upto));
+        g.stroke();
+        stroke.next = upto;
+        return;
+      }
+      g.fillStyle = color;
+      g.beginPath();
+      let d = stroke.next;
+      for (; d <= upto; d += 0.25) {
+        const [x, y] = pointOf(stroke, d);
+        const r = ((stroke.width * widen) / 2) * pressure(d / stroke.len);
+        g.moveTo(x + r, y);
+        g.arc(x, y, r, 0, Math.PI * 2);
+      }
+      g.fill();
+      stroke.next = d;
+    }
+
+    // 行の canvas（行の画の全部を囲む範囲・持ち上げた先の組みの px）を、行の置き場（.academy-library-sketch-row）へ置く。
+    function rowCanvas(row, parent, widen = 1) {
+      const pad = Math.max(...row.strokes.map((stroke) => stroke.width)) * widen + 2;
+      const points = row.strokes.flatMap((stroke) => stroke.lifted);
+      const left = Math.floor(Math.min(...points.map(([x]) => x)) - pad);
+      const top = Math.floor(Math.min(...points.map(([, y]) => y)) - pad);
+      const right = Math.ceil(Math.max(...points.map(([x]) => x)) + pad);
+      const bottom = Math.ceil(Math.max(...points.map(([, y]) => y)) + pad);
+      const scale = SHEET_SCALE * window.devicePixelRatio;
+      const canvas = document.createElement('canvas');
+      Object.assign(canvas.style, { left: `${left}px`, top: `${top}px`, width: `${right - left}px`, height: `${bottom - top}px` });
+      canvas.width = Math.ceil((right - left) * scale);
+      canvas.height = Math.ceil((bottom - top) * scale);
+      const g = canvas.getContext('2d');
+      if (!g) throw new Error('library screen: no 2d context for the brush lines');
+      g.setTransform(scale, 0, 0, scale, -left * scale, -top * scale);
+      parent.append(canvas);
+      return g;
+    }
+
+    // 行に字を並べる。mode: full は行末まで（語を行の途中で切らない）、end は段落の終わりの行（句点で閉じる）、center は珍しい語を
+    // 行の幅に収まるだけ（most まで）中央に寄せる（題・層の名前）。並べた字の画の列（平らな px）を返す。
+    function layLine(plan, line, mode, most = 4) {
+      const { lang, state } = plan;
+      const size = line.size * X_HEIGHT;
+      const gap = LETTER_GAP * size;
+      const space = WORD_SPACE * size;
+      const placed = [];
+      const put = (letter, x, wordStart = false) => {
+        const { strokes, advance } = placeLetter(letter, x, line.base, size);
+        placed.push({ letter, strokes, wordStart });
+        state.after = letter;
+        return x + advance + gap;
+      };
+      const putWord = (word, x) => word.reduce((at, letter, k) => put(letter, at, k === 0), x);
+      if (mode === 'center') {
+        const words = [];
+        let measure = -space - gap;
+        while (words.length < most) {
+          const word = lang.rareWord(words.length ? words.at(-1).at(-1) : state.after);
+          const next = measure + wordWidth(word, size) + space;
+          if (words.length && next > line.to - line.from) break;
+          words.push(word);
+          measure = next;
+        }
+        let x = (line.from + line.to) / 2 - measure / 2;
+        words.forEach((word, i) => {
+          x = putWord(word, x);
+          if (i < words.length - 1) x += space - gap;
+        });
+        return placed;
+      }
+      const end = mode === 'end';
+      let x = line.from;
+      for (;;) {
+        state.pending ??= lang.nextWord(state.after);
+        const word = state.pending;
+        if (x + wordWidth(word, size) > line.to + (end ? size * 2 : 0)) break;
+        x = putWord(word, x);
+        state.pending = null;
+        state.inSentence += 1;
+        if (state.inSentence >= state.target || (end && x > line.to - size * 3)) {
+          x = put({ p: 'stop' }, x);
+          state.inSentence = 0;
+          state.target = lang.sentenceLength();
+          if (end) break;
+        } else if (lang.comma()) {
+          x = put({ p: 'comma' }, x);
+        }
+        x += space - gap;
+      }
+      if (end && placed.length && placed.at(-1).letter.p !== 'stop') put({ p: 'stop' }, x);
+      return placed;
+    }
+
+    // 一行（罫か字の行）を組み、画と行の置き場を作る。行の置き場の data-script は並べた字の形（語の頭に |）。
+    function makeRow(plan, line, mode) {
+      const map = plan.maps[line.side];
+      const row = { side: line.side, kind: line.kind, base: line.base, strokes: [], script: [] };
+      if (line.kind === 'rule') {
+        const points = Array.from({ length: 25 }, (_, k) => [line.from + ((line.to - line.from) * k) / 24, line.base + 0.5]);
+        row.strokes.push(strokeOf(map, points, { row, rule: true, width: 1, color: plan.colors.rule }));
+      } else {
+        const [low, high] = INK_DENSITY;
+        const width = INK_WIDTH * line.size * X_HEIGHT;
+        for (const { letter, strokes, wordStart } of layLine(plan, line, mode, line.kind === 'category' ? 1 : 4)) {
+          const color = premixed(plan.colors.ink, low + (high - low) * plan.random());
+          strokes.forEach((points, k) => row.strokes.push(strokeOf(map, catmull(points), { row, width, color, wordStart: wordStart && k === 0 })));
+          row.script.push(`${wordStart ? '|' : ''}${shapeKey(letter)}`);
+        }
+      }
+      row.stateAfter = { ...plan.state, pending: null };
+      row.el = document.createElement('div');
+      row.el.className = 'academy-library-sketch-row';
+      row.el.dataset.kind = row.kind;
+      row.el.dataset.script = row.script.join(' ');
+      plan.layers[row.side].ink.append(row.el);
+      row.g = row.strokes.length ? rowCanvas(row, row.el) : null;
+      return row;
+    }
+
+    // 見開きひとつぶんの字を組む: 題の行・層の名前の行・罫・本文の行。書く順に時刻を割り当てる（start は最初の行の前の間）。
+    function compose(headTitle, { start, from }) {
       const random = seededRandom(hash32(`${headTitle}|${seed}`));
       seed += 1;
-      const rows = measureRows(headTitle);
-      const { lineH } = rows;
-      const lines = [];
-      for (const row of rows.title) lines.push({ side: 'left', y: row.y, from: row.from, to: row.to, kind: 'title' });
-      lines.push({ side: 'left', ...rows.category, kind: 'category' });
-      let paragraphLeft = 0;
-      for (const [side, top] of [['left', rows.headBodyTop], ['right', rows.bodyTop]]) {
-        for (let y = top; y + lineH / 2 <= rows.height; y += lineH) {
-          const opening = paragraphLeft <= 0;
-          if (opening) paragraphLeft = 2 + Math.floor(random() * 6);
-          paragraphLeft -= 1;
-          const closing = paragraphLeft === 0;
-          const from = opening ? lineH * 0.55 : 0;
-          const to = closing ? rows.width * (0.25 + random() * 0.55) : rows.width * (0.93 + random() * 0.07);
-          lines.push({ side, y, from, to, kind: 'body' });
-        }
-      }
-      const svgs = {};
+      const lang = createLanguage(random);
+      const { lineH, em, lines } = measureRows(headTitle);
       const maps = {};
+      const layers = {};
       for (const side of ['left', 'right']) {
-        const box = boxes[side];
-        maps[side] = paperMap(box, side);
-        const svg = document.createElementNS(SVG_NS, 'svg');
-        svg.setAttribute('class', 'academy-library-sketch-lines');
-        svg.setAttribute('width', String(box.offsetWidth));
-        svg.setAttribute('height', String(box.offsetHeight));
-        svg.style.transform = maps[side].projection.css;
-        box.append(svg);
-        svgs[side] = svg;
-      }
-      const segments = [];
-      let at = null;
-      for (const [index, line] of lines.entries()) {
-        const scale = line.kind === 'title' ? 1.35 : 1;
-        const words = sketchWords(random, { from: line.from, to: line.to, lineH, scale });
-        const { liftAt } = maps[line.side];
-        const lifted = ([x, dy]) => [x, line.y + dy + liftAt([x, line.y + dy])];
-        for (const word of words) {
-          const points = word.map(lifted);
-          const path = document.createElementNS(SVG_NS, 'path');
-          path.setAttribute('d', `M ${points.map(([x, y]) => `${x.toFixed(2)} ${y.toFixed(2)}`).join(' L ')}`);
-          path.dataset.kind = line.kind;
-          path.dataset.row = String(index);
-          svgs[line.side].append(path);
-          const length = path.getTotalLength();
-          path.style.strokeDasharray = `${length} ${length}`;
-          path.style.strokeDashoffset = String(length);
-          const start = { side: line.side, point: points[0] };
-          if (at) segments.push({ kind: 'travel', from: at, to: start, raise: at.side !== start.side || at.point[1] !== start.point[1] ? 1 : 0.35 });
-          const speed = (line.kind === 'title' ? WRITE_SPEED_TITLE : WRITE_SPEED) * lineH;
-          segments.push({ kind: 'stroke', side: line.side, path, length, ms: ((points[points.length - 1][0] - points[0][0]) / speed) * 1000 });
-          at = { side: line.side, point: points[points.length - 1] };
+        maps[side] = paperMap(boxes[side], side);
+        layers[side] = {};
+        for (const [name, className] of [['ink', 'academy-library-sketch-ink'], ['glow', 'academy-library-sketch-glow']]) {
+          const layer = document.createElement('div');
+          layer.className = className;
+          layer.style.transform = maps[side].projection.css;
+          boxes[side].append(layer);
+          layers[side][name] = layer;
         }
       }
-      for (const segment of segments) {
-        if (segment.kind !== 'travel') continue;
-        const [a, b] = [spreadPoint(maps, segment.from), spreadPoint(maps, segment.to)];
-        segment.ms = Math.max(40, (Math.hypot(b[0] - a[0], b[1] - a[1]) / (TRAVEL_SPEED * lineH)) * 1000);
+      const colors = { ink: screenToken(els.book, '--library-page-ink'), rule: premixed(screenToken(els.book, '--library-parchment-rule')) };
+      const state = { after: null, inSentence: 0, target: lang.sentenceLength(), pending: null };
+      const next = { headTitle, random, lang, state, initial: { ...state }, lineH, em, maps, layers, colors, rows: [], strokes: [], cursor: 0, elapsed: 0, from };
+      for (const line of lines) next.rows.push(makeRow(next, line, line.kind === 'title' || line.kind === 'category' ? 'center' : 'full'));
+      let t = start;
+      let prev = null;
+      for (const row of next.rows) {
+        t += MOVE.line;
+        prev = null;
+        const speed = (WRITE_SPEED[row.kind] * em) / 1000;
+        for (const stroke of row.strokes) {
+          if (prev && stroke.wordStart) t += MOVE.word;
+          if (prev) t += MOVE.stroke + (Math.hypot(stroke.flat[0][0] - prev[0], stroke.flat[0][1] - prev[1]) / em) * MOVE.perEm;
+          stroke.t0 = t;
+          stroke.t1 = t + stroke.len / speed;
+          t = stroke.t1;
+          prev = stroke.flat.at(-1);
+          next.strokes.push(stroke);
+        }
       }
-      return { svgs, maps, segments, lineH, index: 0, elapsed: 0, restMs: 0 };
+      next.end = t;
+      return next;
     }
 
-    // 組みの上の一点（その頁の箱の上）の、見開きの上の位置（px）。
-    function spreadPoint(maps, { side, point }) {
-      const [x, y] = maps[side].projection.forward(point);
+    // 組みの上の一点（その頁の箱の上・持ち上げた先）の、見開きの上の位置（px）。
+    function spreadPoint(side, point) {
+      const [x, y] = plan.maps[side].projection.forward(point);
       return [x + boxes[side].offsetLeft, y + boxes[side].offsetTop];
     }
 
-    // 筆先を見開きの上の一点へ置く。lift は紙から離れた高さ（行の丈の倍数）。
-    function placeBrush([x, y], lift) {
-      els.brush.style.setProperty('--brush-lift', lift.toFixed(3));
-      els.brush.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    // 時刻 t（書き始めからの ms）の筆: 書いている画の上（押さえて書く向きと逆へ撓む）か、画と画の間を持ち上がって移る途中。
+    function brushAt(t) {
+      const { strokes } = plan;
+      let k = plan.cursor;
+      while (k < strokes.length && strokes[k].t1 <= t) k += 1;
+      if (k >= strokes.length) {
+        const last = strokes[strokes.length - 1];
+        return { tip: spreadPoint(last.row.side, pointOf(last, last.len)) };
+      }
+      const stroke = strokes[k];
+      if (t >= stroke.t0) {
+        const at = stroke.len * ((t - stroke.t0) / (stroke.t1 - stroke.t0));
+        const a = spreadPoint(stroke.row.side, pointOf(stroke, at));
+        const b = spreadPoint(stroke.row.side, pointOf(stroke, Math.min(stroke.len, at + stroke.len * 0.05)));
+        const d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+        return { tip: a, press: stroke.rule ? 0.3 : 1, dir: [(b[0] - a[0]) / d, (b[1] - a[1]) / d] };
+      }
+      const previous = strokes[k - 1];
+      const to = spreadPoint(stroke.row.side, pointOf(stroke, 0));
+      const from = previous ? spreadPoint(previous.row.side, pointOf(previous, previous.len)) : plan.from ?? to;
+      const gapStart = previous ? previous.t1 : 0;
+      const u = Math.min(1, Math.max(0, (t - gapStart) / (stroke.t0 - gapStart)));
+      const e = easeInOut(u);
+      const far = Math.hypot(to[0] - from[0], to[1] - from[1]) / brush.pxPerCm();
+      // 書き始め: 筆は持ち上がった所から最初の画の頭へ降りる。ほかは移る道のりに見合う高さまで弧を描いて持ち上がる。
+      const z = !previous && !plan.from ? (1 - e) * BRUSH.travelLift : Math.sin(Math.PI * u) * Math.min(BRUSH.travelLift, 0.25 + far * 0.32);
+      return { tip: [from[0] + (to[0] - from[0]) * e, from[1] + (to[1] - from[1]) * e], z };
     }
 
     function step(time) {
       const dt = lastTime ? Math.min(250, time - lastTime) : 0;
       lastTime = time;
-      let left = dt;
-      while (plan && left > 0) {
-        if (plan.index >= plan.segments.length) {
-          // 見開きを書き終えた: 筆は最後の字の上で少し止まり、線が紙へ沈むのと同時に左の頁の天へ戻って書き直す。
-          plan.restMs += left;
-          left = 0;
-          if (plan.restMs >= LINE_RESTS_MS) {
-            const old = plan;
-            for (const svg of Object.values(old.svgs)) {
-              svg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SINK_MS, easing: EASE, fill: 'forwards' }).finished
-                .then(() => svg.remove(), () => svg.remove());
-            }
-            plan = compose(old.headTitle);
-            plan.headTitle = old.headTitle;
-            const last = old.segments.filter((segment) => segment.kind === 'stroke').at(-1);
-            const first = plan.segments.find((segment) => segment.kind === 'stroke');
-            const from = { side: last.side, point: pointOf(last.path, last.length) };
-            plan.segments.unshift({ kind: 'travel', from, to: { side: first.side, point: pointOf(first.path, 0) }, raise: 1.6, ms: SINK_MS });
-          }
-          break;
-        }
-        const segment = plan.segments[plan.index];
-        const remaining = segment.ms - plan.elapsed;
-        const used = Math.min(left, remaining);
-        plan.elapsed += used;
-        left -= used;
-        const progress = segment.ms ? Math.min(1, plan.elapsed / segment.ms) : 1;
-        if (segment.kind === 'stroke') {
-          const drawn = segment.length * progress;
-          segment.path.style.strokeDashoffset = String(segment.length - drawn);
-          placeBrush(spreadPoint(plan.maps, { side: segment.side, point: pointOf(segment.path, drawn) }), 0);
-        } else {
-          const [a, b] = [spreadPoint(plan.maps, segment.from), spreadPoint(plan.maps, segment.to)];
-          const eased = 0.5 - 0.5 * Math.cos(Math.PI * progress);
-          placeBrush([a[0] + (b[0] - a[0]) * eased, a[1] + (b[1] - a[1]) * eased], segment.raise * Math.sin(Math.PI * progress));
-        }
-        if (progress >= 1) {
-          plan.index += 1;
-          plan.elapsed = 0;
-        }
+      plan.elapsed += dt;
+      const t = plan.elapsed;
+      while (plan.cursor < plan.strokes.length && plan.strokes[plan.cursor].t0 <= t) {
+        const stroke = plan.strokes[plan.cursor];
+        inkStroke(stroke.row.g, stroke, stroke.len * Math.min(1, (t - stroke.t0) / (stroke.t1 - stroke.t0)));
+        if (t < stroke.t1) break;
+        plan.cursor += 1;
       }
+      if (t >= plan.end + LINE_RESTS_MS) {
+        // 見開きを書き終えた: 書いた字が紙へ沈むのと同時に、筆は左の頁の天へ戻って新しい字で書き直す。
+        const old = plan;
+        for (const layer of Object.values(old.layers).flatMap((pair) => Object.values(pair))) {
+          layer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: SINK_MS, easing: EASE, fill: 'forwards' }).finished
+            .then(() => layer.remove(), () => layer.remove());
+        }
+        const last = old.strokes[old.strokes.length - 1];
+        const from = spreadPoint(last.row.side, pointOf(last, last.len));
+        plan = compose(old.headTitle, { start: SINK_MS - MOVE.line, from });
+      }
+      brush.draw(brushAt(plan.elapsed));
       handle = requestAnimationFrame(step);
     }
 
-    function pointOf(path, length) {
-      const point = path.getPointAtLength(length);
-      return [point.x, point.y];
+    // 届いた後: 筆が持ち上がって右手前へ退き、消える。
+    function leave(tip, mine) {
+      return new Promise((resolve) => {
+        let begin = null;
+        const frame = (now) => {
+          if (mine !== generation) return resolve();
+          begin ??= now;
+          const k = Math.min(1, (now - begin) / ARRIVAL.leave);
+          if (k >= 1) {
+            brush.hide();
+            return resolve();
+          }
+          const s = brush.pxPerCm();
+          brush.draw({ tip: [tip[0] + k * BRUSH.leave[0] * s, tip[1] + k * BRUSH.leave[1] * s], z: easeInOut(k) * BRUSH.lift, opacity: 1 - easeInOut(k) });
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      });
+    }
+
+    // 届いた頁の行（pages: 側ごとの頁のインクと pageLines）に、この世界の文字の行を組み直す。書いた画のある行は残し、まだ書いて
+    // いない行は届いた頁の行（題・層の名前は中央に寄せ、本文は段落の終わりの行を句点で閉じる）に組み直す。返すのは訳しの単位
+    // （頁の一行と、その場所のこの世界の文字の行）を訳す順に並べたもの。
+    function relay(pages) {
+      const t = plan.elapsed;
+      const kept = plan.rows.filter((row) => row.strokes.some((stroke) => stroke.t0 < t));
+      for (const row of plan.rows) if (!kept.includes(row)) row.el.remove();
+      plan.state = kept.length ? { ...kept.at(-1).stateAfter } : { ...plan.initial };
+      const near = plan.lineH * 0.5;
+      const units = [];
+      const fresh = [];
+      for (const { side, lines } of pages) {
+        const body = lines.filter((line) => line.kind === 'body');
+        const bodyRight = Math.max(0, ...body.map((line) => line.to));
+        for (const line of lines) {
+          const rule = line.kind === 'rule';
+          const matched = kept.filter((row) => row.side === side && (row.kind === 'rule') === rule && Math.abs(row.base - line.base) < near);
+          const unit = { side, base: line.base, line, rows: [...matched] };
+          if (!matched.length) {
+            let mode = 'center';
+            if (line.kind === 'body') {
+              const next = body[body.indexOf(line) + 1];
+              mode = line.to < bodyRight - line.size * 1.5 || !next || next.base - line.base > line.size * 2.6 ? 'end' : 'full';
+            }
+            const row = makeRow(plan, { ...line, side }, mode);
+            unit.rows.push(row);
+            fresh.push(row);
+          }
+          units.push(unit);
+        }
+      }
+      for (const row of kept) {
+        if (!units.some((unit) => unit.rows.includes(row))) units.push({ side: row.side, base: row.base, line: null, rows: [row] });
+      }
+      units.sort((a, b) => (a.side === b.side ? a.base - b.base : a.side === 'left' ? -1 : 1));
+      return { units, kept, fresh };
     }
 
     function clear() {
@@ -1456,35 +2444,109 @@ export function createLibraryScreen(deps) {
       handle = null;
       lastTime = 0;
       plan = null;
+      finishTranslation = null;
       generation += 1;
       els.sketchLeft.replaceChildren();
       els.sketchRight.replaceChildren();
+      for (const line of els.spread.querySelectorAll('.academy-library-page-line')) line.remove();
+      if (els.book.dataset.ink === 'translating') els.book.dataset.ink = 'ready';
       delete els.book.dataset.writing;
-      els.brush.style.transform = '';
+      brush.hide();
     }
 
     return {
-      // 開く前の白い見開きに、まだ書かれていない線を組んでおく（最初の頁の題の行には、これから開く本の題の長さの線）。
+      // 開く前の白い見開きに、まだ書かれていない字を組んでおく（最初の頁の題の行は、これから開く本の題の長さ）。
       prepare(headTitle) {
         clear();
-        plan = compose(headTitle);
-        plan.headTitle = headTitle;
+        plan = compose(headTitle, { start: MOVE.lead, from: null });
       },
-      // 組んでおいた線を書き始める。
+      // 組んでおいた字を書き始める。
       start() {
         if (!plan) throw new Error('library screen: the brush starts without prepared lines');
         els.book.dataset.writing = reduced() ? 'still' : 'moving';
         if (reduced()) {
-          // 筆は出さず、見開きの全部の行の線が静かに濃くなる。
-          for (const segment of plan.segments) if (segment.kind === 'stroke') segment.path.style.strokeDashoffset = '0';
-          for (const svg of Object.values(plan.svgs)) svg.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 6000, easing: 'ease-out', fill: 'forwards' });
+          // 筆は出さず、見開きの全部の行の字が淡く現れて濃くなる。
+          for (const stroke of plan.strokes) inkStroke(stroke.row.g, stroke, stroke.len);
+          for (const pair of Object.values(plan.layers)) pair.ink.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 6000, easing: 'ease-out', fill: 'forwards' });
           return;
         }
-        const first = plan.segments[0];
-        placeBrush(spreadPoint(plan.maps, { side: first.side, point: pointOf(first.path, 0) }), 1.6);
+        brush.draw(brushAt(0));
         handle = requestAnimationFrame(step);
       },
-      // 本文が届いた・届かなかった: 筆が紙から離れ、墨の線は上の行から順にほどけて消える（字は頁のインクとして浮かぶ）。
+      // 本文が届いて頁を載せた: 筆が書いていたら、筆が退き、まだ書いていない行が染み出し、行の順に日本語へ訳される。訳し終えると
+      // 頁のインクは頁の一枚に戻り（data-ink が ready）、返した promise が落着する。筆が書いていなければ（待ちが無かった・動きを
+      // 減らす設定）字をほどいて null を返し、頁のインクを浮かべるのは呼ぶ側。
+      translate() {
+        if (!plan || els.book.dataset.writing !== 'moving') {
+          this.release();
+          return null;
+        }
+        if (handle !== null) cancelAnimationFrame(handle);
+        handle = null;
+        lastTime = 0;
+        const mine = ++generation;
+        const tip = brushAt(plan.elapsed).tip;
+        els.book.dataset.writing = 'lifting';
+        const pages = [['left', els.pageLeft], ['right', els.pageRight]].map(([side, page]) => {
+          const ink = page.querySelector(':scope > .academy-library-page-ink');
+          return { side, ink, lines: ink && sheets.has(ink) ? pageLines(ink) : [] };
+        });
+        const { units, kept, fresh } = relay(pages);
+        const inkOf = Object.fromEntries(pages.map(({ side, ink }) => [side, ink]));
+        els.book.dataset.ink = 'translating';
+        const motions = [leave(tip, mine)];
+        // まだ書いていない画が染み出す（行の順に少しずつ遅れて）。書いた画のある行は、書き残しの画だけを別の一枚に書いて染み出させる。
+        const blooming = [];
+        for (const row of kept) {
+          const rest = row.strokes.filter((stroke) => stroke.next < stroke.len);
+          if (!rest.length) continue;
+          const g = rowCanvas(row, row.el);
+          for (const stroke of rest) inkStroke(g, stroke, stroke.len);
+          blooming.push({ row, canvas: g.canvas });
+        }
+        for (const row of fresh) {
+          if (!row.g) continue;
+          for (const stroke of row.strokes) inkStroke(row.g, stroke, stroke.len);
+          blooming.push({ row, canvas: row.g.canvas });
+        }
+        const rowOrder = units.flatMap((unit) => unit.rows);
+        for (const { row, canvas } of blooming) {
+          canvas.style.opacity = '0';
+          const delay = (rowOrder.indexOf(row) / Math.max(1, rowOrder.length)) * ARRIVAL.bloom * 0.5;
+          motions.push(canvas.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ARRIVAL.bloom * 0.5, delay, easing: 'ease-in-out', fill: 'both' }).finished);
+        }
+        // 行の順に訳す: この世界の文字が淡い琥珀に光ってほどけ、同じ行に日本語の墨が結ぶ。
+        const flat = document.createElement('canvas');
+        const glowColor = screenToken(els.book, '--library-translate-glow');
+        const span = ARRIVAL.to - ARRIVAL.from - ARRIVAL.perLine;
+        units.forEach((unit, i) => {
+          const delay = ARRIVAL.from + (i * span) / Math.max(1, units.length - 1);
+          const timing = { duration: ARRIVAL.perLine, delay, fill: 'both' };
+          for (const row of unit.rows) {
+            if (!row.g) continue;
+            motions.push(row.el.animate([{ opacity: 1 }, { opacity: 0 }], { ...timing, easing: 'linear' }).finished);
+            const glow = rowCanvas(row, plan.layers[row.side].glow, GLOW.widen);
+            glow.filter = `blur(${(GLOW.blur * SHEET_SCALE * window.devicePixelRatio).toFixed(2)}px)`;
+            for (const stroke of row.strokes) inkStroke(glow, { ...stroke, next: 0 }, stroke.len, { color: glowColor, widen: GLOW.widen });
+            glow.canvas.style.opacity = '0';
+            motions.push(glow.canvas.animate([0, 0.71, 1, 0.71, 0].map((k) => ({ opacity: k * GLOW.peak })), { ...timing, easing: 'linear' }).finished);
+          }
+          if (unit.line && inkOf[unit.side]) {
+            const line = paintPageLine(inkOf[unit.side], unit.line, flat);
+            line.style.opacity = '0';
+            motions.push(line.animate([{ opacity: 0 }, { opacity: 1 }], { ...timing, easing: 'ease-in-out' }).finished);
+          }
+        });
+        return new Promise((resolve) => {
+          finishTranslation = () => {
+            finishTranslation = null;
+            if (mine === generation) clear();
+            resolve();
+          };
+          Promise.allSettled(motions).then(() => { if (finishTranslation && mine === generation) finishTranslation(); else resolve(); });
+        });
+      },
+      // 本文が届かなかった（または動きを減らす設定で届いた）: 筆が紙から離れて退き、字は上の行から順にほどけて消える。
       release() {
         if (!els.book.dataset.writing) return;
         if (handle !== null) cancelAnimationFrame(handle);
@@ -1492,30 +2554,26 @@ export function createLibraryScreen(deps) {
         lastTime = 0;
         const mine = ++generation;
         const current = plan;
-        plan = null;
+        const moving = els.book.dataset.writing === 'moving';
         els.book.dataset.writing = 'lifting';
         const fade = reduced() ? REDUCED_FADE_MS : RELEASE_MS;
-        const svgs = [...els.sketchLeft.children, ...els.sketchRight.children];
-        const paths = svgs.flatMap((svg) => [...svg.querySelectorAll('path')]);
-        const rowCount = Math.max(1, ...paths.map((path) => Number(path.dataset.row) + 1));
-        const motions = paths.map((path) => path.animate(
-          [{ opacity: 0, strokeWidth: '0.05vh' }],
-          { duration: fade, delay: reduced() ? 0 : (Number(path.dataset.row) / rowCount) * 260, easing: EASE, fill: 'forwards' }
+        const rows = current ? current.rows : [];
+        const motions = rows.map((row, i) => row.el.animate(
+          [{ opacity: 0 }],
+          { duration: fade, delay: reduced() ? 0 : (i / Math.max(1, rows.length)) * 260, easing: EASE, fill: 'forwards' }
         ).finished);
-        if (current && !reduced()) {
-          motions.push(els.brush.animate(
-            [{ opacity: 1, translate: '0 0' }, { opacity: 0, translate: `${(current.lineH * 0.6).toFixed(1)}px ${(-current.lineH * 2.2).toFixed(1)}px` }],
-            { duration: 450, easing: EASE, fill: 'forwards' }
-          ).finished);
-        }
+        if (current && moving && !reduced()) motions.push(leave(brushAt(current.elapsed).tip, mine));
         Promise.allSettled(motions).then(() => {
-          if (mine !== generation) return;
-          for (const animation of els.brush.getAnimations()) animation.cancel();
-          clear();
+          if (mine === generation) clear();
         });
       },
-      // 窓の大きさが変わった: 書いている途中なら、新しい頁の大きさで線を組み直して天から書き直す。
+      // 窓の大きさが変わった: 書いている途中なら、新しい頁の大きさで字を組み直して天から書き直す。訳しの途中なら訳し終えた姿にする
+      // （頁の一枚は呼ぶ側が載せ直す）。
       relayout() {
+        if (finishTranslation) {
+          finishTranslation();
+          return;
+        }
         const writing = els.book.dataset.writing;
         if (!plan || (writing !== 'moving' && writing !== 'still')) return;
         const headTitle = plan.headTitle;
@@ -1526,8 +2584,9 @@ export function createLibraryScreen(deps) {
     };
   })();
 
-  // 本文を待つ: 本が開き終えた時点で届いていれば筆を出さない（組んでおいた線は捨てる）。届いていなければ届くまで筆が書く。
-  // pending は要求を出した時点で作った { promise, settled() }。線は開く前に writer.prepare で組んでおく。
+  // 本文を待つ: 本が開き終えた時点で届いていれば筆を出さない（組んでおいた字は捨てる）。届いていなければ届くまで筆が書く。
+  // 届いた本文は showBook が頁に載せ、筆の字を訳す（writer.translate）。届かなかったときは筆が退いて字がほどける。
+  // pending は要求を出した時点で作った { promise, settled() }。字は開く前に writer.prepare で組んでおく。
   async function awaitWithBrush(pending) {
     const keep = stay(visit);
     if (pending.settled()) {
@@ -1537,8 +2596,9 @@ export function createLibraryScreen(deps) {
     writer.start();
     try {
       return await keep(pending.promise);
-    } finally {
+    } catch (error) {
       writer.release();
+      throw error;
     }
   }
 
@@ -1554,9 +2614,7 @@ export function createLibraryScreen(deps) {
     const look = bookLook(book.key, book.cover);
     applyLookVars(els.coverFace, look);
     applyLookVars(els.coverLeaf, look);
-    const layout = coverTitleLayout(book.title, look.frame);
-    els.coverFace.replaceChildren(buildCoverTitle(book.title, layout));
-    [els.exLibris.style.left, els.exLibris.style.top] = layout.exLibris.map((value) => `${value}%`);
+    els.coverFace.replaceChildren(...coverFaceLayers(book.title, look.frame));
   }
 
   function leafRect() {
@@ -1646,7 +2704,7 @@ export function createLibraryScreen(deps) {
       writer.prepare(book.title);
       await keep(openCover());
       root.dataset.scene = 'reading';
-      showBook(await keep(awaitWithBrush(request)));
+      await keep(showBook(await keep(awaitWithBrush(request))));
     } catch (error) {
       if (error instanceof LeftScene || v !== visit) throw new LeftScene();
       if (redirected(error)) return;
@@ -1859,18 +2917,27 @@ export function createLibraryScreen(deps) {
     if (root.dataset.scene !== 'turning') renderSpread();
   }
 
+  // 本文を頁に載せる。筆が書いていたら筆の字を行の順に頁の字へ訳し、訳し終えたら落着する promise を返す（筆が書いていなければ
+  // インクが頁に浮かび、null を返す）。
   function showBook(result) {
     reading.result = result;
-    reading.body = paginate(result);
-    reading.spread = 0;
     reading.generation += 1;
     reading.pageNote = null;
     setFootnotes('pending', []);
-    placeTail();
-    renderSpread();
-    // 本文が届いたらインクが頁に浮かぶ。
-    requestAnimationFrame(() => { els.book.dataset.ink = 'ready'; });
+    let translation;
+    try {
+      reading.body = paginate(result);
+      reading.spread = 0;
+      placeTail();
+      renderSpread();
+      translation = writer.translate();
+    } catch (error) {
+      writer.release();
+      throw error;
+    }
+    if (!translation) requestAnimationFrame(() => { els.book.dataset.ink = 'ready'; });
     requestFootnotes(result, reading.generation);
+    return translation;
   }
 
   // 本文を綴じられなかった・禁書だった（関連する本）: 本は開いたまま、白い頁に一文だけが浮かぶ。
@@ -1938,7 +3005,7 @@ export function createLibraryScreen(deps) {
       writer.prepare(next.title);
       await keep(openCover({ duration: RELATE_OPEN_MS }));
       root.dataset.scene = 'reading';
-      showBook(await keep(awaitWithBrush(request)));
+      await keep(showBook(await keep(awaitWithBrush(request))));
     } catch (error) {
       if (error instanceof LeftScene || v !== visit) throw new LeftScene();
       if (redirected(error)) return;
@@ -1986,8 +3053,8 @@ export function createLibraryScreen(deps) {
     nextFace.className = 'academy-library-cover-face';
     const look = bookLook(book.key, book.cover);
     applyLookVars(nextFace, look);
-    const nextTitle = buildCoverTitle(book.title, coverTitleLayout(book.title, look.frame));
-    nextFace.append(nextTitle);
+    const [nextPaint, nextTitle] = coverFaceLayers(book.title, look.frame);
+    nextFace.append(nextPaint, nextTitle);
     els.coverLeaf.insertBefore(nextFace, els.exLibris);
     try {
       if (reduced()) {
@@ -2226,6 +3293,7 @@ export function createLibraryScreen(deps) {
     if (!isActive()) return;
     placeDeskLight();
     dust.resize();
+    layShelf();
     if (!els.reading.hidden) {
       writer.relayout();
       layPageOnPaper(els.pageLeft, 'left');
@@ -2233,6 +3301,17 @@ export function createLibraryScreen(deps) {
       layTurnFaces();
     }
   });
+  // 画面の倍率が変わった（窓を倍率の違う画面へ移した）: 頁の墨の一枚を新しい倍率で載せ直す。
+  const watchResolution = () => {
+    matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`).addEventListener('change', () => {
+      watchResolution();
+      if (!isActive() || els.reading.hidden) return;
+      layPageOnPaper(els.pageLeft, 'left');
+      layPageOnPaper(els.pageRight, 'right');
+      layTurnFaces();
+    }, { once: true });
+  };
+  watchResolution();
 
   // 画面を離れる: 走り残った流れを止め、塵を止める。次の enter で最初の姿から組み直す。
   function suspend() {
@@ -2256,6 +3335,7 @@ export function createLibraryScreen(deps) {
     els.close.disabled = false;
     shelfState.books = [];
     shelfState.nodes = [];
+    shelfState.lays = [];
     els.shelf.replaceChildren();
     delete els.shelf.dataset.leaving;
     els.slipInput.value = '';
@@ -2273,7 +3353,9 @@ export function createLibraryScreen(deps) {
       run(els.dust, [{ opacity: '0' }, { opacity: '1' }], { duration: 2600 }).catch(quietly);
     }
     try {
-      await deps.loadArrival();
+      // 表紙の面の絵（COVER_FACES）は最初の訪れで一度だけ組み、組み上がるまで書庫を開けない。
+      coverFaces ??= layCoverFaces(root);
+      await Promise.all([deps.loadArrival(), coverFaces]);
     } catch (error) {
       if (v !== visit) return;
       if (redirected(error)) return;

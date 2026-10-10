@@ -12,18 +12,25 @@
 // the text, the first and the last spread of a two-spread book, and the closed cover with its ex libris pressed for
 // every cover kind, every core book and the long titles the real LM gave.
 //
-// Run by hand (not *.test.mjs, so `npm test` skips it; it takes several minutes). Two modes:
+// Run by hand (not *.test.mjs, so `npm test` skips it; it takes several minutes). Four modes:
 //
 //   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs capture \
 //     --repo-root <absolute repo root> --out-dir <absolute, empty or absent publication directory> \
 //     --prototype-dir <absolute directory of the prototype's capture4 (read only)>
+//
+//   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs shelf \
+//     --repo-root <absolute repo root> --out-dir <absolute, empty or absent directory> --plan <absolute 1440×900 png>
+//
+//   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs region-diff \
+//     --before-dir <absolute out dir of a shelf run> --after-dir <absolute out dir of a shelf run>
 //
 //   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs waits \
 //     --after-root <absolute repo root> --before-root <absolute repo root> \
 //     --lm-config <absolute lmstudio.json of the real LM (read only)> --runs <pairs>
 //
 // Every argument of a mode is required, and absolute where it is a path; none has a default. The repos must be clean
-// (the figures record the commit they were taken from). The prototype directory must hold 04-shelf.png, 05-hover.png
+// (the figures record the commit they were taken from). capture and shelf point the renderer's userData into the out dir and
+// remove it afterwards. shelf and region-diff are described at shelfShots. The prototype directory must hold 04-shelf.png, 05-hover.png
 // and 07-turn.png at 1440×900; nothing in it is written.
 //
 // waits: how long a reader waits, on the real LM, from pressing a book on the shelf and from pressing a related book's
@@ -70,7 +77,7 @@ import { createServer as createHttpServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { promises as fs } from 'node:fs';
+import { promises as fs, mkdirSync, readdirSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -78,6 +85,8 @@ const execFileAsync = promisify(execFile);
 
 const MODES = {
   capture: { paths: ['--repo-root', '--out-dir', '--prototype-dir'], counts: [] },
+  shelf: { paths: ['--repo-root', '--out-dir', '--plan'], counts: [] },
+  'region-diff': { paths: ['--before-dir', '--after-dir'], counts: [] },
   waits: { paths: ['--after-root', '--before-root', '--lm-config'], counts: ['--runs'] }
 };
 
@@ -264,6 +273,28 @@ const PYTHON_TOOL = [
   '        x += c.width + gap',
   '    canvas.save(job["out"], format="PNG")',
   '    print(json.dumps({"size": list(canvas.size), "mode": canvas.mode}))',
+  'elif job["op"] == "regiondiff":',
+  '    from PIL import ImageChops, ImageDraw, ImageFilter',
+  '    before = Image.open(job["before"]).convert("RGB")',
+  '    after = Image.open(job["after"]).convert("RGB")',
+  '    if before.size != after.size:',
+  '        raise SystemExit("region diff sizes differ: %s %s" % (before.size, after.size))',
+  '    mask = Image.new("L", before.size, 0)',
+  '    draw = ImageDraw.Draw(mask)',
+  '    for polygon in job["polygons"]:',
+  '        draw.polygon([tuple(point) for point in polygon], fill=255)',
+  '    mask = mask.filter(ImageFilter.MaxFilter(3))',
+  '    diff = ImageChops.difference(before, after).convert("RGB")',
+  '    out = {"outside_changed_px": 0, "outside_max_diff": 0, "inside_changed_px": 0, "mask_px": 0}',
+  '    for (r, g, b), m in zip(diff.getdata(), mask.getdata()):',
+  '        d = max(r, g, b)',
+  '        if m:',
+  '            out["mask_px"] += 1',
+  '            out["inside_changed_px"] += d > 0',
+  '        elif d:',
+  '            out["outside_changed_px"] += 1',
+  '            out["outside_max_diff"] = max(out["outside_max_diff"], d)',
+  '    print(json.dumps(out))',
   'elif job["op"] == "size":',
   '    im = Image.open(job["src"])',
   '    print(json.dumps({"size": list(im.size), "mode": im.mode}))',
@@ -658,7 +689,8 @@ async function openPage(viewport, { reduced }) {
     height: viewport.height,
     useContentSize: true,
     show: false,
-    webPreferences: { backgroundThrottling: false }
+    // An in-memory session: the page's cache and storage never reach the userData directory on disk.
+    webPreferences: { backgroundThrottling: false, partition: 'library-capture' }
   });
   // Every renderer console error with its text, where it came from, and the last still taken before it.
   const rendererErrors = [];
@@ -832,8 +864,65 @@ const LATIN_ON_SCREEN = `(${ROOT}.innerText.match(/[A-Za-z]{2,}/) ?? [null])[0]`
 // The script-driven motion of one element: the animated properties of its running Web Animations.
 const MOTION_OF = (selector) => `[...document.querySelectorAll(${JSON.stringify(selector)})].flatMap((n) => n.getAnimations().filter((a) => !(a instanceof CSSAnimation) && !(a instanceof CSSTransition)).map((a) => [...new Set(a.effect.getKeyframes().flatMap((k) => Object.keys(k).filter((key) => !['offset', 'easing', 'composite', 'computedOffset'].includes(key))))].sort().join('+')))`;
 
-// The brush over the white spread: the book's ink and writing state, the brush's opacity, the ink lines laid.
-const BRUSH_STATE = `({ ink: ${BOOK}.dataset.ink, writing: ${BOOK}.dataset.writing ?? null, brush: +getComputedStyle(${ROOT}.querySelector('.academy-library-brush')).opacity, strokes: ${ROOT}.querySelectorAll('.academy-library-sketch path').length })`;
+// The brush over the white spread: the book's ink and writing state, the brush's opacity, the rows of the world's
+// script laid (each row's data-script is its letters' shapes, | before the first letter of a word).
+const BRUSH_STATE = `({ ink: ${BOOK}.dataset.ink, writing: ${BOOK}.dataset.writing ?? null, brush: +getComputedStyle(${ROOT}.querySelector('.academy-library-brush')).opacity, rows: ${ROOT}.querySelectorAll('.academy-library-sketch-row').length, letters: [...${ROOT}.querySelectorAll('.academy-library-sketch-row')].reduce((n, row) => n + (row.dataset.script ? row.dataset.script.split(' ').length : 0), 0) })`;
+// The world's script on the spread, read off the rows' data-script: letters, distinct shapes, adjacent identical
+// shapes on a row, the words' lengths (letters between a | and the next word or punctuation).
+const SCRIPT_STATE = `(() => {
+  const rows = [...${ROOT}.querySelectorAll('.academy-library-sketch-row')].filter((row) => row.dataset.script);
+  const shapes = new Set();
+  const lengths = {};
+  let letters = 0;
+  let adjacent = 0;
+  for (const row of rows) {
+    const tokens = row.dataset.script.split(' ');
+    let word = 0;
+    tokens.forEach((token, k) => {
+      const shape = token.replace('|', '');
+      letters += 1;
+      shapes.add(shape);
+      if (k && tokens[k - 1].replace('|', '') === shape) adjacent += 1;
+      const punctuation = shape === 'stop' || shape === 'comma';
+      if (token.startsWith('|') || punctuation) { if (word) lengths[word] = (lengths[word] ?? 0) + 1; word = 0; }
+      if (!punctuation) word += 1;
+    });
+    if (word) lengths[word] = (lengths[word] ?? 0) + 1;
+  }
+  const bases = new Set([...shapes].filter((shape) => shape.includes('.')).map((shape) => shape.split('.')[0]));
+  return { rows: rows.length, letters, shapes: shapes.size, bases: bases.size, adjacent, wordLengths: lengths, words: Object.values(lengths).reduce((a, b) => a + b, 0) };
+})()`;
+// The brush measured off its own canvas (alpha ≥ 0.5): the axis by the principal direction of the drawn pixels,
+// pointing from the tip to the top end; the on-screen length; the shaft's width across the axis 0.5 cm above the
+// ferrule, where the shaft is still its 0.8 cm (4.3 of the 20.0 cm from the tip to the top end; the shaft thickens to
+// 1.08 times toward the top end); the hair's width at its root (where the hair meets the ferrule: hair 3.0 of the 20.0 cm).
+const BRUSH_SHAPE = `(() => {
+  const canvas = ${ROOT}.querySelector('.academy-library-brush-body');
+  const { data, width, height } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+  const scale = canvas.width / canvas.getBoundingClientRect().width;
+  const points = [];
+  for (let y = 0; y < height; y += 1) for (let x = 0; x < width; x += 1) if (data[(y * width + x) * 4 + 3] >= 128) points.push([(x + 0.5) / scale, (y + 0.5) / scale]);
+  const mean = points.reduce((m, [x, y]) => [m[0] + x / points.length, m[1] + y / points.length], [0, 0]);
+  let [sxx, sxy, syy] = [0, 0, 0];
+  for (const [x, y] of points) { sxx += (x - mean[0]) ** 2; sxy += (x - mean[0]) * (y - mean[1]); syy += (y - mean[1]) ** 2; }
+  const theta = 0.5 * Math.atan2(2 * sxy, sxx - syy);
+  let axis = [Math.cos(theta), Math.sin(theta)];
+  const along = points.map(([x, y]) => (x - mean[0]) * axis[0] + (y - mean[1]) * axis[1]);
+  const across = points.map(([x, y]) => -(x - mean[0]) * axis[1] + (y - mean[1]) * axis[0]);
+  let low = Math.min(...along);
+  let high = Math.max(...along);
+  // The tip is the narrow end: the end whose last 3 px are narrower.
+  const spanAt = (t, band = 0.5) => { const n = across.filter((_, i) => Math.abs(along[i] - t) <= band); return n.length ? Math.max(...n) - Math.min(...n) + 1 / scale : 0; };
+  if (spanAt(high - 1.5, 1.5) < spanAt(low + 1.5, 1.5)) { axis = [-axis[0], -axis[1]]; for (let i = 0; i < along.length; i += 1) along[i] = -along[i]; [low, high] = [-high, -low]; }
+  const length = high - low;
+  return {
+    angleDeg: +(Math.atan2(axis[1], axis[0]) * 180 / Math.PI).toFixed(1),
+    lengthPx: +length.toFixed(1),
+    shaftPx: +spanAt(low + length * (4.3 / 20.0)).toFixed(1),
+    hairRootPx: +spanAt(low + length * (3.0 / 20.0) - 0.5).toFixed(1),
+    expected: { pxPerCm: +((${ROOT}.querySelector('.academy-library-spread').offsetWidth * 460 / 1131.53) / 24).toFixed(3) }
+  };
+})()`;
 // 続きの手掛かり: the spread shown, the book's data-more, the edges' opacity and any words in them.
 const MORE_STATE = `({ spreads: +${BOOK}.dataset.spreads, spread: ${BOOK}.dataset.spread, more: ${BOOK}.dataset.more ?? null, opacity: +getComputedStyle(${ROOT}.querySelector('.academy-library-more')).opacity, words: ${ROOT}.querySelector('.academy-library-more').textContent.trim() })`;
 // The page's own record of one move, on its Date.now() clock: every press (capture phase, with what was pressed),
@@ -880,6 +969,7 @@ function waitSteps(events) {
     closedMs: ms(closed),
     openedMs: ms(after('data-open', 'true', closed ? closed.t : click.t)),
     brushMs: ms(after('data-writing', 'moving')),
+    translatingMs: ms(after('data-ink', 'translating')),
     readyMs: ms(after('data-ink', 'ready'))
   };
 }
@@ -887,8 +977,8 @@ function waitSteps(events) {
 // ── The ordinary play entry: title → 新しいプレイ → the hub's talk → the send-off → the library ──────────────
 async function enterLibrary(page, stage, { expectArrival = true } = {}) {
   await page.load(`${stage.base}/`);
-  await page.waitFor(`document.querySelector('#title-screen')?.classList.contains('active') && document.querySelector('#start-new-game')`, 'title screen');
-  await page.click('#start-new-game');
+  await page.waitFor(`document.querySelector('#journey')?.dataset.journeyReady === 'true' && document.querySelector('#journey').dataset.scene === 'gate'`, 'title gate');
+  await page.click('[data-journey-action="new-game"]');
   await page.waitFor(`document.querySelector('#routing-hub-screen')?.classList.contains('active') && !document.querySelector('#routing-hub-send').disabled && document.querySelector('#routing-hub-message-stream').textContent.trim().length > 0`, 'routing hub welcome', { timeoutMs: 60000 });
   await talkToLibrary(page);
   if (expectArrival) {
@@ -979,10 +1069,40 @@ const PAGE_PROBE_HELPERS = `
     return hit;
   };
   const glyphsOf = (pageEl) => [...pageEl.querySelectorAll('.academy-library-glyph')].filter((g) => g.textContent.trim() !== '');
+  // The page's drawn ink (the sheet canvas in its ink): every inked pixel (alpha > 8) taken through the ink's own
+  // transform (the computed matrix3d) into the picture px of the element that paints the page's paper, tested against
+  // the painted paper. Returns the inked pixel count and how many fall outside the paper.
+  const sheetOnPaper = (pageEl, side) => {
+    const ink = pageEl.querySelector('.academy-library-page-ink');
+    const sheet = ink.querySelector(':scope > .academy-library-page-sheet');
+    if (!sheet) return { inked: 0, outside: 0, sheet: false };
+    const frame = frameOf(pageEl.offsetParent);
+    const m = new DOMMatrix(getComputedStyle(ink).transform);
+    const sx = sheet.width / sheet.offsetWidth;
+    const sy = sheet.height / sheet.offsetHeight;
+    const data = sheet.getContext('2d').getImageData(0, 0, sheet.width, sheet.height).data;
+    const poly = PAPER[side];
+    let inked = 0;
+    let outside = 0;
+    for (let py = 0; py < sheet.height; py += 1) {
+      const y = sheet.offsetTop + (py + 0.5) / sy;
+      for (let px = 0; px < sheet.width; px += 1) {
+        if (data[(py * sheet.width + px) * 4 + 3] <= 8) continue;
+        inked += 1;
+        const x = sheet.offsetLeft + (px + 0.5) / sx;
+        const w = m.m14 * x + m.m24 * y + m.m44;
+        const lx = (m.m11 * x + m.m21 * y + m.m41) / w + pageEl.offsetLeft;
+        const ly = (m.m12 * x + m.m22 * y + m.m42) / w + pageEl.offsetTop;
+        if (!inside(poly, [(lx - frame.left) / frame.scaleX, (ly - frame.top) / frame.scaleY])) outside += 1;
+      }
+    }
+    return { inked, outside, sheet: true };
+  };
 `;
 
-// The two static pages at rest: every letter's box on screen (getBoundingClientRect) taken back into the picture's
-// px through the spread's own picture placement, tested against the painted paper; the letter heights on screen
+// The two static pages at rest: every letter's box on screen (getBoundingClientRect — the hidden span sits where its
+// letter is drawn) taken back into the picture's px through the spread's own picture placement, and every inked pixel
+// of the drawn sheet, tested against the painted paper; the letter heights on screen
 // (the em box: the box height over its unprojected height, times the font size) per line, far to near.
 // body: false is a spread that carries only a note line (the read failed): no running text to measure the far and
 // near lines by, only that its letters lie inside the paper and are big enough.
@@ -1019,7 +1139,7 @@ async function probePageInk(page, { minLetterPx, label, body = true }) {
       }
       const median = (list) => { const s = [...list].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
       const rows = [...lines.entries()].sort((a, b) => a[0] - b[0]).map(([, ems]) => median(ems));
-      pages[side] = { letters, outside, minEm: letters ? +minEm.toFixed(2) : null, farBodyEm: rows.length ? +rows[0].toFixed(2) : null, nearBodyEm: rows.length ? +rows[rows.length - 1].toFixed(2) : null, bodyLines: rows.length };
+      pages[side] = { letters, outside, ink: sheetOnPaper(pageEl, side), minEm: letters ? +minEm.toFixed(2) : null, farBodyEm: rows.length ? +rows[0].toFixed(2) : null, nearBodyEm: rows.length ? +rows[rows.length - 1].toFixed(2) : null, bodyLines: rows.length };
     }
     const bodyEms = (key) => Object.values(pages).map((p) => p[key]).filter((v) => v !== null);
     const far = bodyEms('farBodyEm').length ? Math.min(...bodyEms('farBodyEm')) : null;
@@ -1030,6 +1150,7 @@ async function probePageInk(page, { minLetterPx, label, body = true }) {
   log(`probe page ink on the paper (${label})`, result);
   const inked = body ? result.pages.left.letters > 0 && result.pages.right.letters > 0 : result.pages.left.letters + result.pages.right.letters > 0;
   check(`page ink (${label}): every letter inside the painted paper`, inked && result.pages.left.outside === 0 && result.pages.right.outside === 0, result.pages);
+  check(`page ink (${label}): every inked pixel of the drawn sheet inside the painted paper`, ['left', 'right'].every((side) => result.pages[side].ink.outside === 0 && (result.pages[side].letters === 0 || result.pages[side].ink.inked > 0)), { left: result.pages.left.ink, right: result.pages.right.ink });
   check(`page ink (${label}): laid by a projection (matrix3d)`, result.inkTransform === 'matrix3d(', { inkTransform: result.inkTransform });
   if (body) {
     check(`page ink (${label}): the farthest body line's letters ≥ ${minLetterPx}px and ≥ ${MIN_FAR_TO_NEAR} of the nearest line's, the smallest letter on the page ≥ ${minLetterPx}px`,
@@ -1041,8 +1162,9 @@ async function probePageInk(page, { minLetterPx, label, body = true }) {
 }
 
 // The turning leaf: every letter on its two faces, taken from its unprojected place through the page's own
-// transform (the computed matrix3d) and its lift into the picture px of the face's paper, tested against the painted
-// paper that face shows (front: the right page's paper, back: the left page's).
+// transform (the computed matrix3d) and its lift into the picture px of the face's paper, and every inked pixel of the
+// face's drawn sheet, tested against the painted paper that face shows (front: the right page's paper, back: the left
+// page's).
 async function probeTurnFaces(page, label) {
   const result = await page.js(`(() => {
     ${PAGE_PROBE_HELPERS}
@@ -1064,27 +1186,32 @@ async function probeTurnFaces(page, label) {
           if (!inside(PAPER[side], [(local[0] - frame.left) / frame.scaleX, (local[1] - frame.top) / frame.scaleY])) { outside += 1; break; }
         }
       }
-      return { face: side === 'right' ? 'front' : 'back', letters: glyphs.length, outside };
+      return { face: side === 'right' ? 'front' : 'back', letters: glyphs.length, outside, ink: sheetOnPaper(pageEl, side) };
     });
   })()`);
   log(`probe the turning leaf's ink on its paper (${label})`, result);
-  check(`turning leaf (${label}): both faces carry laid ink, every letter inside the painted paper`, result.length === 2 && result.some((f) => f.letters > 0) && result.every((f) => f.outside === 0), { faces: result });
+  check(`turning leaf (${label}): both faces carry laid ink, every letter inside the painted paper`, result.length === 2 && result.some((f) => f.letters > 0) && result.every((f) => f.outside === 0 && f.ink.outside === 0 && (f.letters === 0 || f.ink.inked > 0)), { faces: result });
   return result;
 }
 
 // Every visible letter of one page, in order, with its box on screen.
 const LETTERS_OF = (pageExpr) => `[...(${pageExpr}).querySelectorAll('.academy-library-glyph')].filter((g) => g.textContent.trim() !== '').map((g) => { const r = g.getBoundingClientRect(); return [g.textContent, r.left, r.top, r.right, r.bottom]; })`;
+// The page's drawn sheet: its place in the ink, its pixel size and a hash of its pixels (FNV-1a over the RGBA words).
+// The pixels are read from a fresh copy of the sheet: the first read of a canvas and the later ones un-premultiply
+// differently, so every sheet is read through its own first read.
+const SHEET_OF = (pageExpr) => `(() => { const s = (${pageExpr}).querySelector('.academy-library-page-ink > .academy-library-page-sheet'); if (!s) return null; const c = new OffscreenCanvas(s.width, s.height); const g = c.getContext('2d'); g.drawImage(s, 0, 0); const d = new Uint32Array(g.getImageData(0, 0, s.width, s.height).data.buffer); let h = 0x811c9dc5; for (const w of d) h = Math.imul(h ^ w, 0x01000193) >>> 0; return [s.style.left, s.style.top, s.width, s.height, h]; })()`;
 const RESTING_PAGE = (side) => `${ROOT}.querySelector('.academy-library-spread > .academy-library-page-${side}')`;
 const LEAF_PAGE = (face) => `${ROOT}.querySelector('.academy-library-turn-${face} .academy-library-page')`;
 const LEAF_ANIMATION = `${ROOT}.querySelector('.academy-library-turn').getAnimations()[0]`;
 const MAX_LETTER_SHIFT_PX = 1;
 
 // The same letters in the same order, and the largest move of any letter's box edge between the two (px).
+// The drawn sheets are the same when their place, size and pixels are.
 function letterShift(from, to) {
-  const sameText = from.length === to.length && from.every((letter, i) => letter[0] === to[i][0]);
+  const sameText = from.letters.length === to.letters.length && from.letters.every((letter, i) => letter[0] === to.letters[i][0]);
   let maxPx = 0;
-  if (sameText) from.forEach((letter, i) => { for (let k = 1; k <= 4; k += 1) maxPx = Math.max(maxPx, Math.abs(letter[k] - to[i][k])); });
-  return { letters: from.length, sameText, maxPx: +maxPx.toFixed(3) };
+  if (sameText) from.letters.forEach((letter, i) => { for (let k = 1; k <= 4; k += 1) maxPx = Math.max(maxPx, Math.abs(letter[k] - to.letters[i][k])); });
+  return { letters: from.letters.length, sameText, maxPx: +maxPx.toFixed(3), sameSheet: from.sheet !== null && JSON.stringify(from.sheet) === JSON.stringify(to.sheet), sheets: [from.sheet, to.sheet] };
 }
 
 // One page turn held at its two ends: the leaf's animation is paused at its first instant (the face it takes off
@@ -1096,20 +1223,21 @@ async function probeTurnInPlace(page, { direction, label, landingStill = null })
   const forward = direction === 'forward';
   const [offSide, offFace, onSide, onFace] = forward ? ['right', 'front', 'left', 'back'] : ['left', 'back', 'right', 'front'];
   const spreadFrom = await page.js(`${BOOK}.dataset.spread`);
-  const resting = await page.js(LETTERS_OF(RESTING_PAGE(offSide)));
+  const inkOf = (pageExpr) => `({ letters: ${LETTERS_OF(pageExpr)}, sheet: ${SHEET_OF(pageExpr)} })`;
+  const resting = await page.js(inkOf(RESTING_PAGE(offSide)));
   if (forward) await page.key('ArrowRight', 'ArrowRight', 39);
   else await page.key('ArrowLeft', 'ArrowLeft', 37);
   await page.waitFor(`${ROOT}.querySelector('.academy-library-turn')?.getAnimations().length === 1`, 'leaf turning', { intervalMs: 5 });
-  const takingOff = await page.js(`(() => { const a = ${LEAF_ANIMATION}; a.pause(); a.currentTime = 0; return ${LETTERS_OF(LEAF_PAGE(offFace))}; })()`);
+  const takingOff = await page.js(`(() => { const a = ${LEAF_ANIMATION}; a.pause(); a.currentTime = 0; return ${inkOf(LEAF_PAGE(offFace))}; })()`);
   const endMs = await page.js(`(() => { const a = ${LEAF_ANIMATION}; const end = a.effect.getComputedTiming().endTime; a.currentTime = end - 1; return end; })()`);
   await sleep(250);
   if (landingStill) await landingStill('before');
-  const landing = await page.js(LETTERS_OF(LEAF_PAGE(onFace)));
+  const landing = await page.js(inkOf(LEAF_PAGE(onFace)));
   await page.js(`${LEAF_ANIMATION}.play()`);
   await page.waitFor(`${SCENE} === 'reading' && !${ROOT}.querySelector('.academy-library-turn')`, 'leaf landed', { intervalMs: 10 });
   await sleep(250);
   if (landingStill) await landingStill('after');
-  const landed = await page.js(LETTERS_OF(RESTING_PAGE(onSide)));
+  const landed = await page.js(inkOf(RESTING_PAGE(onSide)));
   const result = {
     direction,
     spreads: [spreadFrom, await page.js(`${BOOK}.dataset.spread`)],
@@ -1118,8 +1246,8 @@ async function probeTurnInPlace(page, { direction, label, landingStill = null })
     landing: { page: onSide, face: onFace, ...letterShift(landing, landed) }
   };
   log(`probe the leaf at take-off and landing (${direction} ${label})`, result);
-  check(`turning leaf ${direction} (${label}): at take-off and at landing the leaf's face carries the resting page's letters in the same places (same letters, every box edge within ${MAX_LETTER_SHIFT_PX}px)`,
-    [result.takeoff, result.landing].every((end) => end.letters > 0 && end.sameText && end.maxPx <= MAX_LETTER_SHIFT_PX), result);
+  check(`turning leaf ${direction} (${label}): at take-off and at landing the leaf's face carries the resting page's letters in the same places (same letters, every box edge within ${MAX_LETTER_SHIFT_PX}px, the same drawn sheet)`,
+    [result.takeoff, result.landing].every((end) => end.letters > 0 && end.sameText && end.maxPx <= MAX_LETTER_SHIFT_PX && end.sameSheet), result);
   return result;
 }
 
@@ -1228,15 +1356,16 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   await page.waitFor(`${SCENE} === 'waiting'`, 'waiting', { intervalMs: 20 });
   mark('handing-end');
 
-  // 3 待つ: a hand-candle light roams the far aisle until the answer (14 s cycle); the key instant is that light lit.
-  await page.waitFor(`+getComputedStyle(${ROOT}.querySelector('.academy-library-seeker')).opacity >= 0.9`, 'seeker lit', { intervalMs: 10, timeoutMs: SEARCH_DELAY_MS });
+  // 3 待つ: the aisle lamps' light is sent from the near lamps to the far one and back until the answer (3.2 s cycle);
+  // the key instant is the far lamp over the grille gate at its brightest.
+  await page.waitFor(`+getComputedStyle(${ROOT}.querySelector('.academy-library-lamp-glow[data-depth="4"]')).opacity >= 0.95`, 'far lamp lit', { intervalMs: 10, timeoutMs: SEARCH_DELAY_MS });
   await still('03-waiting');
-  record.waiting = await page.js(`({ scene: ${SCENE}, seeker: getComputedStyle(${ROOT}.querySelector('.academy-library-seeker')).animationName })`);
+  record.waiting = await page.js(`({ scene: ${SCENE}, seekingLamps: [...${ROOT}.querySelectorAll('.academy-library-lamp-glow')].filter((lamp) => lamp.getAnimations().some((animation) => !(animation instanceof CSSAnimation) && animation.effect.getComputedTiming().iterations === Infinity)).length })`);
   await page.waitFor(`${SCENE} !== 'waiting'`, 'search answer', { timeoutMs: 60000, intervalMs: 10 });
   mark('answer');
   const search = stage.front.last('POST', '/api/library/search');
   record.wait = { handToAnswerMs: marks.answer - marks.handed, requestMs: search.endedAt - search.startedAt, status: search.status, relayDelayMs: SEARCH_DELAY_MS };
-  check('scene 3 待つ: the search is out for the 7.68 s relay delay, the seeker roams until the answer', record.wait.status === 200 && record.wait.handToAnswerMs >= SEARCH_DELAY_MS && record.waiting.scene === 'waiting', { ...record.wait, ...record.waiting });
+  check('scene 3 待つ: the search is out for the 7.68 s relay delay, the aisle lamps send their light until the answer', record.wait.status === 200 && record.wait.handToAnswerMs >= SEARCH_DELAY_MS && record.waiting.scene === 'waiting' && record.waiting.seekingLamps === 8, { ...record.wait, ...record.waiting });
   probes.shelfIn = await page.js(`${MOTION_OF(SHELF_BOOK)}.slice(0, 3)`);
 
   // 4 本が並ぶ
@@ -1275,7 +1404,18 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   await sleep(1200);
   await still('s-open-wait');
   record.openWait = await page.js(BRUSH_STATE);
-  check('state 本文の待ち: the cover is open on a white spread and the brush writes ink lines on it', record.openWait.ink === 'waiting' && record.openWait.writing === 'moving' && record.openWait.brush === 1 && record.openWait.strokes > 0, record.openWait);
+  check('state 本文の待ち: the cover is open on a white spread and the brush writes the world\'s script on it', record.openWait.ink === 'waiting' && record.openWait.writing === 'moving' && record.openWait.brush === 1 && record.openWait.rows > 0 && record.openWait.letters > 0, record.openWait);
+  probes.brush = await page.js(BRUSH_SHAPE);
+  const brushCm = probes.brush.expected.pxPerCm;
+  check(`the brush (${size.label}): a 0.8 cm shaft and a 0.75 cm hair root at the page's 24 cm, leaning from the tip to the lower right at 42°`,
+    Math.abs(probes.brush.shaftPx - 0.8 * brushCm) <= 1.5 && Math.abs(probes.brush.hairRootPx - 0.75 * brushCm) <= 1.5 && Math.abs(probes.brush.angleDeg - 42.3) <= 1.5, probes.brush);
+  probes.scriptWaiting = await page.js(SCRIPT_STATE);
+  // The answer arrives: the rows not written yet are laid on the page's lines, then translated line by line.
+  await page.waitFor(`${BOOK}.dataset.ink === 'translating'`, 'translating', { timeoutMs: 60000, intervalMs: 5 });
+  probes.scriptArrived = await page.js(SCRIPT_STATE);
+  check(`the world's script on the spread (${size.label}): no two identical shapes side by side on a row, words of 1 to 5 letters`,
+    probes.scriptArrived.letters > 0 && probes.scriptArrived.adjacent === 0 && probes.scriptWaiting.adjacent === 0
+    && Object.keys(probes.scriptArrived.wordLengths).every((n) => +n >= 1 && +n <= 5), { waiting: probes.scriptWaiting, arrived: probes.scriptArrived });
   await page.waitFor(`${BOOK}.dataset.ink === 'ready'`, 'ink', { timeoutMs: 60000, intervalMs: 20 });
   await sleep(1400);
   await still('s-reading');
@@ -1299,8 +1439,8 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   await page.key('ArrowRight', 'ArrowRight', 39);
   await page.waitFor(ANIMATION_AT('.academy-library-turn', 150), 'leaf turning', { intervalMs: 10 });
   await still('07-turn');
-  probes.turnFaces = await probeTurnFaces(page, size.label);
   const turning = await page.js(SCENE);
+  probes.turnFaces = await probeTurnFaces(page, size.label);
   await page.waitFor(`${SCENE} === 'reading' && ${BOOK}.dataset.spread === '1'`, 'turned');
   await sleep(700);
   mark('turn-end');
@@ -1322,7 +1462,7 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   record.footnotes = await page.js(`({
     items: [...${ROOT}.querySelectorAll('.academy-library-footnotes-item')].map((item) => ({ readable: item.dataset.readable === 'true', kind: item.querySelector('button')?.dataset.kind ?? null, text: item.textContent })),
     heading: ${ROOT}.querySelector('.academy-library-footnotes-heading')?.textContent ?? null,
-    rule: Boolean(${ROOT}.querySelector('.academy-library-footnotes > .academy-library-page-rule path')),
+    rule: Boolean(${ROOT}.querySelector('.academy-library-footnotes > .academy-library-page-rule > svg')),
     ribbons: ${ROOT}.querySelectorAll('[class*="ribbon"]').length,
     sealedFrame: (() => { const n = ${ROOT}.querySelector('.academy-library-footnote-sealed-note'); const cs = n && getComputedStyle(n); return cs ? [cs.borderTopWidth, cs.backgroundColor, cs.borderRadius] : null; })()
   })`);
@@ -1361,7 +1501,7 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   record.relatedSteps = steps;
   check('scene 8 関連する本へ移る: pressed → ink drawn back → closed → the cover\'s title changed → opened → the brush → the text, and the body asked for at the press',
     record.relatedMorph.scene === 'relating' && record.relatedMorph.open === 'false' && record.relatedBrush.writing === 'moving' && record.relatedBrush.brush === 1
-    && steps.readAskedMs !== null && steps.readAskedMs < 50 && steps.inkWaitingMs <= steps.closedMs && steps.closedMs < steps.openedMs && steps.openedMs <= steps.brushMs && steps.brushMs < steps.readyMs
+    && steps.readAskedMs !== null && steps.readAskedMs < 50 && steps.inkWaitingMs <= steps.closedMs && steps.closedMs < steps.openedMs && steps.openedMs <= steps.brushMs && steps.brushMs < steps.translatingMs && steps.translatingMs < steps.readyMs
     && stage.front.last('POST', '/api/library/read').status === 200, { morph: record.relatedMorph, brush: record.relatedBrush, steps });
   mark('related-end');
   await recording.afterRelated();
@@ -1779,17 +1919,19 @@ async function walkReduced(page, stage, { still }) {
 }
 
 // ── Probe: a finger resting on the top edge of a spine ──────────────────────────────────────────────────────
-// The pointer is moved onto the spine's own top edge (the clipped quad, read off the page), a few px inside, and
-// held there; the book's drawn state is read every EDGE_SAMPLE_MS. A book that draws out and back again under a
+// The pointer is moved onto the spine's own top edge (the top edge of the spine's face, mapped by the face's own
+// matrix3d off the page), a few px inside, and held there; the book's drawn state is read every EDGE_SAMPLE_MS. A book that draws out and back again under a
 // still finger shows as more than one change.
 async function probeSpineTopEdge(page) {
   const index = await bookIndex(page, OPEN_TITLE);
   const edge = await page.js(`(() => {
     const node = document.querySelectorAll(${JSON.stringify(SHELF_BOOK)})[${index}];
-    const spine = node.querySelector('.academy-library-book-spine');
-    const box = spine.getBoundingClientRect();
-    const corners = spine.style.clipPath.replace(/^polygon\\(|\\)$/g, '').split(',').map((p) => p.trim().split(/\\s+/).map(parseFloat)).map(([px, py]) => [box.left + (px / 100) * box.width, box.top + (py / 100) * box.height]);
-    return { corners, nodeBox: node.getBoundingClientRect().toJSON() };
+    const face = node.querySelector('.academy-library-book-face');
+    if (!face || !face.style.transform.startsWith('matrix3d(')) throw new Error('spine top edge: the book has no spine face laid by a matrix3d');
+    const box = node.getBoundingClientRect();
+    const m = new DOMMatrix(face.style.transform);
+    const at = (x, y) => { const p = m.transformPoint(new DOMPoint(x, y, 0, 1)); return [box.left + p.x / p.w, box.top + p.y / p.w]; };
+    return { corners: [at(0, 0), at(face.offsetWidth, 0)], nodeBox: box.toJSON() };
   })()`);
   const [tl, tr] = edge.corners;
   const results = [];
@@ -1818,65 +1960,57 @@ async function probeSpineTopEdge(page) {
   return result;
 }
 
-// ── Probe: every catalog title on the lowest spine, at the smallest letters allowed ─────────────────────────
-// The bays, the spine padding, the smallest title scale and the layers' spine-height ranges are read off the
-// served libraryScreen.js (the module exports none of them); each title's one-line length is measured in the live
-// shelf with the screen's own measuring class, built the way the screen builds a spine title (a subtitle after
-// 「 — 」 in its own span). A book's own spine height (heightF) comes from a private hash of its id, so each title
-// is counted at both ends of its layer's range: fits on every look (at the lowest heightF) and fits on no look.
+// ── Probe: every catalog title against the painted spines, at the smallest letters allowed ─────────────────────
+// The spines (SHELF_SLOTS), the label's measure (labelAt / labelScale) and the smallest title scale are lifted from the
+// served libraryScreen.js as written (the module exports none of them) — from \`const ART_UNIT\` to the shade builder;
+// each title's one-line lengths (the line with its subtitle, the title and the subtitle alone) are measured in the live
+// shelf with the screen's own measuring class. Counted per bay: the titles some spine of it holds; and the titles no
+// spine holds (the shelf would throw on a search that brings one).
 async function probeCatalogTitleFit(page, catalogBooks) {
   const source = await page.js(`(async () => (await fetch('/libraryScreen.js')).text())()`);
-  const baysLiteral = /const SHELF_BAYS = (\[[\s\S]*?\n\]);/.exec(source)?.[1];
-  const padY = Number(/const SPINE_PAD_Y = ([\d.]+);/.exec(source)?.[1]);
-  const minScale = Number(/const TITLE_MIN_SCALE = ([\d.]+);/.exec(source)?.[1]);
+  const from = source.indexOf('const ART_UNIT');
+  const to = source.indexOf('// duration・delay は暗がりが満ちる長さと遅れ');
   const subtitleSeparator = /const SUBTITLE_SEPARATOR = '(.+?)';/.exec(source)?.[1];
-  const heightMatch = /const heightF = cover === 'core' \? between\(([\d.]+), ([\d.]+)\) : between\(([\d.]+), ([\d.]+)\);/.exec(source);
-  if (!baysLiteral || !(padY > 0) || !(minScale > 0) || !subtitleSeparator || !heightMatch) {
-    throw new Error('title fit: libraryScreen.js no longer declares SHELF_BAYS / SPINE_PAD_Y / TITLE_MIN_SCALE / SUBTITLE_SEPARATOR / heightF in the form read here');
+  if (from < 0 || to < from || !subtitleSeparator) {
+    throw new Error('title fit: libraryScreen.js no longer declares ART_UNIT … the shade builder / SUBTITLE_SEPARATOR in the form read here');
   }
-  const bays = Function(`return ${baysLiteral}`)();
-  const heightF = { core: [Number(heightMatch[1]), Number(heightMatch[2])], other: [Number(heightMatch[3]), Number(heightMatch[4])] };
-  const heights = bays.map((bay, index) => ({ index, height: Math.min(bay.bottom[0] - bay.top[0], bay.bottom[1] - bay.top[1]) }));
-  const lowest = heights.reduce((a, b) => (b.height < a.height ? b : a));
-  const highest = heights.reduce((a, b) => (b.height > a.height ? b : a));
+  const pct = (value) => `${value.toFixed(3)}%`;
+  const { SHELF_SLOTS: slots, labelAt, labelScale, TITLE_MIN_SCALE: minScale } = Function('pct', `${source.slice(from, to)}; return { SHELF_SLOTS, labelAt, labelScale, TITLE_MIN_SCALE };`)(pct);
+  if (!Array.isArray(slots) || !slots.length || !(minScale > 0)) throw new Error('title fit: no spines or no smallest title scale read');
   const lengths = await page.js(`(() => {
     const shelf = ${ROOT}.querySelector('.academy-library-shelf');
-    const artPx = ${ROOT}.querySelector('.academy-library-art').getBoundingClientRect().width;
     const measure = document.createElement('span');
     measure.className = 'academy-library-book-title-text academy-library-book-title-measure';
     shelf.append(measure);
+    const em = () => measure.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(measure).fontSize);
+    const text = (value) => { measure.replaceChildren(document.createTextNode(value)); return em(); };
     try {
       return ${JSON.stringify(catalogBooks.map((book) => book.title))}.map((title) => {
         const at = title.indexOf(${JSON.stringify(subtitleSeparator)});
-        if (at < 0) measure.replaceChildren(document.createTextNode(title));
-        else {
-          const subtitle = document.createElement('span');
-          subtitle.className = 'academy-library-book-subtitle';
-          subtitle.textContent = '— ' + title.slice(at + ${subtitleSeparator.length});
-          measure.replaceChildren(document.createTextNode(title.slice(0, at)), subtitle);
+        if (at < 0) {
+          const length = text(title);
+          return { line: length, main: length, sub: null };
         }
-        return (measure.getBoundingClientRect().height / artPx) * 100;
+        const main = title.slice(0, at);
+        const sub = title.slice(at + ${subtitleSeparator.length});
+        const subtitle = document.createElement('span');
+        subtitle.className = 'academy-library-book-subtitle';
+        subtitle.textContent = '— ' + sub;
+        measure.replaceChildren(document.createTextNode(main), subtitle);
+        return { line: em(), main: text(main), sub: text(sub) };
       });
     } finally {
       measure.remove();
     }
   })()`);
-  const scaleOn = (bay, f, length) => Math.min(1, (bay.height * f - 2 * padY) / length);
-  const count = (bay) => {
-    const notEvery = [];
-    const noLook = [];
-    catalogBooks.forEach((book, i) => {
-      const [low, high] = book.layer === 'core' ? heightF.core : heightF.other;
-      const atLow = scaleOn(bay, low, lengths[i]);
-      if (atLow < minScale) notEvery.push({ title: book.title, layer: book.layer, chars: [...book.title].length, scaleAtLowestLook: +atLow.toFixed(3), scaleAtHighestLook: +scaleOn(bay, high, lengths[i]).toFixed(3) });
-      if (scaleOn(bay, high, lengths[i]) < minScale) noLook.push(book.title);
-    });
-    notEvery.sort((a, b) => a.scaleAtLowestLook - b.scaleAtLowestLook);
-    return { bay: bay.index, height: +bay.height.toFixed(2), notOnEveryLook: notEvery.length, notOnAnyLook: noLook.length, worst: notEvery.slice(0, 8), noLookTitles: noLook };
-  };
-  const longest = lengths.reduce((best, length, i) => (length > best.length ? { length, title: catalogBooks[i].title } : best), { length: 0, title: null });
-  const result = { books: catalogBooks.length, minScale, padY, heightF, longest: { title: longest.title, length: +longest.length.toFixed(2) }, lowestBay: count(lowest), highestBay: count(highest) };
-  log('probe catalog titles on the lowest / highest bay at the smallest title scale', result);
+  const scales = lengths.map((length) => slots.map((slot) => labelScale(slot, labelAt(slot, length))));
+  const bays = [...new Set(slots.map((slot) => slot.bay))];
+  const perBay = Object.fromEntries(bays.map((bay) => [bay, catalogBooks.filter((_book, i) => slots.some((slot, k) => slot.bay === bay && scales[i][k] >= minScale)).length]));
+  const noSpine = catalogBooks.filter((_book, i) => !scales[i].some((scale) => scale >= minScale))
+    .map((book) => ({ title: book.title, layer: book.layer, chars: [...book.title].length, bestScale: +Math.max(...scales[catalogBooks.indexOf(book)]).toFixed(3) }));
+  const longest = lengths.reduce((best, length, i) => (length.line > best.length ? { length: length.line, title: catalogBooks[i].title } : best), { length: 0, title: null });
+  const result = { books: catalogBooks.length, minScale, spines: slots.length, longest: { title: longest.title, lengthEm: +longest.length.toFixed(2) }, heldPerBay: perBay, heldByNoSpine: noSpine.length, noSpineTitles: noSpine };
+  log('probe catalog titles against the painted spines at the smallest title scale', result);
   return result;
 }
 
@@ -2031,13 +2165,214 @@ async function measureWaits({ afterRoot, beforeRoot, lmConfig, runs }) {
   console.log(`DONE waits runs=${results.length}`);
 }
 
+// Which catalog books the hero cannot open at the new game's parameters (the seeds): the footnote answer names one
+// readable and one gated book from the product's own candidate list.
+async function catalogGates(repoRoot) {
+  const catalog = JSON.parse(await fs.readFile(path.join(repoRoot, 'data/definitions/game_data/library_catalog.json'), 'utf8')).books;
+  const seedMagic = JSON.parse(await fs.readFile(path.join(repoRoot, 'data/seeds/game_data/runtime/player_parameters.json'), 'utf8')).magic;
+  return { catalog, gatedIds: new Set(catalog.filter((book) => book.gate && !(book.gate.kind === 'magic' && seedMagic[book.gate.key].value >= book.gate.min)).map((book) => book.id)) };
+}
+
 // ── The capture ──────────────────────────────────────────────────────────────────────────────────────────────
 const dims = (viewport) => `${viewport.width}×${viewport.height}`;
+
+// The renderer's profile (userData: cache, cookies, local storage) lives in this directory of the out dir for the
+// capture and is removed after it, so the capture writes nothing under the user's Library.
+const USER_DATA_DIR = 'electron-user-data';
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.mode === 'waits') return measureWaits(args);
-  return capture(args);
+  if (args.mode === 'region-diff') return regionDiff(args);
+  // Synchronous up to setPath: userData must be pointed before the app is ready.
+  const existing = (() => {
+    try {
+      return readdirSync(args.outDir);
+    } catch (error) {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    }
+  })();
+  check('out dir is empty or absent', existing.length === 0, { existing: existing.slice(0, 5) });
+  mkdirSync(args.outDir, { recursive: true });
+  const userData = path.join(args.outDir, USER_DATA_DIR);
+  app.setPath('userData', userData);
+  teardown.push(() => fs.rm(userData, { recursive: true, force: true }));
+  return args.mode === 'shelf' ? shelfShots(args) : capture(args);
+}
+
+// ── shelf: the shelf of books beside the composition plan, its motion as frames, and stills for the region diff ──
+// Three walks to the shelf (the ordinary play entry, THEME handed over): at 1440×900 with full motion — the books
+// shelved after the answer and one drawn out under the finger recorded as frames, the settled shelf (shelf.png) and the
+// drawn book (hover.png) as stills; and with reduced motion at 1440×900 and 1920×1080 (the dust drawn once, the lamps
+// still), the stills a region diff compares between two trees (shelf-still*.png). compare.png sets the plan (read only,
+// 1440×900) left of shelf.png. manifest.json records HEAD, the art's box per still and every frame.
+//
+// region-diff: the reduced-motion stills of two shelf runs (before / after), compared outside the places the plan
+// touches (PLAN_REGIONS, mapped through each run's art box and grown by 1px). Prints the counts; writes nothing.
+const SHELF_STILLS = [
+  { file: 'shelf-still.png', viewport: MAIN_VIEWPORT },
+  { file: 'shelf-still@1920x1080.png', viewport: LARGE_VIEWPORT }
+];
+// The places the composition plan A redraws (library-refine-composition-r3 REGIONS), in px of the art at 1440 wide:
+// the upper bay of the right-hand case, its middle bay and its lower bay.
+const PLAN_REGIONS = [
+  [[1128, 466], [1281, 466], [1281, 666], [1128, 666]],
+  [[1303, 633], [1440, 633], [1440, 835], [1303, 835]],
+  [[1303, 844], [1440, 844], [1440, 1079], [1303, 1079]]
+];
+const RESIZED_STILL = 'shelf-resized@1920x1080.png';
+const SHELVE_CLIP_MS = 2600;
+const DRAW_CLIP_MS = 1100;
+// Every book's 題箋 on the screen: its four corners (the face's transform applied to the label's box), the title on it
+// against the book's own, whether the title's letters lie inside the label, and the letter size in px.
+const LABEL_PROBE = `[...document.querySelectorAll(${JSON.stringify(SHELF_BOOK)})].map((node) => {
+  const face = node.querySelector('.academy-library-book-face');
+  const label = node.querySelector('.academy-library-book-label');
+  const text = node.querySelector('.academy-library-book-title-text');
+  const m = new DOMMatrix(face.style.transform);
+  const box = node.getBoundingClientRect();
+  const at = (x, y) => { const p = m.transformPoint(new DOMPoint(x, y, 0, 1)); return [box.left + p.x / p.w, box.top + p.y / p.w]; };
+  // The label's own box as layFace wrote it (offsetLeft and its kin round to whole px, which the projection magnifies).
+  const [l, t, w, h] = ['left', 'top', 'width', 'height'].map((side) => Number.parseFloat(label.style[side]));
+  const textBottom = text.offsetTop + text.offsetHeight;
+  return {
+    title: node.getAttribute('aria-label'),
+    written: [...text.childNodes].map((n) => n.textContent).join('|'),
+    corners: [at(l, t), at(l + w, t), at(l + w, t + h), at(l, t + h)],
+    inside: text.offsetLeft >= 0 && text.offsetLeft + text.offsetWidth <= w + 0.5 && textBottom <= h + 0.5,
+    letterPx: Number.parseFloat(getComputedStyle(label).fontSize) * m.a
+  };
+})`;
+const ART_BOX = `(() => { const b = ${ROOT}.querySelector('.academy-library-art').getBoundingClientRect(); return { left: b.left, top: b.top, width: b.width }; })()`;
+
+async function shelfShots({ repoRoot, outDir, plan }) {
+  const globalTimer = setTimeout(() => { console.error('FAILED global timeout (10 min)'); runTeardown().finally(() => app.exit(2)); }, 10 * 60 * 1000);
+  teardown.push(async () => clearTimeout(globalTimer));
+  await app.whenReady();
+  app.on('window-all-closed', () => {});
+  const head = (await execFileAsync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'])).stdout.trim();
+  const dirty = (await execFileAsync('git', ['-C', repoRoot, 'status', '--porcelain'])).stdout.trim();
+  check('repo is clean (the figures are stamped with HEAD)', dirty === '', { head, dirty });
+  const planSize = await python({ op: 'size', src: plan });
+  check('plan is 1440x900', planSize.size[0] === MAIN_VIEWPORT.width && planSize.size[1] === MAIN_VIEWPORT.height, planSize);
+  const { createServer } = await import(path.join(repoRoot, 'app/src/server.mjs'));
+  const { runtimePathsManifestFilename } = await import(path.join(repoRoot, 'app/src/runtimePaths.mjs'));
+  const { gatedIds } = await catalogGates(repoRoot);
+  const work = await fs.mkdtemp(path.join(os.tmpdir(), 'library-screen-capture-work-'));
+  teardown.push(() => fs.rm(work, { recursive: true, force: true }));
+  const out = (name) => path.join(outDir, name);
+  await fs.mkdir(out('frames'));
+  const walk = async (viewport, reduced, body) => {
+    const stage = await startStage(repoRoot, { createServer, runtimePathsManifestFilename, gatedIds });
+    teardown.push(stage.stop);
+    const page = await openPage(viewport, { reduced });
+    try {
+      await enterLibrary(page, stage);
+      // The lamps and the dust come up over 2.6 s and the arrival's loading cover lifts.
+      await sleep(2800);
+      return await body(page);
+    } finally {
+      await page.close();
+      teardown.splice(teardown.indexOf(stage.stop), 1);
+      await stage.stop();
+      rendererErrors[`${dims(viewport)} reduced=${reduced}`] = page.rendererErrors;
+      for (const error of page.rendererErrors) log('renderer console error', error);
+    }
+  };
+  const settledShelf = async (page) => {
+    await page.waitFor(`${SCENE} === 'shelf'`, 'shelf', { timeoutMs: 60000, intervalMs: 10 });
+    const books = await page.js(`document.querySelectorAll(${JSON.stringify(SHELF_BOOK)}).length`);
+    check('15 books on the shelf', books === 15, { books });
+  };
+
+  const rendererErrors = {};
+  let labels = null;
+  const art = {};
+  const frames = {};
+  await walk(MAIN_VIEWPORT, false, async (page) => {
+    const recorder = await startRecorder(page, work);
+    await handOver(page, THEME);
+    await page.waitFor(`${SCENE} === 'returning'`, 'books shelved', { timeoutMs: 60000, intervalMs: 5 });
+    const shelving = Date.now();
+    await settledShelf(page);
+    await sleep(Math.max(0, shelving + SHELVE_CLIP_MS - Date.now()));
+    await page.still(out('shelf.png'));
+    art['shelf.png'] = await page.js(ART_BOX);
+    labels = await page.js(LABEL_PROBE);
+    const index = await bookIndex(page, OPEN_TITLE);
+    const point = await page.pointOf(SHELF_BOOK, { index });
+    const drawing = Date.now();
+    await page.moveTo(point);
+    await sleep(DRAW_CLIP_MS);
+    await page.still(out('hover.png'));
+    art['hover.png'] = await page.js(ART_BOX);
+    await recorder.stop();
+    for (const [name, start, length] of [['shelve', shelving, SHELVE_CLIP_MS], ['draw', drawing, DRAW_CLIP_MS]]) {
+      frames[name] = [];
+      let at = 0;
+      for (const [index, frame] of cutClip(recorder.frames, start, start + length).entries()) {
+        const file = `frames/${name}-${String(index).padStart(3, '0')}-t${String(at).padStart(4, '0')}ms.png`;
+        await fs.copyFile(frame.file, out(file));
+        frames[name].push({ file, atMs: at, durationMs: frame.duration });
+        at += frame.duration;
+      }
+    }
+  });
+  for (const { file, viewport } of SHELF_STILLS) {
+    await walk(viewport, true, async (page) => {
+      await handOver(page, THEME);
+      await settledShelf(page);
+      await sleep(300);
+      await page.still(out(file));
+      art[file] = await page.js(ART_BOX);
+      if (viewport !== MAIN_VIEWPORT) return;
+      // The window grown to 1920×1080 under the shelf: the spines are laid again for the new size.
+      await page.send('Emulation.setDeviceMetricsOverride', { width: LARGE_VIEWPORT.width, height: LARGE_VIEWPORT.height, deviceScaleFactor: 1, mobile: false });
+      await page.waitFor(`innerWidth === ${LARGE_VIEWPORT.width}`, 'resized');
+      await sleep(500);
+      const { data } = await page.send('Page.captureScreenshot', { format: 'png' });
+      await fs.writeFile(out(RESIZED_STILL), Buffer.from(data, 'base64'));
+      art[RESIZED_STILL] = await page.js(ART_BOX);
+    });
+  }
+  // The resized page's shelf against the 1920×1080 page's own, inside the plan's places (the dust is spawned anew on a
+  // resize, so only the shelf is compared).
+  const large = art['shelf-still@1920x1080.png'];
+  check('the resized page lays the art like the 1920×1080 page', JSON.stringify(art[RESIZED_STILL]) === JSON.stringify(large), { resized: art[RESIZED_STILL], large });
+  const resized = await python({ op: 'regiondiff', before: out('shelf-still@1920x1080.png'), after: out(RESIZED_STILL),
+    polygons: PLAN_REGIONS.map((region) => region.map(([x, y]) => [large.left + (x * large.width) / 1440, large.top + (y * large.width) / 1440])) });
+  console.log(`RESIZED ${JSON.stringify(resized)}`);
+  const side = await python({ op: 'side', left: plan, right: out('shelf.png'), gap: COMPARE_GAP, out: out('compare.png') });
+  check('compare.png sets the plan beside the shelf', side.size[0] === MAIN_VIEWPORT.width * 2 + COMPARE_GAP, side);
+  // The label edges against the line from their midpoint to the shelf's vanishing point (202.1, 754.7 of the art at 1440).
+  const box = art['shelf.png'];
+  const vp = [box.left + (202.1 * box.width) / 1440, box.top + (754.7 * box.width) / 1440];
+  const deg = ([ax, ay], [bx, by]) => (Math.atan2(by - ay, bx - ax) * 180) / Math.PI;
+  for (const label of labels) {
+    const [tl, tr, br, bl] = label.corners;
+    label.edges = [[tl, tr], [bl, br]].map(([a, b]) => {
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      return { deg: +deg(a, b).toFixed(2), toVp: +deg(vp, mid).toFixed(2) };
+    });
+    console.log(`LABEL ${label.title} written=${label.written} inside=${label.inside} letter=${label.letterPx.toFixed(2)}px x=${tl[0].toFixed(1)}-${tr[0].toFixed(1)} top ${label.edges[0].deg}° (to VP ${label.edges[0].toVp}°) bottom ${label.edges[1].deg}° (to VP ${label.edges[1].toVp}°)`);
+  }
+  await writeJson(out('manifest.json'), { head, plan, theme: THEME, drawn: OPEN_TITLE, art, labels, frames, resized, rendererErrors });
+  for (const [name, list] of Object.entries(frames)) console.log(`frames ${name}: ${list.length} over ${list.reduce((sum, frame) => sum + frame.durationMs, 0)}ms`);
+  console.log(`DONE shelf head=${head}`);
+}
+
+async function regionDiff({ beforeDir, afterDir }) {
+  const manifests = await Promise.all([beforeDir, afterDir].map(async (dir) => JSON.parse(await fs.readFile(path.join(dir, 'manifest.json'), 'utf8'))));
+  console.log(`before head=${manifests[0].head} after head=${manifests[1].head}`);
+  for (const { file } of SHELF_STILLS) {
+    const [before, after] = manifests.map((manifest) => manifest.art[file]);
+    check(`${file}: the art lies the same in both runs`, JSON.stringify(before) === JSON.stringify(after), { before, after });
+    const scale = before.width / 1440;
+    const polygons = PLAN_REGIONS.map((region) => region.map(([x, y]) => [before.left + x * scale, before.top + y * scale]));
+    const result = await python({ op: 'regiondiff', before: path.join(beforeDir, file), after: path.join(afterDir, file), polygons });
+    console.log(`REGION-DIFF ${file} ${JSON.stringify(result)}`);
+  }
 }
 
 async function capture({ repoRoot, outDir, prototypeDir }) {
@@ -2055,17 +2390,10 @@ async function capture({ repoRoot, outDir, prototypeDir }) {
     const size = await python({ op: 'size', src: path.join(prototypeDir, comparison.prototype) });
     check(`prototype ${comparison.prototype} is 1440x900`, size.size[0] === MAIN_VIEWPORT.width && size.size[1] === MAIN_VIEWPORT.height, size);
   }
-  const existing = await fs.readdir(outDir).catch((error) => { if (error.code === 'ENOENT') return []; throw error; });
-  check('out dir is empty or absent', existing.length === 0, { existing: existing.slice(0, 5) });
-  await fs.mkdir(outDir, { recursive: true });
 
   const { createServer } = await import(path.join(repoRoot, 'app/src/server.mjs'));
   const { runtimePathsManifestFilename } = await import(path.join(repoRoot, 'app/src/runtimePaths.mjs'));
-  // Which catalog books the hero cannot open at the new game's parameters (the seeds): the footnote answer names
-  // one readable and one gated book from the product's own candidate list.
-  const catalog = JSON.parse(await fs.readFile(path.join(repoRoot, 'data/definitions/game_data/library_catalog.json'), 'utf8')).books;
-  const seedMagic = JSON.parse(await fs.readFile(path.join(repoRoot, 'data/seeds/game_data/runtime/player_parameters.json'), 'utf8')).magic;
-  const gatedIds = new Set(catalog.filter((book) => book.gate && !(book.gate.kind === 'magic' && seedMagic[book.gate.key].value >= book.gate.min)).map((book) => book.id));
+  const { catalog, gatedIds } = await catalogGates(repoRoot);
   const longTitleBook = catalog.find((book) => book.title === LONG_TITLE);
   check('the fixture titles name the 禁書, the readable catalog book and the long readable catalog book as the test expects',
     gatedIds.has(catalog.find((book) => book.title === GATED_TITLE)?.id) && catalog.find((book) => book.title === SAME_TITLE)?.id === SAME_TITLE_ID && !gatedIds.has(SAME_TITLE_ID)
@@ -2227,7 +2555,7 @@ async function capture({ repoRoot, outDir, prototypeDir }) {
     const bytes = await fs.readFile(out(artifact.file));
     listing.push({ ...artifact, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
   }
-  const written = (await fs.readdir(outDir)).sort();
+  const written = (await fs.readdir(outDir)).filter((name) => name !== USER_DATA_DIR).sort();
   const listed = listing.map((entry) => entry.file).sort();
   check('out dir holds exactly the listed artifacts', JSON.stringify(written) === JSON.stringify(listed), { written: written.length, listed: listed.length, extra: written.filter((name) => !listed.includes(name)), missing: listed.filter((name) => !written.includes(name)) });
   const stateTable = STATES.map((state) => ({ state: state.name, files: SIZES.map((size) => `${state.id}${size.suffix}.png`) }));

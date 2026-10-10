@@ -1233,7 +1233,6 @@
           <div class="academy-library-art-depth" aria-hidden="true"></div>
           <section class="academy-library-shelf" aria-label="棚"></section>
           <div class="academy-library-lamps" aria-hidden="true"></div>
-          <div class="academy-library-seeker" aria-hidden="true"></div>
           <div class="academy-library-seek-spot academy-library-seek-spot-a" aria-hidden="true"></div>
           <div class="academy-library-seek-spot academy-library-seek-spot-b" aria-hidden="true"></div>
           <div class="academy-library-seek-spot academy-library-seek-spot-c" aria-hidden="true"></div>
@@ -1300,26 +1299,8 @@
               <div class="academy-library-page academy-library-page-left"></div>
               <div class="academy-library-page academy-library-page-right"></div>
               <div class="academy-library-brush" aria-hidden="true">
-                <span class="academy-library-brush-shadow"></span>
-                <svg class="academy-library-brush-body" viewBox="0 0 40 200">
-                  <defs>
-                    <linearGradient id="academy-library-brush-shaft" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0" stop-color="#3a2414"/>
-                      <stop offset="0.45" stop-color="#8a5a32"/>
-                      <stop offset="1" stop-color="#2a180c"/>
-                    </linearGradient>
-                    <linearGradient id="academy-library-brush-hair" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stop-color="#4a3522"/>
-                      <stop offset="0.35" stop-color="#1a120b"/>
-                      <stop offset="1" stop-color="#050302"/>
-                    </linearGradient>
-                  </defs>
-                  <rect x="15" y="0" width="10" height="138" rx="4" fill="url(#academy-library-brush-shaft)"/>
-                  <rect x="14" y="40" width="12" height="3" rx="1.5" fill="#2a180c" opacity="0.7"/>
-                  <rect x="14" y="92" width="12" height="3" rx="1.5" fill="#2a180c" opacity="0.7"/>
-                  <rect x="13.5" y="134" width="13" height="10" rx="2" fill="#b88a3e"/>
-                  <path d="M13.5 144 C 12 162, 16 184, 20 200 C 24 184, 28 162, 26.5 144 Z" fill="url(#academy-library-brush-hair)"/>
-                </svg>
+                <canvas class="academy-library-brush-shadow"></canvas>
+                <canvas class="academy-library-brush-body"></canvas>
               </div>
             </div>
             <div class="academy-library-cover-leaf" aria-hidden="true">

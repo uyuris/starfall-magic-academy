@@ -1780,7 +1780,8 @@
   height: 32px;
 }
 
-/* 関連する本へ移る間の覆い: 帯の中だけを塞ぐ待ちの幕（画面の中の待ちの印を抱え、右下で待ちの紋が回る）。 */
+/* 関連する本へ移る間の覆い: 帯の中だけを塞ぐ待ちの幕。処分の確かめと同じ深い夜を帯と同じ横の減衰でかけ、前の本の本文を透かさない。
+   右端は帯と一緒に透明へ溶ける。帯の夜の濃い所（左の透明 inset と右の減衰を除いた所）の真ん中で光る点が 3 つ脈打ち、その下に何を待っているかの字が出る。 */
 #routing-hub-screen .routing-hub-info-library-busy {
   position: absolute;
   inset: 0;
@@ -1790,10 +1791,54 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  padding: 20px;
-  border-radius: 18px;
-  background: var(--routing-veil-strong);
   text-align: center;
+  padding: 0 var(--terrace-band-fade) 0 var(--terrace-band-inset);
+  background: var(--terrace-band-night-deep);
+}
+
+#routing-hub-screen .routing-hub-info-library-busy-orbits {
+  display: inline-flex;
+  gap: 10px;
+}
+
+#routing-hub-screen .routing-hub-info-library-busy-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--routing-starlight);
+  animation: routing-hub-info-library-busy-pulse 1200ms ease-in-out infinite backwards;
+}
+
+#routing-hub-screen .routing-hub-info-library-busy-dot:nth-child(2) {
+  animation-delay: 180ms;
+}
+
+#routing-hub-screen .routing-hub-info-library-busy-dot:nth-child(3) {
+  animation-delay: 360ms;
+}
+
+#routing-hub-screen .routing-hub-info-library-busy-label {
+  color: var(--routing-silver-strong);
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+
+@keyframes routing-hub-info-library-busy-pulse {
+  0%, 100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #routing-hub-screen .routing-hub-info-library-busy-dot {
+    animation: none;
+    opacity: 0.7;
+  }
 }
 
 /* ── 装備の詳しい小窓: 帯の上に夜の幕をもう一段かけて、品の名と中身を置く ── */
