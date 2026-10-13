@@ -2,7 +2,7 @@
 // animated WebP and the real screenshot of the same key instant (1440×900), and 07-turn / 08-related as animated WebP
 // at 1920×1080 too; every scene's key instant and every state of the screen as stills at 1440×900 and at 1920×1080
 // (a long-titled book open among them); the shelf and the reading book under reduced motion at both sizes; the
-// first-stage prototype's capture (capture4) beside this one for 本が並ぶ・指を乗せる・読んでいる; the renderer's
+// baseline capture (--baseline-dir) beside this one for 本が並ぶ・指を乗せる・読んでいる; the renderer's
 // console errors, every one with its text; and probes measured on the real render — a finger resting on the top edge
 // of a spine, the reduced-motion branch, and the page's ink laid on the painted paper (the letter heights from the far
 // line to the near one, every letter inside the painted paper, text selection, and the footnote titles' hit points),
@@ -12,11 +12,11 @@
 // the text, the first and the last spread of a two-spread book, and the closed cover with its ex libris pressed for
 // every cover kind, every core book and the long titles the real LM gave.
 //
-// Run by hand (not *.test.mjs, so `npm test` skips it; it takes several minutes). Four modes:
+// Run by hand (not *.test.mjs, so `npm test` skips it; it takes several minutes). Five modes:
 //
 //   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs capture \
 //     --repo-root <absolute repo root> --out-dir <absolute, empty or absent publication directory> \
-//     --prototype-dir <absolute directory of the prototype's capture4 (read only)>
+//     --baseline-dir <absolute directory of the baseline capture (read only)>
 //
 //   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs shelf \
 //     --repo-root <absolute repo root> --out-dir <absolute, empty or absent directory> --plan <absolute 1440×900 png>
@@ -24,14 +24,18 @@
 //   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs region-diff \
 //     --before-dir <absolute out dir of a shelf run> --after-dir <absolute out dir of a shelf run>
 //
+//   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs motion \
+//     --repo-root <absolute repo root> --out-dir <absolute, empty or absent directory>
+//
 //   ./node_modules/.bin/electron app/tests/manual/libraryScreenCapture.mjs waits \
 //     --after-root <absolute repo root> --before-root <absolute repo root> \
 //     --lm-config <absolute lmstudio.json of the real LM (read only)> --runs <pairs>
 //
 // Every argument of a mode is required, and absolute where it is a path; none has a default. The repos must be clean
-// (the figures record the commit they were taken from). capture and shelf point the renderer's userData into the out dir and
-// remove it afterwards. shelf and region-diff are described at shelfShots. The prototype directory must hold 04-shelf.png, 05-hover.png
-// and 07-turn.png at 1440×900; nothing in it is written.
+// (the figures record the commit they were taken from). capture, shelf and motion point the renderer's userData into the
+// out dir and remove it afterwards. shelf and region-diff are described at shelfShots, motion at motionShots. capture reads the baseline capture from
+// --baseline-dir: capture's own 1440×900 stills of the compared scenes, each named <scene id>.png as capture names
+// them; capture stops before the walk if one is missing. Nothing in it is written.
 //
 // waits: how long a reader waits, on the real LM, from pressing a book on the shelf and from pressing a related book's
 // title until the page can be read (the book's data-ink turns ready, the page carrying that book's title), for a book
@@ -77,16 +81,17 @@ import { createServer as createHttpServer } from 'node:http';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { promises as fs, mkdirSync, readdirSync } from 'node:fs';
+import { promises as fs, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
 const MODES = {
-  capture: { paths: ['--repo-root', '--out-dir', '--prototype-dir'], counts: [] },
+  capture: { paths: ['--repo-root', '--out-dir', '--baseline-dir'], counts: [] },
   shelf: { paths: ['--repo-root', '--out-dir', '--plan'], counts: [] },
   'region-diff': { paths: ['--before-dir', '--after-dir'], counts: [] },
+  motion: { paths: ['--repo-root', '--out-dir'], counts: [] },
   waits: { paths: ['--after-root', '--before-root', '--lm-config'], counts: ['--runs'] }
 };
 
@@ -179,7 +184,7 @@ const CLIP_RANGES = {
 // The states the design brief counts (section 4) and the files that show them. A state that IS a scene's key
 // instant points at that scene's still.
 const STATES = [
-  { id: 's-arrival-failed', name: '到着の失敗（票の上の一文・票は渡せない）' },
+  { id: 's-arrival-failed', name: '到着の失敗（ハブへ戻り、状態行に途切れた星の道と大書庫）' },
   { id: 's-empty-slip', name: '空の票を渡す（request なし・票も机の灯りも動かない）' },
   { id: '03-waiting', name: '検索の待ち（通路の灯りが奥を行き来する）' },
   { id: 's-search-failed-503', name: '検索の失敗（生成の不正出力 503）' },
@@ -195,7 +200,7 @@ const STATES = [
   { id: 's-gated-sealing', name: '禁書の封の気配（表紙が重く閉じる途中）' },
   { id: 's-gated', name: '禁書（棚へ戻り、請求票の上に「題」今は開けない）' },
   { id: 's-same-title', name: '同題解決（生成の題が目録の本として開く）' },
-  { id: 's-footnotes-pending', name: '脚注の待ち（本文の終わりの下にインクの一文）' },
+  { id: 's-footnotes-pending', name: '脚注の待ち（本文の終わりの下に待ちの印）' },
   { id: 's-footnotes-ready', name: '脚注の確定（線・見出し・インクの題・禁書は淡い題と「今は開けない」）' },
   { id: 's-footnotes-zero', name: '脚注 0 件（脚注なし）' },
   { id: 's-footnotes-failed', name: '脚注の失敗（見出しと頁の一文＋再試行）' },
@@ -207,10 +212,11 @@ const STATES = [
   { id: '10-exit', name: '退出（灯りが手前から奥へ落ちる）' },
   { id: 's-exit-after', name: '退出の後（ロードの被覆を経たハブ）' }
 ];
+// The scenes that stand beside the baseline capture (--baseline-dir): capture's own 1440×900 stills of them, <id>.png.
 const COMPARISONS = [
-  { id: '04-shelf', prototype: '04-shelf.png', name: '本が並ぶ' },
-  { id: '05-hover', prototype: '05-hover.png', name: '指を乗せる' },
-  { id: '07-turn', prototype: '07-turn.png', name: '読んでいる（頁をめくる）' }
+  { id: '04-shelf', name: '本が並ぶ' },
+  { id: '05-hover', name: '指を乗せる' },
+  { id: '07-turn', name: '読んでいる（頁をめくる）' }
 ];
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -894,10 +900,16 @@ const SCRIPT_STATE = `(() => {
 })()`;
 // The brush measured off its own canvas (alpha ≥ 0.5): the axis by the principal direction of the drawn pixels,
 // pointing from the tip to the top end; the on-screen length; the shaft's width across the axis 0.5 cm above the
-// ferrule, where the shaft is still its 0.8 cm (4.3 of the 20.0 cm from the tip to the top end; the shaft thickens to
-// 1.08 times toward the top end); the hair's width at its root (where the hair meets the ferrule: hair 3.0 of the 20.0 cm).
-const BRUSH_SHAPE = `(() => {
+// ferrule, where the shaft is still its diameter (LIBRARY_BRUSH: hair + ferrule + 0.5 of the hair + shaft from the tip to
+// the top end; the shaft thickens toward the top end); the hair's width at its root (where the hair meets the ferrule:
+// hair of hair + shaft). A width across the 42° raster comes in steps of about 1.5 px, so each is the median of nine bands
+// laid along the axis from 2 px before the point to 2 px after it (every 0.5 px); the bands are returned beside it. The
+// brush leans toward the way it moves, so the angle it should lean at is the one its lean as drawn (the element's
+// data-lean: tilt and azimuth) gives on screen through the 72° view; the pixels and data-lean are read in one go.
+const BRUSH_SHAPE = `(async () => {
+  const { LIBRARY_BRUSH } = await import('/libraryBrush.js');
   const canvas = ${ROOT}.querySelector('.academy-library-brush-body');
+  const [tilt, azimuth] = ${ROOT}.querySelector('.academy-library-brush').dataset.lean.split(' ').map(Number);
   const { data, width, height } = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
   const scale = canvas.width / canvas.getBoundingClientRect().width;
   const points = [];
@@ -915,12 +927,22 @@ const BRUSH_SHAPE = `(() => {
   const spanAt = (t, band = 0.5) => { const n = across.filter((_, i) => Math.abs(along[i] - t) <= band); return n.length ? Math.max(...n) - Math.min(...n) + 1 / scale : 0; };
   if (spanAt(high - 1.5, 1.5) < spanAt(low + 1.5, 1.5)) { axis = [-axis[0], -axis[1]]; for (let i = 0; i < along.length; i += 1) along[i] = -along[i]; [low, high] = [-high, -low]; }
   const length = high - low;
+  const bands = (t) => [-2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2].map((d) => +spanAt(t + d).toFixed(1));
+  const median = (values) => [...values].sort((a, b) => a - b)[Math.floor(values.length / 2)];
+  const full = LIBRARY_BRUSH.hair + LIBRARY_BRUSH.shaft;
+  const shaftBands = bands(low + length * ((LIBRARY_BRUSH.hair + LIBRARY_BRUSH.ferrule + 0.5) / full));
+  const hairRootBands = bands(low + length * (LIBRARY_BRUSH.hair / full) - 0.5);
+  const rad = (d) => (d * Math.PI) / 180;
+  const leanOnScreen = Math.atan2(Math.sin(rad(72)) * Math.sin(rad(tilt)) * Math.cos(rad(azimuth)) - Math.cos(rad(72)) * Math.cos(rad(tilt)), Math.sin(rad(tilt)) * Math.sin(rad(azimuth))) * 180 / Math.PI;
   return {
     angleDeg: +(Math.atan2(axis[1], axis[0]) * 180 / Math.PI).toFixed(1),
     lengthPx: +length.toFixed(1),
-    shaftPx: +spanAt(low + length * (4.3 / 20.0)).toFixed(1),
-    hairRootPx: +spanAt(low + length * (3.0 / 20.0) - 0.5).toFixed(1),
-    expected: { pxPerCm: +((${ROOT}.querySelector('.academy-library-spread').offsetWidth * 460 / 1131.53) / 24).toFixed(3) }
+    shaftPx: median(shaftBands),
+    hairRootPx: median(hairRootBands),
+    shaftBands,
+    hairRootBands,
+    lean: { tilt, azimuth },
+    expected: { pxPerCm: +((${ROOT}.querySelector('.academy-library-spread').offsetWidth * 460 / 1131.53) / 24).toFixed(3), shaftCm: LIBRARY_BRUSH.dia, hairRootCm: LIBRARY_BRUSH.hairBase, angleDeg: +leanOnScreen.toFixed(1) }
   };
 })()`;
 // 続きの手掛かり: the spread shown, the book's data-more, the edges' opacity and any words in them.
@@ -975,24 +997,43 @@ function waitSteps(events) {
 }
 
 // ── The ordinary play entry: title → 新しいプレイ → the hub's talk → the send-off → the library ──────────────
+// How the page looks with the library screen up: play-mode, the development top bar, the screen's box, the URL.
+const ENTRY_LOOK = `(() => {
+  const topbar = document.querySelector('.topbar');
+  const box = ${ROOT}.getBoundingClientRect();
+  return { playMode: document.body.classList.contains('play-mode'), topbar: topbar ? getComputedStyle(topbar).display : null, screen: [Math.round(box.left), Math.round(box.top), Math.round(box.width), Math.round(box.height)], url: location.pathname + location.search };
+})()`;
+// The library screen becoming the only active screen, marked by the page itself in the same task that made it so,
+// with ENTRY_LOOK taken then. A failed arrival leaves the screen as soon as the GET fails, so that moment is gone
+// before a poll can be sure to see it; the mark stays. Only the first such moment is kept; nothing is changed.
+const LIBRARY_ENTERED_MARK = `(() => {
+  window.__captureLibraryEntered = null;
+  const observer = new MutationObserver(() => {
+    if (${ACTIVE_SCREENS}.join() !== 'academy-library-screen') return;
+    observer.disconnect();
+    window.__captureLibraryEntered = ${ENTRY_LOOK};
+  });
+  for (const screen of document.querySelectorAll('.screen')) observer.observe(screen, { attributes: true, attributeFilter: ['class'] });
+  return true;
+})()`;
+
+function checkEnteredThroughPlay(look, viewport) {
+  check('entered through play (no ?initialScreen, play-mode, the development top bar not displayed, the screen fills the window)',
+    look.playMode && look.topbar === 'none' && look.url === '/' && look.screen.join() === `0,0,${viewport.width},${viewport.height}`, look);
+}
+
+// With expectArrival false the library screen is not waited for: the page marks it (LIBRARY_ENTERED_MARK) and the
+// caller reads the mark once the hub has come back.
 async function enterLibrary(page, stage, { expectArrival = true } = {}) {
   await page.load(`${stage.base}/`);
   await page.waitFor(`document.querySelector('#journey')?.dataset.journeyReady === 'true' && document.querySelector('#journey').dataset.scene === 'gate'`, 'title gate');
   await page.click('[data-journey-action="new-game"]');
   await page.waitFor(`document.querySelector('#routing-hub-screen')?.classList.contains('active') && !document.querySelector('#routing-hub-send').disabled && document.querySelector('#routing-hub-message-stream').textContent.trim().length > 0`, 'routing hub welcome', { timeoutMs: 60000 });
+  if (!expectArrival) await page.js(LIBRARY_ENTERED_MARK);
   await talkToLibrary(page);
-  if (expectArrival) {
-    await page.waitFor(`${ACTIVE_SCREENS}.join() === 'academy-library-screen' && ${ROOT}.dataset.arrived === 'true'`, 'library arrival', { timeoutMs: 60000, intervalMs: 20 });
-  } else {
-    await page.waitFor(`${ACTIVE_SCREENS}.join() === 'academy-library-screen'`, 'library screen', { timeoutMs: 60000, intervalMs: 20 });
-  }
-  const look = await page.js(`(() => {
-    const topbar = document.querySelector('.topbar');
-    const box = ${ROOT}.getBoundingClientRect();
-    return { playMode: document.body.classList.contains('play-mode'), topbar: topbar ? getComputedStyle(topbar).display : null, screen: [Math.round(box.left), Math.round(box.top), Math.round(box.width), Math.round(box.height)], url: location.pathname + location.search };
-  })()`);
-  check('entered through play (no ?initialScreen, play-mode, the development top bar not displayed, the screen fills the window)',
-    look.playMode && look.topbar === 'none' && look.url === '/' && look.screen.join() === `0,0,${page.viewport.width},${page.viewport.height}`, look);
+  if (!expectArrival) return;
+  await page.waitFor(`${ACTIVE_SCREENS}.join() === 'academy-library-screen' && ${ROOT}.dataset.arrived === 'true'`, 'library arrival', { timeoutMs: 60000, intervalMs: 20 });
+  checkEnteredThroughPlay(await page.js(ENTRY_LOOK), page.viewport);
 }
 
 // Type the line into the hub and send it. The send is a no-op while the welcome is still being revealed, so the
@@ -1407,8 +1448,8 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   check('state 本文の待ち: the cover is open on a white spread and the brush writes the world\'s script on it', record.openWait.ink === 'waiting' && record.openWait.writing === 'moving' && record.openWait.brush === 1 && record.openWait.rows > 0 && record.openWait.letters > 0, record.openWait);
   probes.brush = await page.js(BRUSH_SHAPE);
   const brushCm = probes.brush.expected.pxPerCm;
-  check(`the brush (${size.label}): a 0.8 cm shaft and a 0.75 cm hair root at the page's 24 cm, leaning from the tip to the lower right at 42°`,
-    Math.abs(probes.brush.shaftPx - 0.8 * brushCm) <= 1.5 && Math.abs(probes.brush.hairRootPx - 0.75 * brushCm) <= 1.5 && Math.abs(probes.brush.angleDeg - 42.3) <= 1.5, probes.brush);
+  check(`the brush (${size.label}): a ${probes.brush.expected.shaftCm} cm shaft and a ${probes.brush.expected.hairRootCm} cm hair root at the page's 24 cm, leaning from the tip to the lower right as its lean draws it on screen`,
+    Math.abs(probes.brush.shaftPx - probes.brush.expected.shaftCm * brushCm) <= 1.5 && Math.abs(probes.brush.hairRootPx - probes.brush.expected.hairRootCm * brushCm) <= 1.5 && Math.abs(probes.brush.angleDeg - probes.brush.expected.angleDeg) <= 1.5, probes.brush);
   probes.scriptWaiting = await page.js(SCRIPT_STATE);
   // The answer arrives: the rows not written yet are laid on the page's lines, then translated line by line.
   await page.waitFor(`${BOOK}.dataset.ink === 'translating'`, 'translating', { timeoutMs: 60000, intervalMs: 5 });
@@ -1447,12 +1488,12 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   check('scene 7 頁をめくる', turning === 'turning', { sceneAtKeyInstant: turning });
   await toLastSpread(page);
 
-  // 8 関連する本へ移る: on the last spread the footnotes are still on their way (one ink line under the end of the
+  // 8 関連する本へ移る: on the last spread the footnotes are still on their way (the wait mark under the end of the
   // body); they arrive as a rule, 関連する本 and the titles in the page's ink — a readable catalog book, the 生成題 and a
   // 禁書 in pale ink with 今は開けない. The 禁書 is pressed and does not open; the 生成題 is pressed — its body is asked
   // for at once, the ink draws back, the book closes, the cover's title unravels and the next one is written, the book
   // opens and the brush writes until that body arrives. Key instant: the cover's title changing.
-  await page.waitFor(`${BOOK}.dataset.footnotes === 'pending' && ${ROOT}.querySelector('.academy-library-footnotes[data-state="pending"]')`, 'footnotes still on their way on the last spread', { timeoutMs: 5000 });
+  await page.waitFor(`${BOOK}.dataset.footnotes === 'pending' && ${ROOT}.querySelector('.academy-library-footnotes[data-state="pending"] .screen-wait-mark')`, 'footnotes still on their way on the last spread', { timeoutMs: 5000 });
   await page.waitFor(`${BOOK}.dataset.footnotes === 'ready'`, 'footnotes arrived', { timeoutMs: 60000 });
   await sleep(700);
   await still('s-footnotes-ready');
@@ -1603,11 +1644,11 @@ async function walkStates(page, stage, { still, landingStill, edgeProbe, catalog
   await page.waitFor(`${SCENE} === 'reading' && ${BOOK}.dataset.ink === 'ready'`, 'ink', { timeoutMs: 60000 });
   await sleep(900);
   await toLastSpread(page);
-  await page.waitFor(`${BOOK}.dataset.footnotes === 'pending' && ${ROOT}.querySelector('.academy-library-footnotes[data-state="pending"] .academy-library-page-note')`, 'footnotes pending', { timeoutMs: 5000 });
+  await page.waitFor(`${BOOK}.dataset.footnotes === 'pending' && ${ROOT}.querySelector('.academy-library-footnotes[data-state="pending"] .screen-wait-mark')`, 'footnotes pending', { timeoutMs: 5000 });
   await sleep(500);
   await still('s-footnotes-pending');
-  record.footnotesPending = await page.js(`({ text: ${ROOT}.querySelector('.academy-library-footnotes').textContent, ribbons: ${ROOT}.querySelectorAll('[class*="ribbon"]').length })`);
-  check('state 脚注の待ち: one ink line in the footnotes\' place (no band)', record.footnotesPending.text === '関連する本を探しています…' && record.footnotesPending.ribbons === 0, record.footnotesPending);
+  record.footnotesPending = await page.js(`({ text: ${ROOT}.querySelector('.academy-library-footnotes').textContent, waitMarks: ${ROOT}.querySelectorAll('.academy-library-footnotes .screen-wait-mark').length, pageNotes: ${ROOT}.querySelectorAll('.academy-library-footnotes .academy-library-page-note').length, ribbons: ${ROOT}.querySelectorAll('[class*="ribbon"]').length })`);
+  check('state 脚注の待ち: the wait mark in the footnotes\' place, no words (no band)', record.footnotesPending.text === '' && record.footnotesPending.waitMarks === 1 && record.footnotesPending.pageNotes === 0 && record.footnotesPending.ribbons === 0, record.footnotesPending);
   await page.waitFor(`${BOOK}.dataset.footnotes === 'ready'`, 'footnotes ready', { timeoutMs: 60000 });
   await sleep(500);
 
@@ -1646,7 +1687,7 @@ async function walkStates(page, stage, { still, landingStill, edgeProbe, catalog
   const retryPoint = await titlePoint(page, '.academy-library-page-retry');
   await page.moveTo(retryPoint, { steps: 8, stepMs: 25 });
   await page.press(retryPoint);
-  await page.waitFor(`${BOOK}.dataset.footnotes === 'pending' && ${ROOT}.querySelector('.academy-library-footnotes[data-state="pending"]')`, 'footnotes pending again', { timeoutMs: 5000 });
+  await page.waitFor(`${BOOK}.dataset.footnotes === 'pending' && ${ROOT}.querySelector('.academy-library-footnotes[data-state="pending"] .screen-wait-mark')`, 'footnotes pending again', { timeoutMs: 5000 });
   await sleep(500);
   await still('s-footnotes-retried');
   await page.waitFor(`${BOOK}.dataset.footnotes === 'ready'`, 'footnotes ready after retry', { timeoutMs: 60000 });
@@ -1719,14 +1760,22 @@ async function walkStates(page, stage, { still, landingStill, edgeProbe, catalog
 }
 
 // ── Walk: 到着の失敗 (the arrival GET answered 500 by the relay) ─────────────────────────────────────────────
+// Entered from the hub's dispatch, the failed arrival returns to the hub with its conversation opened anew, the
+// failure notice on the hub's status line: the broken star path and the destination's name 大書庫.
 async function walkArrivalFailed(page, stage, { still }) {
   stage.front.armFault('GET', '/api/library', 500, 'CAPTURE_RELAY_FAULT');
   await enterLibrary(page, stage, { expectArrival: false });
-  await page.waitFor(`!${ROOT}.querySelector('.academy-library-slip-note').hidden`, 'arrival failed line', { timeoutMs: 20000 });
+  await page.waitFor(`${ACTIVE_SCREENS}.join() === 'routing-hub-screen' && !document.querySelector('#routing-hub-status').hidden && document.querySelector('#routing-hub-status .routing-failure-mark .routing-failure-glyph')`, 'arrival failed notice on the hub', { timeoutMs: 60000 });
+  const entered = await page.js('window.__captureLibraryEntered');
+  check('arrival failed: the library screen was the only active screen before the hub came back (the page\'s mark)', entered !== null, { entered });
+  checkEnteredThroughPlay(entered, page.viewport);
   await sleep(2800);
   await still('s-arrival-failed');
-  const state = await page.js(`({ note: ${ROOT}.querySelector('.academy-library-slip-note').textContent, inert: ${ROOT}.querySelector('.academy-library-slip').inert, arrived: ${ROOT}.dataset.arrived ?? null, latin: ${LATIN_ON_SCREEN} })`);
-  check('state 到着の失敗: one ink line on the slip, the slip cannot be handed', state.note === '今は書庫に入れませんでした' && state.inert === true && state.arrived === null && state.latin === null, state);
+  const state = await page.js(`(() => {
+    const status = document.querySelector('#routing-hub-status');
+    return { active: ${ACTIVE_SCREENS}, tone: status.dataset.tone ?? null, glyphs: status.querySelectorAll('.routing-failure-mark svg.routing-failure-glyph').length, destination: status.querySelector('.routing-failure-mark span.routing-failure-destination')?.textContent ?? null, lines: status.querySelectorAll('.routing-failure-line').length, text: status.textContent, arrived: ${ROOT}.dataset.arrived ?? null };
+  })()`);
+  check('state 到着の失敗: back on the hub, the broken star path and 大書庫 on its status line, no words beside them', state.active.join() === 'routing-hub-screen' && state.tone === 'error' && state.glyphs === 1 && state.destination === '大書庫' && state.lines === 0 && state.text === '大書庫' && state.arrived === null, state);
   return state;
 }
 
@@ -2198,6 +2247,7 @@ async function main() {
   const userData = path.join(args.outDir, USER_DATA_DIR);
   app.setPath('userData', userData);
   teardown.push(() => fs.rm(userData, { recursive: true, force: true }));
+  if (args.mode === 'motion') return motionShots(args);
   return args.mode === 'shelf' ? shelfShots(args) : capture(args);
 }
 
@@ -2375,7 +2425,7 @@ async function regionDiff({ beforeDir, afterDir }) {
   }
 }
 
-async function capture({ repoRoot, outDir, prototypeDir }) {
+async function capture({ repoRoot, outDir, baselineDir }) {
   const globalTimer = setTimeout(() => { console.error('FAILED global timeout (40 min)'); runTeardown().finally(() => app.exit(2)); }, 40 * 60 * 1000);
   teardown.push(async () => clearTimeout(globalTimer));
   await app.whenReady();
@@ -2387,8 +2437,10 @@ async function capture({ repoRoot, outDir, prototypeDir }) {
   const dirty = (await execFileAsync('git', ['-C', repoRoot, 'status', '--porcelain'])).stdout.trim();
   check('repo is clean (the figures are stamped with HEAD)', dirty === '', { head, dirty });
   for (const comparison of COMPARISONS) {
-    const size = await python({ op: 'size', src: path.join(prototypeDir, comparison.prototype) });
-    check(`prototype ${comparison.prototype} is 1440x900`, size.size[0] === MAIN_VIEWPORT.width && size.size[1] === MAIN_VIEWPORT.height, size);
+    const src = path.join(baselineDir, `${comparison.id}.png`);
+    if (!existsSync(src)) throw new Error(`the baseline capture ${comparison.id}.png is missing: ${src}`);
+    const size = await python({ op: 'size', src });
+    check(`baseline ${comparison.id}.png is 1440x900`, size.size[0] === MAIN_VIEWPORT.width && size.size[1] === MAIN_VIEWPORT.height, size);
   }
 
   const { createServer } = await import(path.join(repoRoot, 'app/src/server.mjs'));
@@ -2540,14 +2592,14 @@ async function capture({ repoRoot, outDir, prototypeDir }) {
     }
   }
 
-  // Beside capture4: the prototype (left) and the product (right), the whole 1440×900 frame each.
+  // Beside the baseline: the baseline capture (left) and this one (right), the whole 1440×900 frame each.
   const comparisons = [];
   for (const comparison of COMPARISONS) {
     const file = out(`compare-${comparison.id}.png`);
-    const side = await python({ op: 'side', left: path.join(prototypeDir, comparison.prototype), right: out(`${comparison.id}.png`), out: file, gap: COMPARE_GAP });
+    const side = await python({ op: 'side', left: path.join(baselineDir, `${comparison.id}.png`), right: out(`${comparison.id}.png`), out: file, gap: COMPARE_GAP });
     check(`compare-${comparison.id}.png side by side`, side.size[0] === MAIN_VIEWPORT.width * 2 + COMPARE_GAP && side.size[1] === MAIN_VIEWPORT.height, side);
-    comparisons.push({ file: path.basename(file), left: `capture4/${comparison.prototype}`, right: `${comparison.id}.png`, scene: comparison.name });
-    add(file, `${comparison.name}（左 一段目の試作 capture4・右 製品）`, '横並び', `${side.size[0]}×${side.size[1]}`);
+    comparisons.push({ file: path.basename(file), left: path.join(baselineDir, `${comparison.id}.png`), right: `${comparison.id}.png`, scene: comparison.name });
+    add(file, `${comparison.name}（左 基準の撮影・右 この撮影）`, '横並び', `${side.size[0]}×${side.size[1]}`);
   }
 
   const listing = [];
@@ -2562,7 +2614,7 @@ async function capture({ repoRoot, outDir, prototypeDir }) {
   const errorCount = Object.values(rendererErrors).reduce((sum, list) => sum + list.length, 0);
   await writeJson(out('manifest.json'), {
     head,
-    prototypeDir,
+    baselineDir,
     entry: 'title → 新しいプレイ → routing hub welcome → typed line → send-off → loading cover → #academy-library-screen',
     searchDelayMs: SEARCH_DELAY_MS,
     readDelayMs: READ_DELAY_MS,
@@ -2605,6 +2657,266 @@ async function capture({ repoRoot, outDir, prototypeDir }) {
   });
   for (const entry of listing) console.log(`artifact\t${entry.file}\t${entry.size}\t${entry.scene}\t${entry.kind}\t${entry.bytes}`);
   console.log(`DONE head=${head} artifacts=${listing.length} wait=${records.scenes.wait.handToAnswerMs}ms clip03=${records.clips['03-waiting'].clipMs}ms rendererErrors=${errorCount}`);
+}
+
+// ── motion: the brush's motion and the flow that ends the writing, as runs of frames at 1:1 ───────────────────────────
+// One walk at 1440×900 with full motion (the ordinary play entry, THEME handed over). OPEN_TITLE is opened and its 本文 is
+// held READ_DELAY_MS + MOTION_EXTRA_HOLD_MS (the relay holds that read the extra time, so that the brush writes past the
+// end of a body row before the 本文 arrives): the screencast records from the brush's first stroke to the page shown; then, on the book's last
+// spread, the related 生成題 in the footnotes is pressed and the screencast records again from the next book's brush to its
+// page shown. Every frame the brush is drawn is recorded on the page (its transform, data-lean, the book's data-writing
+// and data-ink, on Date.now()), so each frame of the screencast carries the brush's tip, its tilt and azimuth, its speed
+// and the stage of the flow. Written (all 1:1 crops of the screencast frames, never scaled):
+// - motion-strokes.png: every frame of MOTION_STROKES_MS in the middle of a body row (the strokes' 入り・送り・止め・払い
+//   and the arcs in the air between them), around the brush's path.
+// - motion-line-end.png: every frame from MOTION_LINE_END_LEAD_MS before the brush leaves the end of a body row until
+//   MOTION_LINE_END_TAIL_MS after (the float at the row's end and the return to the next row's head).
+// - motion-arrival.png / motion-related.png: every MOTION_FLOW_EVERY-th frame from MOTION_FLOW_LEAD_MS before the 本文
+//   arrives (data-writing lifting) until MOTION_FLOW_TAIL_MS after the page is shown (data-ink ready), on the spread.
+// - motion-writing.webp / motion-arrival.webp / motion-related.webp: the same stretches as recordings (1440×900, every
+//   frame with its measured duration; the writing one spans the stroke and line-end stretches).
+// - manifest.json: HEAD, every tile's frame time and label, the tilt/azimuth range while writing, the stage times of both
+//   flows, bytes/sha256 of every file, the renderer's console errors.
+const MOTION_EXTRA_HOLD_MS = 6000;
+const MOTION_STROKES_MS = 600;
+const MOTION_LINE_END_LEAD_MS = 200;
+const MOTION_LINE_END_TAIL_MS = 900;
+const MOTION_FLOW_LEAD_MS = 120;
+const MOTION_FLOW_TAIL_MS = 300;
+const MOTION_FLOW_EVERY = 3;
+const MOTION_SHEET_COLUMNS = { strokes: 6, lineEnd: 5, flow: 3 };
+// The brush's every drawn frame and the flow's stages, recorded on the page (Date.now(), the screencast's clock).
+const MOTION_TRACK_INSTALL = `(() => {
+  const root = document.querySelector('#academy-library-screen');
+  const book = root.querySelector('.academy-library-book');
+  const brush = root.querySelector('.academy-library-brush');
+  window.__motionTrack?.stop();
+  const track = { entries: [] };
+  const push = () => track.entries.push({ t: Date.now(), transform: brush.style.transform, lean: brush.dataset.lean ?? null, writing: book.dataset.writing ?? null, ink: book.dataset.ink });
+  const brushObserver = new MutationObserver(push);
+  brushObserver.observe(brush, { attributes: true, attributeFilter: ['style', 'data-lean'] });
+  const bookObserver = new MutationObserver(push);
+  bookObserver.observe(book, { attributes: true, attributeFilter: ['data-writing', 'data-ink'] });
+  track.stop = () => { brushObserver.disconnect(); bookObserver.disconnect(); };
+  window.__motionTrack = track;
+  return true;
+})()`;
+const MOTION_TRACK_READ = `(() => { const track = window.__motionTrack; track.stop(); return track.entries; })()`;
+
+const MOTION_PYTHON = [
+  'import json, sys',
+  'from PIL import Image, ImageDraw',
+  'job = json.loads(sys.argv[1])',
+  'tiles = job["tiles"]',
+  'label_h = 16',
+  'gap = job["gap"]',
+  'w = max(t["box"][2] - t["box"][0] for t in tiles)',
+  'h = max(t["box"][3] - t["box"][1] for t in tiles)',
+  'cols = min(job["columns"], len(tiles))',
+  'rows = (len(tiles) + cols - 1) // cols',
+  'sheet = Image.new("RGB", (cols * w + (cols - 1) * gap, rows * (h + label_h) + (rows - 1) * gap), (16, 12, 10))',
+  'draw = ImageDraw.Draw(sheet)',
+  'for i, t in enumerate(tiles):',
+  '    x = (i % cols) * (w + gap)',
+  '    y = (i // cols) * (h + label_h + gap)',
+  '    im = Image.open(t["file"]).convert("RGB")',
+  '    if im.size != (job["width"], job["height"]):',
+  '        raise SystemExit("frame %s is %s" % (t["file"], im.size))',
+  '    sheet.paste(im.crop(tuple(t["box"])), (x, y + label_h))',
+  '    draw.text((x + 3, y + 2), t["label"], fill=(236, 214, 176))',
+  'sheet.save(job["out"], format="PNG")',
+  'print(json.dumps({"size": list(sheet.size), "tile": [w, h], "tiles": len(tiles), "columns": cols}))'
+].join('\n');
+
+async function motionSheet(job) {
+  try {
+    const { stdout } = await execFileAsync('python3', ['-c', MOTION_PYTHON, JSON.stringify(job)], { maxBuffer: 16 * 1024 * 1024 });
+    return JSON.parse(stdout.trim().split('\n').pop());
+  } catch (error) {
+    throw new Error(`python3 (motion sheet) failed: ${String(error.stderr ?? error.message).trim()}`);
+  }
+}
+
+async function motionShots({ repoRoot, outDir }) {
+  const globalTimer = setTimeout(() => { console.error('FAILED global timeout (10 min)'); runTeardown().finally(() => app.exit(2)); }, 10 * 60 * 1000);
+  teardown.push(async () => clearTimeout(globalTimer));
+  await app.whenReady();
+  app.on('window-all-closed', () => {});
+  const pillow = await python({ op: 'preflight' });
+  check('python3 + Pillow can write animated WebP', pillow.webp === true && pillow.webp_anim === true, pillow);
+  const head = (await execFileAsync('git', ['-C', repoRoot, 'rev-parse', 'HEAD'])).stdout.trim();
+  const dirty = (await execFileAsync('git', ['-C', repoRoot, 'status', '--porcelain'])).stdout.trim();
+  check('repo is clean (the figures are stamped with HEAD)', dirty === '', { head, dirty });
+  const { createServer } = await import(path.join(repoRoot, 'app/src/server.mjs'));
+  const { runtimePathsManifestFilename } = await import(path.join(repoRoot, 'app/src/runtimePaths.mjs'));
+  const { LIBRARY_BRUSH_BOX } = await import(path.join(repoRoot, 'app/public/libraryBrush.js'));
+  const { gatedIds } = await catalogGates(repoRoot);
+  const work = await fs.mkdtemp(path.join(os.tmpdir(), 'library-motion-work-'));
+  teardown.push(() => fs.rm(work, { recursive: true, force: true }));
+  const out = (name) => path.join(outDir, name);
+  const viewport = MAIN_VIEWPORT;
+
+  const stage = await startStage(repoRoot, { createServer, runtimePathsManifestFilename, gatedIds });
+  teardown.push(stage.stop);
+  const page = await openPage(viewport, { reduced: false });
+  teardown.push(() => page.close());
+  await enterLibrary(page, stage);
+  await sleep(2800);
+  await handOver(page, THEME);
+  await page.waitFor(`${SCENE} === 'shelf'`, 'shelf', { timeoutMs: 60000, intervalMs: 20 });
+  await sleep(1000);
+
+  // One flow recorded: from the brush writing to the page shown (+ the tail), the frames and the page's track.
+  const recordFlow = async (name, press, title) => {
+    const framesDir = path.join(work, name);
+    await fs.mkdir(framesDir);
+    await page.js(MOTION_TRACK_INSTALL);
+    await press();
+    await page.waitFor(`${SCENE} === 'reading' && ${BOOK}.dataset.writing === 'moving'`, `${name}: the brush writing`, { timeoutMs: 30000, intervalMs: 5 });
+    const recorder = await startRecorder(page, framesDir);
+    await page.waitFor(`${BOOK}.dataset.ink === 'ready' && ${ROOT}.querySelector('.academy-library-page-title')?.textContent === ${JSON.stringify(title)}`, `${name}: the page shown`, { timeoutMs: 60000, intervalMs: 5 });
+    await sleep(MOTION_FLOW_TAIL_MS + 200);
+    await recorder.stop();
+    const track = await page.js(MOTION_TRACK_READ);
+    const spread = await page.js(`(() => { const r = ${ROOT}.querySelector('.academy-library-spread').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`);
+    const pxPerCm = await page.js(`(${ROOT}.querySelector('.academy-library-spread').offsetWidth * 460 / 1131.53) / 24`);
+    return { frames: recorder.frames.sort((a, b) => a.t - b.t), track, spread, pxPerCm };
+  };
+
+  const openIndex = await bookIndex(page, OPEN_TITLE);
+  await page.hover(SHELF_BOOK, { index: openIndex }, { steps: 14, stepMs: 30 });
+  await sleep(900);
+  stage.front.armHold('POST', '/api/library/read', MOTION_EXTRA_HOLD_MS);
+  const opened = await recordFlow('open', () => page.press(page.mouse), OPEN_TITLE);
+  await page.waitFor(`${BOOK}.dataset.footnotes === 'ready'`, 'footnotes arrived', { timeoutMs: 60000 });
+  await toLastSpread(page);
+  await sleep(600);
+  const generatedPoint = await titlePoint(page, '.academy-library-footnote-link[data-kind="generated"]');
+  await page.moveTo(generatedPoint, { steps: 12, stepMs: 30 });
+  await sleep(400);
+  const related = await recordFlow('related', () => page.press(generatedPoint), FIXTURE_FOOTNOTE_TITLE);
+
+  // The track read per frame: the brush's tip (from its transform: the canvas box's corner + the box's offset), its
+  // lean, and the stage, as they stood at the frame's time.
+  const stateAt = (flow, t) => {
+    const before = flow.track.filter((entry) => entry.t <= t);
+    return before.length ? before[before.length - 1] : null;
+  };
+  const tipOf = (flow, entry) => {
+    const match = /^translate\(([-\d.]+)px, ([-\d.]+)px\)$/.exec(entry?.transform ?? '');
+    if (!match) return null;
+    return [flow.spread.x + Number(match[1]) - LIBRARY_BRUSH_BOX.left * flow.pxPerCm, flow.spread.y + Number(match[2]) - LIBRARY_BRUSH_BOX.top * flow.pxPerCm];
+  };
+  const stageTime = (flow, key, value) => flow.track.find((entry) => entry[key] === value)?.t ?? null;
+  const flowStages = (flow) => {
+    const lifting = stageTime(flow, 'writing', 'lifting');
+    const sweeping = stageTime(flow, 'writing', 'sweeping');
+    const translating = stageTime(flow, 'ink', 'translating');
+    const ready = stageTime(flow, 'ink', 'ready');
+    const hidden = flow.track.find((entry) => entry.t > (sweeping ?? Infinity) && entry.transform === '')?.t ?? null;
+    return { lifting, sweeping, translating, hidden, ready };
+  };
+  const stagesOpen = flowStages(opened);
+  const stagesRelated = flowStages(related);
+  for (const [name, s] of [['open', stagesOpen], ['related', stagesRelated]]) {
+    check(`${name}: the flow that ends the writing ran its stages in order (lifting → sweeping with data-ink translating → the brush hidden → data-ink ready)`,
+      s.lifting !== null && s.sweeping > s.lifting && s.translating >= s.sweeping && s.hidden > s.sweeping && s.ready >= s.hidden,
+      Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === null ? null : v - s.lifting])));
+  }
+
+  // While writing (data-writing moving, before the 本文 arrived): where a body row ends — the first frame after which
+  // the tip goes back left by more than 18% of the spread (about half a page) within 800 ms — taken from the last such end that leaves
+  // a stroke stretch and the whole line-end stretch before the arrival.
+  const writingEntries = opened.track.filter((entry) => entry.writing === 'moving' && entry.t < stagesOpen.lifting && tipOf(opened, entry));
+  const tips = writingEntries.map((entry) => ({ t: entry.t, tip: tipOf(opened, entry), lean: entry.lean }));
+  const firstFrame = opened.frames[0].t;
+  const ends = [];
+  for (let i = 0; i < tips.length; i += 1) {
+    const ahead = tips.filter((x) => x.t > tips[i].t && x.t <= tips[i].t + 800);
+    if (ahead.length && Math.min(...ahead.map((x) => x.tip[0])) < tips[i].tip[0] - opened.spread.width * 0.18) {
+      if (!ends.length || tips[i].t - ends.at(-1) > 1500) ends.push(tips[i].t);
+    }
+  }
+  const lineEnd = [...ends].reverse().find((t) => t - MOTION_LINE_END_LEAD_MS - MOTION_STROKES_MS - 400 >= firstFrame && t + MOTION_LINE_END_TAIL_MS < stagesOpen.lifting);
+  check('the writing holds a body row\'s end with a stroke stretch before it and the whole return before the 本文 arrives', lineEnd !== undefined, { ends: ends.map((t) => t - firstFrame), arrival: stagesOpen.lifting - firstFrame });
+  const leanValues = tips.filter((x) => x.lean).map((x) => x.lean.split(' ').map(Number));
+  const leanRange = {
+    tilt: [Math.min(...leanValues.map((v) => v[0])), Math.max(...leanValues.map((v) => v[0]))],
+    azimuth: [Math.min(...leanValues.map((v) => v[1])), Math.max(...leanValues.map((v) => v[1]))],
+    frames: leanValues.length
+  };
+  log('lean while writing (tilt, azimuth: min..max)', leanRange);
+  check('the brush\'s lean shifts while it writes (tilt or azimuth moves by more than 3°)', leanRange.tilt[1] - leanRange.tilt[0] > 3 || leanRange.azimuth[1] - leanRange.azimuth[0] > 3, leanRange);
+
+  // Tiles: the frames of a stretch, cropped 1:1, each labelled with its time from the stretch's start, the stage, the
+  // brush's tilt/azimuth and the tip's move since the frame before (px).
+  const tilesOf = (flow, from, to, every, box) => {
+    const picked = flow.frames.filter((frame) => frame.t >= from && frame.t <= to).filter((_frame, i) => i % every === 0);
+    let previous = null;
+    return picked.map((frame) => {
+      const state = stateAt(flow, frame.t);
+      const tip = tipOf(flow, state);
+      const moved = tip && previous ? Math.hypot(tip[0] - previous[0], tip[1] - previous[1]).toFixed(1) : '-';
+      previous = tip;
+      const lean = state?.lean ? state.lean.split(' ').map((v) => Number(v).toFixed(1)).join('/') : '-';
+      return { file: frame.file, box, t: Math.round(frame.t - from), label: `+${Math.round(frame.t - from)}ms ${state?.writing ?? '-'} ${state?.ink ?? ''} lean ${lean} d ${moved}px` };
+    });
+  };
+  const aroundTips = (from, to) => {
+    const inside = tips.filter((x) => x.t >= from && x.t <= to).map((x) => x.tip);
+    const s = opened.pxPerCm;
+    const box = [Math.min(...inside.map((p) => p[0])) - 2 * s, Math.min(...inside.map((p) => p[1])) - 3 * s, Math.max(...inside.map((p) => p[0])) + 9 * s, Math.max(...inside.map((p) => p[1])) + 8 * s];
+    return [Math.max(0, Math.floor(box[0])), Math.max(0, Math.floor(box[1])), Math.min(viewport.width, Math.ceil(box[2])), Math.min(viewport.height, Math.ceil(box[3]))];
+  };
+  const spreadBox = (flow) => [Math.floor(flow.spread.x), Math.floor(flow.spread.y), Math.ceil(flow.spread.x + flow.spread.width), Math.ceil(flow.spread.y + flow.spread.height)];
+  const lineFrom = lineEnd - MOTION_LINE_END_LEAD_MS;
+  const strokesFrom = lineFrom - 400 - MOTION_STROKES_MS;
+  const stretches = {
+    strokes: { flow: opened, from: strokesFrom, to: strokesFrom + MOTION_STROKES_MS, every: 1, box: aroundTips(strokesFrom, strokesFrom + MOTION_STROKES_MS), columns: MOTION_SHEET_COLUMNS.strokes, file: 'motion-strokes.png', name: '筆の運び（本文の行の中ほど・画の中の入り・送り・止め・払いと、画と画の間の宙の弧）' },
+    lineEnd: { flow: opened, from: lineFrom, to: lineEnd + MOTION_LINE_END_TAIL_MS, every: 1, box: aroundTips(lineFrom, lineEnd + MOTION_LINE_END_TAIL_MS), columns: MOTION_SHEET_COLUMNS.lineEnd, file: 'motion-line-end.png', name: '行の終わり（漂ってから次の行の頭へ舞い戻る）' },
+    arrival: { flow: opened, from: stagesOpen.lifting - MOTION_FLOW_LEAD_MS, to: stagesOpen.ready + MOTION_FLOW_TAIL_MS, every: MOTION_FLOW_EVERY, box: spreadBox(opened), columns: MOTION_SHEET_COLUMNS.flow, file: 'motion-arrival.png', name: '書き終わりの流れ（本文が届いてから本文の表示まで）' },
+    related: { flow: related, from: stagesRelated.lifting - MOTION_FLOW_LEAD_MS, to: stagesRelated.ready + MOTION_FLOW_TAIL_MS, every: MOTION_FLOW_EVERY, box: spreadBox(related), columns: MOTION_SHEET_COLUMNS.flow, file: 'motion-related.png', name: '脚注から次の本へ移った本の書き終わりの流れ' }
+  };
+  const artifacts = [];
+  const sheets = {};
+  for (const [key, stretch] of Object.entries(stretches)) {
+    const tiles = tilesOf(stretch.flow, stretch.from, stretch.to, stretch.every, stretch.box);
+    check(`${stretch.file}: frames in the stretch`, tiles.length >= 6, { tiles: tiles.length });
+    const result = await motionSheet({ tiles, out: out(stretch.file), columns: stretch.columns, gap: 6, width: viewport.width, height: viewport.height });
+    sheets[key] = { file: stretch.file, name: stretch.name, every: stretch.every, box: stretch.box, ms: Math.round(stretch.to - stretch.from), ...result, labels: tiles.map((tile) => tile.label) };
+    artifacts.push({ file: stretch.file, name: stretch.name });
+  }
+  const recordings = {
+    'motion-writing.webp': { flow: opened, from: strokesFrom, to: lineEnd + MOTION_LINE_END_TAIL_MS, name: '筆の運びと行の終わり（録画）' },
+    'motion-arrival.webp': { flow: opened, from: stretches.arrival.from, to: stretches.arrival.to, name: '書き終わりの流れ（録画）' },
+    'motion-related.webp': { flow: related, from: stretches.related.from, to: stretches.related.to, name: '脚注から次の本へ移った本の書き終わりの流れ（録画）' }
+  };
+  for (const [file, recording] of Object.entries(recordings)) {
+    const clip = cutClip(recording.flow.frames, recording.from, recording.to);
+    const result = await python({ op: 'webp', frames: clip, out: out(file), width: viewport.width, height: viewport.height, quality: WEBP_QUALITY });
+    check(`${file}`, result.animated && result.size[0] === viewport.width && result.size[1] === viewport.height && Math.abs(result.duration_ms - (recording.to - recording.from)) <= clip.length, { ...result, clipMs: Math.round(recording.to - recording.from) });
+    artifacts.push({ file, name: recording.name });
+  }
+  const listing = [];
+  for (const artifact of artifacts) {
+    const bytes = await fs.readFile(out(artifact.file));
+    listing.push({ ...artifact, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex') });
+  }
+  const relative = (s) => Object.fromEntries(Object.entries(s).map(([k, v]) => [k, v === null ? null : v - s.lifting]));
+  const framesIn = (flow, s) => flow.frames.filter((frame) => frame.t >= s.lifting && frame.t <= s.ready);
+  const longestGap = (frames) => Math.max(...frames.slice(1).map((frame, i) => frame.t - frames[i].t));
+  const flows = {
+    open: { stagesMs: relative(stagesOpen), screencastFrames: framesIn(opened, stagesOpen).length, longestScreencastGapMs: Math.round(longestGap(framesIn(opened, stagesOpen))) },
+    related: { stagesMs: relative(stagesRelated), screencastFrames: framesIn(related, stagesRelated).length, longestScreencastGapMs: Math.round(longestGap(framesIn(related, stagesRelated))) }
+  };
+  log('flows (ms from data-writing lifting)', flows);
+  await writeJson(out('manifest.json'), { head, viewport, readDelayMs: READ_DELAY_MS, extraHoldMs: MOTION_EXTRA_HOLD_MS, openTitle: OPEN_TITLE, relatedTitle: FIXTURE_FOOTNOTE_TITLE, leanWhileWriting: leanRange, flows, sheets, rendererErrors: page.rendererErrors, artifacts: listing });
+  const written = (await fs.readdir(outDir)).filter((name) => name !== USER_DATA_DIR).sort();
+  const listed = [...listing.map((entry) => entry.file), 'manifest.json'].sort();
+  check('out dir holds exactly the listed artifacts and the manifest', JSON.stringify(written) === JSON.stringify(listed), { written, listed });
+  for (const error of page.rendererErrors) log('renderer console error', error);
+  for (const entry of listing) console.log(`artifact\t${entry.file}\t${entry.bytes}\t${entry.sha256}\t${entry.name}`);
+  console.log(`DONE head=${head} artifacts=${listing.length} rendererErrors=${page.rendererErrors.length}`);
 }
 
 main()

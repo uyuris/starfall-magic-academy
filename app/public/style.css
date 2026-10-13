@@ -9320,7 +9320,7 @@ body:has(#academy-library-screen.active) .layout {
 
 /* ── 本: 背は絵の背の画素に本ごとの色を寄せ、題箋に金の題を押したもの。背の面（.academy-library-book-face）を平らに組み、
    背の四辺形へ射影で写す（transform は libraryScreen.js の layFace）。
-   指を乗せると、本は通路の側（左）へ --pull-dx だけ引き出されながら少し手前（下）へ寄り、背の右の縁から、右隣の本の陰だった
+   指を乗せると、本は自分の載っている板の線に沿って通路の側（左）へ --pull-dx だけ引き出されながら少し手前へ寄り、背の右の縁から、右隣の本の陰だった
    所に表紙の面（.academy-library-book-reveal の中の .academy-library-cover-face）が引き出した分だけ見えてくる。重く静かに（0.8 秒・行き過ぎなし）。 ── */
 .academy-library-book-item {
   position: absolute;
@@ -9343,7 +9343,7 @@ body:has(#academy-library-screen.active) .layout {
 }
 
 /* 本の当たり: 引き出した姿の逆（--rest-transform）を同じ速さで掛け、棚に収まった箱に残す。背の上端に置いた指は、本が
-   左下へ引き出されても本の上にあるので、本は引き出されたまま静まる。 */
+   左へ引き出されても本の上にあるので、本は引き出されたまま静まる。 */
 .academy-library-book-item::before {
   content: "";
   position: absolute;
@@ -9433,9 +9433,11 @@ body:has(#academy-library-screen.active) .layout {
   padding-inline-start: 0.5em;
 }
 
-/* 下の段の副題のある題: 題の列（右）と副題の細い列（左）を並べ、副題の列は題の列の天地の真ん中に置く。 */
+/* 下の段の 2 列の題: 題の列（右）と副題の細い列（左）、または 2 列に折った題を並べ、短い列は長い列の天地の真ん中に置く。
+   縦書きの中の flex なので、列を右から左へ並べるのは column の向き。 */
 .academy-library-book-title-columns {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.5em;
   background: none;
@@ -9791,7 +9793,8 @@ body:has(#academy-library-screen.active) .layout {
 .academy-library-sketch-row canvas,
 .academy-library-sketch-glow canvas { position: absolute; left: 0; top: 0; }
 
-/* 筆: 筆先のまわりを写す二枚の canvas（影と筆）を、筆先の位置へ動かす（要素の原点は見開きの左上）。影は紙と乗算する。 */
+/* 筆: 筆先のまわりを写す二枚の canvas（影と筆）を、筆先の位置へ動かす（要素の原点は見開きの左上）。影は紙と乗算する。
+   書いている間（moving）・本文が届いて振りかぶる間（lifting）・頁の上を払って抜けるまで（sweeping）見える。 */
 .academy-library-brush {
   position: absolute;
   left: 0;
@@ -9803,7 +9806,8 @@ body:has(#academy-library-screen.active) .layout {
 }
 
 .academy-library-book[data-writing="moving"] .academy-library-brush,
-.academy-library-book[data-writing="lifting"] .academy-library-brush { opacity: 1; }
+.academy-library-book[data-writing="lifting"] .academy-library-brush,
+.academy-library-book[data-writing="sweeping"] .academy-library-brush { opacity: 1; }
 
 .academy-library-brush-shadow,
 .academy-library-brush-body {

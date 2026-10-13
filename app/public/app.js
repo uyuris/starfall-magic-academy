@@ -6152,14 +6152,17 @@ async function deleteCharacterRecords(target) {
 }
 
 // acceptedErrorCodes names the API error codes that are a known state for this task, not a failure: the task then
-// yields fallbackValue without reporting. Every other error is reported as before.
-async function runRefreshTask(label, taskFactory, { timeoutMs = REFRESH_TASK_TIMEOUT_MS, fallbackValue = null, acceptedErrorCodes = [] } = {}) {
+// calls onAccepted and yields fallbackValue without reporting. Every other error is reported as before.
+async function runRefreshTask(label, taskFactory, { timeoutMs = REFRESH_TASK_TIMEOUT_MS, fallbackValue = null, acceptedErrorCodes = [], onAccepted = () => {} } = {}) {
   let timedOut = false;
   const taskPromise = Promise.resolve()
     .then(taskFactory)
     .then((value) => ({ status: 'fulfilled', value }))
     .catch((error) => {
-      if (acceptedErrorCodes.includes(error?.errorCode)) return { status: 'accepted', value: fallbackValue };
+      if (acceptedErrorCodes.includes(error?.errorCode)) {
+        onAccepted();
+        return { status: 'accepted', value: fallbackValue };
+      }
       if (!timedOut) reportError(error);
       return { status: 'rejected', value: fallbackValue };
     });
@@ -6176,9 +6179,11 @@ async function runRefreshTask(label, taskFactory, { timeoutMs = REFRESH_TASK_TIM
 
 // noSaveYet is the boot read on a machine that may hold no save at all: /api/state and /api/field answer
 // NO_ACTIVE_SLOT there, which is the "no save yet" state (the title offers only 最初から始める), not an error to
-// write on the title. Any other failure of the boot read is reported as usual.
+// write on the title. Any other failure of the boot read is reported as usual. The character records belong to the
+// save, so when /api/state answers NO_ACTIVE_SLOT the boot read does not ask for their status.
 async function refresh({ strictField = false, noSaveYet = false } = {}) {
   const playStateAccepted = noSaveYet ? ['NO_ACTIVE_SLOT'] : [];
+  let saveAbsent = false;
   await Promise.all([
     runRefreshTask('characters', () => refreshCharacters()),
     runRefreshTask('world settings', () => refreshWorldSettings()),
@@ -6189,7 +6194,11 @@ async function refresh({ strictField = false, noSaveYet = false } = {}) {
   // cached field and rendering a frozen map. The default resilient path (loop and every other caller)
   // keeps the last-known field on a stalled fetch, so those transitions stay byte-equivalent.
   const [state, field] = await Promise.all([
-    runRefreshTask('state', () => getJson('/api/state'), { fallbackValue: currentRuntimeState, acceptedErrorCodes: playStateAccepted }),
+    runRefreshTask('state', () => getJson('/api/state'), {
+      fallbackValue: currentRuntimeState,
+      acceptedErrorCodes: playStateAccepted,
+      onAccepted: () => { saveAbsent = true; }
+    }),
     strictField
       ? getJson('/api/field')
       : runRefreshTask('field', () => getJson('/api/field'), { fallbackValue: currentField, acceptedErrorCodes: playStateAccepted })
@@ -6207,7 +6216,7 @@ async function refresh({ strictField = false, noSaveYet = false } = {}) {
   if (screens['academy-room']?.classList.contains('active')) renderAcademyRoomScreen();
   if (field) renderField(field);
   await Promise.all([
-    runRefreshTask('record status', () => refreshRecordStatus()),
+    saveAbsent ? null : runRefreshTask('record status', () => refreshRecordStatus()),
     runRefreshTask('flag status', () => refreshFlagStatus()),
     runRefreshTask('event flag status', () => refreshEventFlagStatus()),
     runRefreshTask('llm request log', () => refreshLlmRequestLog()),
