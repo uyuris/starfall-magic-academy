@@ -14,9 +14,9 @@
 //   arena-failure  闘技会の選ぶ段で POST /api/arena/enter を落とす（段の道が途切れる）。
 //   auction-3      入札者 3 人の週: 出品の段 → 自分の品を出す → 自分の出品の競り → 一品目〜三品目（自分は降りる）→ 閉場。
 //   auction-5      入札者 5 人の週: 出品しない → 一品目の自分の番。
-//   auction-failure 入札者 3 人の週: 出品しない → 一品目の最初の NPC の入札の要求を落とす（段の道が途切れる）→ 言い直しの紋で
-//                  一品目を頭からやり直して自分の番まで → 自分の入札の要求を落とす → 言い直しの紋 → もう一度入札して通る。
-//   auction-closed-failure 入札者 3 人の週: 出品しない → 三品とも降りて閉場 → 出る紋で露台へ戻る道に故障を入れる（閉場の段で
+//   auction-failure 入札者 3 人の週: 出品しない → 一品目の最初の NPC の入札の要求を落とす（段の道が途切れる）→ 言い直しのアイコンで
+//                  一品目を頭からやり直して自分の番まで → 自分の入札の要求を落とす → 言い直しのアイコン → もう一度入札して通る。
+//   auction-closed-failure 入札者 3 人の週: 出品しない → 三品とも降りて閉場 → 出るアイコンで露台へ戻る道に故障を入れる（閉場の段で
 //                  道が途切れる）。露台を開く要求の失敗は戻る道が自分で露台に着地させるので、故障は CDP の Debugger で
 //                  app.js の exitAuction の中に止め、モジュールの returnToRoutingHubFromContent を throw するものに差し替えて入れる。
 //   concert-hall   露台 → 奏楽堂（棚）→ 願いを書いて頼む → 語り → 演奏 → 棚。
@@ -71,7 +71,7 @@ const FIXTURE_PROMPT_ANSWERS = [
   ['増減したユーザーの所持金を判定する', '0'],
   ['所持金判定', '0']
 ];
-// 闘技会の場内アナウンス（試合前の口上・結果の実況）。
+// 闘技会の場内アナウンス（結果の実況。試合の始まりの一声にも同じ一文を返す）。
 const ARENA_ANNOUNCE_MARKER = 'あなたは魔法学院の闘技会の場内アナウンスの地の文を綴る。';
 const ARENA_ANNOUNCE_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
 // 競売人ガロウの口上（口火・煽り・落札）と客の反応。
@@ -102,6 +102,21 @@ const CONCERT_HALL_SKELETON = {
 const CONCERT_HALL_SECTION_PITCHES = ['E5', 'D5', 'C5', 'D5', 'E5', 'G5', 'E5', 'D5', 'C5', 'D5', 'E5', 'C5', 'D5', 'E5', 'D5', 'C5'];
 const FIXTURE_CHAT_MODEL = 'capture-chat';
 const FIXTURE_REFLECTION_MODEL = 'capture-reflection';
+
+// 試合の五つの声（構造化出力 arena_match_voices）。誰の身に起きたかの名は応答の形に一つに決まっているので、そのまま写す。
+function arenaMatchVoices(schema, opening) {
+  const side = (key, voice) => {
+    const fields = Object.entries(schema.properties[key].properties).filter(([field]) => field !== '声');
+    return { ...Object.fromEntries(fields.map(([field, fixed]) => [field, fixed.enum[0]])), 声: voice };
+  };
+  return {
+    opening,
+    east_edge: side('east_edge', '東方、ついに後がない！'),
+    west_edge: side('west_edge', '西方、ついに後がない！'),
+    east_wins: side('east_wins', '決着だ！東方が勝ち名乗りを上げた！'),
+    west_wins: side('west_wins', '決着だ！西方が勝ち名乗りを上げた！')
+  };
+}
 
 function createFixtureLm(hubLines, faults) {
   return async function answer(body) {
@@ -143,6 +158,7 @@ function createFixtureLm(hubLines, faults) {
       await sleep(CONCERT_HALL_STAGE_DELAY_MS);
       return { kind: schemaName, content: JSON.stringify({ melody: CONCERT_HALL_SECTION_PITCHES.map((pitch, beat) => ({ pitch, start_beat: beat, duration_beats: 1, velocity: 88 })), counter: [] }) };
     }
+    if (schemaName === 'arena_match_voices') return { kind: schemaName, content: JSON.stringify(arenaMatchVoices(body.response_format.json_schema.schema, ARENA_ANNOUNCE_LINE)) };
     if (schemaName !== null) throw new Error(`fixture lm: unknown structured request ${schemaName}`);
     if (prompt.includes('destination_idを1つだけ返す')) {
       const matches = Object.entries(hubLines).filter(([, line]) => prompt.includes(line));
@@ -322,7 +338,7 @@ async function auctionWeekWithBidders(repoRoot, count) {
 }
 
 // ── 窓（CDP） ────────────────────────────────────────────────────────────────────────────────────────────────
-// いまの姿: 出ている画面・段の道・言い直しと出る紋・body の play-mode。
+// いまの姿: 出ている画面・段の道・言い直しと出るアイコン・body の play-mode。
 const PAGE_STATE = `(() => {
   const screen = document.querySelector('.screen.active');
   const way = screen?.querySelector('.venue-path');
@@ -640,7 +656,7 @@ const SCENES = {
     ctx.steps.push('stand on solo');
     await page.waitFor(`${settled(ARENA)} && ${ARENA_STAGE('bracket')} && document.querySelector('#arena-bracket-actions .arena-fight')`, 'the bracket');
     await sleep(SETTLE_MS);
-    await ctx.shoot('arena-bracket', '勝ち上がりの表の段（試合を始める紋）');
+    await ctx.shoot('arena-bracket', '勝ち上がりの表の段（試合を始めるアイコン）');
     let matches = 0;
     let waits = 0;
     while (true) {
@@ -649,13 +665,13 @@ const SCENES = {
       if (await page.js(ARENA_STAGE('bracket'))) {
         await sleep(SETTLE_MS);
         await page.click("document.querySelector('#arena-bracket-actions .arena-fight')", '試合開始');
-        await page.waitFor(`${ARENA_STAGE('match')} && document.querySelector('#arena-match-intro')?.dataset.state === 'ready'`, 'the match and its intro', LM_WAIT_MS);
+        await page.waitFor(`${ARENA_STAGE('match')} && document.querySelector('#arena-voice').dataset.kind === 'opening'`, 'the match and its opening voice', LM_WAIT_MS);
         matches += 1;
         ctx.steps.push(`start match ${matches}`);
         if (matches === 1) {
           await page.waitFor(`${motionSettled(`#${ARENA}`)} && ${IMAGES_LOADED(`#${ARENA}`)}`, 'the match settled');
           await sleep(SETTLE_MS);
-          await ctx.shoot('arena-match', '試合の段（口上・魔法の紋と MP・回復の紋・持ち込みの空の袋）');
+          await ctx.shoot('arena-match', '試合の段（始まりの一声・魔法のアイコンと MP・回復のアイコン・持ち込みの空の袋）');
         }
         continue;
       }
@@ -667,7 +683,7 @@ const SCENES = {
     ctx.steps.push(`concluded after ${matches} matches and ${waits} waits`);
     await page.waitFor(`${settled(ARENA)} && document.querySelector('#arena-result-flavor')?.dataset.state === 'ready'`, 'the arena result', LM_WAIT_MS);
     await sleep(SETTLE_MS);
-    await ctx.shoot('arena-result', '結果の段（結果・賞金の印と額・右上の出る紋）');
+    await ctx.shoot('arena-result', '結果の段（結果・賞金の印と額・右上の出るアイコン）');
   },
   async 'arena-failure'(ctx) {
     const { page } = ctx;
@@ -678,7 +694,7 @@ const SCENES = {
     ctx.steps.push('stand on solo (POST /api/arena/enter failed)');
     await page.waitFor(WAY_FAILED(ARENA), 'the arena way broken');
     await sleep(SETTLE_MS);
-    await ctx.shoot('arena-failure', '闘技会の失敗（選ぶ段で道が途切れ、言い直しの紋が立つ）');
+    await ctx.shoot('arena-failure', '闘技会の失敗（選ぶ段で道が途切れ、言い直しのアイコンが立つ）');
     await enter.release();
   },
   async 'auction-3'(ctx) {
@@ -704,7 +720,7 @@ const SCENES = {
     }
     await page.waitFor(`${settled(AUCTION)} && !document.querySelector('#academy-auction-closed').hidden && !document.querySelector('#academy-auction-exit').hidden`, 'the auction closed', LM_WAIT_MS);
     await sleep(SETTLE_MS);
-    await ctx.shoot('auction-3-closed', '閉場（今宵の結果・右上の出る紋）');
+    await ctx.shoot('auction-3-closed', '閉場（今宵の結果・右上の出るアイコン）');
   },
   async 'auction-5'(ctx) {
     ctx.notes.week = await enterAuction(ctx, 5);
@@ -722,26 +738,26 @@ const SCENES = {
     ctx.steps.push('lot 1: the first NPC bid request failed');
     await page.waitFor(WAY_FAILED(AUCTION), 'the auction way broken', LM_WAIT_MS);
     await sleep(SETTLE_MS);
-    await ctx.shoot('auction-failure', '競売場の失敗（一品目で道が途切れ、言い直しの紋が立つ）');
+    await ctx.shoot('auction-failure', '競売場の失敗（一品目で道が途切れ、言い直しのアイコンが立つ）');
     await bid.release();
-    // 言い直しの紋: 競売場へ入り直し、いまのロット（一品目）を頭からやり直して自分の番まで進む。
-    await page.click("document.querySelector('#academy-auction-retry')", '言い直しの紋');
+    // 言い直しのアイコン: 競売場へ入り直し、いまのロット（一品目）を頭からやり直して自分の番まで進む。
+    await page.click("document.querySelector('#academy-auction-retry')", '言い直しのアイコン');
     ctx.steps.push('press the retry sigil');
     await page.waitFor(`document.querySelector('#${AUCTION} .venue-path')?.dataset.failed === 'false' && document.querySelector('#academy-auction-retry').hidden`, 'the way mended');
     await awaitAuctionTurn(ctx, "lot 1 again: the player's turn");
     const again = await page.js("({ way: document.querySelector('#academy-auction-path').getAttribute('aria-label'), lot: document.querySelector('#academy-auction-board-name').textContent })");
     ctx.steps.push(`after the retry: ${again.way} / ${again.lot}`);
-    // 手元の入札の要求の失敗: 道が途切れ、言い直しの紋で道が直り、番は開いたままなのでもう一度入札できる。
+    // 手元の入札の要求の失敗: 道が途切れ、言い直しのアイコンで道が直り、番は開いたままなのでもう一度入札できる。
     const playerBid = await page.hold('/api/auction/bid', { method: 'POST', decide: async () => 'fail' });
-    await page.click("document.querySelector('#academy-auction-bid')", '入札の紋');
+    await page.click("document.querySelector('#academy-auction-bid')", '入札のアイコン');
     await playerBid.paused;
     await page.waitFor(WAY_FAILED(AUCTION), 'the way broken at the bid');
     const failedBid = await page.js("({ way: document.querySelector('#academy-auction-path').getAttribute('aria-label'), bidEnabled: !document.querySelector('#academy-auction-bid').disabled })");
     ctx.steps.push(`the bid request failed: ${failedBid.way} / bid sigil enabled ${failedBid.bidEnabled}`);
     await playerBid.release();
-    await page.click("document.querySelector('#academy-auction-retry')", '言い直しの紋');
+    await page.click("document.querySelector('#academy-auction-retry')", '言い直しのアイコン');
     await page.waitFor(`document.querySelector('#${AUCTION} .venue-path')?.dataset.failed === 'false' && ${AUCTION_TURN}`, 'the way mended with the turn still open');
-    await page.click("document.querySelector('#academy-auction-bid')", '入札の紋');
+    await page.click("document.querySelector('#academy-auction-bid')", '入札のアイコン');
     await page.waitFor("document.querySelector('#academy-auction-desk-highest') && !document.querySelector('#academy-auction-desk-highest').hidden", 'the player holds the bid');
     ctx.steps.push('after the retry the bid went through: the player holds the bid');
   },
@@ -758,12 +774,12 @@ const SCENES = {
     await page.waitFor(`${settled(AUCTION)} && !document.querySelector('#academy-auction-closed').hidden && !document.querySelector('#academy-auction-exit').hidden`, 'the auction closed', LM_WAIT_MS);
     await sleep(SETTLE_MS);
     const injected = await page.injectInModule('    await returnToRoutingHubFromContent(AUCTION_POST_CONTENT_SCREEN);', "returnToRoutingHubFromContent = async () => { throw new Error('capture: injected failure on the way back to the terrace'); }");
-    await page.click("document.querySelector('#academy-auction-exit')", '出る紋');
+    await page.click("document.querySelector('#academy-auction-exit')", '出るアイコン');
     await injected.done;
     ctx.steps.push('press the exit sigil (the return to the terrace throws)');
     await page.waitFor(`${WAY_FAILED(AUCTION)} && document.querySelector('#${AUCTION}.active')`, 'the closed way broken');
     await sleep(SETTLE_MS);
-    await ctx.shoot('auction-closed-failure', '競売場の閉場の段の失敗（三品目の先で道が途切れ、言い直しの紋が立つ）');
+    await ctx.shoot('auction-closed-failure', '競売場の閉場の段の失敗（三品目の先で道が途切れ、言い直しのアイコンが立つ）');
   },
   async 'concert-hall'(ctx) {
     const { page } = ctx;
@@ -772,11 +788,11 @@ const SCENES = {
     await composeConcertHall(ctx);
     await page.waitFor(`${CONCERT_STATE('narrated')} && !document.querySelector('#academy-concert-hall-perform').hidden && ${motionSettled(`#${CONCERT_HALL}`)}`, 'the narration', LM_WAIT_MS);
     await sleep(SETTLE_MS);
-    await ctx.shoot('concert-hall-narrated', '語りの段（四段の語り・指南は題の三語・床の演奏の紋）');
+    await ctx.shoot('concert-hall-narrated', '語りの段（四段の語り・指南は題の三語・床の演奏のアイコン）');
     await page.click("document.querySelector('#academy-concert-hall-perform')", '演奏を始める');
     await page.waitFor(`${CONCERT_STATE('playing')} && document.querySelector('#academy-concert-hall-performance-cards [data-current="true"]')`, 'the performance', LM_WAIT_MS);
     await sleep(SETTLE_MS * 2);
-    await ctx.shoot('concert-hall-playing', '演奏の段（いまの節が灯る・止める紋）');
+    await ctx.shoot('concert-hall-playing', '演奏の段（いまの節が灯る・止めるアイコン）');
     await page.waitFor(`${CONCERT_STATE('played')} && ${motionSettled(`#${CONCERT_HALL}`)}`, 'the performance ended', LM_WAIT_MS);
     await sleep(SETTLE_MS);
     await ctx.shoot('concert-hall-shelf', '棚の段（いま書けた曲が上に灯る）');
@@ -790,7 +806,7 @@ const SCENES = {
     await page.waitFor(`${CONCERT_STATE('error')} && ${WAY_FAILED(CONCERT_HALL)}`, 'the concert hall way broken', LM_WAIT_MS);
     // 失敗は LM の要求を 500 にしていない（知らない id は製品の関所が退ける）。
     await sleep(SETTLE_MS);
-    await ctx.shoot('concert-hall-failure', '奏楽堂の失敗（語りの段で道が途切れ、言い直しの紋が立つ）');
+    await ctx.shoot('concert-hall-failure', '奏楽堂の失敗（語りの段で道が途切れ、言い直しのアイコンが立つ）');
   }
 };
 

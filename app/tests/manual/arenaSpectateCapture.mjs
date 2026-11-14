@@ -10,7 +10,7 @@
 // バディーの強さ: 一時のプレイに写した content/characters の character_001 の profile.json（作品は characterContentRoot から読む）
 // の能力値を全部 上限（max）か 0（min）にする。そのまま（default）なら、こま割りの撮影と同じ大会（バディーは一回戦に勝ち、準々決勝で負ける）。
 //
-// 瞬間の撮り方: 観戦の入りで表が出た時刻か、表へ戻る紋・見ずに先へ進む紋を押した時刻を 0 とし（こま割りの時刻と同じ取り方）、決めた時刻で
+// 瞬間の撮り方: 観戦の入りで表が出た時刻か、表へ戻るアイコン・見ずに先へ進むアイコンを押した時刻を 0 とし（こま割りの時刻と同じ取り方）、決めた時刻で
 // ページの中の動きを全部止め、止めている間に来る setTimeout も後へ回して撮る（撮り終えたら動かし直す）。
 // 撮影はどれも 1440×900 と 1100×720 の二つの窓で撮る（止めたまま窓を替え、円の表が新しい窓で置き直されてから撮る。file 名の末尾が
 // 窓の寸法）。表が出ている一枚ごとに、名の札の字が欠けていないこと（字の行ごとに scrollWidth ≤ clientWidth）と、字が名簿の
@@ -21,7 +21,7 @@
 //
 // scenes:
 //   boards     バディーそのまま。選ぶ段・観戦の入り（0・0.3・0.7・1 秒）・一回戦の見返し（三手目・バディーが左）と終わり（スキップ）・
-//              表へ戻ったときの明かし（0.3・0.7・1.1・1.5 秒と終わり）・準々決勝の前で見ずに先へ進む紋を押した後（0・0.4・1.2・1.9・
+//              表へ戻ったときの明かし（0.3・0.7・1.1・1.5 秒と終わり）・準々決勝の前で見ずに先へ進むアイコンを押した後（0・0.4・1.2・1.9・
 //              2.3 秒）・結果の段（こま割り 3 枚の同じ瞬間）
 //   champion   バディーを上限に。どの回戦も見返しをスキップで終わりまで送って戻り、優勝まで。準々決勝の見返し（バディーが左に立つ姿）・
 //              決勝の後の優勝の灯り（0.2 秒）と表が沈む途中（0.55 秒）・結果の段
@@ -29,11 +29,11 @@
 //              結果の段
 //   timing-champion    champion と同じ大会を凍らせずに送り、観戦を押してから結果の段までを測る
 //   timing-eliminated  eliminated と同じ大会を同じく測る
-//   timing-skip        バディーそのままの大会を、見ずに先へ進む紋だけで最後まで送って同じく測る
+//   timing-skip        バディーそのままの大会を、見ずに先へ進むアイコンだけで最後まで送って同じく測る
 //   reload     バディーそのまま。見返しを終えて表へ戻り、明かしの途中（0.3 秒）で読み直し、出た所（露台）と、露台から闘技会へ
 //              送り出し直した姿を記録して撮る（明かしの途中は画面だけが持つので残らない）
 //   capped     バディーの出ない試合のうち三百の回りで打ち切られた試合（見返しの最後の手が active）を回戦の早い順に一つ選び、その回戦まで
-//              表を明かして（一回戦ならバディーの一回戦の見返しから戻る・その先なら見ずに先へ進む紋で結果の段まで）、見返しを高速の
+//              表を明かして（一回戦ならバディーの一回戦の見返しから戻る・その先なら見ずに先へ進むアイコンで結果の段まで）、見返しを高速の
 //              自動送りで最後まで送った終わりと、スキップで送った終わりを撮る
 //   decided    同じく、バディーの出ない倒れて決まった試合を一つ選んで、同じ二つの終わりを撮る
 //              （capped・decided の終わりは、勝った側〈表の winner_unit_id〉の灯・印・大きく開く輪を照らし、外れれば止まる）
@@ -41,7 +41,7 @@
 //                    戻って同じ枠の目からスキップで送った終わりを撮り、バディーの側から読んだ灯・印・大きく開く輪を照らす
 //   buddy-ends-min   バディーを 0 に。同じく撮る（バディーが負ける試合）
 //
-// 送り方: 表で目か紋が出たらすぐ押し、見返しは出たらすぐスキップを押して終わりまで送る（人の考える時間は入れない）。
+// 送り方: 表で目かアイコンが出たらすぐ押し、見返しは出たらすぐスキップを押して終わりまで送る（人の考える時間は入れない）。
 import { app, BrowserWindow } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
 import os from 'node:os';
@@ -90,9 +90,22 @@ const FIXTURE_PROMPT_ANSWERS = [
   ['増減したユーザーの所持金を判定する', '0'],
   ['所持金判定', '0']
 ];
-const ARENA_INTRO_MARKER = '次の試合の開始を告げる短い口上を書く。';
 const ARENA_RESULT_MARKER = '結果を告げる実況を一文だけ書く。';
-const ARENA_INTRO_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
+const ARENA_OPENING_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
+// 試合の五つの声（構造化出力 arena_match_voices）。誰の身に起きたかの名は応答の形に一つに決まっているので、そのまま写す。
+function arenaMatchVoices(schema, opening) {
+  const side = (key, voice) => {
+    const fields = Object.entries(schema.properties[key].properties).filter(([field]) => field !== '声');
+    return { ...Object.fromEntries(fields.map(([field, fixed]) => [field, fixed.enum[0]])), 声: voice };
+  };
+  return {
+    opening,
+    east_edge: side('east_edge', '東方、ついに後がない！'),
+    west_edge: side('west_edge', '西方、ついに後がない！'),
+    east_wins: side('east_wins', '決着だ！東方が勝ち名乗りを上げた！'),
+    west_wins: side('west_wins', '決着だ！西方が勝ち名乗りを上げた！')
+  };
+}
 
 function arenaResultLine(prompt) {
   const champion = prompt.match(/- この大会の優勝者は (.+)/);
@@ -109,13 +122,13 @@ function createFixtureLm(hubLines) {
     const schemaName = body.response_format?.json_schema?.name ?? null;
     if (schemaName === 'character_emotion_choice') return { kind: schemaName, content: JSON.stringify({ expression: 'neutral' }) };
     if (schemaName === 'work_record_recall_choice') return { kind: schemaName, content: JSON.stringify({ work_record_ids: [] }) };
+    if (schemaName === 'arena_match_voices') return { kind: schemaName, content: JSON.stringify(arenaMatchVoices(body.response_format.json_schema.schema, ARENA_OPENING_LINE)) };
     if (schemaName !== null) throw new Error(`fixture lm: unknown structured request ${schemaName}`);
     if (prompt.includes('destination_idを1つだけ返す')) {
       const matches = Object.entries(hubLines).filter(([, line]) => prompt.includes(line));
       return { kind: 'hub-destination', content: matches.length === 1 ? matches[0][0] : 'none' };
     }
     if (prompt.includes('これはイベントフラグ判定')) return { kind: 'event-flag', content: 'false' };
-    if (prompt.includes(ARENA_INTRO_MARKER)) return { kind: 'arena-intro', content: ARENA_INTRO_LINE };
     if (prompt.includes(ARENA_RESULT_MARKER)) return { kind: 'arena-result', content: arenaResultLine(prompt) };
     for (const [marker, content] of FIXTURE_PROMPT_ANSWERS) if (prompt.includes(marker)) return { kind: marker, content };
     if (body.model === FIXTURE_CHAT_MODEL && body.stream === true) return { kind: 'chat', content: '（顔を上げて）ええ、行ってらっしゃい。' };
@@ -275,7 +288,7 @@ const PAGE_TOOLS = `(() => {
   const result = document.querySelector('#arena-result');
   const actions = document.querySelector('#arena-bracket-actions');
   af.sinceZero = () => performance.now() - af.zeroAt - (af.pausedTotal - af.zeroPaused) - (af.frozen ? performance.now() - af.frozenAt : 0);
-  // 0 の時刻（表が出た・紋を押した）から、次の手（金の輪の目と見ずに先へ進む紋）か結果の段が立つまでを、止めていた長さを除いて測る。
+  // 0 の時刻（表が出た・アイコンを押した）から、次の手（金の輪の目と見ずに先へ進むアイコン）か結果の段が立つまでを、止めていた長さを除いて測る。
   const markReady = () => {
     if (af.zeroAt === null || af.readyMs !== null) return;
     const skip = actions.querySelector('.arena-spectate-skip');
@@ -283,7 +296,7 @@ const PAGE_TOOLS = `(() => {
     if (settledEntry || !result.hidden) af.readyMs = af.sinceZero();
   };
   af.markZero = () => { af.zeroAt = performance.now(); af.zeroPaused = af.pausedTotal; af.readyMs = null; if (af.watch) af.watch.start(); markReady(); };
-  // 表へ戻る紋・見ずに先へ進む紋を押した時も 0（押した瞬間・画面の処理より先に）。
+  // 表へ戻るアイコン・見ずに先へ進むアイコンを押した時も 0（押した瞬間・画面の処理より先に）。
   document.addEventListener('click', (event) => {
     const skip = event.target.closest?.('.arena-spectate-skip');
     if (skip) { af.pressedSkip = skip; af.markZero(); }
@@ -621,7 +634,7 @@ async function enterSpectate(ctx, shots = []) {
   return { clickAt, record };
 }
 
-// バディーの次の組の見返し: 金の輪の目を押し、（start なら三手目で撮って）スキップで終わりまで送り、（end なら撮って）表へ戻る紋を押す。
+// バディーの次の組の見返し: 金の輪の目を押し、（start なら三手目で撮って）スキップで終わりまで送り、（end なら撮って）表へ戻るアイコンを押す。
 // 見返しでバディーが自陣の側（左の列・左の駒）に立ち、駒が金の輪（an-entity--self）であることを確かめる。
 async function watchBuddy(ctx, { round, buddyName, entering = null, start = null, end = null, back = [] }) {
   const { page } = ctx;
@@ -657,7 +670,7 @@ async function watchBuddy(ctx, { round, buddyName, entering = null, start = null
   if (end) { await sleep(600); await page.moveAway(); await shoot(ctx, end.file, end.note, { info: endInfo, ending }); }
   if (back.length) await page.js(`window.__af.arm(${offsetsOf(back)})`);
   const backAt = Date.now();
-  await page.click("document.querySelector('#arena-match-back')", '表へ戻る紋');
+  await page.click("document.querySelector('#arena-match-back')", '表へ戻るアイコン');
   await shootFrozen(ctx, back);
   await page.waitFor(NEXT_READY, 'the next entry or the result stage', 15000);
   const record = { round, replay_turns: endInfo, ms_eye_to_board: boardAt - clickAt, ms_back_to_ready: Math.round(await page.js('window.__af.readyMs')), ms_round_wall: Date.now() - clickAt };
@@ -668,7 +681,7 @@ async function watchBuddy(ctx, { round, buddyName, entering = null, start = null
 async function pressSkip(ctx, shots = []) {
   const { page } = ctx;
   if (shots.length) await page.js(`window.__af.arm(${offsetsOf(shots)})`);
-  await page.click("document.querySelector('#arena-bracket-actions .arena-spectate-skip')", '見ずに先へ進む紋');
+  await page.click("document.querySelector('#arena-bracket-actions .arena-spectate-skip')", '見ずに先へ進むアイコン');
   await shootFrozen(ctx, shots);
   await page.waitFor(NEXT_READY, 'the next entry or the result stage', 15000);
   const record = { ms_skip_to_ready: Math.round(await page.js('window.__af.readyMs')) };
@@ -695,25 +708,25 @@ const ENTRANCE_SHOTS = [
   { offset: 700, file: 'entrance-0700', note: '同・0.7 秒（バディーの組の節にだけ目が出て、金の輪で開き始める）' }
 ];
 const REVEAL_SHOTS = [
-  { offset: 150, file: 'reveal-r1-0150', note: '一回戦の見返しの終わりで表へ戻る紋を押した・0.15 秒（盤が薄れる途中）' },
+  { offset: 150, file: 'reveal-r1-0150', note: '一回戦の見返しの終わりで表へ戻るアイコンを押した・0.15 秒（盤が薄れる途中）' },
   { offset: 400, file: 'reveal-r1-0400', note: '同・0.4 秒（表が出て、金の輪が退いて明かした組の目になり、バディーの金の線が準々決勝の節へ伸び始める）' },
   { offset: 700, file: 'reveal-r1-0700', note: '同・0.7 秒（バディーの線が準々決勝の節へ近づく・名の後ろの板が灯る）' },
   { offset: 1100, file: 'reveal-r1-1100', note: '同・1.1 秒（次の相手を決める隣の組の勝者の線が白く伸びる）' },
   { offset: 1500, file: 'reveal-r1-1500', note: '同・1.5 秒（ほかの組が上から順に明らかになる途中）' }
 ];
 const SKIP_SHOTS = [
-  { offset: 200, file: 'skip-r2-0200', note: '準々決勝の前で見ずに先へ進む紋を押した・0.2 秒（盤を開かずに明かし、相手の線が準決勝の節へ伸び、バディーの名が沈み、バディーの道が半分の濃さの金になる）' },
+  { offset: 200, file: 'skip-r2-0200', note: '準々決勝の前で見ずに先へ進むアイコンを押した・0.2 秒（盤を開かずに明かし、相手の線が準決勝の節へ伸び、バディーの名が沈み、バディーの道が半分の濃さの金になる）' },
   { offset: 500, file: 'skip-r2-0500', note: '同・0.5 秒（準々決勝の残りが見届けの速さで）' },
   { offset: 1200, file: 'skip-r2-1200', note: '同・1.2 秒（短い間を置いて準決勝）' },
   { offset: 1900, file: 'skip-r2-1900', note: '同・1.9 秒（決勝が明らかになり、頂の星が灯って優勝者の道が金で通る）' },
   { offset: 2300, file: 'skip-r2-2300', note: '同・2.3 秒（表が沈み、結果の段が立つ途中）' }
 ];
 const CHAMPION_SHOTS = [
-  { offset: 500, file: 'champion-0500', note: '決勝の見返しを終えて表へ戻る紋を押した・0.5 秒（盤が薄れた後、頂の星が灯り、バディーの道が強い金になり、名の後ろの板が灯る）' },
+  { offset: 500, file: 'champion-0500', note: '決勝の見返しを終えて表へ戻るアイコンを押した・0.5 秒（盤が薄れた後、頂の星が灯り、バディーの道が強い金になり、名の後ろの板が灯る）' },
   { offset: 850, file: 'champion-0850', note: '同・0.85 秒（表が沈み、結果の段が立つ途中）' }
 ];
 const ELIMINATED_SHOTS = [
-  { offset: 150, file: 'eliminated-0150', note: '一回戦の見返し（バディーの負け）の終わりで表へ戻る紋を押した・0.15 秒（盤が薄れる途中）' },
+  { offset: 150, file: 'eliminated-0150', note: '一回戦の見返し（バディーの負け）の終わりで表へ戻るアイコンを押した・0.15 秒（盤が薄れる途中）' },
   { offset: 550, file: 'eliminated-0550', note: '同・0.55 秒（相手の線が準々決勝の節へ伸び、バディーの名が沈み、バディーの道が半分の濃さの金になる）' },
   { offset: 1300, file: 'watch-1300', note: '見届け・1.3 秒（一回戦の残りが上から速く）' },
   { offset: 2300, file: 'watch-2300', note: '見届け・2.3 秒（短い間を置いて準々決勝）' },
@@ -787,13 +800,13 @@ async function watchEnd(ctx, match, expected, way, file, note) {
   if (!ending.wide.length || ending.wide.some((w) => w.side !== expected.side)) problems.push(`wide rings ${JSON.stringify(ending.wide)}`);
   if (problems.length) throw new Error(`${match.match_id} ${way} ending is not read from the expected side: ${problems.join('; ')}`);
   await shoot(ctx, file, note, { ending: line });
-  await page.click("document.querySelector('#arena-match-back')", '表へ戻る紋');
+  await page.click("document.querySelector('#arena-match-back')", '表へ戻るアイコン');
   await page.waitFor(`(${ARENA_STAGE('bracket')} || ${RESULT_UP}) && ${settled(ARENA)}`, 'the bracket after the replay', 15000);
   return line;
 }
 
 // バディーの出ない試合から kind に合う一つ（回戦の早い順）を選ぶ。一回戦なら、一回戦のバディーの試合を見返して戻って一回戦を明かし、
-// その先の回戦なら、見ずに先へ進む紋で結果の段まで送って表を全部明かしてから、その試合の二つの送り方の終わりを撮る。
+// その先の回戦なら、見ずに先へ進むアイコンで結果の段まで送って表を全部明かしてから、その試合の二つの送り方の終わりを撮る。
 async function nonBuddyEndings(ctx, kind) {
   const { page } = ctx;
   const buddyName = await arenaReady(ctx);
@@ -853,7 +866,7 @@ const SCENES = {
     await sleep(SETTLE_MS);
     await shoot(ctx, 'selection', '選ぶ段（バディーの居る保存・観戦の立ち位置が押せる）');
     await enterSpectate(ctx, ENTRANCE_SHOTS);
-    await shootSettled(ctx, 'entrance-settled', '観戦の入り・落ち着いた姿（バディーの組の目が金の輪で灯り、下に見ずに先へ進む紋・構成案の spectate-1-entrance と同じ瞬間）', ENTRY_READY, 0);
+    await shootSettled(ctx, 'entrance-settled', '観戦の入り・落ち着いた姿（バディーの組の目が金の輪で灯り、下に見ずに先へ進むアイコン・構成案の spectate-1-entrance と同じ瞬間）', ENTRY_READY, 0);
     let server = await ctx.page.js(SERVER_BRACKET);
     await watchBuddy(ctx, {
       round: 1, buddyName,
@@ -863,7 +876,7 @@ const SCENES = {
       back: REVEAL_SHOTS
     });
     let revealed = nextRevealed(server, 0);
-    await shootSettled(ctx, 'reveal-r1-end', '一回戦の明かし終わり（バディーの次の組の目だけが金の輪で灯り、下に見ずに先へ進む紋）', NEXT_READY, revealed);
+    await shootSettled(ctx, 'reveal-r1-end', '一回戦の明かし終わり（バディーの次の組の目だけが金の輪で灯り、下に見ずに先へ進むアイコン）', NEXT_READY, revealed);
     server = await ctx.page.js(SERVER_BRACKET);
     await pressSkip(ctx, SKIP_SHOTS);
     revealed = nextRevealed(server, revealed);
@@ -917,7 +930,7 @@ const SCENES = {
     await enterSpectate(ctx);
     const entered = await page.js(SERVER_BRACKET);
     console.log(`RELOAD_ENTERED ${JSON.stringify({ week: entered.week, terminal: entered.terminal, outcome: entered.outcome })}`);
-    await watchBuddy(ctx, { round: 1, buddyName, back: [{ offset: 600, file: 'reload-before', note: '一回戦の見返しの終わりで表へ戻る紋を押した 0.6 秒（表の明かしの途中）・この後に読み直す' }] });
+    await watchBuddy(ctx, { round: 1, buddyName, back: [{ offset: 600, file: 'reload-before', note: '一回戦の見返しの終わりで表へ戻るアイコンを押した 0.6 秒（表の明かしの途中）・この後に読み直す' }] });
     // shootFrozen は撮った後に動かし直す。明かしが終わる前（表が出て約 0.3 秒＋撮影の間）に読み直す。
     await page.load(`${ctx.product.base}/`);
     await page.waitFor("document.querySelector('#journey')?.dataset.journeyReady === 'true' && document.querySelector('#journey').dataset.scene === 'gate'", 'title gate');
@@ -943,7 +956,7 @@ const SCENES = {
 };
 
 // 壁時計: 観戦の立ち位置を押してから結果の段が立つまで。凍らせない。watch はバディーの試合をどれも見返し（スキップで送って）から戻り、
-// skip は見ずに先へ進む紋だけで進む。
+// skip は見ずに先へ進むアイコンだけで進む。
 async function timingRun(ctx, way) {
   const { page } = ctx;
   const buddyName = await arenaReady(ctx);

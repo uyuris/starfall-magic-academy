@@ -1400,8 +1400,6 @@ export function createLibraryScreen(deps) {
     let frame = 0;
     let handle = null;
     let last = 0;
-    let fade = 1;
-    let fadeTarget = 1;
 
     function spawn(forceInBeam) {
       const art = els.art.getBoundingClientRect();
@@ -1434,7 +1432,7 @@ export function createLibraryScreen(deps) {
       context.clearRect(0, 0, window.innerWidth, window.innerHeight);
       for (const p of particles) {
         const twinkle = 0.55 + 0.45 * Math.sin(time / 1000 * (0.6 + p.z) + p.phase);
-        const alpha = (p.beam ? 0.5 : 0.22) * (0.35 + p.z * 0.65) * twinkle * fade;
+        const alpha = (p.beam ? 0.5 : 0.22) * (0.35 + p.z * 0.65) * twinkle;
         const radius = 0.5 + p.z * 1.9;
         context.beginPath();
         context.fillStyle = `rgba(255, 226, 170, ${alpha.toFixed(3)})`;
@@ -1446,7 +1444,6 @@ export function createLibraryScreen(deps) {
     function step(time) {
       const dt = last ? Math.min(0.05, (time - last) / 1000) : 0;
       last = time;
-      fade += (fadeTarget - fade) * Math.min(1, dt * 3);
       for (const [index, p] of particles.entries()) {
         p.x += p.vx * dt;
         p.y += p.vy * dt + Math.sin(time / 1700 + p.phase) * 0.06;
@@ -1478,11 +1475,10 @@ export function createLibraryScreen(deps) {
     }
 
     return {
-      start() { fade = 1; fadeTarget = 1; resize(); restart(); },
+      start() { resize(); restart(); },
       resize() { resize(); if (reduced()) draw(0); },
       restart,
-      stop,
-      fadeOut() { fadeTarget = 0; if (reduced()) { fade = 0; draw(0); } }
+      stop
     };
   })();
 
@@ -3086,7 +3082,7 @@ export function createLibraryScreen(deps) {
     return item;
   }
 
-  // 待つ間は画面の中の待ちの印（右下で待ちの紋が回る）、確定は見出しと題の並び、失敗は見出しと一文と「再試行」。0 件は脚注を書かない。
+  // 待つ間は画面の中の待ちの印（右下で待ちのアイコンが回る）、確定は見出しと題の並び、失敗は見出しと一文と「再試行」。0 件は脚注を書かない。
   function buildFootnotes() {
     const { state, references } = reading.footnotes;
     if (state === 'idle' || (state === 'ready' && references.length === 0)) return null;
@@ -3510,36 +3506,10 @@ export function createLibraryScreen(deps) {
     }
   }
 
-  // ── 退出: 灯りが手前から奥へ順に落ち（約 1.2 秒）、ロードの被覆を経てハブへ戻る ─────────────────────
+  // ── 退出: 書庫の画面のまま、帰り道の待ち（app.js の帰りの入り口）がこの画面の上で浮かび、ハブへ戻る。書庫は自前の暗転を持たない。
   async function leaveLibrary() {
     if (!['arrival', 'shelf'].includes(root.dataset.scene)) return;
-    const v = visit;
-    const keep = stay(v);
-    const previousScene = root.dataset.scene;
-    root.dataset.scene = 'exiting';
-    dust.fadeOut();
-    const lamps = [...els.lamps.children];
-    const step = reduced() ? 0 : 1200 / (LAMP_DEPTHS + 1);
-    for (let depth = 0; depth <= LAMP_DEPTHS; depth += 1) {
-      for (const lamp of lamps) {
-        const lampDepth = lamp.dataset.depth === undefined ? LAMP_DEPTHS : Number(lamp.dataset.depth);
-        if (lampDepth === depth) lamp.dataset.out = 'true';
-      }
-      if (step) await keep(sleep(step));
-    }
-    await run(els.deskLight, [{ opacity: getComputedStyle(els.deskLight).opacity }, { opacity: '0' }], { duration: reduced() ? REDUCED_FADE_MS : 500 });
-    root.dataset.scene = 'exited';
-    try {
-      await deps.leave();
-    } catch (error) {
-      // 出られなかったときは灯りを戻して、元の場面に留まる。
-      if (v !== visit) throw error;
-      for (const lamp of lamps) delete lamp.dataset.out;
-      els.deskLight.style.opacity = '';
-      dust.start();
-      root.dataset.scene = previousScene;
-      throw error;
-    }
+    await deps.leave();
   }
 
   // ── 配線 ─────────────────────────────────────────────────────────────────────────────────────

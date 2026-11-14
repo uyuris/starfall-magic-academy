@@ -1,13 +1,13 @@
 // 学院マップの見せ方の層。見せ方だけを持ち、仕組みは製品のものを押して通す:
 // - 舞台・そこにいる人・ピンの座標・舞台の様子の一文は、app.js が startAcademyMapLayer に渡す読み口から読む。
-// - ピンの並びは製品の #academy-map-stage-layer の釦の並びと1対1（読み口の nodes() と同じ順）。数が合わなければ落ちる。
+// - ピンの並びは製品の #academy-map-stage-layer のボタンの並びと1対1（読み口の nodes() と同じ順）。数が合わなければ落ちる。
 // - 舞台を覗くときは製品のピンを押して選ばれた舞台を製品に持たせ（製品の舞台の窓はこの層の CSS で見えない）、窓はすぐ閉じる。
 //   「ここに行く」は製品の #academy-map-go-button を、閉じるは製品の #academy-map-close-button を押す。
 // - 着いた後の相手選びは、製品が開く #academy-map-companion-popup（この層の CSS で見えない）の候補のカードを読み、押すと製品の
 //   カードを押す。閉じると製品の閉じるを押して、地図に留まる。
 // - 左の印・学院と山林の札・週・印から開く画面は製品の要素そのもので、この層は CSS で置き場と見た目だけを変える。
 // - 舞台の覗きと相手選びは、舞台の絵を画面そのものにして、顔と字をその上の夜に直に置く。覗きの「ここに行く」は字を出さない印
-//   （露台の送る釦の紋の写し）で、名は製品の釦の字を aria-label に持たせる。
+//   （露台の送るボタンのアイコンの写し）で、名は製品のボタンの字を aria-label に持たせる。
 // - 顔の下の名は「・」の所でだけ折れる（「・」で切った語ごとに折れない一続きにする）。
 // - 右の顔の列は、学院では名の頭の音の行（ア〜ワ）で絞れる。地図の絵はピンが印の列と顔の列の間に収まるいちばん大きい大きさに
 //   し、絵の外は同じ絵をぼかした地で埋める。
@@ -119,7 +119,7 @@ function personButton(person, node, index, indexed) {
   return button;
 }
 
-// 頭の音の行の印: 字だけの釦を縦に並べ、いま居る人のいない行は押せない。選んでいる行をもう一度押すと全員の列に戻る。
+// 頭の音の行の印: 字だけのボタンを縦に並べ、いま居る人のいない行は押せない。選んでいる行をもう一度押すと全員の列に戻る。
 function renderIndex(indexed, rowCounts) {
   peopleIndex.hidden = !indexed;
   peopleIndex.replaceChildren(...(indexed ? KANA_ROWS : []).map(([row]) => {
@@ -270,7 +270,7 @@ function openPeek(index, characterId) {
   if (!node) throw new Error(`academy map layer: no map node at index ${index}`);
   const pin = productPins()[index];
   // 製品のピンを押して、選ばれた舞台を製品に持たせる。製品の舞台の窓はこの層では見えないので、開いたらすぐ閉じる
-  // （閉じるの釦は押さない — 製品の閉じるの釦は選ばれた舞台を手放す）。
+  // （閉じるのボタンは押さない — 製品の閉じるのボタンは選ばれた舞台を手放す）。
   pressingProductPin = true;
   try {
     pin.click();
@@ -440,7 +440,7 @@ function bindCompanionPopup() {
   }).observe(popup, { attributes: true, attributeFilter: ['hidden'] });
 }
 
-// ── 覗きの「ここに行く」の印: 露台の送る釦の紋を写し、名は製品の「ここに行く」の字を読み上げの名に持たせる ──────────
+// ── 覗きの「ここに行く」の印: 露台の送るボタンのアイコンを写し、名は製品の「ここに行く」の字を読み上げの名に持たせる ──────────
 function dressGoWay() {
   const way = peek.querySelector('[data-ap-action="go"]');
   const label = requireNode('#academy-map-go-button').textContent.trim();
@@ -451,7 +451,7 @@ function dressGoWay() {
   way.replaceChildren(mark);
 }
 
-// ── 左の印の名（製品の札の字は CSS で消すので、読み上げの名を釦に持たせる） ─────────────────────────────────
+// ── 左の印の名（製品の札の字は CSS で消すので、読み上げの名をボタンに持たせる） ─────────────────────────────────
 function nameRailButtons() {
   for (const button of document.querySelectorAll('.academy-map-category-button')) {
     const label = button.querySelector('.academy-map-category-label');

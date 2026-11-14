@@ -10,9 +10,9 @@
 // どれにも当たらない字（使い方を説明する文など）が一つでもあれば、その場面は失敗する。
 //
 // 場面（scene）:
-//   map      露台で「学院マップ」へ → 山林 → 採取のピン → ここに行く → gathering-arrival → 採取の籠の紋を在庫のある二か所で押す
+//   map      露台で「学院マップ」へ → 山林 → 採取のピン → ここに行く → gathering-arrival → 採取の籠のアイコンを在庫のある二か所で押す
 //            → 山林マップに戻る → 学院 → 購買のピン → ここに行く（深夜へ沈む途中を shop-sinking）→ shop-arrival → 手もとの一つ目を
-//            押して使う・売るの紋を開く → shop-open。
+//            押して使う・売るのアイコンを開く → shop-open。
 //   training 露台で「鍛錬」へ → training-arrival（光曜の板が灯る・残り 6）→ 一つ目の板を押す → 結果と日の移りが済む →
 //            training-after-action（闇曜の板が灯る・残り 5）。
 import { app, BrowserWindow } from 'electron';
@@ -424,7 +424,7 @@ async function compose(options, screen, builtName) {
     const right = path.join(options.out, `${builtName}.png`);
     await fs.access(left);
     const html = `<!doctype html><meta charset="utf-8"><style>html,body{margin:0;background:#000}body{display:flex;width:${VIEWPORT.width * 2}px;height:${VIEWPORT.height}px}img{width:${VIEWPORT.width}px;height:${VIEWPORT.height}px;display:block}</style><img src="file://${left}"><img src="file://${right}">`;
-    const page = path.join(dir, 'compare.html');
+    const page = path.join(dir, 'pair-capture.html');
     await fs.writeFile(page, html, 'utf8');
     await win.loadURL('about:blank');
     const cdp = win.webContents.debugger;
@@ -510,7 +510,7 @@ const SCENES = {
     await sleep(SETTLE_MS);
     await shoot('gathering-arrival');
     await compose(options, 'gathering', 'gathering-arrival');
-    // 手もとを積む: 在庫のある所の籠の紋を、前から二か所押す（押すたびに所は描き直される）。
+    // 手もとを積む: 在庫のある所の籠のアイコンを、前から二か所押す（押すたびに所は描き直される）。
     for (let i = 0; i < 2; i += 1) {
       const name = await page.js(`[...document.querySelectorAll('#gathering-points .gathering-harvest')][${i}]?.getAttribute('aria-label') ?? null`);
       if (!name) throw new Error(`no harvest sigil #${i + 1}`);

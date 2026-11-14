@@ -1,4 +1,4 @@
-// 閉じるの紋を星の揺り籠の閉じると揃えた窓を、製品の通常の道で開いて 1440x900 に撮り、閉じる釦を実ポインタで押して確かめる
+// 閉じるのアイコンを星の揺り籠の閉じると揃えた窓を、製品の通常の道で開いて 1440x900 に撮り、閉じるボタンを実ポインタで押して確かめる
 // 手回しの道具（*.test.mjs ではないので npm test は拾わない）:
 //
 //   env -u TEAM_ROOT -u TEAM_QUEUE_DIR -u TEAM_STATE_DIR -u TEAM_CONFIG_FILE ... \
@@ -12,14 +12,14 @@
 // --out の中の既存の file は上書きしない。撮った png は <out>/<label>-<窓>.png、窓ごとの行は <out>/<label>-rows.json。
 // --label after の run で <out>/before-<窓>.png があれば、左に前・右に後を半分の大きさで並べた <out>/compare-<窓>.png も書く。
 //
-// 窓ごとの行: 閉じる釦の紋が揺り籠の閉じるの紋と同じ SVG か（outerHTML の一致）・窓の右上の角から釦の箱と紋の箱までの px・釦と紋の
-// 計算済みの値（余白・紋の大きさ・不透明度・filter）と、実ポインタを乗せて 1 秒後の紋の不透明度・filter・窓の中の字と絵のうち閉じる
-// 釦の箱に重なるもの・実ポインタで紋の中心を押して窓が閉じたか。見出しに印の紋を持つ帯では、釦の中心と印の紋の中心の縦の差と、
-// 右上の角の置き場（見えている端から top 16px / right 22px）から釦が下へ動いた量と左へ動いた量も書く。揺り籠の行（窓は画面いっぱいの
+// 窓ごとの行: 閉じるボタンのアイコンが揺り籠の閉じるのアイコンと同じ SVG か（outerHTML の一致）・窓の右上の角からボタンの箱とアイコンの箱までの px・ボタンとアイコンの
+// 計算済みの値（余白・アイコンの大きさ・不透明度・filter）と、実ポインタを乗せて 1 秒後のアイコンの不透明度・filter・窓の中の字と絵のうち閉じる
+// ボタンの箱に重なるもの・実ポインタでアイコンの中心を押して窓が閉じたか。見出しに印のアイコンを持つ帯では、ボタンの中心と印のアイコンの中心の縦の差と、
+// 右上の角の置き場（見えている端から top 16px / right 22px）からボタンが下へ動いた量と左へ動いた量も書く。揺り籠の行（窓は画面いっぱいの
 // 揺り籠そのもの）を先頭に置く。
 //
 // 場面（scene）:
-//   hub              露台（案内人 fallen_star）: 揺り籠・情報の帯 7・装備の小窓・案内人の窓。after では紋の並べた絵 icon-lineup.png も書く。
+//   hub              露台（案内人 fallen_star）: 揺り籠・情報の帯 7・装備の小窓・案内人の窓。after ではアイコンの並べた絵 icon-lineup.png も書く。
 //   guide-<variant>  露台（案内人 <variant>）: 案内人の窓だけ（fallen_star 以外の 9 通り）。
 //   academy-map      露台 → 学院マップ: 情報の帯・舞台の覗き・相手選び。相手を選んで入った会話の舞台の詳細（昼の会話の層の形）。
 //   day              露台 → 依頼 → 依頼の会話: 情報の帯・舞台の詳細・会話の相手の窓。
@@ -357,7 +357,7 @@ async function shoot(ctx, name) {
   console.log(`shot ${path.basename(target)}`);
 }
 
-// 開いている窓の閉じる釦（読み上げの名「閉じる」で見えている一つ）と、窓の箱の右上の角からの間合い・紋・計算済みの値・中身との重なり。
+// 開いている窓の閉じるボタン（読み上げの名「閉じる」で見えている一つ）と、窓の箱の右上の角からの間合い・アイコン・計算済みの値・中身との重なり。
 const MEASURE = (rootSelector, windowSelector) => `(() => {
   const root = document.querySelector(${JSON.stringify(rootSelector)});
   const win = document.querySelector(${JSON.stringify(windowSelector)});
@@ -391,7 +391,7 @@ const MEASURE = (rootSelector, windowSelector) => `(() => {
     const rect = el.getBoundingClientRect();
     if (media && rect.width * rect.height < windowArea / 2 && hits(rect)) overlaps.push(describe(el) + ' (picture)');
   }
-  // 夜の帯: 見えている端（溶ける幅の真ん中）からの間合いと、姿の絵（四辺を夜へ溶かす丸い mask）の、釦の箱の中での mask の最大の濃さ。
+  // 夜の帯: 見えている端（溶ける幅の真ん中）からの間合いと、姿の絵（四辺を夜へ溶かす丸い mask）の、ボタンの箱の中での mask の最大の濃さ。
   const fade = win.classList.contains('night-band-card') ? parseFloat(getComputedStyle(win).getPropertyValue('--terrace-band-fade')) : null;
   const figure = win.querySelector('.night-band-figure-art');
   let figureMaskMax = null;
@@ -409,7 +409,7 @@ const MEASURE = (rootSelector, windowSelector) => `(() => {
     }
     figureMaskMax = round(figureMaskMax * 100) / 100;
   }
-  // 見出しの印の紋: 釦の中心との縦の差と、右上の角の置き場からの下・左への動き。
+  // 見出しの印のアイコン: ボタンの中心との縦の差と、右上の角の置き場からの下・左への動き。
   const icon = win.querySelector(':scope > .night-band-header .night-band-icon');
   let iconAlign = null;
   if (icon && shown(icon)) {
@@ -437,7 +437,7 @@ const MEASURE = (rootSelector, windowSelector) => `(() => {
   };
 })()`;
 
-// 窓を測り、撮り、実ポインタを紋に乗せて 1 秒後の灯りを読み、紋の中心を押して閉じたことを確かめる。
+// 窓を測り、撮り、実ポインタをアイコンに乗せて 1 秒後の灯りを読み、アイコンの中心を押して閉じたことを確かめる。
 async function closeRow(ctx, name, { root, window: windowSelector, closed = `document.querySelector(${JSON.stringify(root)}).hidden === true`, shot = true }) {
   const { page } = ctx;
   if (shot) await shoot(ctx, name);
@@ -510,7 +510,7 @@ const SCENES = {
     await page.click("document.querySelector('.academy-map-category-button[data-am-category=\"self\"]')", '学院マップの自分の印');
     await waitShown(ctx, '#academy-map-info-popup .night-band-card', 'academy map band');
     await closeRow(ctx, 'academy-map-band', { root: '#academy-map-info-popup', window: '#academy-map-info-popup .night-band-card' });
-    // 舞台の覗き（最初のピン）を閉じる紋で閉じ、相手選びは人のいる舞台のピン → ここに行く で開く。
+    // 舞台の覗き（最初のピン）を閉じるアイコンで閉じ、相手選びは人のいる舞台のピン → ここに行く で開く。
     const PEEK_OPEN = "!document.querySelector('#ap-peek').hidden && document.querySelector('#ap-peek').classList.contains('is-open')";
     const PICK_OPEN = "!document.querySelector('#ap-pick').hidden && document.querySelector('#ap-pick').classList.contains('is-open') && document.querySelectorAll('#ap-pick .ap-pick-face').length > 0";
     await page.waitFor("document.querySelectorAll('.academy-map-node').length > 0", 'map pins');
@@ -669,12 +669,12 @@ async function compose(file, size, items, background = 'rgb(5 6 15)') {
   }
 }
 
-// パネルの見出しの紋・左のドロワーの印・揺り籠の閉じる・新しい閉じるを、それぞれの箱の周り 12px ごと等倍で切り出して並べる。
+// パネルの見出しのアイコン・左のドロワーの印・揺り籠の閉じる・新しい閉じるを、それぞれの箱の周り 12px ごと等倍で切り出して並べる。
 async function iconLineup(ctx) {
   const { page } = ctx;
   const boxOf = (expr) => page.js(`(() => { const r = (${expr}).getBoundingClientRect(); return { x: Math.round(r.left) - 12, y: Math.round(r.top) - 12, width: Math.round(r.width) + 24, height: Math.round(r.height) + 24 }; })()`);
   const parts = [
-    ['パネルの見出しの紋', "document.querySelector('#routing-hub-info-popup-icon')"],
+    ['パネルの見出しのアイコン', "document.querySelector('#routing-hub-info-popup-icon')"],
     ['左のドロワーの印', "document.querySelector('.routing-hub-category-button[data-routing-category=\"buddy\"]')"],
     ['新しい閉じる（帯）', "[...document.querySelectorAll('#routing-hub-info-popup button[aria-label=\"閉じる\"]')].find((b) => b.getBoundingClientRect().width > 0)"]
   ];

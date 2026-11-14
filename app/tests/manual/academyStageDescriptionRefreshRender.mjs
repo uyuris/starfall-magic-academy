@@ -52,6 +52,7 @@ import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { fixtureRoot, baselineRuntimeState } from '../helpers.mjs';
 import { createServer } from '../../src/server.mjs';
+import { serverFetch } from '../serverRequest.mjs';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const WIN_W = Number(process.env.STAGE_WIN_W ?? 1200);
@@ -67,7 +68,7 @@ let server;
 let exitCode = 0;
 
 async function setServerTruth(base, situation) {
-  const resp = await fetch(`${base}/api/field/move`, {
+  const resp = await serverFetch(`${base}/api/field/move`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ location_id: LOCATION_ID, selected_visible_situation: situation })
   });
@@ -220,7 +221,7 @@ async function main() {
   // 3c) WEEK PROGRESSION KEEPS TRUTH: a new week (POST /api/academy/week/start, no LM) does not touch the
   // academy stage situation, so after a client refresh (reload) the map still shows the state-driven V1 —
   // not frozen at a stale client random and not re-randomized on the week boundary.
-  const week = await (await fetch(`${base}/api/academy/week/start`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).json();
+  const week = await (await serverFetch(`${base}/api/academy/week/start`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).json();
   log('week_started', { elapsed_weeks: week?.state?.elapsed_weeks ?? null, situation_after_week: week?.state?.current_location_visible_situation ?? null });
   await win.loadURL(`${base}/`);
   await new Promise((r) => setTimeout(r, 1500)); // fresh boot -> refresh() re-reads state after the week

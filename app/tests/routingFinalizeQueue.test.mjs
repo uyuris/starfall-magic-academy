@@ -16,6 +16,7 @@ import {
   selectNextPendingFinalizationForDrain
 } from '../src/routingFinalizeQueue.mjs';
 import { fixtureRoot, readJson } from './helpers.mjs';
+import { serverFetch } from './serverRequest.mjs';
 
 function runConversationTurn(args) {
   return runConversationTurnCore({ postTurnStatePolicy: academyPostTurnStatePolicy, ...args });
@@ -39,7 +40,7 @@ async function exists(targetPath) {
 }
 
 async function postJson(base, pathname, body) {
-  const response = await fetch(`${base}${pathname}`, {
+  const response = await serverFetch(`${base}${pathname}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body)

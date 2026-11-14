@@ -1112,68 +1112,82 @@ body:has(#gathering-screen.active) .layout {
 
 /* ── スロット削除確認ダイアログ（#slot-load-delete-confirm-dialog）＝ slot-load と同じ形而上の月夜 ──────────
    セーブ削除の確認は slot-load 画面の子（DOM 上 #slot-load-screen 配下）なので、showModal() の top-layer でも
-   --meta-* トークンを継承する。共有ダイアログ chrome（.interaction-detail-dialog の金枠＋クリーム地／共有ボタン
-   base の金・クリーム系）は #slot-load-delete-confirm-dialog スコープでのみ深夜の銀パネル＋星明かり枠へ差し替え、
-   他画面の同ダイアログ／同ボタンは一切変えない。全サーフェス・全ボタン状態は var(--meta-*) のみ消費（literal
-   色 pin・fallback なし・test-by-token）。主従は primary の星明かり枠＋明色 fill＋月白文字で保ち、secondary は
-   控えめな線＋銀で従に落とす。 */
+   --meta-* トークンを継承する。姿は、同じ月夜の層で作り直された確認（露台の収蔵庫の本を処分する確認）を借りる:
+   枠も地も光る丸いボタンも持たず、広間を暗がりに沈め、その上に銀の字で見出しと問いを置き、「削除する」「削除しない」は
+   字だけのボタンにする。共有の .interaction-detail-dialog／.academy-map-action-button の配置のクラスは保ち、
+   #slot-load-delete-confirm-dialog スコープだけで塗り替える（他画面の同ダイアログ／同ボタンは変えない）。色は var(--meta-*) のみ。
+   主従は字の明るさで保つ: 「削除する」は月白、「削除しない」は控えめな銀。 */
 #slot-load-delete-confirm-dialog {
-  border: 1px solid var(--meta-line-strong);
-  background: var(--meta-panel-strong);
+  border: none;
+  background: transparent;
   color: var(--meta-silver);
-  box-shadow: 0 24px 60px var(--meta-shadow);
+  box-shadow: none;
 }
 
 #slot-load-delete-confirm-dialog::backdrop {
-  background: var(--meta-shadow);
+  background: radial-gradient(ellipse 46% 40% at 50% 50%, var(--meta-night-0), var(--meta-shadow));
   backdrop-filter: blur(4px);
 }
 
+#slot-load-delete-confirm-dialog .interaction-detail-card {
+  display: grid;
+  gap: 14px;
+  text-shadow: 0 0 2px var(--meta-night-0), 0 0 7px var(--meta-shadow);
+}
+
 #slot-load-delete-confirm-dialog #slot-load-delete-confirm-title {
+  margin: 0;
   color: var(--meta-silver-strong);
-  letter-spacing: 0.06em;
+  font-size: 0.94rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
 }
 
 #slot-load-delete-confirm-dialog .interaction-detail-text {
+  margin: 0;
   color: var(--meta-silver);
+  font-size: 0.84rem;
+  line-height: 1.7;
+}
+
+#slot-load-delete-confirm-dialog .academy-map-dialog-actions {
+  justify-content: flex-start;
+  gap: 28px;
+  margin-top: 0;
 }
 
 #slot-load-delete-confirm-dialog .academy-map-action-button {
-  border: 1px solid var(--meta-line-strong);
-  background: var(--meta-panel);
-  color: var(--meta-silver-strong);
-  box-shadow: 0 0 10px var(--meta-glow);
+  min-width: 0;
+  padding: 4px 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-shadow: inherit;
+  transition: color 150ms ease, text-shadow 150ms ease;
 }
 
 #slot-load-delete-confirm-dialog .academy-map-action-button.primary {
-  border-color: var(--meta-starlight);
-  background: var(--meta-night-2);
   color: var(--meta-silver-strong);
-  box-shadow: 0 0 16px var(--meta-glow);
 }
 
 #slot-load-delete-confirm-dialog .academy-map-action-button.secondary {
-  border-color: var(--meta-line);
-  background: var(--meta-panel);
-  color: var(--meta-silver);
+  color: var(--meta-silver-dim);
 }
 
-#slot-load-delete-confirm-dialog .academy-map-action-button:hover:not(:disabled) {
-  border-color: var(--meta-starlight);
-  background: var(--meta-panel-strong);
-  box-shadow: 0 0 18px var(--meta-glow);
-}
-
+#slot-load-delete-confirm-dialog .academy-map-action-button:hover:not(:disabled),
 #slot-load-delete-confirm-dialog .academy-map-action-button:focus-visible {
   outline: none;
-  border-color: var(--meta-starlight);
-  box-shadow: 0 0 0 2px var(--meta-glow);
+  transform: none;
+  color: var(--meta-silver-strong);
+  text-shadow: 0 0 2px var(--meta-night-0), 0 0 12px var(--meta-glow);
 }
 
 #slot-load-delete-confirm-dialog .academy-map-action-button:active:not(:disabled) {
-  border-color: var(--meta-starlight);
-  background: var(--meta-night-2);
-  box-shadow: 0 0 10px var(--meta-glow);
+  color: var(--meta-starlight);
 }
 
 /* Full-screen-direct meta screen (no shell window): the night ground fills the whole screen and the copy floats
@@ -1242,25 +1256,26 @@ body:has(#gathering-screen.active) .layout {
   visibility: hidden;
 }
 
+/* 読み込みの字は、夜の道行きの星の道（.journey-road-copy）に写る字と同じ姿: 枠も地も持たず、画面の下から 13% の高さの中ほどに、
+   題と一行を中央揃えで夜の上に直に置く。 */
 .academy-loading-copy {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 13%;
   z-index: 1;
-  align-self: end;
-  max-width: 520px;
-  margin: 0 0 clamp(28px, 5vw, 68px) clamp(24px, 5vw, 72px);
-  padding: 22px 26px;
-  border: 1px solid var(--meta-line-strong);
-  border-radius: var(--radius-card);
-  background: var(--meta-panel-strong);
-  box-shadow: 0 0 0 1px var(--meta-line), 0 18px 44px var(--meta-shadow), 0 0 18px var(--meta-glow);
-  backdrop-filter: blur(10px);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 0 24px;
+  text-align: center;
 }
 
-/* Slide-up entrance (unchanged), then once the window lands (after the 720ms
-   entrance) it holds for ~3s and gently fades out so the key visual is no longer
-   obscured. The autohide delay is the entrance duration plus the ~3s hold, so the
-   fade begins ~3s after the window reaches its resting position — not when the
-   loading screen first opens. */
+/* Slide-up entrance, then once the copy lands (after the 720ms entrance) it holds
+   for ~3s and gently fades out so the key visual is no longer obscured. The
+   autohide delay is the entrance duration plus the ~3s hold, so the fade begins
+   ~3s after the copy reaches its resting position — not when the loading screen
+   first opens. */
 #academy-loading-screen.active .academy-loading-copy {
   animation:
     academy-loading-copy-rise 720ms ease both,
@@ -1268,20 +1283,20 @@ body:has(#gathering-screen.active) .layout {
 }
 
 .academy-loading-copy h2 {
-  margin-bottom: 8px;
-  letter-spacing: 0.06em;
-  color: var(--meta-silver-strong);
-  text-shadow: var(--shadow-title-heading);
-}
-
-.academy-loading-copy h2:has(+ p[hidden]) {
-  margin-bottom: 0;
-}
-
-.academy-loading-copy p:last-child {
   margin: 0;
-  line-height: 1.75;
+  color: var(--meta-silver-strong);
+  font-size: clamp(18px, 1.6vw, 24px);
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 14px var(--meta-glow), 0 1px 8px var(--meta-night-0);
+}
+
+.academy-loading-copy p {
+  margin: 0;
   color: var(--meta-silver);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-shadow: 0 1px 8px var(--meta-night-0);
 }
 
 @keyframes academy-loading-copy-rise {
@@ -1316,9 +1331,13 @@ body:has(#gathering-screen.active) .layout {
 /* ── 場所の絵の上の待ち（#place-veil・app.js の raisePlaceVeil）: 読み込みの箱の代わりに、いまの画面の上に全画面で置く層 ──────────
    地は場所の絵（data-veil-ground="art"・画面いっぱいに cover）か、いまの画面そのまま（"screen"）。data-veil-dim="night" のときだけ、
    読み込みの夜の絵と同じ暗がり（--meta-load-scrim）を薄く掛けて星々を瞬かせる（"none" は地のまま）。待つあいだの印は右下の
-   待ちの紋（#wait-sigil）。段は data-veil: waiting（待つ）→ leaving（暗がりを解きながら 1.2s の ease-out で薄れ、下の行き先が現れる）、
-   失敗は stopped（明るみが消え、場所が夜へ沈む・1.2s）。待つあいだは下の画面を押させない。送り出しの幕（#terrace-opened）より
-   上に置き、入り道の待ちは幕と同じ絵を地にする（絵の無い実践の幕は、幕そのものを地 "screen" にする）。 */
+   待ちのアイコン（#wait-sigil）。段は data-veil: waiting（待つ）→ leaving（同じ絵の画面へ着く: 暗がりを解きながら 1.2s の ease-out で
+   薄れ、下の行き先が現れる）か parting（違う絵の画面へ着く: 暗がりを掛けたまま層ごと 1.2s の ease-out で薄れ、場所の絵は明るく
+   ならない）、失敗は stopped（明るみが消え、場所が夜へ沈む・1.2s）。待つあいだは下の画面を押させない。送り出しの幕（#terrace-opened）
+   より上に置く。幕が満ちた夜から入る待ち（data-veil-from="night"）は、暗がりと星々を最初から掛けたまま、地の絵だけが夜から 1.2s で
+   落ち着いた姿へ浮かび上がる（絵の不透明度が 0 から上がるだけで、落ち着いた姿より明るくはならない）。data-veil-rise="held" の
+   あいだは絵を夜に留める。夜の無いところから帰る待ち（data-veil-from="screen"）は、層全体（絵・暗がり・星々）がいまの画面の上で
+   1.2s の ease-out で不透明度 0 から浮かぶ（一コマで跳ばない）。 */
 #place-veil {
   position: fixed;
   inset: 0;
@@ -1356,6 +1375,28 @@ body:has(#gathering-screen.active) .layout {
 
 #place-veil[data-veil-ground="screen"] .place-veil-art { display: none; }
 
+@keyframes place-veil-rise {
+  from { opacity: 0; }
+}
+
+#place-veil[data-veil-from="night"] .place-veil-art {
+  animation: place-veil-rise 1.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes place-veil-rise-over {
+  from { opacity: 0; }
+}
+
+#place-veil[data-veil-from="screen"] {
+  animation: place-veil-rise-over 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 絵を夜に留めた待ち（data-veil-rise="held"・学院マップで出来事を確かめるあいだ）: 暗がりと星々だけで待ち、留めが解けたところで浮かび上がる。 */
+#place-veil[data-veil-from="night"][data-veil-rise="held"] .place-veil-art {
+  animation: none;
+  opacity: 0;
+}
+
 #place-veil .place-veil-scrim {
   background: var(--meta-load-scrim);
   opacity: 0.82;
@@ -1368,9 +1409,20 @@ body:has(#gathering-screen.active) .layout {
   opacity: 0;
 }
 
-#place-veil[data-veil="leaving"] {
+#place-veil:is([data-veil="leaving"], [data-veil="parting"]) {
   opacity: 0;
   transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* いまの画面の上で浮かんだ待ちは、層の不透明度を浮かびのアニメーションが持つので、薄れも同じアニメーションの置き換えで持つ
+   （浮かびが終わる区切りで待ちが晴れると、transition は浮かびのアニメーションに負けて走らず、層が一コマで消える）。 */
+@keyframes place-veil-part {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+#place-veil[data-veil-from="screen"]:is([data-veil="leaving"], [data-veil="parting"]) {
+  animation: place-veil-part 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 #place-veil[data-veil="leaving"] .place-veil-scrim {
@@ -1393,9 +1445,14 @@ body:has(#gathering-screen.active) .layout {
   #place-veil * {
     transition: none !important;
   }
+
+  #place-veil[data-veil-from="night"] .place-veil-art,
+  #place-veil[data-veil-from="screen"] {
+    animation: none;
+  }
 }
 
-/* ── 待ちの紋（#wait-sigil・app.js の syncWaitSigil）: 場所の絵の上の待ちと読み込みの箱が出ているあいだ、右下の隅で同じ速さで
+/* ── 待ちのアイコン（#wait-sigil・app.js の syncWaitSigil）: 場所の絵の上の待ちと読み込みの箱が出ているあいだ、右下の隅で同じ速さで
    回り続ける（tableRoomSigils.svg の table-sigil-wait）。夜の道行きの層と場所の絵の上の待ちより上にあり、押させない。待ちと
    一緒に薄く現れ、待ちが晴れる（data-wait-sigil="leaving"）と層と同じ 1.2s の ease-out で薄れる。動きを減らす設定では回らず、
    明るさがゆっくり揺れる。 */
@@ -1417,13 +1474,13 @@ body:has(#gathering-screen.active) .layout {
 #wait-sigil[hidden] { display: none; }
 
 /* 露台を地に待つ道（会話の無い露台の「もう一度」・卒業の週の「今日はここまで」＝露台の上で上げた、地が画面そのままの待ち）では、
-   右下に露台の釦の列があるので、紋は釦の列の右端にそろえ、列と言葉の欄（下端は窓の 17vh）の間の空へ上げる。 */
+   右下に露台のボタンの列があるので、アイコンはボタンの列の右端にそろえ、列と言葉の欄（下端は窓の 17vh）の間の空へ上げる。 */
 #place-veil[data-veil-ground="screen"][data-veil-over="routing-hub"]:not([hidden]) ~ #wait-sigil {
   right: 3.5vw;
   bottom: calc(4.6vh + 52px);
 }
 
-/* 露台の上の画面の中の待ち（札の読み込み・揺り籠・収蔵庫など）も、紋を釦の列の右端にそろえて列の上の空へ上げる。 */
+/* 露台の上の画面の中の待ち（札の読み込み・揺り籠・収蔵庫など）も、アイコンをボタンの列の右端にそろえて列の上の空へ上げる。 */
 body:has(#routing-hub-screen.active .screen-wait-mark) #wait-sigil {
   right: 3.5vw;
   bottom: calc(4.6vh + 52px);
@@ -1432,7 +1489,7 @@ body:has(#routing-hub-screen.active .screen-wait-mark) #wait-sigil {
 #wait-sigil[data-wait-sigil="leaving"] { opacity: 0; }
 
 /* 画面の中の待ちの印（app.js の screenWaitMark）: 字で待ちを示していた所に置く、大きさの無い印。見えているあいだ右下で
-   待ちの紋が回る。 */
+   待ちのアイコンが回る。 */
 .screen-wait-mark {
   display: inline-block;
   width: 0;
@@ -1469,9 +1526,9 @@ body:has(#routing-hub-screen.active .screen-wait-mark) #wait-sigil {
 
 /* ── 棚の画面（購買・採取・鍛錬） ──────────────────────────────────────────────────────────────────────────
    三つの画面は一つの層の組み方を分け合う: 地（入るときの待ちと同じ絵を画面いっぱいに敷く・src は app.js が一か所から入れる）と
-   画面ごとの沈め（購買は深夜の沈め・採取と鍛錬は上下の縁だけ）、左上の場所の名、右上の値と戻る紋、選ぶもの（円か板＋その下の名と
+   画面ごとの沈め（購買は深夜の沈め・採取と鍛錬は上下の縁だけ）、左上の場所の名、右上の値と戻るアイコン、選ぶもの（円か板＋その下の名と
    値）、菱形の数の印、字の下の夜の楕円（会話の層と同じ値）。色は層ごとのトークン二組（購買の銀・採取と鍛錬の琥珀）で、購買では
-   紋の金の星も銀に替える。 */
+   アイコンの金の星も銀に替える。 */
 :root {
   /* 購買の地の縦位置（学院マップの覗きから購買へ沈むときも、覗きの絵がこの位置へ寄る・academyMapLayer.css）。 */
   --shop-ground-position: 50% 62%;
@@ -1590,7 +1647,7 @@ body:has(#routing-hub-screen.active .screen-wait-mark) #wait-sigil {
   opacity: 0.5;
 }
 
-/* 夜の購買には暖色の灯りを置かない: 写した紋の金の星を銀にする。 */
+/* 夜の購買には暖色の灯りを置かない: 写したアイコンの金の星を銀にする。 */
 .shop-screen svg [fill="#e8c877"] { fill: var(--shelf-star); }
 
 /* 字の下の夜の楕円（会話の層と同じ値） */
@@ -1599,7 +1656,7 @@ body:has(#routing-hub-screen.active .screen-wait-mark) #wait-sigil {
   text-shadow: 0 1px 4px rgb(0 0 0 / 0.85);
 }
 
-/* 左上の場所の名・右上の値と戻る紋 */
+/* 左上の場所の名・右上の値と戻るアイコン */
 .shelf-place {
   position: absolute;
   left: 44px;
@@ -1929,7 +1986,7 @@ body:has(#shop-screen.active) .economy-message-box {
   height: 30px;
 }
 
-/* 在庫の尽きた所は円が灰に沈む（籠の紋は置かれない）。 */
+/* 在庫の尽きた所は円が灰に沈む（籠のアイコンは置かれない）。 */
 .gathering-spot[data-stock="none"] .gathering-vignette-image {
   opacity: 0.5;
   filter: grayscale(1);
@@ -3135,6 +3192,10 @@ body:has(#shop-screen.active) .economy-message-box {
   resize: none;
 }
 
+/* 処理中の知らせ（#conversation-processing-toast・showProcessingToast が visible を足して 1 秒で外す）: 枠も地も持たず、出ている
+   画面の字の系統の字だけを画面の下の中ほどに灯す。既定は露台の銀の字（:root の --terrace-*）で、露台・会話・行き先の夜の画面・
+   メタの画面はこの字になる。琥珀の灯の画面（実践・大書庫・鍛錬）では、その画面の象牙の字に替える（知らせは画面の外の要素なので、
+   画面の scope のトークンは読めず、値をここに置く）。 */
 .processing-toast {
   position: fixed;
   left: 50%;
@@ -3143,13 +3204,23 @@ body:has(#shop-screen.active) .economy-message-box {
   transform: translateX(-50%) translateY(8px);
   opacity: 0;
   pointer-events: none;
-  padding: 10px 16px;
-  border: 1px solid rgba(211, 180, 105, 0.46);
-  border-radius: 999px;
-  background: rgba(13, 19, 31, 0.92);
-  color: #efe6cf;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.34);
+  color: var(--terrace-word);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-shadow: var(--terrace-word-halo);
   transition: opacity 160ms ease, transform 160ms ease;
+}
+
+body:has(#academy-dungeon-screen.active) .processing-toast {
+  color: #f6ecd6;
+}
+
+body:has(#academy-library-screen.active) .processing-toast {
+  color: #f3e8cf;
+}
+
+body:has(#academy-training-screen.active) .processing-toast {
+  color: #fff1cf;
 }
 
 .processing-toast.visible {
@@ -4275,7 +4346,7 @@ pre {
   box-shadow: 0 12px 30px var(--am-night-shadow);
   /* rail はドロワー表示中も使える: info popup の backdrop より前面に重ねて、開いたまま別カテゴリへ直接
      切り替えられる（ハブと同じ操作文法・openAcademyMapInfo は既開でも切替）。閉じ操作（backdrop クリック /
-     閉じるの紋）はドロワー領域側で従来どおり効く。 */
+     閉じるのアイコン）はドロワー領域側で従来どおり効く。 */
   position: relative;
   z-index: 7;
 }
@@ -5695,8 +5766,10 @@ body:has(#academy-conversation-session-screen.active) .layout {
    the ONLY literal colors live in this one block (test-by-token), so the shared --routing-* / --cd-* / --alchemy-* /
    --training-* / 学院 token layers stay byte-equal. A color that the rules need at several alphas is held as its channels
    (`--dungeon-<name>-rgb`) and read as rgb(var(--dungeon-<name>-rgb) / <alpha>). The layout lengths the board computes
-   (--dn-cell / --dn-gap / --dn-cols …) are not colors and live on the nodes that own them. */
-.dungeon-screen {
+   (--dn-cell / --dn-gap / --dn-cols …) are not colors and live on the nodes that own them. The 実践の窓 (.dn-modal) carry
+   the same scope on themselves, so a window of the same 黒と琥珀 form stands on another screen too (錬成室の四つの窓). */
+.dungeon-screen,
+.dn-modal {
   /* 地・字・琥珀 */
   --dungeon-bg-0: #0c0e13;
   --dungeon-ink: #e7dcc4;
@@ -5760,7 +5833,7 @@ body:has(#academy-conversation-session-screen.active) .layout {
   --dungeon-mp-mid: #3f86d6;
   --dungeon-mp-bright: #8fd0ff;
   --dungeon-enemy-ring: #ff7a7a;
-  /* 窓の確かめの釦の字 */
+  /* 窓の確かめのボタンの字 */
   --dungeon-dive-ink: #1a1206;
   /* 拾った物が柱の行に並んだときの一瞬の灯り（JS の animate が読む） */
   --dungeon-carry-pulse: rgb(240 178 74 / 0.28);
@@ -5817,12 +5890,13 @@ body.play-mode:has(#academy-dungeon-screen.active) .layout { height: 100dvh; }
 }
 
 /* The screen's own control reset: the shared button / input chip (reading font, navy fill, 8px radius) does not
-   reach in — every dn-* control draws itself. :where keeps it at element weight so the dn-* classes win. */
-:where(#academy-dungeon-screen) *,
-:where(#academy-dungeon-screen) *::before,
-:where(#academy-dungeon-screen) *::after { box-sizing: border-box; }
-:where(#academy-dungeon-screen) button,
-:where(#academy-dungeon-screen) input { font: inherit; color: inherit; }
+   reach in — every dn-* control draws itself. The 実践の窓 (.dn-modal) carry the same reset wherever they stand.
+   :where keeps it at element weight so the dn-* classes win. */
+:where(#academy-dungeon-screen, .dn-modal) *,
+:where(#academy-dungeon-screen, .dn-modal) *::before,
+:where(#academy-dungeon-screen, .dn-modal) *::after { box-sizing: border-box; }
+:where(#academy-dungeon-screen, .dn-modal) button,
+:where(#academy-dungeon-screen, .dn-modal) input { font: inherit; color: inherit; }
 
 
 .dungeon-screen[data-companion="none"] { --dn-rail-w: 260px; }
@@ -6674,7 +6748,7 @@ body.play-mode:has(#academy-dungeon-screen.active) .layout { height: 100dvh; }
 .dn-carry-count { color: var(--dungeon-ink-dim); font-variant-numeric: tabular-nums; }
 
 /* ── 入る前: 場所の絵（地下へ降りる黒い石のアーチ）を画面いっぱいに敷き、上と下の縁だけを薄く沈める。左上に場所の名、アーチの奥の
-   段の上り口に潜るの紋、段の手前の床に主人公と相棒、足もとに持っていくものの台が並ぶ。紋と一行と台の縦の位置は絵の座標（1586×992 の
+   段の上り口に潜るのアイコン、段の手前の床に主人公と相棒、足もとに持っていくものの台が並ぶ。アイコンと一行と台の縦の位置は絵の座標（1586×992 の
    絵を cover・中央で敷いたときの 1 絵素 = --dn-art-u）で決め、絵の上の同じ場所に載り続ける。一行と台は窓の下の縁より下へ出さない ── */
 .dungeon-screen[data-scene="entry"] .dn-rail { display: none; }
 .dungeon-screen[data-scene="entry"] .dn-stage::after { display: none; }
@@ -6714,7 +6788,7 @@ body.play-mode:has(#academy-dungeon-screen.active) .layout { height: 100dvh; }
   font-weight: 600;
   letter-spacing: 0.24em;
 }
-/* 出る口: 右上の戻るの紋（露台の戻るの紋を黒曜の面・灯りの線・琥珀の星で）。 */
+/* 出る口: 右上の戻るのアイコン（露台の戻るのアイコンを黒曜の面・灯りの線・琥珀の星で）。 */
 .dn-entry-back {
   position: absolute;
   right: 30px;
@@ -6737,7 +6811,7 @@ body.play-mode:has(#academy-dungeon-screen.active) .layout { height: 100dvh; }
 .dn-entry-back .terrace-sigil path:first-child { fill: rgb(var(--dungeon-obsidian-rgb)); stroke: var(--dungeon-ink); }
 .dn-entry-back .terrace-sigil path:last-child { fill: var(--dungeon-amber); }
 
-/* 潜る: アーチの奥の段の上り口に、盤の下り階段と同じ印の紋。紋は絵の中の遠い段の上に灯る灯りとして置く — 奥の段に見合う大きさ
+/* 潜る: アーチの奥の段の上り口に、盤の下り階段と同じ印のアイコン。アイコンは絵の中の遠い段の上に灯る灯りとして置く — 奥の段に見合う大きさ
    にとり（遠近）、地の円は縁へ向かって闇に溶かして切り立った縁を持たせず（縁）、灯りは両脇のランタンと同じ暖かさで弱く滲ませて、
    足もとの段に灯りの溜まりを落とす（光）。指を寄せると灯りが強まる。 */
 .dn-entry-dive {
@@ -6769,7 +6843,7 @@ body.play-mode:has(#academy-dungeon-screen.active) .layout { height: 100dvh; }
   box-shadow: inset 0 0 0 1px rgb(var(--dungeon-amber-rgb) / 0.36), 0 0 18px rgb(var(--dungeon-lamp-rgb) / 0.3);
   opacity: 0.85;
 }
-/* 光: 紋の灯りが足もとの段に落ちる溜まり（段の奥行きに沿って平たい）。 */
+/* 光: アイコンの灯りが足もとの段に落ちる溜まり（段の奥行きに沿って平たい）。 */
 .dn-entry-dive::after {
   left: 50%;
   top: 74%;
@@ -6983,6 +7057,7 @@ button.dn-kit-plate:hover, button.dn-kit-plate:focus-visible { box-shadow: 0 0 0
   display: grid;
   place-items: center;
   background: rgb(var(--dungeon-shade-rgb) / 0.55);
+  font-family: var(--dungeon-sans);
   z-index: 20;
 }
 .dn-modal[hidden] { display: none; }
@@ -6999,7 +7074,7 @@ button.dn-kit-plate:hover, button.dn-kit-plate:focus-visible { box-shadow: 0 0 0
 .dn-modal-panel h2 { margin: 0 0 12px; font-family: var(--dungeon-serif); font-weight: 500; font-size: 1.1rem; color: var(--dungeon-ink-strong); }
 .dn-modal-head { display: flex; justify-content: space-between; align-items: baseline; }
 .dn-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
-/* 窓の確かめの釦（撤退する）: 琥珀の灯りの釦。 */
+/* 窓の確かめのボタン（撤退する）: 琥珀の灯りのボタン。 */
 .dn-dive {
   border: 0;
   border-radius: 999px;
@@ -7013,7 +7088,7 @@ button.dn-kit-plate:hover, button.dn-kit-plate:focus-visible { box-shadow: 0 0 0
 .dn-dive:hover:not(:disabled) { filter: brightness(1.08); }
 .dn-dive:disabled { opacity: 0.5; cursor: default; }
 .dn-modal-actions .dn-dive { padding: 7px 22px; letter-spacing: 0.1em; font-size: 0.95rem; }
-.dn-help-body p, .dn-retreat-message { font-size: 0.9rem; line-height: 1.7; margin: 0 0 8px; }
+.dn-help-body p, .dn-retreat-message, .dn-modal-message { font-size: 0.9rem; line-height: 1.7; margin: 0 0 8px; }
 .dn-help-keys { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0 0 14px; font-size: 0.88rem; }
 .dn-help-keys dt { color: var(--dungeon-amber); }
 .dn-help-keys dd { margin: 0; }
@@ -7560,7 +7635,7 @@ body:has(.room-cards-screen.active) .layout {
   line-height: 1.68;
 }
 
-/* 札の値（下の縁）: 依頼は金の紋と額、研究会は伸びる値の名と幅の印。 */
+/* 札の値（下の縁）: 依頼は金のアイコンと額、研究会は伸びる値の名と幅の印。 */
 .room-card-worth {
   display: flex;
   flex-wrap: wrap;
@@ -7643,7 +7718,7 @@ body:has(.room-cards-screen.active) .layout {
   animation: room-cards-scrim-in 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
-/* 失敗の報せともう一度の紋の釦: 札の場所（札の列の下）に、絵の上の字として出す。 */
+/* 失敗の報せともう一度のアイコンのボタン: 札の場所（札の列の下）に、絵の上の字として出す。 */
 .room-cards-trouble {
   position: absolute;
   z-index: 3;
@@ -7726,10 +7801,10 @@ body:has(.room-cards-screen.active) .layout {
    2. 表の下だけを沈める暗がり。表の矩形から --table-room-pool-margin 広げた角丸の矩形が芯で、その外側の --table-room-pool-feather
       で部屋の絵へ溶かす（.table-room-table::before が表の実寸についてくる — 表の短い錬成室では暗がりも短い）。箱・枠・板にしない。
    3. 字は四つの色と細い夜の縁取り（--table-room-halo）で書く。足りる行は左の縁の金の一本線で見分け、足りない値は薔薇色。
-   4. 左上に場所の名（その座だけを小さな空気の暗がりで沈める）。状態の行（失敗の紋・失敗の一行）は名の脇に出る。
-   5. 右上に出る紋（露台の「今日はここまで」と同じ紋・名は読み上げにだけ）。 */
+   4. 左上に場所の名（その座だけを小さな空気の暗がりで沈める）。状態の行（失敗のアイコン・失敗の一行）は名の脇に出る。
+   5. 右上に出るアイコン（露台の「今日はここまで」と同じアイコン・名は読み上げにだけ）。 */
 
-/* 表の部屋の紋を写す置き場（body の直下・symbol だけを持ち、描かない。待ちの紋も引く）。 */
+/* 表の部屋のアイコンを写す置き場（body の直下・symbol だけを持ち、描かない。待ちのアイコンも引く）。 */
 .table-room-sigil-symbols {
   position: absolute;
   width: 0;
@@ -7794,7 +7869,8 @@ body:has(.table-room.active) .layout {
   display: none;
 }
 
-.table-room button {
+/* 錬成室の窓（.dn-modal）のボタンは実践の窓の reset（:where(.dn-modal) button）と .dn-* が描くので、ここからは外す。 */
+.table-room button:not(:where(.dn-modal button)) {
   font: inherit;
   color: inherit;
 }
@@ -7844,7 +7920,7 @@ body:has(.table-room.active) .layout {
   color: var(--table-room-short);
 }
 
-/* 錬成室の失敗の紋（露台・依頼と同じ途切れた星の道）は routing の失敗の色で灯る。 */
+/* 錬成室の失敗のアイコン（露台・依頼と同じ途切れた星の道）は routing の失敗の色で灯る。 */
 .academy-atelier-status[data-tone='error'] {
   color: var(--routing-error);
 }
@@ -8100,7 +8176,7 @@ button.table-room-row-body:hover:not(:disabled) {
   justify-content: flex-end;
 }
 
-/* 分類の紋: 分類ごとの色の輪（行の印と絞り込みの釦で同じ色）。 */
+/* 分類のアイコン: 分類ごとの色の輪（行の印と絞り込みのボタンで同じ色）。 */
 #academy-alchemy-screen [data-category='gift'] { --table-room-cat: #d87aa8; --table-room-cat-wash: rgb(216 122 168 / 0.3); }
 #academy-alchemy-screen [data-category='ally_boost'] { --table-room-cat: #4bb596; --table-room-cat-wash: rgb(75 181 150 / 0.3); }
 #academy-alchemy-screen [data-category='self_boost'] { --table-room-cat: #9a7ad8; --table-room-cat-wash: rgb(154 122 216 / 0.3); }
@@ -8141,7 +8217,7 @@ button.table-room-row-body:hover:not(:disabled) {
   opacity: 0.62;
 }
 
-/* 系統を選ぶ品の素材の欄: 「T1 ×4」と六系統の紋＋所持。足りる系統は金の輪で押せ、足りない系統は紋が沈んで所持が薔薇色。 */
+/* 系統を選ぶ品の素材の欄: 「T1 ×4」と六系統のアイコン＋所持。足りる系統は金の輪で押せ、足りない系統はアイコンが沈んで所持が薔薇色。 */
 .academy-alchemy-choice {
   display: flex;
   flex-direction: column;
@@ -8158,7 +8234,7 @@ button.table-room-row-body:hover:not(:disabled) {
   gap: 4px;
 }
 
-/* 費用の無い系統を選ぶ品は、空いた費用の列まで素材の欄を延ばし、六つの紋を一列に並べる。 */
+/* 費用の無い系統を選ぶ品は、空いた費用の列まで素材の欄を延ばし、六つのアイコンを一列に並べる。 */
 .academy-alchemy-row-body:has(.academy-alchemy-cell-money:empty) .academy-alchemy-cell-items:has(.academy-alchemy-choice) {
   grid-column: span 2;
 }
@@ -8737,7 +8813,7 @@ body:has(#academy-concert-hall-screen.active) .layout {
   height: 100%;
 }
 
-/* 語り面・演奏面: 語りは面の残りに収まって内側で送られ、床の紋（演奏を始める／止める）はその下、面の底に立つ。 */
+/* 語り面・演奏面: 語りは面の残りに収まって内側で送られ、床のアイコン（演奏を始める／止める）はその下、面の底に立つ。 */
 .academy-concert-hall-narrative-face,
 .academy-concert-hall-performance-face {
   display: flex;
@@ -8752,7 +8828,7 @@ body:has(#academy-concert-hall-screen.active) .layout {
   scrollbar-width: none;
 }
 
-/* ── 語り: 段ごとに一行。段の名は紋、行ごとの夜の楕円・箱は置かない ── */
+/* ── 語り: 段ごとに一行。段の名はアイコン、行ごとの夜の楕円・箱は置かない ── */
 .academy-concert-hall-stage-cards {
   list-style: none;
   margin: 0;
@@ -8880,7 +8956,7 @@ body:has(#academy-concert-hall-screen.active) .layout {
   filter: drop-shadow(0 0 2px var(--venue-night));
 }
 
-/* 演奏の紋: 語りが揃うと語りの下、舞台の床で灯る（琥珀の光）。止める紋も同じ場所。 */
+/* 演奏のアイコン: 語りが揃うと語りの下、舞台の床で灯る（琥珀の光）。止めるアイコンも同じ場所。 */
 .academy-concert-hall-perform,
 .academy-concert-hall-stop {
   flex: none;
@@ -9019,7 +9095,7 @@ body:has(#academy-concert-hall-screen.active) .layout {
   cursor: progress;
 }
 
-/* ── 書く口: 札も枠も置かず、羽根ペンの紋と下の一本の線。願いの文は主人公の字の色 ── */
+/* ── 書く口: 札も枠も置かず、羽根ペンのアイコンと下の一本の線。願いの文は主人公の字の色 ── */
 .academy-concert-hall-composer {
   position: absolute;
   left: calc(50% - 260px);
@@ -10065,26 +10141,6 @@ body:has(#academy-library-screen.active) .layout {
   pointer-events: none;
 }
 
-/* ── 退出: 灯りが手前から奥へ順に落ちる。 ────────────────────────────────────────────────── */
-.academy-library-sleep {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse 30% 30% at 23.2% 33.3%, rgb(3 2 1 / 0.7), rgb(3 2 1 / 0.92));
-  opacity: 0;
-  pointer-events: none;
-  z-index: 40;
-  transition: opacity 1200ms var(--library-ease);
-}
-
-.academy-library-screen[data-scene="exiting"] .academy-library-sleep,
-.academy-library-screen[data-scene="exited"] .academy-library-sleep { opacity: 1; pointer-events: auto; }
-
-.academy-library-lamp[data-out="true"] {
-  animation: none;
-  opacity: 0;
-  transition: opacity 500ms var(--library-ease);
-}
-
 .academy-library-measure {
   position: absolute;
   left: -9999px;
@@ -10127,8 +10183,6 @@ body:has(#academy-library-screen.active) .layout {
   .academy-library-screen[data-scene="waiting"] .academy-library-seek-spot-c { animation-delay: 6s; }
 
   .academy-library-more { transition-duration: 120ms; }
-
-  .academy-library-sleep { transition-duration: 120ms; }
 }
 
 /* ── 関連する本 (library footnotes) — the strip that ends the ハブ収蔵庫 re-read ──────────────────────────────
@@ -10247,11 +10301,11 @@ body:has(#academy-library-screen.active) .layout {
 /* ── 錬成室 arrival screen (#academy-atelier-screen) ──────────────────────────────────────────────────
    The homunculus atelier: a table room (.table-room above) whose table holds the 新たに錬成する entry and the material
    value, the ホムンクルス slots and the 銘棚 — or, while it is open, the synthesis box in their place under the same pool. Its
-   OWN 冷たい月光の実験室 token layer (--atelier-*: 硝子器・水銀・青白い残光) colors the room's controls and the dialogs. */
+   OWN 冷たい月光の実験室 token layer (--atelier-*: 硝子器・水銀・青白い残光) colors the room's controls; its four windows
+   take the 実践の窓 form (.dn-modal) and its own --dungeon-* scope. */
 .academy-atelier-screen {
   /* Cold obsidian-indigo ground (the 実験室 base). */
   --atelier-bg-0: #070a12;
-  --atelier-bg-1: #0b1120;
   /* Mercury-silver ink (水銀の光沢) so text reads over the cold ground. */
   --atelier-ink: #c7d3e6;
   --atelier-ink-strong: #eaf2ff;
@@ -10263,21 +10317,12 @@ body:has(#academy-library-screen.active) .layout {
   --atelier-line: rgb(143 220 255 / 0.22);
   --atelier-line-strong: rgb(143 220 255 / 0.44);
   --atelier-panel: rgb(11 17 32 / 0.76);
-  --atelier-panel-strong: rgb(9 13 26 / 0.9);
   --atelier-inner-ring: rgb(143 220 255 / 0.12);
   --atelier-glow-soft: rgb(143 220 255 / 0.3);
   --atelier-shadow: rgb(0 0 0 / 0.55);
-  /* Obsidian surface fills (a vessel / control over the cold ground; -strong is its hover). */
-  --atelier-card: rgb(14 20 36 / 0.82);
-  --atelier-card-strong: rgb(18 26 44 / 0.95);
   /* Dark veil over the bright stage image so the overlaid hero text stays legible. */
   --atelier-veil-strong: rgb(5 8 16 / 0.66);
   --atelier-veil-soft: rgb(10 18 30 / 0.32);
-  /* Soft-afterglow wash fills over obsidian (chips / accent buttons). */
-  --atelier-chip: rgb(143 220 255 / 0.16);
-  --atelier-chip-ink: #08111f;
-  /* Reading / dialog scrim over the atelier (a deep cold wash). */
-  --atelier-scrim: rgb(4 7 15 / 0.72);
   /* お別れ (one-way farewell) is a muted, cooled warm tone — set apart from the afterglow accent without warming the room. */
   --atelier-farewell: #d79aa4;
   --atelier-farewell-strong: #e8b6bd;
@@ -10297,7 +10342,7 @@ body:has(#academy-library-screen.active) .layout {
 
 /* 錬成室の列: 表の部屋の表と同じ座に、表とその真下の説明を縦に積む。表は中身の高さで終わり（暗がりも子の席と銘棚の
    高さまで）、部屋と錬成の箱は同じ暗がりの中で入れ替わる。説明は暗がりの溶ける縁より手前に乗る。錬成している間は列ごと
-   退き（出る紋も）、器の光だけが残る。 */
+   退き（出るアイコンも）、器の光だけが残る。 */
 .academy-atelier-column {
   position: absolute;
   z-index: 1;
@@ -10395,7 +10440,7 @@ body:has(#academy-library-screen.active) .layout {
   gap: 14px;
 }
 
-/* 錬成室の紋の釦（新たに錬成する・会いに行く・お別れ・錬成する）: 月光の輪の中に紋（名は読み上げにだけ）。 */
+/* 錬成室のアイコンのボタン（新たに錬成する・会いに行く・お別れ・錬成する）: 月光の輪の中にアイコン（名は読み上げにだけ）。 */
 .academy-atelier-mark-button {
   display: inline-grid;
   place-items: center;
@@ -10463,7 +10508,6 @@ body:has(#academy-library-screen.active) .layout {
 .academy-atelier-slot-empty-art {
   width: 76px;
   height: 76px;
-  opacity: 0.8;
 }
 
 .academy-atelier-slot-empty-art .terrace-empty-art {
@@ -10527,7 +10571,7 @@ body:has(#academy-library-screen.active) .layout {
   font-size: 0.8rem;
 }
 
-/* 子の 11 の力: 露台の能力の紋（名は読み上げにだけ）＋細い目盛り＋値を、二列に並べる。 */
+/* 子の 11 の力: 露台の能力のアイコン（名は読み上げにだけ）＋細い目盛り＋値を、二列に並べる。 */
 .academy-atelier-slot .academy-atelier-parameters {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px 14px;
@@ -10576,7 +10620,7 @@ body:has(#academy-library-screen.active) .layout {
   box-shadow: 0 0 10px rgb(215 154 164 / 0.4);
 }
 
-/* 銘棚: 名と、見送った子の銘（いまは空の棚の絵）。 */
+/* 銘棚: 名と、見送った子の銘（まだ無ければ名の右に「まだ銘はない。」）。 */
 .academy-atelier-shelf {
   display: flex;
   flex-wrap: wrap;
@@ -10606,14 +10650,14 @@ body:has(#academy-library-screen.active) .layout {
   gap: 18px;
 }
 
-/* 仕方の群は幅を持ち、紋二つの残りは群の中の空き（同じ行の「名前」「骨子」の欄の位置を群の中身に依らせない）。 */
+/* 仕方の群は幅を持ち、アイコン二つの残りは群の中の空き（同じ行の「名前」「骨子」の欄の位置を群の中身に依らせない）。 */
 .academy-atelier-modes {
   display: flex;
   gap: 6px;
   width: 175px;
 }
 
-/* 錬成の仕方（マニュアル・おまかせ）: 月光の輪の中に紋（名は radio の読み上げにだけ）。選んだ方に金の輪。 */
+/* 錬成の仕方（マニュアル・おまかせ）: 月光の輪の中にアイコン（名は radio の読み上げにだけ）。選んだ方に金の輪。 */
 .academy-atelier-mode {
   position: relative;
   display: inline-grid;
@@ -10681,7 +10725,7 @@ body:has(#academy-library-screen.active) .layout {
   border-bottom-color: var(--atelier-glow);
 }
 
-/* 素材の格子: 行 = 属性の紋、列 = ティア。手持ちのある素材のマスだけが明るく、選んだマスには月光の線が付く。 */
+/* 素材の格子: 行 = 属性のアイコン、列 = ティア。手持ちのある素材のマスだけが明るく、選んだマスには月光の線が付く。 */
 .academy-atelier-material-grid {
   display: grid;
   grid-template-columns: 30px repeat(var(--atelier-tier-count), minmax(0, 1fr));
@@ -10829,17 +10873,12 @@ body:has(#academy-library-screen.active) .layout {
 }
 
 /* 銘棚: a persistent shelf of the departed children's nameplates (the nameplate.png texture with name / 銘 / 週). The
-   empty shelf is the terrace's empty-shelf picture (dotted shelf, gold glint), beside the 銘棚 name. */
+   empty shelf is the line 「まだ銘はない。」 beside the 銘棚 name, in the name's moonlit colour one size smaller. */
 .academy-atelier-nameplates-empty {
-  width: 64px;
-  height: 64px;
-  opacity: 0.85;
-}
-
-.academy-atelier-nameplates-empty .terrace-empty-art {
-  display: block;
-  width: 100%;
-  height: 100%;
+  margin: 0;
+  color: var(--table-room-word-quiet);
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .academy-atelier-nameplates {
@@ -10887,60 +10926,24 @@ body:has(#academy-library-screen.active) .layout {
   letter-spacing: 0.06em;
 }
 
-/* Shared modal scrim + centred card for the two confirm dialogs, the 錬成結果ビュー, and the farewell-speech 見せ場. */
-.academy-atelier-confirm-popup,
-.academy-atelier-result-popup,
-.academy-atelier-farewell-confirm-popup,
-.academy-atelier-farewell-speech-popup {
-  position: absolute;
-  inset: 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(14px, 3vw, 40px);
-  background: var(--atelier-scrim);
-}
-
-.academy-atelier-confirm-popup[hidden],
-.academy-atelier-result-popup[hidden],
-.academy-atelier-farewell-confirm-popup[hidden],
-.academy-atelier-farewell-speech-popup[hidden] {
-  display: none;
-}
-
-.academy-atelier-confirm-backdrop,
-.academy-atelier-farewell-confirm-backdrop {
-  position: absolute;
-  inset: 0;
-}
-
-.academy-atelier-confirm-card,
+/* 錬成室の四つの窓（錬成の確認・錬成の結果・お別れの確認・別れの言葉）は実践の窓（.dn-modal / .dn-modal-panel・琥珀の .dn-dive・
+   字だけの .dn-quiet）の形で立つ。ここに置くのは、錬成の結果と別れの言葉の中身の並びと、錬成の結果の出し方だけ。 */
 .academy-atelier-result-frame,
-.academy-atelier-farewell-confirm-card,
 .academy-atelier-farewell-speech-frame {
-  position: relative;
-  z-index: 1;
-  box-sizing: border-box;
-  width: min(560px, 100%);
-  max-height: 100%;
-  overflow-y: auto;
   display: grid;
-  gap: clamp(12px, 1.6vh, 18px);
-  padding: clamp(18px, 2.4vw, 30px);
-  border: 1px solid var(--atelier-line-strong);
-  border-radius: var(--radius-card);
-  background: linear-gradient(180deg, var(--atelier-panel-strong), var(--atelier-bg-1));
-  box-shadow: inset 0 0 0 1px var(--atelier-inner-ring), 0 22px 50px var(--atelier-shadow);
+  gap: 14px;
 }
 
-.academy-atelier-confirm-card,
-.academy-atelier-farewell-confirm-card {
-  width: min(460px, 100%);
+.academy-atelier-result-frame {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.academy-atelier-farewell-speech-frame {
+  width: min(640px, calc(100vw - 32px));
 }
 
 /* 錬成結果ビューは器の灯から立ち上がる: 表は退いたまま器の光の暗がりが部屋を沈めているので幕は敷かず、窓は下から寄って
-   器の光をまとって立ち、光は静かに引く。視差を減らす設定では不透明度だけで出る。 */
+   器の光をまとって立ち、光は静かに引いて実践の窓の琥珀の縁と影に落ち着く。視差を減らす設定では不透明度だけで出る。 */
 .academy-atelier-result-popup {
   background: none;
 }
@@ -10953,12 +10956,12 @@ body:has(#academy-library-screen.active) .layout {
   from {
     opacity: 0;
     transform: translateY(28px) scale(0.92);
-    box-shadow: inset 0 0 0 1px var(--atelier-inner-ring), 0 0 80px rgb(223 242 255 / 0.5);
+    box-shadow: 0 0 0 1px var(--dungeon-amber-soft), 0 0 80px rgb(223 242 255 / 0.5);
   }
   to {
     opacity: 1;
     transform: none;
-    box-shadow: inset 0 0 0 1px var(--atelier-inner-ring), 0 22px 50px var(--atelier-shadow), 0 0 60px rgb(223 242 255 / 0.18);
+    box-shadow: 0 0 0 1px var(--dungeon-amber-soft), 0 18px 48px rgb(var(--dungeon-shade-rgb) / 0.6);
   }
 }
 
@@ -11054,152 +11057,39 @@ body:has(#academy-library-screen.active) .layout {
   text-align: right;
 }
 
-.academy-atelier-confirm-actions,
-.academy-atelier-farewell-confirm-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: clamp(8px, 1vw, 14px);
-}
-
-.academy-atelier-confirm-cancel,
-.academy-atelier-confirm-accept,
-.academy-atelier-result-close,
-.academy-atelier-farewell-confirm-cancel,
-.academy-atelier-farewell-confirm-accept,
-.academy-atelier-farewell-speech-close {
-  flex: 0 0 auto;
-  padding: clamp(8px, 1vw, 12px) clamp(16px, 2vw, 24px);
-  border-radius: var(--radius-pill);
-  font-family: inherit;
-  font-size: clamp(0.82rem, 1.3vw, 0.95rem);
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: border-color 140ms ease, background 140ms ease;
-}
-
-.academy-atelier-confirm-cancel,
-.academy-atelier-farewell-confirm-cancel {
-  color: var(--atelier-ink-strong);
-  background: var(--atelier-card);
-  border: 1px solid var(--atelier-line);
-}
-
-.academy-atelier-confirm-cancel:hover,
-.academy-atelier-farewell-confirm-cancel:hover,
-.academy-atelier-confirm-cancel:focus-visible,
-.academy-atelier-farewell-confirm-cancel:focus-visible {
-  border-color: var(--atelier-line-strong);
-  background: var(--atelier-card-strong);
-}
-
-.academy-atelier-confirm-accept {
-  color: var(--atelier-chip-ink);
-  background: var(--atelier-glow);
-  border: 1px solid var(--atelier-glow);
-  font-weight: 600;
-}
-
-.academy-atelier-confirm-accept:hover,
-.academy-atelier-confirm-accept:focus-visible {
-  background: var(--atelier-glow-strong);
-  border-color: var(--atelier-glow-strong);
-}
-
-/* お別れ確定 is the one-way action — a cooled farewell tone, set apart from the afterglow accept. */
-.academy-atelier-farewell-confirm-accept {
-  color: var(--atelier-chip-ink);
-  background: var(--atelier-farewell);
-  border: 1px solid var(--atelier-farewell);
-  font-weight: 600;
-}
-
-.academy-atelier-farewell-confirm-accept:hover,
-.academy-atelier-farewell-confirm-accept:focus-visible {
-  background: var(--atelier-farewell-strong);
-  border-color: var(--atelier-farewell-strong);
-}
-
-.academy-atelier-confirm-title,
-.academy-atelier-farewell-confirm-title {
-  margin: 0;
-  color: var(--atelier-ink-strong);
-  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
-  letter-spacing: 0.04em;
-}
-
-.academy-atelier-confirm-body,
-.academy-atelier-farewell-confirm-body {
-  margin: 0;
-  color: var(--atelier-ink);
-  font-size: clamp(0.82rem, 1.3vw, 0.95rem);
-  line-height: 1.7;
-}
-
-/* The farewell-speech 見せ場: the departed child's long-form send-off, read at the player's pace. */
-.academy-atelier-farewell-speech-frame {
-  width: min(640px, 100%);
-}
-
+/* 窓の見出し（名）と、その下の一行（墓碑の銘・生まれた知らせ）。 */
+.academy-atelier-result-head,
 .academy-atelier-farewell-speech-head {
   display: grid;
-  gap: clamp(4px, 0.6vh, 8px);
+  gap: 4px;
 }
 
-.academy-atelier-farewell-speech-name {
+.academy-atelier-result-head h2,
+.academy-atelier-farewell-speech-head h2 {
   margin: 0;
-  color: var(--atelier-ink-strong);
-  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  font-size: 1.3rem;
   letter-spacing: 0.06em;
 }
 
+.academy-atelier-result-lead,
 .academy-atelier-farewell-speech-epitaph {
   margin: 0;
-  color: var(--atelier-glow);
-  font-size: clamp(0.82rem, 1.3vw, 0.95rem);
+  font-size: 0.9rem;
   line-height: 1.6;
 }
 
+.academy-atelier-farewell-speech-epitaph {
+  color: var(--dungeon-amber);
+}
+
+/* The farewell-speech 見せ場: the departed child's long-form send-off, read at the player's pace. */
 .academy-atelier-farewell-speech-text {
-  color: var(--atelier-ink);
-  font-size: clamp(0.86rem, 1.35vw, 1rem);
+  font-size: 0.95rem;
   line-height: 1.9;
   white-space: pre-wrap;
 }
 
-.academy-atelier-farewell-speech-close {
-  justify-self: end;
-  color: var(--atelier-chip-ink);
-  background: var(--atelier-glow);
-  border: 1px solid var(--atelier-glow);
-  font-weight: 600;
-}
-
-.academy-atelier-farewell-speech-close:hover,
-.academy-atelier-farewell-speech-close:focus-visible {
-  background: var(--atelier-glow-strong);
-  border-color: var(--atelier-glow-strong);
-}
-
 /* 錬成結果ビュー: the freshly synthesized child's face + name, its 11 parameters, and the consumed materials. */
-.academy-atelier-result-head {
-  display: grid;
-  gap: clamp(3px, 0.5vh, 6px);
-}
-
-.academy-atelier-result-name {
-  margin: 0;
-  color: var(--atelier-ink-strong);
-  font-size: clamp(1.2rem, 2vw, 1.6rem);
-  letter-spacing: 0.06em;
-}
-
-.academy-atelier-result-lead {
-  margin: 0;
-  color: var(--atelier-ink);
-  font-size: clamp(0.82rem, 1.3vw, 0.95rem);
-}
-
 .academy-atelier-result-body {
   display: grid;
   grid-template-columns: clamp(84px, 20%, 132px) minmax(0, 1fr);
@@ -11209,10 +11099,10 @@ body:has(#academy-library-screen.active) .layout {
 
 .academy-atelier-result-face {
   aspect-ratio: 1 / 1;
-  border-radius: 14px;
+  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid var(--atelier-line);
-  background: var(--atelier-bg-1);
+  border: 1px solid var(--dungeon-line);
+  background: var(--dungeon-inset);
 }
 
 .academy-atelier-result-face-img {
@@ -11223,10 +11113,10 @@ body:has(#academy-library-screen.active) .layout {
 }
 
 .academy-atelier-result-heading {
-  margin: 0 0 clamp(4px, 0.6vh, 8px);
-  color: var(--atelier-glow);
-  font-size: clamp(0.76rem, 1.1vw, 0.86rem);
-  letter-spacing: 0.08em;
+  margin: 0 0 6px;
+  color: var(--dungeon-amber);
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
 }
 
 .academy-atelier-result-consumed-list {
@@ -11235,40 +11125,27 @@ body:has(#academy-library-screen.active) .layout {
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: clamp(4px, 0.8vw, 10px);
+  gap: 8px;
 }
 
 .academy-atelier-result-consumed-item {
   display: inline-flex;
   align-items: baseline;
   gap: 0.3em;
-  padding: clamp(3px, 0.5vh, 6px) clamp(8px, 1vw, 12px);
-  border: 1px solid var(--atelier-line);
-  border-radius: var(--radius-pill);
-  background: var(--atelier-chip);
-  font-size: clamp(0.74rem, 1.1vw, 0.84rem);
+  padding: 3px 10px;
+  border: 1px solid var(--dungeon-line);
+  border-radius: 999px;
+  background: var(--dungeon-chip);
+  font-size: 0.82rem;
 }
 
 .academy-atelier-result-consumed-name {
-  color: var(--atelier-ink-strong);
+  color: var(--dungeon-ink-strong);
 }
 
 .academy-atelier-result-consumed-qty {
-  color: var(--atelier-glow);
+  color: var(--dungeon-amber);
   font-variant-numeric: tabular-nums;
-}
-
-.academy-atelier-result-close {
-  justify-self: end;
-  color: var(--atelier-ink-strong);
-  background: var(--atelier-card);
-  border: 1px solid var(--atelier-line);
-}
-
-.academy-atelier-result-close:hover,
-.academy-atelier-result-close:focus-visible {
-  border-color: var(--atelier-line-strong);
-  background: var(--atelier-card-strong);
 }
 
 /* ── Conversation screen (#conversation-day-screen) ──────────────────────────────────────────
@@ -13328,9 +13205,9 @@ body:has(#academy-overlook-screen.active) .layout {
 
 /* ── 会場（闘技会・競売場・奏楽堂）で分け合う作り ──────────────────────────────────────────────────────────────────
    三つの会場は、会場の絵いっぱいの一枚（.venue-ground・絵は app.js が destinationArt から --venue-art に置く = 送り出しの幕と
-   入るときの待ちと同じ一枚）の上で、段ごとの面が入れ替わる。左上の場所の名・上の中ほどの段の道・右上の出る紋は三つで同じ。
-   絵はぼかさず、字と紋が乗る所だけを空気の暗がり（.venue-dusk の radial の沈め）と行ごとの夜の楕円（--venue-ellipse）で読める
-   ようにする。字の色・影・楕円は会話の層（conversationLayer.css）の値、紋の塗りは露台の紋の塗り。会場ごとの差し色は
+   入るときの待ちと同じ一枚）の上で、段ごとの面が入れ替わる。左上の場所の名・上の中ほどの段の道・右上の出るアイコンは三つで同じ。
+   絵はぼかさず、字とアイコンが乗る所だけを空気の暗がり（.venue-dusk の radial の沈め）と行ごとの夜の楕円（--venue-ellipse）で読める
+   ようにする。字の色・影・楕円は会話の層（conversationLayer.css）の値、アイコンの塗りは露台のアイコンの塗り。会場ごとの差し色は
    --venue-accent（各画面のトークンの宣言で置く）。 */
 .venue-screen {
   --venue-night: #05060f;
@@ -13389,7 +13266,7 @@ body:has(#academy-overlook-screen.active) .layout {
   text-shadow: var(--venue-halo);
 }
 
-/* 段の道: 済んだ段は塗った星と道、いまの段は大きく灯った星、先の段は輪郭だけ。失敗は途切れた道と、その右の言い直しの紋。 */
+/* 段の道: 済んだ段は塗った星と道、いまの段は大きく灯った星、先の段は輪郭だけ。失敗は途切れた道と、その右の言い直しのアイコン。 */
 .venue-way {
   position: absolute;
   top: 20px;
@@ -13420,7 +13297,7 @@ body:has(#academy-overlook-screen.active) .layout {
   transform: translateY(-50%);
 }
 
-/* 紋の釦（venueSigils.svg の紋・露台の戻る紋）: 枠も地も置かず、紋だけ。 */
+/* アイコンのボタン（venueSigils.svg のアイコン・露台の戻るアイコン）: 枠も地も置かず、アイコンだけ。 */
 .venue-screen .venue-sigil-button,
 .venue-screen .terrace-sigil-button {
   display: inline-flex;
@@ -13466,7 +13343,7 @@ body:has(#academy-overlook-screen.active) .layout {
   z-index: 3;
 }
 
-/* 紋を写す置き場（symbol だけを持ち、描かない）。 */
+/* アイコンを写す置き場（symbol だけを持ち、描かない）。 */
 .venue-sigil-symbols {
   position: absolute;
   width: 0;
@@ -13503,7 +13380,7 @@ body:has(#academy-overlook-screen.active) .layout {
   .venue-busy-dot { animation: none; opacity: 0.7; }
 }
 
-/* 生成の失敗を受けたその場所に立つ失敗の紋（字は持たない）。 */
+/* 生成の失敗を受けたその場所に立つ失敗のアイコン（字は持たない）。 */
 .venue-failure-mark {
   color: var(--venue-failure);
 }
@@ -13648,6 +13525,115 @@ body:has(#academy-arena-screen.active) .layout {
 .an-venue[data-venue="entering"]::before { opacity: 1; }
 .an-venue[data-venue="sink"]::before { opacity: 1; background: var(--arena-venue-sink-deep); transition-duration: 900ms; }
 .an-venue[data-venue="swell"]::after { opacity: 1; transform: scale(1); }
+
+/* 場の反応の層: 会場の絵の上・試合の面の下。客席の灯（観客の掲げる灯）・篝火の焔のふくらみ・静まりの闇・高まりの光・どよめきの波・
+   決着の光条と輪と火の粉。器は盤の列の端まで（大きさは arenaReactionLayer.js が置く）で、右の列（持ち込み・呪文・記録）には掛からず、
+   その側の縁は --arena-reaction-edge の幅でぼかして切る。試合の面を離れている間は hidden で描かれない。 */
+.arena-reaction {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  --arena-reaction-fade: linear-gradient(to right, rgb(0 0 0) calc(100% - var(--arena-reaction-edge)), transparent 100%);
+  -webkit-mask-image: var(--arena-reaction-fade);
+  mask-image: var(--arena-reaction-fade);
+}
+.arena-reaction[data-edge="bottom"] { --arena-reaction-fade: linear-gradient(to bottom, rgb(0 0 0) calc(100% - var(--arena-reaction-edge)), transparent 100%); }
+
+/* 客席の灯。濃さは器（.arena-reaction-lights）に一つ置く動きが熱と場の様子で変え、灯そのものは息づくだけ。 */
+.arena-reaction-lights { position: absolute; inset: 0; opacity: 0; }
+.arena-reaction-light {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 6px 1px var(--c), 0 0 14px 3px color-mix(in srgb, var(--c) 45%, transparent);
+  opacity: calc(0.32 + 0.38 * var(--k));
+  animation: arena-reaction-breathe var(--t) ease-in-out var(--d) infinite alternate;
+}
+@keyframes arena-reaction-breathe {
+  from { transform: scale(0.82); filter: brightness(0.8); }
+  to { transform: scale(1.08); filter: brightness(1.15); }
+}
+.arena-reaction[data-mood="hush"] .arena-reaction-light { animation-play-state: paused; }
+
+/* 篝火の焔のふくらみ（絵の焔の位置に重ねる光）。 */
+.arena-reaction-flare {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 214 150 / 0.95), rgb(255 96 72 / 0.55) 34%, transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+
+/* 静まり: 客席が闇に沈み、盤のまわりだけが残る。 */
+.arena-reaction-hush {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 620px 440px at var(--arena-reaction-bx, 50%) var(--arena-reaction-by, 62%), transparent 0, transparent 46%, rgb(3 4 12 / 0.74) 100%);
+  opacity: 0;
+  transition: opacity 1100ms ease-out;
+}
+.arena-reaction[data-mood="hush"] .arena-reaction-hush { opacity: 1; }
+
+/* 高まり: 客席に淡い金の光が寄る。 */
+.arena-reaction-rise {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 70% 34% at 50% 44%, rgb(244 201 106 / 0.2), transparent 100%);
+  opacity: 0;
+  transition: opacity 900ms ease-out;
+}
+.arena-reaction[data-mood="rise"] .arena-reaction-rise { opacity: 1; animation: arena-reaction-rise-pulse 2.4s ease-in-out infinite alternate; }
+@keyframes arena-reaction-rise-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+/* どよめきの波・決着の輪と光条・火の粉。輪は大きな円を小さく縮めた所から広げる（線の太さが広がりで太らない）。 */
+.arena-reaction-wave,
+.arena-reaction-ring {
+  position: absolute;
+  width: 2400px;
+  height: 2400px;
+  margin: -1200px 0 0 -1200px;
+  border-radius: 50%;
+  opacity: 0;
+}
+.arena-reaction-wave { border: 2px solid rgb(255 220 170 / 0.5); box-shadow: 0 0 18px 2px rgb(255 150 110 / 0.28), inset 0 0 18px 2px rgb(255 150 110 / 0.2); }
+.arena-reaction-ring { border: 4px solid rgb(255 244 214 / 0.9); box-shadow: 0 0 30px 8px var(--arena-reaction-burst), inset 0 0 30px 8px var(--arena-reaction-burst); }
+.arena-reaction-rays {
+  position: absolute;
+  width: 1800px;
+  height: 1800px;
+  margin: -900px 0 0 -900px;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 7deg, var(--arena-reaction-burst) 0deg 1.4deg, transparent 1.4deg 23deg),
+    repeating-conic-gradient(from 0deg, var(--arena-reaction-burst) 0deg 4.5deg, transparent 4.5deg 37deg),
+    repeating-conic-gradient(from 13deg, var(--arena-reaction-burst) 0deg 0.8deg, transparent 0.8deg 11deg),
+    radial-gradient(circle, var(--arena-reaction-burst) 0, transparent 22%);
+  -webkit-mask-image: radial-gradient(circle, rgb(0 0 0) 0, rgb(0 0 0 / 0.55) 16%, rgb(0 0 0 / 0.16) 34%, transparent 50%);
+  mask-image: radial-gradient(circle, rgb(0 0 0) 0, rgb(0 0 0 / 0.55) 16%, rgb(0 0 0 / 0.16) 34%, transparent 50%);
+  mix-blend-mode: screen;
+  opacity: 0;
+}
+.arena-reaction-spark {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: 0 0 6px 1px var(--c);
+  opacity: 0;
+}
 
 /* --- 選ぶ段: 門の上の夜空に賞金と失うもの無しの印、床の魔法陣に三つの立ち位置 --- */
 .arena-selection {
@@ -13829,7 +13815,7 @@ body:has(#academy-arena-screen.active) .layout {
   min-height: 0;
 }
 
-/* 表の下の中ほど（手元）に、試合を始める紋。 */
+/* 表の下の中ほど（手元）に、試合を始めるアイコン。 */
 .arena-bracket-actions {
   position: absolute;
   left: 50%;
@@ -14075,7 +14061,7 @@ body:has(#academy-arena-screen.active) .layout {
 }
 
 /* 観戦の入り: バディーの名の後ろに明かしと同じ金の楕円の板が灯り（0.3 秒から 0.4 秒）、目が金の輪で開き（0.7 秒から 0.3 秒）、
-   見ずに先へ進む紋は落ち着いてから出る（落ち着くと板は退く）。 */
+   見ずに先へ進むアイコンは落ち着いてから出る（落ち着くと板は退く）。 */
 .arena-bracket--entering .arena-bracket-actions { visibility: hidden; }
 .arena-bracket--entering .arena-ring-eye--entry { animation: arena-entry-open 0.3s ease-out 0.7s both; }
 .arena-bracket--entering .arena-ring-name--hero .arena-ring-plate { transition: opacity 0.4s ease-out; }
@@ -14096,7 +14082,7 @@ body:has(#academy-arena-screen.active) .layout {
   flex-direction: column;
   gap: 10px;
   align-items: center;
-  width: min(560px, 80vw);
+  width: min(680px, 86vw);
   transform: translate(-50%, -50%);
   text-align: center;
   text-shadow: var(--venue-halo);
@@ -14145,6 +14131,83 @@ body:has(#academy-arena-screen.active) .layout {
   color: var(--arena-crimson);
   text-shadow: var(--venue-halo), 0 0 22px var(--arena-glow);
 }
+
+/* 見出しの下の一列: 左が自分（組なら二人）、中ほどが回戦の名と交わる二本の杖、右が最後の相手。負けた側は灰に沈み、勝った側は金の縁。 */
+.arena-result-bout {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  margin: 8px 0 2px;
+}
+.arena-result-side { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.arena-result-side--self { flex-direction: row-reverse; justify-content: flex-start; }
+.arena-result-side--self .arena-result-names { text-align: right; }
+.arena-result-side--other .arena-result-names { text-align: left; }
+.arena-result-faces { display: flex; gap: 6px; flex: 0 0 auto; }
+.arena-result-face {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--arena-ink-dim);
+  background: rgb(5 6 15 / 0.7) center / cover no-repeat;
+  box-shadow: 0 0 10px rgb(5 6 15 / 0.8);
+  display: grid;
+  place-items: center;
+}
+.arena-result-face--emblem { font-size: 1.5rem; color: var(--arena-self); }
+.arena-result-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.arena-result-side[data-won="true"] .arena-result-face { border-color: var(--arena-gold); box-shadow: 0 0 14px var(--arena-mark-glow); }
+.arena-result-side[data-won="true"] .arena-result-names { color: var(--arena-ink-strong); }
+.arena-result-side[data-won="false"] .arena-result-face { filter: grayscale(1) brightness(0.6); }
+.arena-result-side[data-won="false"] .arena-result-names { color: var(--arena-ink-dim); }
+.arena-result-round { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.arena-result-round-name {
+  font-family: var(--arena-mark-serif);
+  font-size: 1.15rem;
+  letter-spacing: 0.18em;
+  color: var(--arena-ink-strong);
+  white-space: nowrap;
+}
+.arena-result-staves { width: 30px; height: 30px; }
+.arena-result-staves-shaft { fill: none; stroke: #eef3ff; stroke-width: 1.8; stroke-linecap: round; }
+.arena-result-staves-tip { fill: var(--arena-crimson); }
+.arena-result-crown-star {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  width: 22px;
+  height: 22px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 6px var(--arena-mark-glow));
+}
+/* 優勝者が並ぶ側にいないときだけの行: 星・「優勝」・優勝者の顔と名。 */
+.arena-result-champion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 8px 0 0;
+}
+.arena-result-champion-star { width: 20px; height: 20px; }
+.arena-result-champion-label {
+  font-family: var(--arena-mark-serif);
+  font-size: 0.95rem;
+  letter-spacing: 0.2em;
+  color: var(--arena-gold);
+}
+.arena-result-champion .arena-result-face { width: 46px; height: 46px; border-color: var(--arena-gold); box-shadow: 0 0 12px var(--arena-mark-glow); }
+.arena-result-champion .arena-result-names { color: var(--arena-gold); text-align: left; }
 
 .arena-result-summary {
   margin: 0;
@@ -14210,24 +14273,6 @@ body:has(#academy-arena-screen.active) .layout {
   flex-direction: column;
   gap: 10px;
   min-height: 0;
-}
-
-/* The LLM 試合前口上 banner below the HUD (match play + spectator replay). Fixed at two text lines in every state
-   (pending / ready / error / long body) so the board and HUD never shift as the 口上 streams in or fails; a body
-   over two lines scrolls within the slot (overflow-y). */
-.arena-match[data-flow="entering"] .arena-match-intro { opacity: 0; }
-
-.arena-match-intro {
-  transition: opacity 260ms ease-out;
-  box-sizing: border-box;
-  flex: 0 0 auto;
-  height: calc(1.7em * 2 + 12px);
-  overflow-y: auto;
-  padding: 6px 14px;
-  color: var(--venue-word-warm);
-  line-height: 1.7;
-  text-shadow: var(--venue-halo);
-  border-image: var(--venue-ellipse);
 }
 
 .arena-hud {
@@ -14590,8 +14635,42 @@ body:has(#academy-arena-screen.active) .layout {
 .an-mark.is-shown { opacity: 1; translate: 0 -10px; }
 .an-mark[data-outcome="eliminated"] { color: var(--arena-ink); text-shadow: var(--venue-halo); }
 
+/* 盤の上の一声: 始まり・追い詰めは盤の上の縁、決着は決着の印（盤の 40% の高さ）のすぐ上。盤の寸法に関わらない浮いた欄で、出入りは
+   app.js が置く動き（showArenaVoice）。字の大きさは盤の列の幅（窓の幅から左右の余白と列の間を引いた 6/11）に合わせて縮み、一行に
+   全角 28 字（二行で始まりの一声の上限 56 字）が収まる。 */
+.arena-voice {
+  --arena-voice-size: min(1.32rem, calc((100vw - 52px) * 0.0161));
+  position: absolute;
+  left: 50%;
+  top: 9%;
+  z-index: 4;
+  box-sizing: border-box;
+  width: min(96%, 32.2em);
+  margin: 0;
+  transform: translate(-50%, 0);
+  padding: 10px 1em;
+  font-family: var(--arena-mark-serif);
+  font-size: var(--arena-voice-size);
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-wrap: balance;
+  word-break: auto-phrase;
+  color: var(--venue-word-warm);
+  text-shadow: var(--venue-halo);
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgb(5 6 15 / 0.82), rgb(5 6 15 / 0.56) 55%, transparent 100%);
+  opacity: 0;
+  pointer-events: none;
+}
+.arena-voice:empty { display: none; }
+.arena-voice[data-kind="finish"] { top: 25%; --arena-voice-size: min(1.2rem, calc((100vw - 52px) * 0.0161)); }
+.arena-voice[data-side="self"] { color: var(--venue-word); }
+.arena-voice .venue-failure-mark { display: inline-flex; width: 30px; height: 30px; }
+
 @media (prefers-reduced-motion: reduce) {
-  .an-foot, .an-mark, .an-entity--down .an-token, .an-venue, .an-venue::before, .an-venue::after, .arena-match-intro, .arena-dock-main { transition: none; }
+  .an-foot, .an-mark, .an-entity--down .an-token, .an-venue, .an-venue::before, .an-venue::after, .arena-dock-main { transition: none; }
+  /* 場の反応の層は出さない（app.js も層を起こさない）。 */
+  .arena-reaction { display: none; }
 }
 
 /* --- clickable actor names (HUD + bracket) + character-detail surfaces --- */
@@ -14777,19 +14856,17 @@ body:has(#academy-arena-screen.active) .layout {
   gap: 6px;
 }
 
-/* 持ち込んだ品が無いときの袋の点線の絵（露台の空の絵）。 */
-.arena-item-column-list > [role="img"] {
+/* 持ち込んだ品が無いときの題「持ち込み」と一文。左端を下の魔法の印の列の左端（帯の内側 16px＋印の内側 6px）にそろえる。 */
+.arena-consumables-empty {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 10px;
 }
 
-.arena-item-column-list .terrace-empty-art {
-  width: 64px;
-  height: 64px;
-  opacity: 0.7;
-}
+.arena-consumables-empty p { margin: 0; }
+.arena-consumables-empty-title { color: var(--arena-ink); font-size: 0.8rem; }
+.arena-consumables-empty-note { color: var(--arena-ink-dim); font-size: 0.75rem; }
 
 .arena-consumable {
   display: flex;
@@ -14856,7 +14933,7 @@ body:has(#academy-arena-screen.active) .layout {
   gap: 10px;
 }
 
-/* 呪文と回復: 属性の紋（露台の能力の紋）・回復の紋と、その下の消費 MP の数。 */
+/* 呪文と回復: 属性のアイコン（露台の能力のアイコン）・回復のアイコンと、その下の消費 MP の数。 */
 .arena-spell {
   display: inline-flex;
   flex-direction: column;
@@ -14964,6 +15041,28 @@ body:has(#academy-arena-screen.active) .layout {
 
 .arena-log p { margin: 0 0 4px; color: var(--arena-ink); font-size: 0.85rem; }
 .arena-log-note { color: var(--arena-danger); }
+
+/* 記録の行: 属性の一字・手の主 → 相手・数。数は名のすぐ後ろ（右の端へ離さない）。 */
+.arena-log p.arena-log-row { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.arena-log-el {
+  flex: 0 0 auto;
+  width: 1.5em;
+  text-align: center;
+  font-family: var(--arena-mark-serif);
+  color: var(--arena-ink-dim);
+}
+.arena-log-el[data-element="light"] { color: var(--arena-el-light); }
+.arena-log-el[data-element="dark"] { color: var(--arena-el-dark); }
+.arena-log-el[data-element="fire"] { color: var(--arena-el-fire); }
+.arena-log-el[data-element="water"] { color: var(--arena-el-water); }
+.arena-log-el[data-element="earth"] { color: var(--arena-el-earth); }
+.arena-log-el[data-element="wind"] { color: var(--arena-el-wind); }
+.arena-log-arrow { color: var(--arena-ink-dim); }
+.arena-log-num { font-variant-numeric: tabular-nums; color: var(--arena-ink-strong); }
+.arena-log-row--miss .arena-log-num { color: var(--arena-ink-dim); }
+.arena-log-row--heal .arena-log-num { color: rgb(var(--combat-mend-hp)); }
+.arena-log-row--critical .arena-log-num { color: var(--arena-gold); font-size: 1.15em; }
+.arena-log p.arena-log-row--down { display: block; text-align: center; color: var(--arena-crimson); letter-spacing: 0.12em; }
 
 /* --- responsive: stack the two-column body on narrow screens (like the dungeon) so the board keeps a usable
    size and the rail flows beneath it --- */
@@ -15420,7 +15519,7 @@ body:has(#academy-auction-screen.active) .layout {
   gap: 16px;
 }
 
-/* 字の釦（入札・降りる・出品する・出品しない・一品目へ）: 琥珀の線の楕円。押せないときは線も字も薄い。 */
+/* 字のボタン（入札・降りる・出品する・出品しない・一品目へ）: 琥珀の線の楕円。押せないときは線も字も薄い。 */
 .academy-auction-word-button {
   display: inline-flex;
   align-items: center;
@@ -15465,7 +15564,7 @@ body:has(#academy-auction-screen.active) .layout {
 .academy-auction-bid-amount { font-variant-numeric: tabular-nums; }
 .academy-auction-bid-amount:empty { display: none; }
 
-/* ── 閉場: 今宵の結果が舞台に立ち、右上の出る紋で露台へ戻る ── */
+/* ── 閉場: 今宵の結果が舞台に立ち、右上の出るアイコンで露台へ戻る ── */
 .academy-auction-closed {
   position: absolute;
   left: calc(50% - 320px);
@@ -15497,7 +15596,7 @@ body:has(#academy-auction-screen.active) .layout {
 .academy-auction-closed-results li[data-result="passed_in"] { color: var(--venue-word-quiet); }
 
 /* ── 出品の段: 出品できる品の窓が舞台の中ほどに立つ。窓は品の数によらず上下の余白が同じ位置（画面の縦の中ほど）に
-   置き、背は画面の高さの 75% まで。越える分は一覧の中だけが流れ、見出し・結末の二句・釦は動かない ── */
+   置き、背は画面の高さの 75% まで。越える分は一覧の中だけが流れ、見出し・結末の二句・ボタンは動かない ── */
 .academy-auction-consignment {
   position: absolute;
   inset: 0;
@@ -15642,12 +15741,6 @@ body:has(#academy-auction-screen.active) .layout {
 }
 
 .academy-auction-consignment-empty p { margin: 0; }
-
-.academy-auction-consignment-empty-art .terrace-empty-art {
-  width: 56px;
-  height: 56px;
-  opacity: 0.75;
-}
 
 .academy-auction-consignment-empty-title {
   color: var(--auction-ivory);

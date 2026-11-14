@@ -6,7 +6,7 @@ import {
   startArenaMatch,
   applyArenaMatchAction,
   replayArenaMatch,
-  generateArenaMatchIntro,
+  generateArenaMatchVoices,
   generateArenaTournamentResultFlavor
 } from '../arena/arenaSession.mjs';
 
@@ -15,7 +15,7 @@ import {
 // state, engine stepping, reward granting, and LLM flavor generation live in arenaSession; thrown status errors
 // are mapped to JSON responses by the server's top-level handler.
 //
-// The two LLM flavor routes (match intro / result flavor) resolve the LM config FIRST, so an unconfigured /
+// The two LLM flavor routes (match voices / result flavor) resolve the LM config FIRST, so an unconfigured /
 // unreachable LM is a clean 503 with nothing consumed — and, because flavor is independent of combat / reward /
 // bracket, the non-flavor routes stay LM-free (arena's combat + reward flow needs no LM).
 const ARENA_FIXED_ROUTES = new Set([
@@ -23,7 +23,7 @@ const ARENA_FIXED_ROUTES = new Set([
   'POST /api/arena/enter',
   'POST /api/arena/match/start',
   'POST /api/arena/action',
-  'POST /api/arena/match/intro',
+  'POST /api/arena/match/voices',
   'POST /api/arena/result-flavor'
 ]);
 const ARENA_REPLAY_PATTERN = /^\/api\/arena\/match\/([^/]+)\/replay$/;
@@ -46,11 +46,11 @@ export async function handleArenaApi({ req, res, url, context, sendJson, readBod
   if (req.method === 'GET' && url.pathname === '/api/arena/state') {
     return sendJson(res, await getArenaState({ root, authoringRoot }));
   }
-  if (req.method === 'POST' && url.pathname === '/api/arena/match/intro') {
+  if (req.method === 'POST' && url.pathname === '/api/arena/match/voices') {
     // Resolve the LM config first (clean 503 if unconfigured); flavor is independent of the combat/reward flow.
     const config = await ensureLmStudioConversationConfig(context);
     const body = await readBody(req);
-    return sendJson(res, await generateArenaMatchIntro({ root, config, matchId: body.match_id }));
+    return sendJson(res, await generateArenaMatchVoices({ root, config, matchId: body.match_id }));
   }
   if (req.method === 'POST' && url.pathname === '/api/arena/result-flavor') {
     const config = await ensureLmStudioConversationConfig(context);

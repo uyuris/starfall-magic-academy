@@ -666,7 +666,7 @@ html.ap-page :is(.ap-peek-face, .ap-pick-face):is(:hover, :focus-visible, .is-ch
   filter: brightness(1.12) drop-shadow(0 0 8px var(--ap-moon)) drop-shadow(0 0 18px var(--ap-starlight));
 }
 
-/* 「ここに行く」は露台の送る釦の紋（字は aria-label）。閉じるの印と並ぶ、一回り大きい行き先の印。 */
+/* 「ここに行く」は露台の送るボタンのアイコン（字は aria-label）。閉じるの印と並ぶ、一回り大きい行き先の印。 */
 html.ap-page .ap-way-go .ap-sigil-mark {
   width: 32px;
   height: 32px;

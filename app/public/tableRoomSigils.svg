@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg">
-  <!-- 表の部屋（調合・工房・錬成室）と待ちの紋。紋ごとの <symbol>（id は table-sigil-<名>）を、起動時に文書の置き場へ写して <use> で引く。
-       露台の紋（hubTerraceSigils.svg）と同じ作法: 藍の面（#2a3070）・月白の線（#dde3f6）・金の灯り（#e8c877）。文字は描かない。
-       調合の分類五つ（gift・ally_boost・self_boost・dungeon_consumable・product）と、錬成室の釦四つ（synthesize・visit・farewell・kindle）と、錬成の仕方二つ（manual・omakase）と、待つあいだ右下で回る紋（wait）。 -->
+  <!-- 表の部屋（調合・工房・錬成室）と待ちのアイコン。アイコンごとの <symbol>（id は table-sigil-<名>）を、起動時に文書の置き場へ写して <use> で引く。
+       露台のアイコン（hubTerraceSigils.svg）と同じ作法: 藍の面（#2a3070）・月白の線（#dde3f6）・金の灯り（#e8c877）。文字は描かない。
+       調合の分類五つ（gift・ally_boost・self_boost・dungeon_consumable・product）と、錬成室のボタン四つ（synthesize・visit・farewell・kindle）と、錬成の仕方二つ（manual・omakase）と、待つあいだ右下で回るアイコン（wait）。 -->
 
   <!-- 贈り物: リボンを掛けた小箱。 -->
   <symbol id="table-sigil-gift" viewBox="0 0 32 32">

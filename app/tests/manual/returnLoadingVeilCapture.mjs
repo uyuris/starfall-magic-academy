@@ -9,8 +9,8 @@
 // --lm fixture は固定応答の LM（FIXTURE の表の閉じた集合）で、知らない要求は 500 にして撮影ごと止める。--lm に LM Studio の設定
 // （lmstudio.json）の絶対パスを渡すと本物の LM で撮る: 設定の写しの base_url をこの process の中の中継に替え、中継は要求を
 // 設定の base_url へそのまま流して、要求ごとの model と応答の status を記録する（2xx 以外の応答で撮影ごと止める）。
-// --out は無いか空であること。撮った png（薄れ替わりのコマは jpg）と、場面ごとの記録（各枚の待ちの紋の段・層の段・見えている箱の有無・
-// 露台の言葉の列・紋と層の段の変わり目の時刻の列・要求を止めていた区間・LM の要求）を <out>/manifest.json に書く。
+// --out は無いか空であること。撮った png（薄れ替わりのコマは jpg）と、場面ごとの記録（各枚の待ちのアイコンの段・層の段・見えている箱の有無・
+// 露台の言葉の列・アイコンと層の段の変わり目の時刻の列・要求を止めていた区間・LM の要求）を <out>/manifest.json に書く。
 //
 // 待ちの姿は、その待ちが覆う要求を CDP Fetch の Request 段で止めている間に撮る。
 // variant:
@@ -338,7 +338,7 @@ async function startProduct(repoRoot, lmSetting) {
 }
 
 // ── 窓（CDP） ────────────────────────────────────────────────────────────────────────────────────────────────
-// 待ちの記録: 読み込みの箱の星座の線の本数と、層と待ちの紋の段の変わり目を、ページの時計で残す。
+// 待ちの記録: 読み込みの箱の星座の線の本数と、層と待ちのアイコンの段の変わり目を、ページの時計で残す。
 const INSTALL_TIMELINE = `(() => {
   if (window.__veilTimeline) return true;
   window.__veilTimeline = [];
@@ -356,7 +356,7 @@ const INSTALL_TIMELINE = `(() => {
   return true;
 })()`;
 
-// いまの待ちの姿: 層の段・待ちの紋の段（回っている turning／薄れている leaving／出ていない null）・読み込みの箱が見えているか・いま出ている画面。
+// いまの待ちの姿: 層の段・待ちのアイコンの段（回っている turning／薄れている leaving／出ていない null）・読み込みの箱が見えているか・いま出ている画面。
 const WAIT_STATE = `(() => {
   const veil = document.querySelector('#place-veil');
   const box = document.querySelector('#academy-loading-screen .academy-loading-copy');
@@ -714,9 +714,9 @@ const SCENES = {
     await failed.release();
     ctx.steps.push('press 調合室を出る with POST /api/routing/hub/start failed by CDP Fetch');
     if (ctx.options.variant === 'after') {
-      await page.waitFor(`${VEIL_UP} && document.querySelector('#place-veil').dataset.veil === 'stopped'`, 'the wait sinking', 30000);
+      await page.waitFor(`${VEIL_UP} && document.querySelector('#place-veil').dataset.veil === 'parting'`, 'the wait parting', 30000);
       await sleep(600);
-      await ctx.shoot('retry-sinking', '露台の始まりの失敗: 待ちが夜へ沈む途中');
+      await ctx.shoot('retry-parting', '露台の始まりの失敗: 待ちが暗がりを掛けたまま会話の無い露台へ薄れる途中');
     }
     await page.waitFor(`document.querySelector('#routing-hub-screen.active') && !${VEIL_UP} && !document.querySelector('#routing-hub-start-retry').hidden && !document.querySelector('#routing-hub-start-retry').disabled`, 'the conversationless terrace', 30000);
     await sleep(SETTLE_MS);

@@ -17,7 +17,7 @@
 //   empty      何も植えていない揺り籠を開いた直後。                         → built-star-cradle.png（構成案 plan-star-cradle.png と並べる）
 //   filled     第 8 週・鉢 3・生き物 3・籠 1・種と卵と素材を持つ揺り籠を開いた直後。 → built-star-cradle-filled.png
 //              続けて蕾の球根（鉢の 2 つ目）を押して選ぶ。                   → built-star-cradle-selected.png（plan-star-cradle-filled.png と並べる）
-//              続けて成体の副産物を受け取り、名付けの紋を押す。             → built-star-cradle-claimed-naming.png
+//              続けて成体の副産物を受け取り、名付けのアイコンを押す。             → built-star-cradle-claimed-naming.png
 //   bare       filled と同じ揺り籠で素材を持たずに、蕾の球根を選ぶ。       → built-star-cradle-bare.png
 import { app, BrowserWindow } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
@@ -473,7 +473,7 @@ const SCENES = {
       steps.push('press the name sigil of the adult (creature 1)');
       const naming = await shoot('built-star-cradle-claimed-naming');
       await cutClue(options, page, record, 'built-star-cradle-claimed-naming.png', naming, 'name-input-in-place', `[...document.querySelectorAll(${JSON.stringify(`${SPOT(4)} .routing-hub-star-cradle-tag`)})]`);
-      // 受け取り済みの淡い紋は名付けの入力が開くと退くので、入力を閉じてから切り出す。
+      // 受け取り済みの淡いアイコンは名付けの入力が開くと退くので、入力を閉じてから切り出す。
       await page.js(`document.querySelector(${JSON.stringify(`${SPOT(4)} .routing-hub-star-cradle-name-input`)}).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))`);
       await page.waitFor(`document.querySelector(${JSON.stringify(`${SPOT(4)} .routing-hub-star-cradle-actions button:first-child`)})?.disabled === true`, 'the name input closed');
       await sleep(SETTLE_MS);

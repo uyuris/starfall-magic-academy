@@ -25,6 +25,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixtureRoot } from '../helpers.mjs';
 import { createServer } from '../../src/server.mjs';
+import { serverFetch } from '../serverRequest.mjs';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const WIN_W = Number(process.env.SKIP_WIN_W ?? 1200);
@@ -59,8 +60,8 @@ async function main() {
 
   // Confirm the server resolves loop and the skip endpoint returns post_content_screen='academy-map'
   // (server-side truth, independent of the client wiring under test).
-  await fetch(`${base}/api/academy/week/start`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-  const skipProbe = await (await fetch(`${base}/api/training/skip`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).json();
+  await serverFetch(`${base}/api/academy/week/start`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+  const skipProbe = await (await serverFetch(`${base}/api/training/skip`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })).json();
   log('server_skip_post_content_screen', skipProbe.post_content_screen ?? null);
 
   await app.whenReady();

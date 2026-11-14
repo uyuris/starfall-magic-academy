@@ -527,13 +527,7 @@
         <div class="routing-hub-backdrop" aria-hidden="true">
           <div class="routing-hub-background"></div>
           <canvas id="routing-hub-starfield" class="routing-hub-starfield"></canvas>
-          <!-- 露台の向こう: 覗いた場所・戻った場所・送り出しで開く場所の絵を置く（hubTerrace.js が描く）。 -->
-          <div class="terrace-beyond">
-            <div class="terrace-place-art" data-terrace-art="peek"></div>
-            <div class="terrace-place-art" data-terrace-art="return"></div>
-            <div class="terrace-place-art" data-terrace-art="opening"></div>
-          </div>
-          <!-- 能力の紋の置き場: hubTerraceSigils.svg の symbol を起動時に写し、帯の紋が <use> で引く（hubTerrace.js）。 -->
+          <!-- 能力のアイコンの置き場: hubTerraceSigils.svg の symbol を起動時に写し、帯のアイコンが <use> で引く（hubTerrace.js）。 -->
           <svg id="terrace-sigil-symbols" class="terrace-sigil-symbols" aria-hidden="true" focusable="false"></svg>
           <!-- 卒業の沈み（metaJourney.js の walkGraduationRoad が中を描く）: 露台の絵を沈ませ、夜の色を重ねる。 -->
           <div class="graduation-dusk" aria-hidden="true"></div>
@@ -574,13 +568,13 @@
           </figure>
           <div id="routing-hub-message-stream" class="routing-hub-message-stream" aria-live="polite"></div>
           <p id="routing-hub-status" class="routing-hub-status" aria-live="polite" hidden></p>
-          <!-- 書く口: 札も枠も置かず、羽根ペンの紋と下の一本の線で示す。 -->
+          <!-- 書く口: 札も枠も置かず、羽根ペンのアイコンと下の一本の線で示す。 -->
           <label class="routing-hub-composer">
             <svg class="terrace-icon terrace-write-mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false"> <defs><linearGradient id="terrace-icon-write-fill" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#525aa6" /><stop offset="1" stop-color="#20245a" /></linearGradient></defs> <path d="M26.5 4 C17.5 6 11.5 13 9 22 L10.5 23.5 C19.5 21 25.5 14 26.5 4 Z" fill="url(#terrace-icon-write-fill)" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" /> <path d="M24.4 7 C18.6 11 13.6 16 10.2 22.6" fill="none" stroke="#dde3f6" stroke-width="0.8" /> <path d="M9 22 L5.2 27.6" fill="none" stroke="#dde3f6" stroke-width="1.4" stroke-linecap="round" /> <path d="M24.50 23.80 L25.07 25.43 L26.70 26.00 L25.07 26.57 L24.50 28.20 L23.93 26.57 L22.30 26.00 L23.93 25.43 Z" fill="#e8c877" /> </svg>
             <textarea id="routing-hub-input" aria-label="案内人に話しかける"></textarea>
           </label>
           <div class="routing-hub-button-row">
-            <!-- ハブへの戻しをやり直す紋の釦: ハブの会話の開始が失敗した着地にだけ出る。名は aria-label だけに持ち、文字は出さない。 -->
+            <!-- ハブへの戻しをやり直すアイコンのボタン: ハブの会話の開始が失敗した着地にだけ出る。名は aria-label だけに持ち、文字は出さない。 -->
             <button id="routing-hub-start-retry" type="button" class="routing-hub-start-retry" aria-label="もう一度" hidden>
               <svg class="routing-hub-start-retry-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <path class="routing-hub-start-retry-orbit" d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
@@ -815,18 +809,18 @@
         </div>
 
         <div class="an-venue" id="arena-venue" aria-hidden="true"></div>
+        <div class="arena-reaction" id="arena-reaction" aria-hidden="true" hidden></div>
         <div id="arena-match" class="arena-match" hidden>
           <header class="arena-hud">
             <div id="arena-hud-status" class="arena-hud-status" aria-label="試合状況"></div>
             <button id="arena-match-back" type="button" class="venue-sigil-button arena-match-back"></button>
           </header>
 
-          <div id="arena-match-intro" class="arena-match-intro" role="status" aria-live="polite" hidden></div>
-
           <div class="arena-body">
             <div class="arena-stage">
               <div id="arena-grid" class="arena-grid" role="grid" aria-label="闘技会の盤面"></div>
               <p class="an-mark" id="arena-mark" role="status" aria-live="polite"></p>
+              <p class="arena-voice" id="arena-voice" role="status" aria-live="polite"></p>
               <div id="arena-consumable-prompt" class="arena-consumable-prompt" hidden role="status" aria-live="polite"></div>
             </div>
 
@@ -1122,7 +1116,7 @@
         <ul id="academy-errand-offers" class="room-cards"></ul>
         <div class="room-cards-trouble">
           <p id="academy-errand-status" class="room-cards-status" role="status" aria-live="polite" hidden></p>
-          <!-- 札の要求をやり直す紋の釦: 札の要求が失敗したときだけ出る。名は aria-label だけに持ち、文字は出さない（露台の「もう一度」の形）。 -->
+          <!-- 札の要求をやり直すアイコンのボタン: 札の要求が失敗したときだけ出る。名は aria-label だけに持ち、文字は出さない（露台の「もう一度」の形）。 -->
           <button type="button" id="academy-errand-retry" class="room-cards-retry" aria-label="もう一度" hidden>
             <svg class="room-cards-retry-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path class="room-cards-retry-orbit" d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
@@ -1315,7 +1309,6 @@
         <div class="academy-library-corner academy-library-corner-tr" aria-hidden="true"></div>
         <div class="academy-library-corner academy-library-corner-br" aria-hidden="true"></div>
         <div class="academy-library-corner academy-library-corner-bl" aria-hidden="true"></div>
-        <div class="academy-library-sleep" aria-hidden="true"></div>
         <div class="academy-library-measure" aria-hidden="true"></div>
       </section>
 
@@ -1330,7 +1323,7 @@
         <ul id="academy-study-circle-offers" class="room-cards"></ul>
         <div class="room-cards-trouble">
           <p id="academy-study-circle-status" class="room-cards-status" role="status" aria-live="polite" hidden></p>
-          <!-- 札の要求をやり直す紋の釦: 札の要求が失敗したときだけ出る。名は aria-label だけに持ち、文字は出さない（露台の「もう一度」の形）。 -->
+          <!-- 札の要求をやり直すアイコンのボタン: 札の要求が失敗したときだけ出る。名は aria-label だけに持ち、文字は出さない（露台の「もう一度」の形）。 -->
           <button type="button" id="academy-study-circle-retry" class="room-cards-retry" aria-label="もう一度" hidden>
             <svg class="room-cards-retry-glyph" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path class="room-cards-retry-orbit" d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3" />
@@ -1366,7 +1359,7 @@
               <ul id="academy-atelier-slots" class="academy-atelier-slots" aria-label="錬成室のホムンクルス一覧"></ul>
               <section class="academy-atelier-shelf" aria-labelledby="academy-atelier-shelf-name">
                 <h3 id="academy-atelier-shelf-name" class="academy-atelier-shelf-name">銘棚</h3>
-                <div id="academy-atelier-nameplates-empty" class="academy-atelier-nameplates-empty"></div>
+                <p id="academy-atelier-nameplates-empty" class="academy-atelier-nameplates-empty">まだ銘はない。</p>
                 <ul id="academy-atelier-nameplates" class="academy-atelier-nameplates" aria-label="見送った子の銘一覧"></ul>
               </section>
             </div>
@@ -1404,22 +1397,21 @@
           <p id="academy-atelier-lede" class="academy-atelier-lede"><span class="academy-atelier-lede-sentence">素材を十選んで硝子の器へ注ぎ、ホムンクルスを錬成できる。</span><span class="academy-atelier-lede-sentence">ホムンクルスとは交流できる。</span><span class="academy-atelier-lede-sentence">そばに置けるのは三人まで、お別れした子の銘は銘棚に残る。</span></p>
         </div>
 
-        <div id="academy-atelier-confirm-popup" class="academy-atelier-confirm-popup" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-confirm-title">
-          <div class="academy-atelier-confirm-backdrop"></div>
-          <div class="academy-atelier-confirm-card">
-            <h3 id="academy-atelier-confirm-title" class="academy-atelier-confirm-title">この錬成を確定しますか</h3>
-            <p id="academy-atelier-confirm-body" class="academy-atelier-confirm-body"></p>
-            <div class="academy-atelier-confirm-actions">
-              <button type="button" id="academy-atelier-confirm-cancel" class="academy-atelier-confirm-cancel">戻る</button>
-              <button type="button" id="academy-atelier-confirm-accept" class="academy-atelier-confirm-accept">確定する</button>
+        <div id="academy-atelier-confirm-popup" class="dn-modal" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-confirm-title">
+          <div class="dn-modal-panel">
+            <h2 id="academy-atelier-confirm-title">この錬成を確定しますか</h2>
+            <p id="academy-atelier-confirm-body" class="dn-modal-message"></p>
+            <div class="dn-modal-actions">
+              <button type="button" id="academy-atelier-confirm-cancel" class="dn-quiet">戻る</button>
+              <button type="button" id="academy-atelier-confirm-accept" class="dn-dive">確定する</button>
             </div>
           </div>
         </div>
 
-        <div id="academy-atelier-result-popup" class="academy-atelier-result-popup" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-result-name">
-          <div class="academy-atelier-result-frame">
+        <div id="academy-atelier-result-popup" class="dn-modal academy-atelier-result-popup" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-result-name">
+          <div class="dn-modal-panel academy-atelier-result-frame">
             <header class="academy-atelier-result-head">
-              <h3 id="academy-atelier-result-name" class="academy-atelier-result-name"></h3>
+              <h2 id="academy-atelier-result-name"></h2>
               <p class="academy-atelier-result-lead">この子が生まれました。</p>
             </header>
             <div class="academy-atelier-result-body">
@@ -1435,30 +1427,33 @@
               <p class="academy-atelier-result-heading">使った素材</p>
               <ul id="academy-atelier-result-consumed-list" class="academy-atelier-result-consumed-list" aria-label="使った素材"></ul>
             </div>
-            <button type="button" id="academy-atelier-result-close" class="academy-atelier-result-close">とじる</button>
-          </div>
-        </div>
-
-        <div id="academy-atelier-farewell-confirm-popup" class="academy-atelier-farewell-confirm-popup" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-farewell-confirm-title">
-          <div class="academy-atelier-farewell-confirm-backdrop"></div>
-          <div class="academy-atelier-farewell-confirm-card">
-            <h3 id="academy-atelier-farewell-confirm-title" class="academy-atelier-farewell-confirm-title">お別れしますか</h3>
-            <p id="academy-atelier-farewell-confirm-body" class="academy-atelier-farewell-confirm-body"></p>
-            <div class="academy-atelier-farewell-confirm-actions">
-              <button type="button" id="academy-atelier-farewell-confirm-cancel" class="academy-atelier-farewell-confirm-cancel">やめる</button>
-              <button type="button" id="academy-atelier-farewell-confirm-accept" class="academy-atelier-farewell-confirm-accept">お別れする</button>
+            <div class="dn-modal-actions">
+              <button type="button" id="academy-atelier-result-close" class="dn-dive">とじる</button>
             </div>
           </div>
         </div>
 
-        <div id="academy-atelier-farewell-speech-popup" class="academy-atelier-farewell-speech-popup" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-farewell-speech-name">
-          <div class="academy-atelier-farewell-speech-frame">
+        <div id="academy-atelier-farewell-confirm-popup" class="dn-modal" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-farewell-confirm-title">
+          <div class="dn-modal-panel">
+            <h2 id="academy-atelier-farewell-confirm-title">お別れしますか</h2>
+            <p id="academy-atelier-farewell-confirm-body" class="dn-modal-message"></p>
+            <div class="dn-modal-actions">
+              <button type="button" id="academy-atelier-farewell-confirm-cancel" class="dn-quiet">やめる</button>
+              <button type="button" id="academy-atelier-farewell-confirm-accept" class="dn-dive">お別れする</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="academy-atelier-farewell-speech-popup" class="dn-modal" hidden role="dialog" aria-modal="true" aria-labelledby="academy-atelier-farewell-speech-name">
+          <div class="dn-modal-panel academy-atelier-farewell-speech-frame">
             <header class="academy-atelier-farewell-speech-head">
-              <h3 id="academy-atelier-farewell-speech-name" class="academy-atelier-farewell-speech-name"></h3>
+              <h2 id="academy-atelier-farewell-speech-name"></h2>
               <p id="academy-atelier-farewell-speech-epitaph" class="academy-atelier-farewell-speech-epitaph"></p>
             </header>
             <div id="academy-atelier-farewell-speech-text" class="academy-atelier-farewell-speech-text"></div>
-            <button type="button" id="academy-atelier-farewell-speech-close" class="academy-atelier-farewell-speech-close">送り出す</button>
+            <div class="dn-modal-actions">
+              <button type="button" id="academy-atelier-farewell-speech-close" class="dn-dive">送り出す</button>
+            </div>
           </div>
         </div>
       </section>
@@ -1862,19 +1857,17 @@
       <div class="place-veil-dusk"></div>
     </div>
 
-    <!-- 待ちの紋（app.js の syncWaitSigil）: 場所の絵の上の待ちと読み込みの箱が出ているあいだ、右下の隅で回り続ける。夜の道行きの層と
+    <!-- 待ちのアイコン（app.js の syncWaitSigil）: 場所の絵の上の待ちと読み込みの箱が出ているあいだ、右下の隅で回り続ける。夜の道行きの層と
          場所の絵の上の待ちより上に置き、星の道の上にも出る。tableRoomSigils.svg の symbol を引く。 -->
     <svg id="wait-sigil" class="wait-sigil" viewBox="0 0 32 32" aria-hidden="true" focusable="false" hidden>
       <use href="#table-sigil-wait" />
     </svg>
 
-    <!-- 表の部屋の紋の置き場: tableRoomSigils.svg の symbol を起動時に写し、調合・錬成室の紋が <use> で引く（app.js の loadTableRoomSigils）。 -->
+    <!-- 表の部屋のアイコンの置き場: tableRoomSigils.svg の symbol を起動時に写し、調合・錬成室のアイコンが <use> で引く（app.js の loadTableRoomSigils）。 -->
     <svg id="table-room-sigil-symbols" class="table-room-sigil-symbols" aria-hidden="true" focusable="false"></svg>
 
-    <!-- 露台の送り出しの幕:行き先が決まると露台の向こうで開いた場所（絵の無い行き先は夜）が画面を満たし、製品はその下で行き先へ進む。 -->
-    <div id="terrace-opened" class="terrace-opened" aria-hidden="true" hidden>
-      <div class="terrace-opened-art"></div>
-    </div>
+    <!-- 露台の送り出しの幕: 行き先が決まると絵を持たない夜が画面を満たしてハブを沈め、製品はその下で行き先へ進む（hubTerrace.js）。 -->
+    <div id="terrace-opened" class="terrace-opened" aria-hidden="true" hidden></div>
 
     <!-- 学院マップの見せ方の層（academyMapLayer.*）: 製品の学院マップの上に置き、押された所は製品のピン・「ここに行く」・相手のカード・
          閉じるを押す。 -->

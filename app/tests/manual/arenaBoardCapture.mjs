@@ -22,7 +22,7 @@
 //   replay       能力値を上限にした主人公で一回戦を勝って戻った表（一回戦の組が明かされた所）から、自動の試合の見返し（入り・番の輪・
 //                決着・表へ戻る）
 //   timing-champion / timing-eliminated      大会一回分の長さ（r1 の送り方: 撃てる魔法の先頭→撃てなければ待機・応答のあと 700ms で次・
-//                表では試合を始める紋が出たらすぐ押す）。champion は能力値を上限にした主人公
+//                表では試合を始めるアイコンが出たらすぐ押す）。champion は能力値を上限にした主人公
 //   timing-champion-flow / timing-eliminated-flow   同じ大会を、一手の流れが終わって呪文の欄が戻ってから次を送る形で
 import { app, BrowserWindow } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
@@ -72,9 +72,23 @@ const FIXTURE_PROMPT_ANSWERS = [
   ['skill_record作成の必要性判定', 'false']
 ];
 const ARENA_ANNOUNCE_MARKER = 'あなたは魔法学院の闘技会の場内アナウンスの地の文を綴る。';
-const ARENA_INTRO_ASK = '次の試合の開始を告げる短い口上を書く。';
-const ARENA_INTRO_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
+const ARENA_OPENING_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
 const ARENA_RESULT_LINE = '篝火に照らされた円形の場に、今宵の勝ち名乗りが高く告げられた。';
+
+// 試合の五つの声（構造化出力 arena_match_voices）。誰の身に起きたかの名は応答の形に一つに決まっているので、そのまま写す。
+function arenaMatchVoices(schema, opening) {
+  const side = (key, voice) => {
+    const fields = Object.entries(schema.properties[key].properties).filter(([field]) => field !== '声');
+    return { ...Object.fromEntries(fields.map(([field, fixed]) => [field, fixed.enum[0]])), 声: voice };
+  };
+  return {
+    opening,
+    east_edge: side('east_edge', '東方、ついに後がない！'),
+    west_edge: side('west_edge', '西方、ついに後がない！'),
+    east_wins: side('east_wins', '決着だ！東方が勝ち名乗りを上げた！'),
+    west_wins: side('west_wins', '決着だ！西方が勝ち名乗りを上げた！')
+  };
+}
 
 function createFixtureLm(hubLines) {
   return function answer(body) {
@@ -82,13 +96,14 @@ function createFixtureLm(hubLines) {
     const schemaName = body.response_format?.json_schema?.name ?? null;
     if (schemaName === 'character_emotion_choice') return { content: JSON.stringify({ expression: 'neutral' }) };
     if (schemaName === 'work_record_recall_choice') return { content: JSON.stringify({ work_record_ids: [] }) };
+    if (schemaName === 'arena_match_voices') return { content: JSON.stringify(arenaMatchVoices(body.response_format.json_schema.schema, ARENA_OPENING_LINE)) };
     if (schemaName !== null) throw new Error(`fixture lm: unknown structured request ${schemaName}`);
     if (prompt.includes('destination_idを1つだけ返す')) {
       const matches = Object.entries(hubLines).filter(([, line]) => prompt.includes(line));
       return { content: matches.length === 1 ? matches[0][0] : 'none' };
     }
     if (prompt.includes('これはイベントフラグ判定')) return { content: 'false' };
-    if (prompt.includes(ARENA_ANNOUNCE_MARKER)) return { content: prompt.includes(ARENA_INTRO_ASK) ? ARENA_INTRO_LINE : ARENA_RESULT_LINE };
+    if (prompt.includes(ARENA_ANNOUNCE_MARKER)) return { content: ARENA_RESULT_LINE };
     for (const [marker, content] of FIXTURE_PROMPT_ANSWERS) if (prompt.includes(marker)) return { content };
     if (body.model === FIXTURE_CHAT_MODEL && body.stream === true) return { content: '（顔を上げて）ええ、行ってらっしゃい。' };
     if (body.model === FIXTURE_REFLECTION_MODEL && body.stream !== true) return { content: '学院で主人公と少し話した。' };
@@ -339,7 +354,7 @@ const BOARD_STATE = `(() => {
     mark: mark.classList.contains('is-shown') ? mark.textContent : null,
     dock: dock.hidden ? 'hidden' : dock.classList.contains('is-flowing') ? 'sunk' : 'up',
     turn: [...document.querySelectorAll('#arena-hud-status .an-hud-actor--turn .an-hud-actor-name')].map((node) => node.textContent),
-    intro: document.querySelector('#arena-match-intro').dataset.state ?? null,
+    voice: document.querySelector('#arena-voice').dataset.kind ?? null,
     tokens,
     effects: { bolt: document.querySelectorAll('.an-bolt').length, impact: document.querySelectorAll('.an-impact').length, flash: [...document.querySelectorAll('.an-flash')].map((node) => node.getAnimations().map((a) => a.playState + '@' + Math.round(a.currentTime)).join('|') + ' op=' + getComputedStyle(node).opacity) }
   };
@@ -513,7 +528,7 @@ async function sendFirstOrWait(ctx) {
   return 'wait';
 }
 
-// 試合を始める紋を押してから、表（か結果の段）へ戻るまで一試合を送る。gap: 'r1' は応答のあと SEND_GAP_MS で次、'flow' は一手の
+// 試合を始めるアイコンを押してから、表（か結果の段）へ戻るまで一試合を送る。gap: 'r1' は応答のあと SEND_GAP_MS で次、'flow' は一手の
 // 流れが終わって呪文の欄が戻ってから次。perAction(index) が計画を返せば、その手でその瞬間を撮る。
 async function playMatch(ctx, { gap, entrance = null, perAction = () => [], windowMs = 2500 }) {
   const { page } = ctx;
@@ -590,7 +605,7 @@ async function winScene(ctx) {
     ['2-entry-0', 30, '入り 0 秒（盤が開いた所）'],
     ['3-entry-012', 250, '入り 0.12 秒の後（相手の輪が開いていく）'],
     ['4-entry-038', 500, '入り 0.38 秒の後（相手が輪から立ち、自陣の輪が開く）'],
-    ['5-entry-1', 1300, '入り 1 秒の後（輪がほどけ、口上と呪文の欄が出て、主人公に番の輪）']
+    ['5-entry-1', 1300, '入り 1 秒の後（輪がほどけ、始まりの一声と呪文の欄が出て、主人公に番の輪）']
   ])];
   const decisive = [DECISIVE([
     ['b3-0-decisive-0', 70, '決着 0 秒（決める一撃: 盤が白み、着弾がひとまわり大きい。白みの山の 65ms の直後）'],
@@ -675,7 +690,7 @@ async function replayScene(ctx) {
   const { page } = ctx;
   await enterArena(ctx, 'solo');
   await page.waitFor(`${settled(ARENA)} && ${FIGHT}`, 'the bracket settled');
-  // 見返しの目は明かした自動の組（節の解けた組）にだけ出る: 一回戦を勝って戻り、表の明かしが済んで試合を始める紋が出るまで待つ。
+  // 見返しの目は明かした自動の組（節の解けた組）にだけ出る: 一回戦を勝って戻り、表の明かしが済んで試合を始めるアイコンが出るまで待つ。
   const opener = await playMatch(ctx, { gap: 'r1' });
   if (!opener.won) throw new Error('the replay scene needs the first match won (strong protagonist)');
   await page.waitFor(`${settled(ARENA)} && ${FIGHT}`, 'the bracket revealed after the first match', 15000);

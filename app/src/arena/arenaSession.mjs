@@ -17,7 +17,7 @@ import { loadDungeonMaterialDefinitions, dungeonMaterialDisplayNames } from '../
 import { applyPlayerMoneyDelta, depositDungeonMaterials } from '../economy.mjs';
 import { loadRunConsumables } from '../dungeon/combatConsumables.mjs';
 import { buildArenaContentResult, ROUTING_CONTENT_RESULT_STATE_KEY } from '../routingContentResult.mjs';
-import { generateArenaIntro, generateArenaResultFlavor } from '../llm/arenaGeneration.mjs';
+import { generateArenaVoices, generateArenaResultFlavor } from '../llm/arenaGeneration.mjs';
 import { createArenaMatch, arenaMatchView, arenaStep, runArenaMatchAuto } from './arenaEngine.mjs';
 import {
   ARENA_BRACKET_UNIT_COUNT, ARENA_MODES,
@@ -26,7 +26,7 @@ import {
   advanceArenaTournament, findPlayerCurrentMatch, arenaMatchTeams, recordPlayerMatchWinner,
   isArenaTournamentTerminal, arenaTournamentOutcome, arenaTournamentWins, computeArenaReward,
   arenaTournamentView, findArenaReplayMatch, ARENA_TOURNAMENT_STATE_KEY,
-  arenaIntroPromptInputs, arenaResultPromptInputs, arenaMatchIntro, setArenaMatchIntro,
+  arenaVoicesPromptInputs, arenaResultPromptInputs, arenaMatchVoices, setArenaMatchVoices,
   arenaResultFlavor, setArenaResultFlavor
 } from './arenaTournament.mjs';
 
@@ -69,8 +69,8 @@ function arenaRewardConversationKey(week) {
 // ----- runtime_state write serialization (per root) -----
 //
 // runtime_state.json is written with a plain read-modify-write (no storage-level lock, and the HTTP server does
-// not serialize requests). The flavor writers (intro / result) are the FIRST arena writers that can run
-// concurrently with a match action: the intro fetch is deliberately outside the frontend action single-flight, so
+// not serialize requests). The flavor writers (voices / result) are the FIRST arena writers that can run
+// concurrently with a match action: the voices fetch is deliberately outside the frontend action single-flight, so
 // its persist can interleave with — and silently revert (lost update) — an action's bracket-advance / terminal
 // commit (`concluded`+`rewards_paid`+`content_result`), which would violate the terminal-atomicity invariant.
 // This per-root async mutex serializes every arena runtime_state read-modify-write, so a flavor persist and an
@@ -459,7 +459,7 @@ export async function replayArenaMatch({ root, matchId }) {
   };
 }
 
-// ----- LLM flavor (試合前口上 / 優勝・敗退実況一文) -----
+// ----- LLM flavor (試合の声 / 優勝・敗退実況一文) -----
 //
 // Both surfaces are INDEPENDENT of the combat / reward / terminal commit: they only read the resolved bracket and
 // idempotently persist the generated text back into the slot's flavor fields. A generation failure (structured
@@ -467,33 +467,34 @@ export async function replayArenaMatch({ root, matchId }) {
 // unreachable LM leaves every non-flavor arena flow intact. The first generation is the persisted truth; a
 // re-request for a match/tournament that already has flavor returns the stored value without calling the model.
 
-// Generates (or returns the persisted) 口上 for a player-facing match — the player's current match or a resolved
-// auto (spectator-replayable) match. Persists idempotently; the visit's prior intros feed the 散らし handoff.
-export async function generateArenaMatchIntro({ root, config, fetchImpl, matchId }) {
-  if (!config) throw new Error('lmStudioConfig is required for arena match intro');
+// Generates (or returns the persisted) five voices for a player-facing match — the player's current match or a
+// resolved auto (spectator-replayable) match. One model call per match: persisted voices are returned without a
+// call. Persists idempotently; the visit's prior voices feed the 散らし handoff.
+export async function generateArenaMatchVoices({ root, config, fetchImpl, matchId }) {
+  if (!config) throw new Error('lmStudioConfig is required for arena match voices');
   const storage = createStorageApi({ root });
   const state = await storage.readJson(RUNTIME_STATE_PATH);
   const slot = readArenaTournamentSlot(state);
   if (!slot) throw statusError('no arena tournament is in progress', 409, { errorCode: 'no_tournament' });
 
-  const persisted = arenaMatchIntro(slot, matchId);
-  if (persisted) return { match_id: matchId, intro: persisted };
+  const persisted = arenaMatchVoices(slot, matchId);
+  if (persisted) return { match_id: matchId, voices: persisted };
 
-  // arenaIntroPromptInputs validates the match is player-facing (statusCode on a non-viewable / undetermined id).
-  const inputs = arenaIntroPromptInputs(slot, matchId);
-  const intro = await generateArenaIntro({ config, fetchImpl, ...inputs }); // LM call OUTSIDE the write lock
+  // arenaVoicesPromptInputs validates the match is player-facing (statusCode on a non-viewable / undetermined id).
+  const inputs = arenaVoicesPromptInputs(slot, matchId);
+  const voices = await generateArenaVoices({ config, fetchImpl, ...inputs }); // LM call OUTSIDE the write lock
 
   // Persist under the write lock so the read-latest→merge→write can never interleave with an action / terminal
-  // write (which would silently revert it). Only the match_intros key is added onto whatever the latest slot is.
+  // write (which would silently revert it). Only the match's voices are added onto whatever the latest slot is.
   return withArenaWriteLock(root, async () => {
     const latestState = await storage.readJson(RUNTIME_STATE_PATH);
     const latestSlot = readArenaTournamentSlot(latestState);
     if (!latestSlot) throw statusError('no arena tournament is in progress', 409, { errorCode: 'no_tournament' });
-    const already = arenaMatchIntro(latestSlot, matchId);
-    if (already) return { match_id: matchId, intro: already }; // a concurrent request already persisted it
-    const updated = setArenaMatchIntro(latestSlot, matchId, intro);
+    const already = arenaMatchVoices(latestSlot, matchId);
+    if (already) return { match_id: matchId, voices: already }; // a concurrent request already persisted them
+    const updated = setArenaMatchVoices(latestSlot, matchId, voices);
     await storage.writeJson(RUNTIME_STATE_PATH, { ...latestState, [ARENA_TOURNAMENT_STATE_KEY]: updated });
-    return { match_id: matchId, intro: arenaMatchIntro(updated, matchId) };
+    return { match_id: matchId, voices: arenaMatchVoices(updated, matchId) };
   });
 }
 

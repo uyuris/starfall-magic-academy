@@ -28,6 +28,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { serverFetch } from '../serverRequest.mjs';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PUBLIC_ROOT = path.join(PROJECT_ROOT, 'app/public');
@@ -81,7 +82,7 @@ async function startGameServer({ root, settingsPath }) {
 }
 
 async function jsonPost(base, route, body) {
-  const response = await fetch(`${base}${route}`, {
+  const response = await serverFetch(`${base}${route}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body ?? {})

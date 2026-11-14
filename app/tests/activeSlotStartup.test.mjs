@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import { createServer } from '../src/server.mjs';
 import { createSaveSlot as createSaveSlotCore, loadSaveSlot } from '../src/saveLoad.mjs';
 import { fixtureRoot, isolatedServerOptions, readJson, writeJson } from './helpers.mjs';
+import { serverFetch } from './serverRequest.mjs';
 
 function createSaveSlot(options) {
   return createSaveSlotCore({ playMode: 'loop', ...options });
@@ -24,7 +25,7 @@ async function withHttpServer(t, root, serverOptions = {}) {
 }
 
 async function jsonFetch(url, options) {
-  const response = await fetch(url, {
+  const response = await serverFetch(url, {
     headers: { 'content-type': 'application/json', ...(options?.headers ?? {}) },
     ...options
   });

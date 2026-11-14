@@ -10,6 +10,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { fixtureRoot, isolatedPlayModeSettingsPath, readJson, writeJson } from './helpers.mjs';
+import { serverFetch } from './serverRequest.mjs';
 import { projectRoot } from './testPaths.mjs';
 import { createServer } from '../src/server.mjs';
 import { initializeNewPlayArea, resolvePlayRoot } from '../src/playSession.mjs';
@@ -104,7 +105,7 @@ async function startServer(t, root) {
 }
 
 async function postJson(base, pathname, body) {
-  const response = await fetch(`${base}${pathname}`, {
+  const response = await serverFetch(`${base}${pathname}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body)

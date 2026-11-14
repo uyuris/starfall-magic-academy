@@ -22,6 +22,7 @@ import { fileURLToPath } from 'node:url';
 
 import { createServer, shutdownServer } from '../app/src/server.mjs';
 import { runtimePathsManifestFilename } from '../app/src/runtimePaths.mjs';
+import { relayHeadersToServer } from '../app/tests/serverRequest.mjs';
 
 const HOST = '127.0.0.1';
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -65,7 +66,7 @@ async function createRoot(root, lmStudioConfigBytes) {
 function startRelay(productPort) {
   const relay = createHttpServer((req, res) => {
     const startedAt = Date.now();
-    const upstream = httpRequest({ host: HOST, port: productPort, method: req.method, path: req.url, headers: req.headers }, (answer) => {
+    const upstream = httpRequest({ host: HOST, port: productPort, method: req.method, path: req.url, headers: relayHeadersToServer(req.headers, `http://${HOST}:${productPort}`) }, (answer) => {
       if (req.url.startsWith('/api/')) {
         answer.on('end', () => console.log(`${new Date().toISOString()} ${req.method} ${req.url} -> ${answer.statusCode} ${Date.now() - startedAt}ms`));
       }

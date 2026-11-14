@@ -34,6 +34,7 @@ import { promises as fs } from 'node:fs';
 import { createServer as createHttpServer, request as httpRequest } from 'node:http';
 import { createServer as createTcpServer } from 'node:net';
 import { execFileSync } from 'node:child_process';
+import { relayHeadersToServer } from '../serverRequest.mjs';
 
 // ── the server clock (frozen / moved by the harness) ──────────────────────────────────────────────────────────
 const realNow = Date.now.bind(Date);
@@ -163,7 +164,7 @@ async function startProxy(target, hooks) {
     }
     const overlookEnter = req.method === 'POST' && url.pathname === '/api/overlook/enter';
     const upstreamPath = overlookEnter ? `${url.pathname}?provider=mock` : `${url.pathname}${url.search}`;
-    const upstream = httpRequest({ host: '127.0.0.1', port: target.port, method: req.method, path: upstreamPath, headers: { ...req.headers, host: `127.0.0.1:${target.port}` } }, async (answer) => {
+    const upstream = httpRequest({ host: '127.0.0.1', port: target.port, method: req.method, path: upstreamPath, headers: relayHeadersToServer(req.headers, `http://127.0.0.1:${target.port}`) }, async (answer) => {
       if (overlookEnter || (req.method === 'POST' && url.pathname === '/api/lounge/enter')) {
         const parts = [];
         for await (const part of answer) parts.push(part);

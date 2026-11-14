@@ -13,7 +13,7 @@ import { applyEquipmentToCombatStats } from '../equipment.mjs';
 import { createRng, deriveSeed } from '../dungeon/dungeonRng.mjs';
 import {
   applyRestore, castSelfHealingSpell, combatDefender, combatMaxHp, equippedHealingSpellState, equippedSpellManaCost,
-  magicElementLabel, meleeOutcome, recoverActorVitals, spellOutcome, spendMeleeMana
+  meleeOutcome, recoverActorVitals, spellOutcome, spendMeleeMana
 } from '../dungeon/combatResolution.mjs';
 import { hasLineOfSight, isWalkable, manhattan, nearestFreeTile } from '../dungeon/combatGeometry.mjs';
 import { runActorAiTurn } from '../dungeon/combatAi.mjs';
@@ -203,6 +203,8 @@ function assertArenaMatch(match) {
   if (!Number.isInteger(match.turn_index)) throw new Error('arena match turn_index is required');
   if (!Number.isInteger(match.round)) throw new Error('arena match round is required');
   if (typeof match.revive_used !== 'boolean') throw new Error('arena match revive_used is required');
+  if (!Array.isArray(match.log)) throw new Error('arena match log is required');
+  match.log.forEach((entry, index) => assertArenaLogEntry(match, entry, index));
   return match;
 }
 
@@ -266,14 +268,66 @@ function nearestVisibleEnemy(match, self) {
 
 // ----- log / events / defeat -----
 
-function pushArenaLog(match, message) {
-  match.log.push(message);
+// The match log is a list of records, not sentences. A strike / heal / fall is recorded from the combat event at the moment
+// it is made, with its maker's and receiver's actor_id read off the live board (both stand on their tiles then, and two
+// living fighters never share a tile):
+//   { kind: 'strike',   actor_id, target_id, element, amount }   a hit (element null for a melee bump)
+//   { kind: 'critical', actor_id, target_id, element, amount }   a critical melee hit
+//   { kind: 'miss',     actor_id, target_id, element }           a strike that missed
+//   { kind: 'heal',     actor_id, target_id, amount }            a self-heal spell (the HP actually restored)
+//   { kind: 'down',     actor_id }                               a fighter fell
+//   { kind: 'text',     text }                                   a consumable use, kept as its sentence
+const ARENA_LOG_KINDS = Object.freeze(['strike', 'critical', 'miss', 'heal', 'down', 'text']);
+
+function pushArenaLog(match, entry) {
+  match.log.push(entry);
   if (match.log.length > ARENA_LOG_LIMIT) match.log.splice(0, match.log.length - ARENA_LOG_LIMIT);
+}
+
+function livingActorAt(match, tile, role) {
+  const actor = match.actors.find((candidate) => isOnBoard(candidate) && candidate.x === tile.x && candidate.y === tile.y);
+  if (!actor) throw new Error(`arena log: no living fighter stands on the ${role} tile ${tile.x},${tile.y}`);
+  return actor;
+}
+
+// Appends a strike / self-heal event to the turn's events and records its log entry. Consumable events do not come here:
+// a consumable use is logged as its sentence (pushArenaLog with a text record) and only pushes its events.
+function arenaRecordEvent(match, event) {
+  const actorId = livingActorAt(match, event.from, 'maker').actor_id;
+  const targetId = livingActorAt(match, event.to, 'receiver').actor_id;
+  if (event.kind === 'heal') {
+    if (event.source !== 'spell' || event.resource !== 'hp') throw new Error(`arena log: a recorded heal must be a self-heal spell (got ${event.source} ${event.resource})`);
+    pushArenaLog(match, { kind: 'heal', actor_id: actorId, target_id: targetId, amount: event.amount });
+  } else if (event.kind === 'melee' || event.kind === 'cast') {
+    if (!event.hit) pushArenaLog(match, { kind: 'miss', actor_id: actorId, target_id: targetId, element: event.element });
+    else pushArenaLog(match, { kind: event.crit ? 'critical' : 'strike', actor_id: actorId, target_id: targetId, element: event.element, amount: event.damage });
+  } else {
+    throw new Error(`arena log: event kind ${event.kind} is not recorded from its event`);
+  }
+  match.turn_events.push(event);
 }
 
 function arenaDefeat(match, target) {
   target.down = true;
-  pushArenaLog(match, `${target.name}は倒れた。`);
+  pushArenaLog(match, { kind: 'down', actor_id: target.actor_id });
+}
+
+function assertArenaLogEntry(match, entry, index) {
+  const at = `arena match log[${index}]`;
+  if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) throw new Error(`${at} must be a record (got ${JSON.stringify(entry)})`);
+  if (!ARENA_LOG_KINDS.includes(entry.kind)) throw new Error(`${at}.kind must be one of ${ARENA_LOG_KINDS.join('/')} (got ${JSON.stringify(entry.kind)})`);
+  if (entry.kind === 'text') {
+    if (typeof entry.text !== 'string' || entry.text === '') throw new Error(`${at}.text is required`);
+    return;
+  }
+  const fighter = (id, key) => {
+    if (!actorById(match, id)) throw new Error(`${at}.${key} ${JSON.stringify(id)} is not a fighter of this match`);
+  };
+  fighter(entry.actor_id, 'actor_id');
+  if (entry.kind === 'down') return;
+  fighter(entry.target_id, 'target_id');
+  if (entry.kind !== 'heal' && entry.element !== null && typeof entry.element !== 'string') throw new Error(`${at}.element must be null or an element`);
+  if (entry.kind !== 'miss' && !(Number.isInteger(entry.amount) && entry.amount >= 0)) throw new Error(`${at}.amount must be a non-negative integer`);
 }
 
 // ----- round / turn scheduling -----
@@ -383,8 +437,10 @@ function arenaAiField(match, actor, rng) {
     canStand: (self, x, y) => isWalkable(match.board, x, y) && !occupiedByOtherLiving(match, self, x, y),
     spellManaCost: (self, element) => equippedSpellManaCost(element, self.parameters, self.equipment),
     healingSpellState: (self) => equippedHealingSpellState(self, self.parameters, self.equipment),
-    pushLog: (message) => pushArenaLog(match, message),
-    pushEvent: (event) => match.turn_events.push(event),
+    // The shared AI writes a sentence beside every event it makes (cast, melee hit, self-heal); the arena records its log
+    // from the event instead (arenaRecordEvent), so the sentence is not kept.
+    pushLog: () => {},
+    pushEvent: (event) => arenaRecordEvent(match, event),
     onDefeat: (target) => arenaDefeat(match, target)
   };
 }
@@ -401,13 +457,10 @@ function arenaPlayerMove(match, actor, rng, direction) {
     const payment = spendMeleeMana(actor, actor.parameters, 'arena player');
     if (!payment.paid) return { acted: false, error: 'insufficient_mp' };
     const outcome = meleeOutcome(rng, { ...actor.stats, attack: actor.stats.melee_attack, element: null }, combatDefender(enemy));
-    match.turn_events.push({ kind: 'melee', from: { x: actor.x, y: actor.y }, to: { x: enemy.x, y: enemy.y }, element: null, hit: outcome.hit, damage: outcome.damage, crit: outcome.crit, whiff: false });
+    arenaRecordEvent(match, { kind: 'melee', from: { x: actor.x, y: actor.y }, to: { x: enemy.x, y: enemy.y }, element: null, hit: outcome.hit, damage: outcome.damage, crit: outcome.crit, whiff: false });
     if (outcome.hit) {
       enemy.hp = Math.max(0, enemy.hp - outcome.damage);
-      pushArenaLog(match, outcome.crit ? `${actor.name}の会心の一撃。${enemy.name}に${outcome.damage}ダメージ。` : `${actor.name}が${enemy.name}に${outcome.damage}ダメージ。`);
       if (enemy.hp <= 0) arenaDefeat(match, enemy);
-    } else {
-      pushArenaLog(match, `${actor.name}の攻撃は${enemy.name}に外れた。`);
     }
     return { acted: true };
   }
@@ -425,9 +478,8 @@ function arenaPlayerCast(match, actor, rng, element) {
   if (!target) return { acted: false, error: 'no_target' };
   actor.mp -= cost;
   const outcome = spellOutcome(rng, actor.stats.spell_power[element], element, combatDefender(target));
-  match.turn_events.push({ kind: 'cast', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element, hit: outcome.hit, damage: outcome.damage, crit: false, whiff: false });
+  arenaRecordEvent(match, { kind: 'cast', from: { x: actor.x, y: actor.y }, to: { x: target.x, y: target.y }, element, hit: outcome.hit, damage: outcome.damage, crit: false, whiff: false });
   target.hp = Math.max(0, target.hp - outcome.damage);
-  pushArenaLog(match, outcome.hit ? `${actor.name}の${magicElementLabel(element)}。${target.name}に${outcome.damage}ダメージ。` : `${actor.name}の${magicElementLabel(element)}は${target.name}に外れた。`);
   if (target.hp <= 0) arenaDefeat(match, target);
   return { acted: true };
 }
@@ -435,8 +487,8 @@ function arenaPlayerCast(match, actor, rng, element) {
 function arenaPlayerHeal(match, actor) {
   const spell = equippedHealingSpellState(actor, actor.parameters, actor.equipment);
   return castSelfHealingSpell(actor, spell, actor.name, {
-    pushLog: (message) => pushArenaLog(match, message),
-    pushEvent: (event) => match.turn_events.push(event)
+    pushLog: () => {},
+    pushEvent: (event) => arenaRecordEvent(match, event)
   });
 }
 
@@ -470,7 +522,7 @@ function planArenaConsumable(match, actor, item, action) {
     if (!target) return { error: 'no_target' };
     return {
       execute: () => {
-        pushArenaLog(match, `${actor.name}が${item.name}を投げつけた。${target.name}に${item.power}ダメージ。`);
+        pushArenaLog(match, { kind: 'text', text: `${actor.name}が${item.name}を投げつけた。${target.name}に${item.power}ダメージ。` });
         arenaConsumableAttack(match, actor, target, item.power, item.element);
       }
     };
@@ -484,9 +536,12 @@ function planArenaConsumable(match, actor, item, action) {
     return {
       execute: () => {
         const targets = match.actors.filter((candidate) => candidate.team !== actor.team && isOnBoard(candidate) && manhattan(candidate.x, candidate.y, aim.x, aim.y) <= item.radius);
-        pushArenaLog(match, targets.length > 0
-          ? `${actor.name}が${item.name}を投げつけ、${targets.length}体を巻き込んだ。`
-          : `${actor.name}が${item.name}を投げたが、巻き込む相手はいなかった。`);
+        pushArenaLog(match, {
+          kind: 'text',
+          text: targets.length > 0
+            ? `${actor.name}が${item.name}を投げつけ、${targets.length}体を巻き込んだ。`
+            : `${actor.name}が${item.name}を投げたが、巻き込む相手はいなかった。`
+        });
         for (const target of targets) arenaConsumableAttack(match, actor, target, item.power, item.element);
         if (targets.length === 0) {
           match.turn_events.push(areaWhiffEvent({ x: actor.x, y: actor.y }, aim, item.element));
@@ -500,7 +555,7 @@ function planArenaConsumable(match, actor, item, action) {
     return {
       execute: () => {
         match.turn_events.push(applyRestore({ x: actor.x, y: actor.y }, ally.actor, 'hp', 'item', consumableHealAmount(item, ally.actor)));
-        pushArenaLog(match, `${actor.name}が${item.name}を使い、${ally.name}のHPを回復した。`);
+        pushArenaLog(match, { kind: 'text', text: `${actor.name}が${item.name}を使い、${ally.name}のHPを回復した。` });
       }
     };
   }
@@ -510,7 +565,7 @@ function planArenaConsumable(match, actor, item, action) {
     return {
       execute: () => {
         match.turn_events.push(applyRestore({ x: actor.x, y: actor.y }, ally.actor, 'mp', 'item', consumableMpAmount(item, ally.actor)));
-        pushArenaLog(match, `${actor.name}が${item.name}を使い、${ally.name}の魔力を回復した。`);
+        pushArenaLog(match, { kind: 'text', text: `${actor.name}が${item.name}を使い、${ally.name}の魔力を回復した。` });
       }
     };
   }
@@ -529,7 +584,7 @@ function planArenaConsumable(match, actor, item, action) {
       downed.caster_reposition_baseline = null;
       match.revive_used = true;
       match.turn_events.push({ kind: 'revive', from: { x: actor.x, y: actor.y }, to: { x: tile.x, y: tile.y }, amount: downed.hp });
-      pushArenaLog(match, `${actor.name}が${item.name}を使い、${downed.name}が復帰した。`);
+      pushArenaLog(match, { kind: 'text', text: `${actor.name}が${item.name}を使い、${downed.name}が復帰した。` });
     }
   };
 }

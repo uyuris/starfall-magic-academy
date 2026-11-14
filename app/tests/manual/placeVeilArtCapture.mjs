@@ -17,9 +17,9 @@
 //   lounge-exit    談話室で「出る」を押す（談話室の画面 → 談話室の絵の層 → 露台）。
 //   academy-map    露台 → 学院マップ（送り出しの幕 → 層 → 学院マップ）。
 //   conversation-end 依頼の会話を「会話を終える」で閉じる（昼の会話の画面 → 依頼の絵の層 → 露台）。
-//   errand / auction / dungeon  露台 → 依頼・競売場・実践の入口（実践は絵の無い幕が地）。
-//   arena-exit / auction-exit / concert-hall-exit  会場の出る紋を押す（会場の画面 → 会場の絵の層 → 露台）。闘技会と競売場の出る紋は
-//                  催しの終わりにだけ出るので、撮影の中だけで紋の hidden を外して押す（押したあとの道は製品のまま）。
+//   errand / auction / dungeon  露台 → 依頼・競売場・実践の入口（層は満ちた幕の夜から行き先の絵が浮かび上がる）。
+//   arena-exit / auction-exit / concert-hall-exit  会場の出るアイコンを押す（会場の画面 → 会場の絵の層 → 露台）。闘技会と競売場の出るアイコンは
+//                  催しの終わりにだけ出るので、撮影の中だけでアイコンの hidden を外して押す（押したあとの道は製品のまま）。
 //   load / new-game  タイトル → ロード（足跡）・新しいゲーム → 露台（星の道の層。待ちの層は使わない）。
 //   undeclared     依頼の画面の置き方の宣言を撮影の中だけで外してから依頼へ送り出し、層を上げるところで投げられた誤りを記録する。
 import { app, BrowserWindow } from 'electron';
@@ -261,7 +261,7 @@ async function startProduct(repoRoot) {
 }
 
 // ── 窓（CDP） ────────────────────────────────────────────────────────────────────────────────────────────────
-// 待ちの記録: 読み込みの箱の星座の線の本数と、層と待ちの紋の段の変わり目を、ページの時計で残す。
+// 待ちの記録: 読み込みの箱の星座の線の本数と、層と待ちのアイコンの段の変わり目を、ページの時計で残す。
 const INSTALL_TIMELINE = `(() => {
   if (window.__veilTimeline) return true;
   window.__veilTimeline = [];
@@ -283,7 +283,7 @@ const INSTALL_TIMELINE = `(() => {
   return true;
 })()`;
 
-// いまの待ちの姿: 層の段・待ちの紋の段（回っている turning／薄れている leaving／出ていない null）・読み込みの箱が見えているか・いま出ている画面。
+// いまの待ちの姿: 層の段・待ちのアイコンの段（回っている turning／薄れている leaving／出ていない null）・読み込みの箱が見えているか・いま出ている画面。
 const WAIT_STATE = `(() => {
   const veil = document.querySelector('#place-veil');
   const box = document.querySelector('#academy-loading-screen .academy-loading-copy');
@@ -310,7 +310,7 @@ const WAIT_STATE = `(() => {
     loaderLines: loaderActive ? Number(document.querySelector('#academy-loading-constellation').dataset.constellationRevealed ?? 0) : null,
     boxVisible: boxOpacity > 0.05,
     boxText: boxOpacity > 0.05 ? box.textContent.replace(/\\s+/g, ' ').trim() : null,
-    curtain: curtain && !curtain.hidden ? { opacity: Number(getComputedStyle(curtain).opacity), night: curtain.classList.contains('is-night') } : null,
+    curtain: curtain && !curtain.hidden ? { opacity: Number(getComputedStyle(curtain).opacity) } : null,
     journeyScene: journey ? journey.dataset.scene ?? null : null,
     roadOpacity,
     roadText: roadOpacity > 0.05 ? road.textContent.replace(/\\s+/g, ' ').trim() : null
@@ -776,7 +776,7 @@ const SCENES = {
     await walkToHub(ctx);
     const field = await holdDispatchField(page);
     const film = await sendOff(ctx, 'lounge');
-    await shootHeld(ctx, field, film, 'lounge-enter-wait-a', '談話室へ: 送り出しのあとの GET /api/field を止めている間（幕と同じ絵の層）');
+    await shootHeld(ctx, field, film, 'lounge-enter-wait-a', '談話室へ: 送り出しのあとの GET /api/field を止めている間（行き先の絵の層）');
     const enter = await page.hold('/api/lounge/enter', { method: 'POST' });
     await field.release();
     await shootHeld(ctx, enter, film, 'lounge-enter-wait-b', '談話室へ: POST /api/lounge/enter を止めている間（層の下に談話室の画面）');
@@ -858,7 +858,7 @@ const SCENES = {
     await walkToHub(ctx);
     const field = await holdDispatchField(page);
     const film = await sendOff(ctx, 'dungeon');
-    await shootHeld(ctx, field, film, 'dungeon-wait', '実践へ: 送り出しのあとの GET /api/field を止めている間（露台の夜を沈めた幕が地）');
+    await shootHeld(ctx, field, film, 'dungeon-wait', '実践へ: 送り出しのあとの GET /api/field を止めている間（行き先の絵の層）');
     await field.release();
     await page.waitFor("document.querySelector('#academy-dungeon-screen.active') && !document.querySelector('#dungeon-dive').disabled", 'the dungeon entrance', LM_WAIT_MS);
     await film.stop();
@@ -915,7 +915,7 @@ const SCENES = {
 
 for (const [id, screenId] of Object.entries(PLAIN_DESTINATIONS)) SCENES[id] = plainDestinationScene(id, screenId);
 
-// 会場から露台へ戻る道: 会場に着いて落ち着いたら、露台の支度（POST /api/routing/hub/start）を止めたまま出る紋を押し、会場の画面 →
+// 会場から露台へ戻る道: 会場に着いて落ち着いたら、露台の支度（POST /api/routing/hub/start）を止めたまま出るアイコンを押し、会場の画面 →
 // 会場の絵の層 → 露台の移りを撮る。
 const VENUE_EXITS = {
   'arena-exit': { id: 'arena', screenId: 'academy-arena-screen', exit: '#arena-exit' },

@@ -1,5 +1,5 @@
-// 残す (a): 闘技会の口上・実況の保存が runtime_state の並行 read-modify-write で他の書き込みを失わせ、slot を丸ごと書き潰す壊れ方から、プレイヤーの slot を守る。
-// 闘技会 LLM flavor の保存の直列化: 口上の保存は runtime_state の read-modify-write で、並行する書き込みを失わせない。
+// 残す (a): 闘技会の声・実況の保存が runtime_state の並行 read-modify-write で他の書き込みを失わせ、slot を丸ごと書き潰す壊れ方から、プレイヤーの slot を守る。
+// 闘技会 LLM flavor の保存の直列化: 声の保存は runtime_state の read-modify-write で、並行する書き込みを失わせない。
 // No live LM — the session tests use a deterministic mock fetchImpl.
 
 import test from 'node:test';
@@ -13,7 +13,7 @@ import {
   arenaWeekSeed, assembleArenaUnits, createArenaTournamentSlot, validateArenaTournamentSlot,
   findPlayerCurrentMatch
 } from '../src/arena/arenaTournament.mjs';
-import { generateArenaMatchIntro, withArenaWriteLock } from '../src/arena/arenaSession.mjs';
+import { generateArenaMatchVoices, withArenaWriteLock } from '../src/arena/arenaSession.mjs';
 
 const ELEMENTS = ['light', 'dark', 'fire', 'water', 'earth', 'wind'];
 
@@ -57,7 +57,15 @@ function countingMockFetch() {
     state.calls += 1;
     const prompt = JSON.parse(options.body).messages[0].content;
     let content;
-    if (prompt.includes('次の試合の開始を告げる短い口上を書く')) content = '星の残光が集いし刻、開幕の一戦が始まる。';
+    if (prompt.includes('場内へ響かせる短い声を、試合の前に五つ書いておく')) {
+      content = JSON.stringify({
+        opening: '客席のどよめきが渦を巻く。',
+        east_edge: { 声: '東方が崩れかかる。' },
+        west_edge: { 声: '西方が崩れかかる。' },
+        east_wins: { 声: '東方が決めた。' },
+        west_wins: { 声: '西方が決めた。' }
+      });
+    }
     else if (prompt.includes('結果を告げる実況を一文だけ書く')) content = '地脈の唸りを従え、覇者がここに立つ。';
     else throw new Error(`unexpected arena mock prompt:\n${prompt.slice(0, 80)}`);
     return { ok: true, status: 200, headers: { get: () => 'application/json' }, json: async () => ({ choices: [{ message: { content } }] }) };
@@ -107,8 +115,8 @@ test('withArenaWriteLock serializes the runtime_state RMW so a concurrent write 
   assert.equal(JSON.parse(await fs.readFile(file, 'utf8')).n, 1, 'without the lock the concurrent RMW loses an update');
 });
 
-test('two concurrent intro persists (different matches) both land — no whole-slot clobber', async (t) => {
-  // A viewable player match (interactive) + a resolved auto match: both can get an intro concurrently.
+test('two concurrent voices persists (different matches) both land — no whole-slot clobber', async (t) => {
+  // A viewable player match (interactive) + a resolved auto match: both can get voices concurrently.
   const slot = buildSlot({ mode: 'solo', opponents: opponentInputs(15) });
   const playerMatch = findPlayerCurrentMatch(slot);
   const autoMatch = slot.matches.find((m) => m.round === 0 && m.team_a_unit_id !== slot.player_unit_id && m.team_b_unit_id !== slot.player_unit_id);
@@ -119,10 +127,10 @@ test('two concurrent intro persists (different matches) both land — no whole-s
   const { fetchImpl } = countingMockFetch();
 
   await Promise.all([
-    generateArenaMatchIntro({ root, config: mockLmConfig(), fetchImpl, matchId: playerMatch.match_id }),
-    generateArenaMatchIntro({ root, config: mockLmConfig(), fetchImpl, matchId: autoMatch.match_id })
+    generateArenaMatchVoices({ root, config: mockLmConfig(), fetchImpl, matchId: playerMatch.match_id }),
+    generateArenaMatchVoices({ root, config: mockLmConfig(), fetchImpl, matchId: autoMatch.match_id })
   ]);
-  const intros = (await readSlot(root)).match_intros;
-  assert.ok(intros[playerMatch.match_id], 'the player match intro persisted');
-  assert.ok(intros[autoMatch.match_id], 'the concurrent auto match intro persisted (not clobbered)');
+  const voices = (await readSlot(root)).match_voices;
+  assert.ok(voices[playerMatch.match_id], 'the player match voices persisted');
+  assert.ok(voices[autoMatch.match_id], 'the concurrent auto match voices persisted (not clobbered)');
 });

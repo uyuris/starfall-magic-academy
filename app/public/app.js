@@ -1,7 +1,7 @@
 import { computeMapHoverTooltipPlacement } from './mapHoverPlacement.js';
 import { computeDungeonCellSize, computeFollowMargin, computeDungeonCamera, reframeDungeonCamera, playerViewportFraction, rescaleBoardPx } from './dungeonCamera.js';
 import { stairsDownSvg, stairsUpSvg, chestSvg, heroCrestSvg, swordSvg, staffSvg, wandSvg, charmSvg, companyTetherSvg } from './dungeonMarks.js';
-import { abilitySigilLabel, createHubTerrace, destinationArt, dressSigilButton, fillWithEmptyArt, loadAbilitySigils, returnedPlaceArt } from './hubTerrace.js';
+import { abilitySigilLabel, createHubTerrace, destinationArt, dressSigilButton, fillWithEmptyArt, loadAbilitySigils, returnedPlaceArt, searchField } from './hubTerrace.js';
 import { startAcademyMapLayer } from './academyMapLayer.js';
 import { faceFade, litFace, mattedFace, partnerEmerged, partnerLeaves, passageArrives, passageBegins, passageEnds, passagePlaces, passageShowing, passageStops, stageLight, stageMoves, stageReturns, startConversationLayer } from './conversationLayer.js';
 import { ROUTING_DISPATCH_SCREENS, assertDrainedRoutingFinalization, assertRoutingDispatchFinalization, validateRoutingDispatchScreen } from './routingDispatchClient.js';
@@ -115,6 +115,7 @@ import {
   ARENA_MODES,
   ARENA_MODE_LABELS,
   ARENA_MODE_SIGILS,
+  ARENA_ROUND_NAMES,
   arenaModeUnavailableReasonText,
   arenaOutcomeLabel,
   arenaActionErrorText,
@@ -123,9 +124,16 @@ import {
   validateArenaContentResult,
   validateArenaReplay,
   validateArenaEvents,
-  validateArenaIntroResponse,
+  validateArenaVoicesResponse,
   validateArenaResultFlavorResponse
 } from './arenaClient.js';
+import {
+  arenaReactionMemory,
+  arenaReactionBeats,
+  dropBriefArenaEdges,
+  createArenaReactionLayer,
+  createArenaReactionSound
+} from './arenaReactionLayer.js';
 import {
   LIBRARY_COLLECTION_REQUEST_PATH,
   LIBRARY_COLLECTION_FAVORITE_PATH,
@@ -270,6 +278,11 @@ const bgmController = (() => {
   // 再生中の source は再スタートしない。設定適用前の既定は音量1（＝audio 設定の first-run 契約値と同一）。
   let masterGain = null;
   let masterGainValue = 1;
+  // 曲の声だけが通る道（声 → trackBus → trackVeil → master）。曲を沈める（veilTracks）時は、ここの音量を下げ高い音を切る。
+  // 沈めていない間、trackVeil は context の一番高い音（sampleRate / 2）まで通すので曲はそのまま鳴る。
+  let trackBus = null;
+  let trackVeil = null;
+  let trackVeiled = false;
   // 最後に要求された desired track id（context 未 resume でも記録し、unlock 後に最新を開始する）。
   let desiredTrackId = null;
   // current = 確立済みの声、incoming = fade-in 中の声。合計2声を上限に保ち、全曲 preload/cache はしない。
@@ -288,6 +301,12 @@ const bgmController = (() => {
     masterGain = audioContext.createGain();
     masterGain.gain.setValueAtTime(masterGainValue, audioContext.currentTime);
     masterGain.connect(audioContext.destination);
+    trackBus = audioContext.createGain();
+    trackVeil = audioContext.createBiquadFilter();
+    trackVeil.type = 'lowpass';
+    trackVeil.frequency.setValueAtTime(audioContext.sampleRate / 2, audioContext.currentTime);
+    trackBus.connect(trackVeil);
+    trackVeil.connect(masterGain);
     return audioContext;
   }
 
@@ -321,7 +340,7 @@ const bgmController = (() => {
     sourceNode.buffer = buffer;
     sourceNode.loop = true;
     sourceNode.connect(gainNode);
-    gainNode.connect(masterGain); // per-track gain → master gain → destination (on/off + volume live on master)
+    gainNode.connect(trackBus); // per-track gain → track bus → veil → master gain → destination (on/off + volume live on master)
     sourceNode.start(now);
     return { sourceNode, gainNode, trackId };
   }
@@ -393,6 +412,7 @@ const bgmController = (() => {
     }
     if (trackId === desiredTrackId) return; // same desired track: no-op (never restarts the current track)
     desiredTrackId = trackId;
+    liftTrackVeil(BGM_CROSSFADE_SECONDS); // 沈めは鳴っていた曲のもの。曲が替われば、替わる間に解く。
     if (trackId !== null) ensureAudioContext(); // create (possibly suspended) so the unlock gesture can resume it
     reconcile();
   }
@@ -459,7 +479,37 @@ const bgmController = (() => {
       });
   }
 
-  return { setDesiredTrack, applyAudioSettings, playOneShot };
+  // 曲を沈める口: 鳴っている曲の音量を gain 倍に下げ、cutoffHz より高い音を切る（seconds かけて）。曲のほかの音（一音・場の音）は
+  // 沈めない。liftTrackVeil で戻す。context がまだ無ければ（曲を一度も求めていない）沈めるものが無い。
+  function rampTrackVeil(gain, cutoffHz, seconds) {
+    const now = audioContext.currentTime;
+    for (const [param, value] of [[trackBus.gain, gain], [trackVeil.frequency, cutoffHz]]) {
+      param.cancelScheduledValues(now);
+      param.setValueAtTime(param.value, now);
+      param.exponentialRampToValueAtTime(value, now + seconds);
+    }
+  }
+  function veilTracks({ gain, cutoffHz, seconds }) {
+    for (const [name, value] of [['gain', gain], ['cutoffHz', cutoffHz], ['seconds', seconds]]) {
+      if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) throw new Error(`BGM: veilTracks ${name} must be a positive number, got ${value}`);
+    }
+    if (!audioContext) return;
+    trackVeiled = true;
+    rampTrackVeil(gain, cutoffHz, seconds);
+  }
+  function liftTrackVeil(seconds) {
+    if (typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds <= 0) throw new Error(`BGM: liftTrackVeil seconds must be a positive number, got ${seconds}`);
+    if (!trackVeiled) return;
+    trackVeiled = false;
+    rampTrackVeil(1, audioContext.sampleRate / 2, seconds);
+  }
+
+  // 曲と同じ出口（master gain の手前）。曲のほかの音を組んで鳴らす側へ渡す。context が動いていない間は null（鳴らさない）。
+  function effectOutput() {
+    return isContextRunning() ? { context: audioContext, destination: masterGain } : null;
+  }
+
+  return { setDesiredTrack, applyAudioSettings, playOneShot, veilTracks, liftTrackVeil, effectOutput };
 })();
 
 // 卒業の星の道で人が灯るたびのチェレスタの一音（奏楽堂の同梱の単音・MIT FluidR3。3 半音おきの音源から一番近いものを速さで合わせる）。
@@ -1176,7 +1226,7 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
   if (name === 'academy-conversation-session') renderAcademyConversationSessionScreen();
   if (name === 'academy-room') renderAcademyRoomScreen();
   if (name === 'routing-hub') routingHubStage.renderScreen();
-  hubTerrace.screenShown(name, currentRuntimeState);
+  hubTerrace.screenShown(name);
   placeVeilScreenShown(name);
   syncWaitSigil();
   if (name !== 'routing-hub') {
@@ -1201,13 +1251,13 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
   // hub dispatch's arrival it returns to the hub, otherwise it surfaces on the arrival status line. Unlike the errand /
   // study-circle arrivals the alchemy lab is a stay-and-craft screen, so this same refresh runs after each craft
   // (the 分類 filter is reset only on a fresh arrival, preserved across the in-visit re-fetches).
-  if (name === 'academy-alchemy') refreshAlchemyScreen({ resetFilter: true }).catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportAlchemyScreenError);
+  if (name === 'academy-alchemy') refreshAlchemyScreen({ resetFilter: true }).catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival, name) : reportAlchemyScreenError);
   // The workshop arrival screen has no operable pre-entry state either: showing it fetches this week's full
   // recipe board and renders the selectable cards. A failed fetch / malformed payload throws (no silent empty
   // cards): on the hub dispatch's arrival it returns to the hub, otherwise it surfaces on the arrival status line.
   // Unlike the other arrivals the workshop is a stay-and-craft screen, so this same refresh runs after each craft (the
   // 種別 filter is reset only on a fresh arrival, preserved across the in-visit re-fetches).
-  if (name === 'academy-workshop') refreshWorkshopScreen({ resetFilter: true }).catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportWorkshopScreenError);
+  if (name === 'academy-workshop') refreshWorkshopScreen({ resetFilter: true }).catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival, name) : reportWorkshopScreenError);
   // The library arrival screen has no operable pre-entry state either: showing it rebuilds the scene from its
   // first state (the lamps and dust of the arrival, an empty shelf, a blank 請求票) and fetches the arrival
   // envelope (server-authoritative exit; a failed one on the hub dispatch's arrival returns to the hub). Reading is
@@ -1223,7 +1273,7 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
   // lands the 棚面 (a failed fetch on the hub dispatch's arrival returns to the hub). Any performance still sounding is stopped on every screen change away from it: the concert
   // hall is a silent BGM screen and its player is the only voice there, so nothing may keep playing under
   // another screen's music.
-  if (name === 'academy-concert-hall') refreshConcertHallScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : (error) => reportConcertHallScreenError(error, retryConcertHallArrival));
+  if (name === 'academy-concert-hall') refreshConcertHallScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival, name) : (error) => reportConcertHallScreenError(error, retryConcertHallArrival));
   if (name !== 'academy-concert-hall') concertHallPlayer.stop();
   // The 錬成室 arrival is a stay screen (like the workshop / library): showing it fetches GET /api/atelier and
   // renders the 3 slots / 銘棚 / cost / conversation-spent state from the response. A failed fetch (locked gate /
@@ -1231,13 +1281,13 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
   // otherwise it surfaces on the arrival status line. This same refresh runs after synthesis / farewell / a conversation
   // return, so the slots and 銘棚 reflect the latest surface.
   if (name === 'academy-atelier') {
-    refreshAtelierScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportAtelierScreenError);
+    refreshAtelierScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival, name) : reportAtelierScreenError);
   }
   // The arena screen has no operable pre-entry state either: showing it fetches GET /api/arena/state and
   // renders the participate-form selection (no tournament yet) or the bracket (with the player's live match
   // attached when one is in progress — reload resume). A failed fetch / malformed payload throws (no silent empty
   // cards): on the hub dispatch's arrival it returns to the hub, otherwise it surfaces on the selection status line.
-  if (name === 'academy-arena') refreshArenaScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportArenaScreenError);
+  if (name === 'academy-arena') refreshArenaScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival, name) : reportArenaScreenError);
   if (name === 'academy-auction') enterOrResumeAuctionScreen({ routingArrival }).catch(reportAuctionScreenError);
   // The 談話室 (lounge) is a routing-only content destination reached through the hub dispatch (lounge →
   // academy-lounge). Like the auction it drives itself from the frontend across a dedicated per-utterance HTTP
@@ -1256,7 +1306,7 @@ function showScreen(name, { rerollAcademyMap = false, skipDungeonRefresh = false
   // enter flow already holds the fresh board from the enter stream, so it activates the screen with
   // skipDungeonRefresh and renders that buffered board itself — a re-fetch here would redundantly
   // re-render over the still-streaming opening. A failed state fetch on the hub dispatch's arrival returns to the hub.
-  if (name === 'academy-dungeon' && !skipDungeonRefresh) refreshDungeonScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival) : reportError);
+  if (name === 'academy-dungeon' && !skipDungeonRefresh) refreshDungeonScreen().catch(routingArrival ? (error) => returnToRoutingHubAfterArrivalFailure(error, routingArrival, name) : reportError);
   // The debug field screen's creature box lists the full roster. Load it only when that
   // screen is opened, so production surfaces (academy map / companion / etc.) never depend
   // on /api/creatures and a catalog failure cannot widen their contract. Rerender in both
@@ -1441,7 +1491,7 @@ function setAcademyLoadingDestinationCopy(nextScreen, { copyKey = null, loadingC
   }
   // ハブへ入る字の印。夜の道行きの層（metaJourney.js）はこの字を星の道に写さない。
   screens['academy-loading'].toggleAttribute('data-hub-entry', copy === ROUTING_HUB_ENTRY_LOADING_COPY);
-  // 星見の窓へ入る道の印。この道の箱だけは待ちの紋を出さず、星座を描く（style.css）。
+  // 星見の窓へ入る道の印。この道の箱だけは待ちのアイコンを出さず、星座を描く（style.css）。
   screens['academy-loading'].toggleAttribute('data-overlook-entry', copy === OVERLOOK_ENTRY_LOADING_COPY);
   syncWaitSigil();
 }
@@ -1459,12 +1509,18 @@ function notifyAcademyLoadingProgress() {
 
 // ── 場所の絵の上の待ち（#place-veil）: 読み込みの箱の代わりに、場所の絵を画面いっぱいに残して待つ ─────────────────────────────
 // 画面は切り替えず、いまの画面の上に全画面の層を置く。地は呼び出し側が渡す場所の絵（art）か、null ならいまの画面そのまま。dim で
-// 読み込みの夜の絵と同じ暗がりを薄く掛け、星々を瞬かせる。待つあいだは右下で待ちの紋が回る（syncWaitSigil）。待ちの終わりは
-// showScreen が決める: 行き先の画面（until）が出たら、ending が 'fade' なら暗がりを解きながら PLACE_VEIL_LEAVE_MS で薄れて行き先が
-// 現れ、'cut' ならその場で消える。行き先でない画面が出た
-// とき（設定の画面への誘い）もその場で消える。heldForArrival の待ちは、行き先の画面が出ても残り、着いた画面が自分の入りの要求を
-// 待ちきったところ（placeVeilArrived）で同じように終わる（談話室・競売場）。失敗で終える待ちは、戻し先を出す前に stopPlaceVeil で夜へ沈める。
-// 層は送り出しの幕（#terrace-opened）より上にあり、入り道の待ちは幕の絵を地にする。
+// 読み込みの夜の絵と同じ暗がりを薄く掛け、星々を瞬かせる。待つあいだは右下で待ちのアイコンが回る（syncWaitSigil）。地の絵は、ある画面
+// （artScreen: 置き方を読んだ画面）の絵である。待ちの終わりは showScreen が決める: 行き先の画面（until）が出たら、ending が 'fade' なら
+// PLACE_VEIL_LEAVE_MS で薄れて行き先が現れる。着いた画面が地の絵の画面なら（同じ絵へ着く・出かける道）暗がりを解きながら薄れ
+// （leaving）、違う絵の画面なら（帰り道）暗がりを掛けたまま層ごと薄れ（parting）、場所の絵を明るくしない。'cut' ならその場で消える。
+// 行き先でない画面が出たとき（設定の画面への誘い）もその場で消える。heldForArrival の待ちは、行き先の画面が出ても残り、着いた画面が
+// 自分の入りの要求を待ちきったところ（placeVeilArrived）で同じように終わる（談話室・競売場）。失敗で終える待ちは、戻し先を出す前に
+// stopPlaceVeil で夜へ沈める。
+// 層は送り出しの幕（#terrace-opened）より上にある。始まりは三つ: fromNight の待ち（送り出しの幕が満ちた夜から入る道）は、暗がりと
+// 星々を最初から掛けたまま、地の絵だけが夜から 1.2s（style.css の place-veil-rise）で落ち着いた姿へ浮かび上がる。riseHeld の
+// fromNight の待ちは、risePlaceVeil が呼ばれるまで絵を夜に留める。riseOverScreen の待ち（夜の無いところから帰る道）は、層全体（絵・
+// 暗がり・星々）がいまの画面の上で 1.2s かけて浮かぶ。どちらでもない待ちはその場で落ち着いた姿で上がる。
+// 帰り道は一本の帰りの入り口（beginPlaceReturn）だけが層を上げる。
 // 画面を切り替えないので、待つあいだの曲は読み込みの画面の曲にする（syncBgmForUiState）。
 // 待つあいだは下の画面たち（main.layout）を inert にし、見えない言葉の欄へ focus も字も入らないようにする。待ちが終わる（薄れ始める）か
 // 層が下りたところで解く。
@@ -1474,7 +1530,10 @@ const placeVeilStarfield = createStarfieldAmbient({ canvasSelector: '#place-veil
 const PLACE_VEIL_ENDINGS = new Set(['fade', 'cut']);
 const PLACE_VEIL_LEAVE_MS = 1200;
 const PLACE_VEIL_STOP_MS = 1200;
-// 待っているあいだだけ { until, ending, heldForArrival }、ほかは null。
+// riseOverScreen の浮かび（style.css の place-veil-rise-over）の長さ。
+const PLACE_VEIL_RISE_MS = 1200;
+// 待っているあいだだけ { until, ending, heldForArrival, artScreen, raisedAt, holdUntil }、ほかは null。artScreen は地の絵の画面
+// （地が画面そのままなら null）。holdUntil は帰り道の待ちが着く画面を出してよい時刻（Date.now() の ms・帰り道でない待ちは null）。
 let placeVeilWait = null;
 let placeVeilLeaveTimer = null;
 
@@ -1509,21 +1568,37 @@ function placeArtPlacement(screenName) {
   return { size, position, edge: mask === '' ? null : { mask, maskComposite } };
 }
 
-function raisePlaceVeil({ art, dim, until, ending, heldForArrival = false }) {
+function raisePlaceVeil({ art, dim, until, ending, heldForArrival = false, fromNight = false, riseHeld = false, riseOverScreen = false, placementFrom = null, returning = false }) {
   if (placeVeilWait !== null) throw new Error('place veil: a wait is already under way');
   if (art !== null && (typeof art !== 'string' || art === '')) throw new Error(`place veil: art must be an image url or null (the screen as it is), got ${JSON.stringify(art)}`);
   if (typeof dim !== 'boolean') throw new Error(`place veil: dim must be a boolean, got ${JSON.stringify(dim)}`);
   if (!Object.hasOwn(screens, until)) throw new Error(`place veil: unknown screen ${JSON.stringify(until)} to wait for`);
   if (!PLACE_VEIL_ENDINGS.has(ending)) throw new Error(`place veil: ending must be one of ${[...PLACE_VEIL_ENDINGS].join(', ')}, got ${JSON.stringify(ending)}`);
   if (typeof heldForArrival !== 'boolean') throw new Error(`place veil: heldForArrival must be a boolean, got ${JSON.stringify(heldForArrival)}`);
-  const placement = art === null ? null : placeArtPlacement(until === 'routing-hub' ? currentActiveScreenName() : until);
+  if (typeof fromNight !== 'boolean') throw new Error(`place veil: fromNight must be a boolean, got ${JSON.stringify(fromNight)}`);
+  if (fromNight && (art === null || !dim)) throw new Error(`place veil: a wait rising from the night needs an art ground under the dim (art ${JSON.stringify(art)}, dim ${dim})`);
+  if (typeof riseHeld !== 'boolean') throw new Error(`place veil: riseHeld must be a boolean, got ${JSON.stringify(riseHeld)}`);
+  if (riseHeld && !fromNight) throw new Error('place veil: only a wait rising from the night can hold its rise');
+  if (typeof riseOverScreen !== 'boolean') throw new Error(`place veil: riseOverScreen must be a boolean, got ${JSON.stringify(riseOverScreen)}`);
+  if (riseOverScreen && fromNight) throw new Error('place veil: a wait rises either from the night or over the screen, not both');
+  if (placementFrom !== null && (art === null || !Object.hasOwn(screens, placementFrom))) throw new Error(`place veil: the art placement is read from a screen only for an art ground (art ${JSON.stringify(art)}, placementFrom ${JSON.stringify(placementFrom)})`);
+  if (typeof returning !== 'boolean') throw new Error(`place veil: returning must be a boolean, got ${JSON.stringify(returning)}`);
+  if (returning && (art === null || placementFrom === null)) throw new Error('place veil: a return wait needs the art of the place it leaves and the screen it reads the placement from');
+  const artScreen = art === null ? null : (placementFrom ?? (until === 'routing-hub' ? currentActiveScreenName() : until));
+  const placement = artScreen === null ? null : placeArtPlacement(artScreen);
   takeDownPlaceVeil();
-  placeVeilWait = { until, ending, heldForArrival };
+  const raisedAt = Date.now();
+  placeVeilWait = { until, ending, heldForArrival, artScreen, raisedAt, holdUntil: returning ? placeVeilReturnHoldFrom(raisedAt) : null };
   placeVeilScreens.inert = true;
   placeVeil.dataset.veilGround = art === null ? 'screen' : 'art';
-  // 層を上げたときに出ていた画面（地が画面そのままのとき、待ちの紋の置き場が読む。style.css）。
+  // 層を上げたときに出ていた画面（地が画面そのままのとき、待ちのアイコンの置き場が読む。style.css）。
   placeVeil.dataset.veilOver = currentActiveScreenName();
   placeVeil.dataset.veilDim = dim ? 'night' : 'none';
+  if (fromNight) placeVeil.dataset.veilFrom = 'night';
+  else if (riseOverScreen) placeVeil.dataset.veilFrom = 'screen';
+  else delete placeVeil.dataset.veilFrom;
+  if (riseHeld) placeVeil.dataset.veilRise = 'held';
+  else delete placeVeil.dataset.veilRise;
   placeVeil.style.setProperty('--place-veil-art', art === null ? 'none' : `url('${art}')`);
   if (placement === null) {
     placeVeil.style.removeProperty('--place-veil-art-size');
@@ -1544,6 +1619,39 @@ function raisePlaceVeil({ art, dim, until, ending, heldForArrival = false }) {
   if (dim) placeVeilStarfield.start();
   syncWaitSigil();
   syncBgmForUiState();
+}
+
+// 帰り道の待ちが着く画面を出してよい時刻: 最短 ACADEMY_LOADING_MINIMUM_MS と、浮かびの済む PLACE_VEIL_RISE_MS（動きを減らす設定では
+// 浮かびが無い）の遅いほう。
+function placeVeilReturnHoldFrom(raisedAt) {
+  const rise = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : PLACE_VEIL_RISE_MS;
+  return raisedAt + Math.max(ACADEMY_LOADING_MINIMUM_MS, rise);
+}
+
+// 帰り道の待ちが着く画面を出してよい時刻まで待つ（帰り道でない待ち・待ちの無いときはその場で済む）。
+async function placeVeilReturnHeld() {
+  if (placeVeilWait === null || placeVeilWait.holdUntil === null) return;
+  const left = placeVeilWait.holdUntil - Date.now();
+  if (left > 0) await sleep(left);
+}
+
+// 上がっている待ちを帰り道の待ちにして続ける（送り出しの層の下で着けなかった道・帰りの要求の前に上げた待ち）: 待つ先を until に
+// 替え、着いた画面の入りを待つ形をやめる。地の絵と置き方はそのまま。最短は層が上がった時刻から数える。
+function continuePlaceVeilTo(until) {
+  if (placeVeilWait === null) throw new Error('place veil: no wait to continue');
+  if (!Object.hasOwn(screens, until)) throw new Error(`place veil: unknown screen ${JSON.stringify(until)} to continue the wait to`);
+  if (placeVeilWait.ending !== 'fade') throw new Error(`place veil: only a fading wait continues into a return (ending ${placeVeilWait.ending})`);
+  placeVeilWait.until = until;
+  placeVeilWait.heldForArrival = false;
+  if (placeVeilWait.holdUntil === null) placeVeilWait.holdUntil = placeVeilReturnHoldFrom(placeVeilWait.raisedAt);
+}
+
+// 夜に留めていた待ちの絵を浮かび上がらせ、落ち着いた姿になったところで解決する（動きを減らす設定では待たない）。
+async function risePlaceVeil() {
+  if (placeVeilWait === null || placeVeil.dataset.veilRise !== 'held') throw new Error('place veil: no wait holding its rise in the night');
+  delete placeVeil.dataset.veilRise;
+  const art = placeVeil.querySelector('.place-veil-art');
+  await Promise.all(art.getAnimations().map((animation) => animation.finished));
 }
 
 // 失敗で終える: 明るみが消え、場所が夜へ沈む（動きを減らす設定では待たない）。沈みきったら層を下ろす。
@@ -1586,23 +1694,26 @@ function placeVeilForArrival(screen) {
 }
 
 function endPlaceVeilWait(name) {
-  const { until, ending } = placeVeilWait;
+  const { until, ending, artScreen } = placeVeilWait;
   placeVeilWait = null;
   placeVeilScreens.inert = false;
-  placeVeilStarfield.stop();
   if (name !== until || ending === 'cut' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    placeVeilStarfield.stop();
     takeDownPlaceVeil();
     return;
   }
-  placeVeil.dataset.veil = 'leaving';
+  // 同じ絵へ着く（地が画面そのまま・地の絵の画面が着いた画面）なら暗がりを解きながら、違う絵へ着くなら暗がりと星々を掛けたまま薄れる。
+  const sameArt = artScreen === null || artScreen === name;
+  if (sameArt) placeVeilStarfield.stop();
+  placeVeil.dataset.veil = sameArt ? 'leaving' : 'parting';
   syncWaitSigil();
   placeVeilLeaveTimer = setTimeout(takeDownPlaceVeil, PLACE_VEIL_LEAVE_MS);
 }
 
-// 待ちの紋（#wait-sigil）: 場所の絵の上の待ちのあいだと、読み込みの箱が出ているあいだ（会話へ移るあいだと星見の窓へ入る道の箱を除く）と、
+// 待ちのアイコン（#wait-sigil）: 場所の絵の上の待ちのあいだと、読み込みの箱が出ているあいだ（会話へ移るあいだと星見の窓へ入る道の箱を除く）と、
 // 画面の中の待ちの印（screenWaitMark）が見えているあいだ、右下で回り続ける。層が晴れる・夜へ沈む（leaving・stopped）あいだは層と
 // 一緒に薄れ、層が下りたところで消える。ほかの終わりはその場で消える。待ちの層・読み込みの箱・会話へ移るあいだの出入りのたびに呼び、
-// 画面の中の印の出入り（置き換え・札や画面の開け閉め）は下の見張りが呼ぶ。紋の属性は変わるときだけ書く（見張りが自分の書き込みで
+// 画面の中の印の出入り（置き換え・札や画面の開け閉め）は下の見張りが呼ぶ。アイコンの属性は変わるときだけ書く（見張りが自分の書き込みで
 // 回り続けないように）。
 const waitSigil = document.querySelector('#wait-sigil');
 
@@ -1615,7 +1726,7 @@ function syncWaitSigil() {
     setWaitSigilState('turning');
     return;
   }
-  if (!placeVeil.hidden && (placeVeil.dataset.veil === 'leaving' || placeVeil.dataset.veil === 'stopped')) {
+  if (!placeVeil.hidden && ['leaving', 'parting', 'stopped'].includes(placeVeil.dataset.veil)) {
     setWaitSigilState('leaving');
     return;
   }
@@ -1637,7 +1748,7 @@ function setWaitSigilState(state) {
 }
 
 // 画面の中の待ちの印: 字で待ちを示していた所に、字の代わりに置く見えない印。印が見えているあいだ（印のある画面・札・欄が出ている
-// あいだ）右下で待ちの紋が回り、届いたものが印を置き換えるか、印を抱えた札や画面が閉じると紋は消える。name は読み上げの名で、
+// あいだ）右下で待ちのアイコンが回り、届いたものが印を置き換えるか、印を抱えた札や画面が閉じるとアイコンは消える。name は読み上げの名で、
 // 名を持たない印は読み上げない。
 function screenWaitMark(name = null) {
   const mark = document.createElement('span');
@@ -1654,13 +1765,16 @@ function screenWaitMark(name = null) {
 new MutationObserver(syncWaitSigil).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'class'] });
 
 // 場所の絵の上で要求を待つ。読み込みの箱と同じく最短 ACADEMY_LOADING_MINIMUM_MS は待ち、失敗は reportLoadingError に通す（設定の
-// 画面への誘いはそこで層ごと去る）。ほかの失敗は夜へ沈めてから投げ直し、呼び出し側の戻し先へ渡す。
-async function awaitUnderPlaceVeil(readiness) {
+// 画面への誘いはそこで層ごと去る）。ほかの失敗は、onFailure が 'sink' なら夜へ沈めてから、'keep' なら待ちを上げたまま投げ直し、
+// 呼び出し側の戻し先へ渡す（'keep' はハブへ帰る道に戻す呼び出し側が選ぶ: 帰りの入り口が同じ待ちを続ける）。
+const PLACE_VEIL_FAILURE_HANDLING = new Set(['sink', 'keep']);
+async function awaitUnderPlaceVeil(readiness, { onFailure }) {
+  if (!PLACE_VEIL_FAILURE_HANDLING.has(onFailure)) throw new Error(`place veil: onFailure must be one of ${[...PLACE_VEIL_FAILURE_HANDLING].join(', ')}, got ${JSON.stringify(onFailure)}`);
   try {
     await Promise.all([sleep(ACADEMY_LOADING_MINIMUM_MS), readiness]);
   } catch (error) {
     reportLoadingError(error);
-    if (placeVeilWaiting()) await stopPlaceVeil();
+    if (onFailure === 'sink' && placeVeilWaiting()) await stopPlaceVeil();
     throw error;
   }
 }
@@ -2390,7 +2504,7 @@ function setLmStudioSettingsStatus(message) {
   if (status) status.textContent = message;
 }
 
-// 設定の欄の待ち: 状態の行の字の代わりに画面の中の待ちの印を置く（右下で待ちの紋が回る）。
+// 設定の欄の待ち: 状態の行の字の代わりに画面の中の待ちの印を置く（右下で待ちのアイコンが回る）。
 function showSettingsStatusWait(status) {
   if (status) status.replaceChildren(screenWaitMark());
 }
@@ -3251,7 +3365,7 @@ function renderTrainingPlayerParameters(parameters = {}) {
   renderPlayerParametersInto(parameters, '#academy-room-player-parameters');
 }
 
-// 鍛錬の上の一列: 主人公の十一の値を、露台の能力の紋と値で並べる（魔法習熟度の六つ、基礎能力の五つの順）。値の無い能力が来るまでは
+// 鍛錬の上の一列: 主人公の十一の値を、露台の能力のアイコンと値で並べる（魔法習熟度の六つ、基礎能力の五つの順）。値の無い能力が来るまでは
 // 何も置かない（起動の前の空の値）。
 function renderAcademyTrainingParameters(parameters) {
   const strip = document.querySelector('#academy-training-player-parameters');
@@ -3453,7 +3567,7 @@ function renderTrainingWeekday(day = currentTrainingDay) {
   renderAcademyTrainingDay(currentTrainingDay);
 }
 
-// 鍛錬の右上の曜日: 曜日の属性の紋と曜日の名。曜日と同じ属性の鍛錬の板が灯る（曜日の重なりで効き目が倍になる決まりを灯りで示す）。
+// 鍛錬の右上の曜日: 曜日の属性のアイコンと曜日の名。曜日と同じ属性の鍛錬の板が灯る（曜日の重なりで効き目が倍になる決まりを灯りで示す）。
 function renderAcademyTrainingDay(day) {
   const dayMark = document.querySelector('#academy-training-day');
   dayMark.setAttribute('aria-label', `${day.name}（${day.element_label}）`);
@@ -3646,7 +3760,7 @@ function createTrainingOptionCard(training) {
   return button;
 }
 
-// 鍛錬場の床の板: 鍛錬の絵と右下の属性の紋、その下の名。板そのものが鍛錬を始める釦。
+// 鍛錬場の床の板: 鍛錬の絵と右下の属性のアイコン、その下の名。板そのものが鍛錬を始めるボタン。
 function createAcademyTrainingDrill(training) {
   const drill = document.createElement('button');
   drill.type = 'button';
@@ -3703,12 +3817,12 @@ async function runTraining(trainingId) {
 
 // ── 棚の画面（購買・採取・鍛錬）が分け合う部品 ─────────────────────────────────────────────────────────────────
 // 三つの画面は一つの層の組み方を分け合う: 地は入るときの待ちと同じ絵を画面いっぱいに敷き（setUpShelfScreens）、左上に場所の名、
-// 右上に値と戻る紋。選ぶものは「円か板＋その下の名と値」の一つの部品で、部品そのものか、その右下の紋が行いの釦になる。数は菱形の
-// 印、効く能力・属性・主人公の値は露台の紋で表す。字はすべて夜の楕円（.shelf-ellipse）の上に置き、使い方を説明する字は置かない。
+// 右上に値と戻るアイコン。選ぶものは「円か板＋その下の名と値」の一つの部品で、部品そのものか、その右下のアイコンが行いのボタンになる。数は菱形の
+// 印、効く能力・属性・主人公の値は露台のアイコンで表す。字はすべて夜の楕円（.shelf-ellipse）の上に置き、使い方を説明する字は置かない。
 const SHELF_SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 const SHOP_SATCHEL_ICON_URL = '/canonical/academy_map/icons/inventory.png';
 
-// 露台の紋（hubTerraceSigils.svg の symbol・起動時に #terrace-sigil-symbols へ写したもの）を中身ごと写した inline の SVG。<use> では
+// 露台のアイコン（hubTerraceSigils.svg の symbol・起動時に #terrace-sigil-symbols へ写したもの）を中身ごと写した inline の SVG。<use> では
 // 購買の銀の灯りへの塗り替えが中まで届かないので写す。読み上げの名は押す部品の側に持たせる。
 function shelfSigil(name) {
   const symbol = document.getElementById(`sigil-${name}`);
@@ -3747,7 +3861,7 @@ function fillShelfDiamonds(row, left, max, name) {
   return row;
 }
 
-// 品の印: 揺り籠の品は揺り籠の印（品の絵はまだ配られていない）、能力に効く品はその能力の紋、絵を持つ品はその絵。どれでもない品は
+// 品の印: 揺り籠の品は揺り籠の印（品の絵はまだ配られていない）、能力に効く品はその能力のアイコン、絵を持つ品はその絵。どれでもない品は
 // 印を持たず、円が空のまま出る。
 function shelfItemMarks(item) {
   if (STAR_CRADLE_SEED_ITEM_PATTERN.test(item.item_id)) return [shelfImage('shelf-item-image', STAR_CRADLE_ICON_URL)];
@@ -3821,8 +3935,8 @@ function renderInventory(inventory = currentInventory) {
 }
 
 // ── 購買 ──────────────────────────────────────────────────────────────────────────────────────────────────
-// 品は二段の棚に並び、品そのものが買う釦（持ち金で届かない品は沈んで押せない）。手もとには持っている品が袋の印から右へ並び、押すと
-// その品の使う（能力に効く品だけ）・売るの紋が開く（開くのは一つだけ・もう一度押すと閉じる）。持ち物が無いときは袋の印だけが薄く残る。
+// 品は二段の棚に並び、品そのものが買うボタン（持ち金で届かない品は沈んで押せない）。手もとには持っている品が袋の印から右へ並び、押すと
+// その品の使う（能力に効く品だけ）・売るのアイコンが開く（開くのは一つだけ・もう一度押すと閉じる）。持ち物が無いときは袋の印だけが薄く残る。
 let shopOpenOwnedItemId = null;
 
 function renderShopSatchel(inventory = currentInventory) {
@@ -3956,7 +4070,7 @@ async function sellInventoryItem(itemId) {
 }
 
 // ── 採取 ──────────────────────────────────────────────────────────────────────────────────────────────────
-// 採れる所は、所の絵を山林の絵の中の円にして小径に沿って置く。円の右下の籠の紋が採る釦で、在庫の尽きた所は紋が消えて円が灰に沈む。
+// 採れる所は、所の絵を山林の絵の中の円にして小径に沿って置く。円の右下の籠のアイコンが採るボタンで、在庫の尽きた所はアイコンが消えて円が灰に沈む。
 // 円の下に所の名、採れる素材の印と数と売値、在庫の菱形。揺り籠の品の所は所の絵がまだ配られていないので、揺り籠の印を置く。
 // 置き場は所ごとの円の中心（画面の幅と高さに対する割合）で、山林の所ごとに寄せて左から右へ並ぶ。
 const GATHERING_SPOT_POSITIONS = Object.freeze({
@@ -5282,7 +5396,7 @@ function renderAcademyMapMoneyInfo(bodyEl, money) {
 }
 
 const academyMapInfoCategoryRenderers = {
-  // self はハブと同じ共有の能力の欄（buildParameterGroups）を検証済みパラメータ源で使い、能力の名はハブの紋（名前は
+  // self はハブと同じ共有の能力の欄（buildParameterGroups）を検証済みパラメータ源で使い、能力の名はハブのアイコン（名前は
   // aria-label）。夜の帯の見せ方は共有の .night-band が与える。player_parameters 欠落は broken state で fail fast。
   self: (bodyEl) => {
     const parameters = currentWorld?.player_parameters;
@@ -6626,25 +6740,17 @@ async function runConversationStream({ playerInput, provider, refreshAfter = tru
 }
 
 // Drain-on-exit loading screen for the in-turn wrap-up dispatch (区切りをつける → title): shown when the 見送り読みポーズ
-// outlasts the backend drain, so the rest of the drain runs under the loading screen (beneath the send-off curtain)
-// and performRoutingTurnDispatch (on the result event) leaves it for the title. A dispatch to a destination waits over
+// (which ends as the send-off curtain's night is full) outlasts the backend drain, so the rest of the drain runs under the
+// loading box (the curtain clears into it — hubTerrace.js) and performRoutingTurnDispatch (on the result event) leaves it
+// for the title. A dispatch to a destination waits over
 // its curtain instead (raiseSendoffPlaceVeil).
 function showRoutingDrainLoadingScreen() {
   setAcademyLoadingDestinationCopy(null, { loadingCopy: ROUTING_EXIT_DRAIN_LOADING_COPY });
   showScreen('academy-loading');
 }
 
-// 送り出しの幕の絵の置き方: 幕も待ちの層と同じ規則で、行き先の画面（区切りをつけるならタイトルの画面）が宣言した置き方で絵を敷く
-// ので、幕に満ちた絵がそのまま待ちの絵・着いた画面の絵になる。絵の無い行き先は null。宣言の無い行き先は placeArtPlacement が throw。
-function sendoffCurtainPlacement(destinationId) {
-  if (!Object.hasOwn(ROUTING_DISPATCH_SCREENS, destinationId)) {
-    throw new Error(`routing send-off curtain: no destination screen to read the art placement from (destination_id ${JSON.stringify(destinationId)})`);
-  }
-  return destinationArt(destinationId) === null ? null : placeArtPlacement(ROUTING_DISPATCH_SCREENS[destinationId]);
-}
-
-// 札の画面・実践・談話室・競売場へ入る待ち: 送り出しの幕で満ちた行き先の絵をそのまま地にして（幕と同じ絵を層の地に置く）、薄い
-// 暗がりを置き、右下で待ちの紋を回す。読み込みの箱は出さない。行き先の画面が出たら、絵が薄れて
+// 札の画面・実践・談話室・競売場へ入る待ち: 送り出しの幕が満ちた夜から、薄い暗がりと星々の下の行き先の絵（着いた画面の地と同じ
+// 一枚・同じ置き方）が浮かび上がり（fromNight）、右下で待ちのアイコンを回す。読み込みの箱は出さない。行き先の画面が出たら、絵が薄れて
 // 行き先の画面が現れる。談話室・競売場・札の部屋（依頼・研究会）は着いた画面が自分の入りの要求を待つので、層は行き先の画面が出ても
 // 残り、入りが整ったところで終わる（placeVeilArrived）。
 const SCREENS_ENTERED_UNDER_THEIR_OWN_WAIT = new Set(['academy-lounge', 'academy-auction', 'academy-errand', 'academy-study-circle']);
@@ -6653,8 +6759,10 @@ function raiseSendoffPlaceVeil(destinationId) {
     throw new Error(`routing send-off wait: no destination screen to wait for (destination_id ${JSON.stringify(destinationId)})`);
   }
   const until = ROUTING_DISPATCH_SCREENS[destinationId];
-  const art = hubTerrace.holdCurtainForWait();
-  raisePlaceVeil({ art, dim: true, until, ending: 'fade', heldForArrival: SCREENS_ENTERED_UNDER_THEIR_OWN_WAIT.has(until) });
+  hubTerrace.holdCurtainForWait();
+  // 学院マップでは着いた所で出来事が始まることがあり、そのときは会話へ移るあいだが夜から満ちる。出来事が無いと分かるまで
+  // （arriveAtRoutingAcademyMap）学院マップの絵を夜に留める。
+  raisePlaceVeil({ art: destinationArt(destinationId), dim: true, until, ending: 'fade', heldForArrival: SCREENS_ENTERED_UNDER_THEIR_OWN_WAIT.has(until), fromNight: true, riseHeld: until === 'academy-map' });
 }
 
 // Loading screen for the graduation guide selection turn when the partner is an academy person (routing phase 2
@@ -6735,8 +6843,8 @@ const ROUTING_HUB_CATEGORY_TITLES = Object.freeze({
   library: '収蔵庫'
 });
 
-// The terrace: the hub's place-name glow and peek, the send-off curtain, the returned week's fading place, and the left
-// rail's switching while a rail screen is open (hubTerrace.js).
+// The terrace: the hub's place-name glow and peek, the send-off curtain, and the left rail's switching while a rail
+// screen is open (hubTerrace.js).
 const hubTerrace = createHubTerrace();
 
 // The routing hub conversation stage. Axis 1 (scope/theme): the #routing-hub-* selectors, the
@@ -6789,7 +6897,7 @@ const routingHubStage = createConversationStage({
     },
     // diary opens on the roster picker (select a character → their journal); a fetch failure is routed to
     // reportError by the async loader (the sync renderer body only lays out the picker).
-    diary: (bodyEl) => renderRoutingHubDiaryInto(bodyEl),
+    diary: (bodyEl) => renderRoutingHubDiaryInto(bodyEl, { nameQuery: '' }),
     // 収蔵庫 (hub-only) opens straight into an async load of the saved-fragment shelf (the diary async-category
     // grammar: a loading card shows synchronously, the async loader fills the shelf, a fetch failure → reportError).
     library: (bodyEl) => renderRoutingHubLibraryCollectionInto(bodyEl)
@@ -6857,8 +6965,6 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
   let expression = 'neutral';
   let assistantText = '';
   let assistantSegmentCount = 0;
-  // The last complete assistant message: on a dispatch turn, the send-off words the terrace waits to see lit.
-  let lastAssistantContent = '';
   let finalResult = null;
   // 見送り読みポーズ (行き先確定ターン) の並行制御。sendoffReadingPause は routing_draining で1回だけ起動する
   // 読みポーズの promise、drainLoadingShown はそのポーズが drain ロード画面を先に出したか (result より先にポーズが
@@ -6904,10 +7010,13 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     if (sendoffReadingPause) return;
     sendoffReadingPause = (async () => {
       await reveal.drain();
-      await sleep(DRAIN_READING_PAUSE_MS);
-      // 5秒経過。drain がまだ result を返していなければ、ここで待ちに入り、その下で result を待ち続ける（行き先へは
-      // 送り出しの幕の上の待ち、区切りは drain ロード画面）。result が既に着いていればハブ表示のまま (dispatch 分岐が遷移する)。
-      // error で終わった stream は自分でハブを復元するので、その後に待ちを出さない。
+      // error で終わった stream は送り出しの幕をもう上げている（abortSendoff）ので、夜を満たさずに終える。
+      if (streamFailed) return;
+      // 送り出しの幕はポーズの終わりにちょうど満ちきる（hubTerrace.nightFallsBy）。ポーズは 5 秒が経ち、夜が満ちきったところで終わる。
+      await Promise.all([sleep(DRAIN_READING_PAUSE_MS), hubTerrace.nightFallsBy(Date.now() + DRAIN_READING_PAUSE_MS)]);
+      // 5秒経過し、夜が満ちた。drain がまだ result を返していなければ、満ちた夜からそのまま待ちに入り、その下で result を待ち続ける
+      // （行き先へは送り出しの幕の上の待ち、区切りは drain ロード画面の箱）。result が既に着いていれば dispatch 分岐が同じ夜から
+      // 遷移する。error で終わった stream は自分でハブを復元するので、その後に待ちを出さない。
       if (!finalResult && !streamFailed) {
         if (sendoffDestinationId === 'title') showRoutingDrainLoadingScreen();
         else raiseSendoffPlaceVeil(sendoffDestinationId);
@@ -6950,7 +7059,6 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
       notifyAcademyLoadingProgress();
       expression = data.expression ?? expression;
       assistantText = data.content ?? assistantText;
-      lastAssistantContent = assistantText;
       enqueueAssistantSegments(assistantText);
       // Reset per-assistant-message accounting so a second assistant_complete (e.g. a follow-up 吹き出し)
       // queues its own segments from scratch.
@@ -6963,7 +7071,7 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     // the drain loading screen itself only if the drain outlasts it (backend 契約・SSE イベント順序は不変).
     if (event === 'routing_draining') {
       // The terrace opens the decided destination (the drain signal's destination_id, not a name the words mentioned).
-      hubTerrace.beginSendoff(data.destination_id, lastAssistantContent, sendoffCurtainPlacement(data.destination_id));
+      hubTerrace.beginSendoff(data.destination_id);
       sendoffDestinationId = data.destination_id;
       beginSendoffReadingPause();
       notifyAcademyLoadingProgress();
@@ -7026,7 +7134,7 @@ async function runRoutingHubTurnStream({ playerInput, provider }) {
     // A wait already standing over the send-off curtain sinks into the night before the curtain lifts (a settings-redirect
     // failure leaves for the settings screen, which takes the wait down).
     if (placeVeilWaiting() && settingsRedirectErrorMessage(error) == null) await stopPlaceVeil();
-    hubTerrace.abortSendoff(currentRuntimeState);
+    hubTerrace.abortSendoff();
     throw error;
   }
   if (!finalResult) throw new Error('routing hub stream ended without a final result');
@@ -7131,7 +7239,7 @@ async function runRoutingHubConversation() {
     // A send-off that fails after its curtain began lifts the curtain before the hub is restored; a wait standing over
     // the curtain first sinks into the night.
     if (placeVeilWaiting() && settingsRedirectErrorMessage(error) == null) await stopPlaceVeil();
-    hubTerrace.abortSendoff(currentRuntimeState);
+    hubTerrace.abortSendoff();
     routingHubStage.surface.setHistory(historySnapshot);
     routingHubStage.renderStream(historySnapshot);
     // A turn refused by the blocked post-processing queue is already saved, so its text does not go back into
@@ -7178,12 +7286,24 @@ async function runRoutingHubConversation() {
 // The category renderers wired into routingHubStage.categoryRenderers (axis 2 data). The drawer
 // open/switch/close, rail-select, header icon, and fixed-set fail-fast are owned by the shared stage;
 // these builders paint the routing-specific category bodies with the routing-hub-info-* classes.
-// Empty-state card (buddy 不在 / enemy 0件 / 持ち物なし …): the dotted picture of what is missing, set where the rows
-// would begin; the title and note are its read-out name.
-function routingHubInfoEmptyCard(title, note, art) {
+// Empty-state card (buddy 不在 / enemy 0件 / 持ち物なし …): the title, and the note when the section has one (null when
+// it has none), said in words where the rows would begin. The shown words are the read-out themselves.
+function routingHubInfoEmptyCard(title, note) {
+  if (typeof title !== 'string' || title === '') throw new Error(`routing hub empty card needs a title, got ${JSON.stringify(title)}`);
+  if (note !== null && (typeof note !== 'string' || note === '')) throw new Error(`routing hub empty card note must be a sentence or null, got ${JSON.stringify(note)}`);
   const card = document.createElement('div');
   card.className = 'routing-hub-info-empty-card';
-  return fillWithEmptyArt(card, art, `${title}。${note}`);
+  const heading = document.createElement('strong');
+  heading.className = 'routing-hub-info-empty-title';
+  heading.textContent = title;
+  card.append(heading);
+  if (note !== null) {
+    const body = document.createElement('p');
+    body.className = 'routing-hub-info-empty-note';
+    body.textContent = note;
+    card.append(body);
+  }
+  return card;
 }
 
 // Count summary band atop the enemy / inventory lists.
@@ -7262,7 +7382,7 @@ async function loadRoutingHubBuddyInto(bodyEl) {
   // ui-prose-exception: 1790825320180-97982fce
   const buddySection = routingHubInfoSection('バディー');
   if (!subject) {
-    buddySection.body.append(routingHubInfoEmptyCard('バディー記録なし', 'バディーはいません。', 'person'));
+    buddySection.body.append(routingHubInfoEmptyCard('バディー記録なし', 'バディーはいません。'));
     bodyEl.replaceChildren(buddySection.section);
     return;
   }
@@ -7354,7 +7474,7 @@ function renderRoutingHubEnemiesInto(bodyEl) {
   const enemySection = routingHubInfoSection('エネミー');
   bodyEl.append(enemySection.section);
   if (!enemies.length) {
-    enemySection.body.append(routingHubInfoEmptyCard('エネミー記録なし', '対立関係のキャラクターはいません。', 'person'));
+    enemySection.body.append(routingHubInfoEmptyCard('エネミー記録なし', '対立関係のキャラクターはいません。'));
     return;
   }
   enemySection.body.append(routingHubInfoSummary(`${enemies.length}件`, 'エネミー'));
@@ -7432,7 +7552,7 @@ function renderRoutingHubInventoryLedgerInto(bodyEl, feedback = null) {
   // The 使う result stays visible above the ledger while the list below re-renders to the new quantities.
   if (feedback) bodyEl.append(routingHubInventoryFeedbackCard(feedback));
   if (items.length === 0) {
-    bodyEl.append(routingHubInfoEmptyCard('持ち物なし', '所持しているアイテムはありません。', 'pouch'));
+    bodyEl.append(routingHubInfoEmptyCard('持ち物なし', '所持しているアイテムはありません。'));
     return;
   }
   bodyEl.append(routingHubInfoSummary(`${items.length}種類`, '持ち物'));
@@ -7606,7 +7726,9 @@ function routingHubGiftAction(item) {
   const alreadyGiven = routingHubGiftAlreadyGiven();
   give.disabled = alreadyGiven;
   if (alreadyGiven) give.title = 'この会話ではもう渡しています';
-  give.addEventListener('click', () => handleRoutingHubGift(item).catch(reportError));
+  give.addEventListener('click', () => {
+    try { handleRoutingHubGift(item); } catch (error) { reportError(error); }
+  });
   return give;
 }
 
@@ -7636,11 +7758,12 @@ async function revealRoutingHubGift(result) {
   routingHubStage.renderStream(routingHubStage.surface.getHistory());
 }
 
-// Hand the item over to the hub guide: confirm → close the drawer so the reaction is visible on the stream →
-// POST /api/conversation/gift → reveal the reaction + toast the effect → refresh. The shared
-// conversationRequestInFlight + the dedicated conversationGiftInFlight single-flight guard keep a gift from
-// overlapping a turn or firing twice. A 503 leaves the item unconsumed and retryable (the explicit 未消費 line).
-async function handleRoutingHubGift(item) {
+// Hand the item over to the hub guide: the night-band confirmation over the drawer card (渡す / やめる) → close
+// the drawer so the reaction is visible on the stream → POST /api/conversation/gift → reveal the reaction + toast the
+// effect → refresh. The shared conversationRequestInFlight + the dedicated conversationGiftInFlight single-flight
+// guard keep a gift from overlapping a turn or firing twice. A 503 leaves the item unconsumed and retryable (the
+// explicit 未消費 line).
+function handleRoutingHubGift(item) {
   if (conversationRequestInFlight || conversationGiftInFlight) {
     showProcessingToast();
     return;
@@ -7649,7 +7772,27 @@ async function handleRoutingHubGift(item) {
   // click (e.g. the drawer left open across a conversation change) never fires an out-of-context gift.
   if (!isRoutingHubActive() || routingHubGiftAlreadyGiven()) return;
   const partnerName = activeCharacter().display_name;
-  if (!window.confirm(`「${item.name}」を${partnerName}に渡しますか？`)) return;
+  openNightBandConfirm(routingHubInfoCard(), {
+    className: 'routing-hub-info-gift-confirm',
+    title: null,
+    question: `「${item.name}」を${partnerName}に渡しますか？`,
+    cancel: { name: 'やめる', sigil: null },
+    accept: { name: '渡す', sigil: null },
+    onAccept: () => {
+      closeNightBandConfirm(routingHubInfoCard());
+      giveRoutingHubGift(item).catch(reportError);
+    }
+  });
+}
+
+// 渡す in the confirmation: the guards are read again (a turn may have started, or the conversation changed, while
+// the confirmation was open — only the drawer card is covered), then the one gift POST.
+async function giveRoutingHubGift(item) {
+  if (conversationRequestInFlight || conversationGiftInFlight) {
+    showProcessingToast();
+    return;
+  }
+  if (!isRoutingHubActive() || routingHubGiftAlreadyGiven()) return;
   conversationGiftInFlight = true;
   conversationRequestInFlight = true;
   setRoutingHubControlsDisabled(true);
@@ -7770,7 +7913,7 @@ async function loadRoutingHubInventoryEquipmentInto(sectionBody) {
 // shared 装備 detail popup), or a quiet titled empty state (an empty pool is not an error).
 function routingHubInventoryEquipmentList(unequipped) {
   if (unequipped.length === 0) {
-    return [routingHubInfoEmptyCard('未装備の装備品なし', '装備していない武器・護符はありません。', 'gear')];
+    return [routingHubInfoEmptyCard('未装備の装備品なし', '装備していない武器・護符はありません。')];
   }
   const nodes = [routingHubInfoSummary(`${unequipped.length}件`, '未装備の装備品')];
   const list = document.createElement('div');
@@ -8199,7 +8342,7 @@ function setStarCradleStatus(message, { tone = 'info' } = {}) {
   status.hidden = false;
 }
 
-// 揺り籠を読み込むあいだ: 状態の行に字の代わりに画面の中の待ちの印を置く（右下で待ちの紋が回る）。
+// 揺り籠を読み込むあいだ: 状態の行に字の代わりに画面の中の待ちの印を置く（右下で待ちのアイコンが回る）。
 function showStarCradleStatusWait() {
   const status = document.querySelector('#routing-hub-star-cradle-status');
   if (!status) throw new Error('routing hub star cradle status node #routing-hub-star-cradle-status is missing (broken markup wiring)');
@@ -8293,7 +8436,8 @@ function starCradleIsSelected(kind, view) {
   return starCradleSelected !== null && starCradleSelected.kind === kind && starCradleSelected.slotIndex === view.slot_index;
 }
 
-// One lawn's seats: `total` spots, each filled by its slot_index record or shown as the lawn's dotted empty picture.
+// One lawn's seats: `total` spots, each filled by its slot_index record or shown as the lawn's empty picture (the empty
+// pot on the upper lawn, the empty nest on the lower).
 function starCradleSpots(total, records, spots, emptyArt, spotFor) {
   if (total > spots.length) throw new Error(`star cradle view has ${total} ${emptyArt} slots but the garden lays out ${spots.length}`);
   const byIndex = new Map(records.map((record) => [record.slot_index, record]));
@@ -8496,11 +8640,11 @@ function starCradleNameInput(view) {
 }
 
 // The owned attribute materials under the selected individual: each its icon and owned count (pressing one feeds a
-// unit, biasing the outcome). None owned is the dotted empty pouch (never a silent empty). Feed is contract-blocked
-// after reveal — the picker only renders while feedable.
+// unit, biasing the outcome). None owned is said in words (never a silent empty). Feed is contract-blocked after
+// reveal — the picker only renders while feedable.
 function starCradleFeedPicker(kind, view) {
   const materials = starCradleMaterialCandidates();
-  if (materials.length === 0) return [fillWithEmptyArt(document.createElement('span'), 'pouch', '餌にできる属性素材を持っていません。')];
+  if (materials.length === 0) return [starCradleEmptyNote('餌にできる属性素材を持っていません。')];
   return materials.map((item) => {
     if (typeof item.icon !== 'string' || item.icon === '') throw new Error(`star cradle feed material ${item.item_id} has no icon`);
     const button = document.createElement('button');
@@ -8518,18 +8662,18 @@ function starCradleFeedPicker(kind, view) {
   });
 }
 
-// The 植える場 at the far empty pots: the free pot / nest counts as the dotted pot and nest with a number, then the
-// held seeds and eggs (stage art, name, count, 植える sigil); none held is the dotted empty pouch.
+// The 植える場 at the far empty pots: the free pot / nest counts as the empty pot and nest pictures with a number, then
+// the held seeds and eggs (stage art, name, count, 植える sigil); none held is said in words.
 function starCradleStation(view) {
   const station = document.createElement('div');
   station.className = 'routing-hub-star-cradle-station';
   const free = document.createElement('div');
   free.className = 'routing-hub-star-cradle-free';
-  free.append(starCradleFreeItem('pot', '鉢', view.free_pot_slots), starCradleFreeItem('nest', '生き物', view.free_creature_slots));
+  free.append(starCradleFreeItem('small-pot', '鉢', view.free_pot_slots), starCradleFreeItem('small-nest', '生き物', view.free_creature_slots));
   station.append(free);
   const candidates = starCradleSeedCandidates();
   if (candidates.length === 0) {
-    station.append(fillWithEmptyArt(document.createElement('span'), 'pouch', '植えられる種や卵を持っていません。'));
+    station.append(starCradleEmptyNote('植えられる種や卵を持っていません。'));
     return station;
   }
   for (const item of candidates) {
@@ -8553,6 +8697,14 @@ function starCradleStation(view) {
   return station;
 }
 
+// A cradle list with nothing to show (no feed materials, no seeds or eggs): one line of words on the garden.
+function starCradleEmptyNote(text) {
+  const note = document.createElement('p');
+  note.className = 'routing-hub-star-cradle-empty-note';
+  note.textContent = text;
+  return note;
+}
+
 function starCradleFreeItem(art, label, count) {
   const item = fillWithEmptyArt(document.createElement('span'), art, `${label}の空き ${count}`);
   item.className = 'routing-hub-star-cradle-free-item';
@@ -8563,7 +8715,7 @@ function starCradleFreeItem(art, label, count) {
 }
 
 // The 籠 on the round stone stand: each one-off caged creature as its adult art, name and 放す sigil (backend 409s a
-// full garden near the action). An empty cage is the dotted empty cage, read out as its note.
+// full garden near the action). An empty cage is the empty cage picture, read out as its note.
 function starCradleCagedStand(view) {
   const cage = document.createElement('div');
   cage.className = 'routing-hub-star-cradle-cage';
@@ -8706,18 +8858,52 @@ function routingHubDiaryPickerEntries() {
   return [{ ...routingPersonaActor(), diary_meta: '週の行事の記録' }, ...selectableCharacters];
 }
 
-function renderRoutingHubDiaryInto(bodyEl) {
+// The picker carries one name field at its head (a magnifier mark, the name only in aria-label — no placeholder).
+// `picker` is the state of one opening of the band: the category renderer starts it empty, and the back button
+// from a journal re-renders the picker with the same object, so the typed name and its narrowed list survive a
+// trip into a journal and are gone when the band is opened again.
+function renderRoutingHubDiaryInto(bodyEl, picker) {
   diaryFetchToken += 1; // re-opening the category abandons any in-flight character fetch
+  const { field, input } = searchField('名前で探す');
+  field.classList.add('routing-hub-info-diary-search');
+  input.value = picker.nameQuery;
   const list = document.createElement('div');
   list.className = 'routing-hub-info-roster-list';
-  // ルミ is always prepended, so the picker is never empty (the empty-roster case is unreachable now).
-  for (const character of routingHubDiaryPickerEntries()) {
-    list.append(routingHubDiaryRosterButton(bodyEl, character));
-  }
-  bodyEl.append(list);
+  // ルミ is always prepended, so the full picker is never empty; a name that matches nobody leaves the list empty.
+  const cells = routingHubDiaryPickerEntries().map((character) => ({
+    key: routingHubDiaryNameKey(character.display_name ?? character.character_id),
+    button: routingHubDiaryRosterButton(bodyEl, character, picker)
+  }));
+  const narrow = (composing) => {
+    picker.nameQuery = input.value;
+    const needle = routingHubDiaryNameNeedle(input.value, composing);
+    list.replaceChildren(...cells.filter((cell) => cell.key.includes(needle)).map((cell) => cell.button));
+  };
+  // Narrowing follows every change of the field, including the uncommitted text of an IME composition (the input
+  // event fires on each composition update); compositionend re-narrows once with the committed text.
+  input.addEventListener('input', (event) => narrow(event.isComposing));
+  input.addEventListener('compositionend', () => narrow(false));
+  narrow(false);
+  bodyEl.append(field, list);
 }
 
-function routingHubDiaryRosterButton(bodyEl, character) {
+// The fold a name and a typed needle are compared in: NFKC (full/half width), hiragana → katakana, lower case.
+function routingHubDiaryNameKey(text) {
+  return text
+    .normalize('NFKC')
+    .replace(/[\u3041-\u3096]/g, (kana) => String.fromCharCode(kana.charCodeAt(0) + 0x60))
+    .toLowerCase();
+}
+
+// While a composition is open, a trailing run of Latin letters is romaji the IME has not turned into kana yet
+// (「かｔ」's ｔ): it is left out of the needle so the list does not blank for a keystroke. Committed text is
+// matched as typed.
+function routingHubDiaryNameNeedle(value, composing) {
+  const key = routingHubDiaryNameKey(value);
+  return composing ? key.replace(/[a-z]+$/, '') : key;
+}
+
+function routingHubDiaryRosterButton(bodyEl, character, picker) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'routing-hub-info-diary-roster-button';
@@ -8736,23 +8922,23 @@ function routingHubDiaryRosterButton(bodyEl, character) {
   meta.textContent = character.diary_meta ?? ([character.school_year, character.club].filter(Boolean).join(' / ') || character.character_id);
   body.append(name, meta);
   button.append(image, body);
-  button.addEventListener('click', () => loadRoutingHubDiaryForCharacter(bodyEl, character).catch(reportError));
+  button.addEventListener('click', () => loadRoutingHubDiaryForCharacter(bodyEl, character, picker).catch(reportError));
   return button;
 }
 
 // Fetch + render the selected character's journal. A loading card shows immediately; the resolved fetch renders
 // only if it is still current (token) and the drawer is still on diary. Zero memories is a legitimate empty
 // state (not an error); a fetch failure surfaces through the caller's reportError.
-async function loadRoutingHubDiaryForCharacter(bodyEl, character) {
+async function loadRoutingHubDiaryForCharacter(bodyEl, character, picker) {
   const token = (diaryFetchToken += 1);
   bodyEl.replaceChildren(routingHubDiaryLoadingCard());
   const entries = await fetchCharacterDiary(character.character_id);
   if (token !== diaryFetchToken) return;
   const popup = document.querySelector('#routing-hub-info-popup');
   if (!popup || popup.dataset.category !== 'diary') return;
-  bodyEl.replaceChildren(routingHubDiaryBackButton(bodyEl), routingHubDiaryHeader(character, entries.length));
+  bodyEl.replaceChildren(routingHubDiaryBackButton(bodyEl, picker), routingHubDiaryHeader(character, entries.length));
   if (entries.length === 0) {
-    bodyEl.append(routingHubInfoEmptyCard('まだ日記がありません', `${character.display_name ?? character.character_id}との思い出は、まだ日記に綴られていません。`, 'diary'));
+    bodyEl.append(routingHubInfoEmptyCard('まだ日記がありません', `${character.display_name ?? character.character_id}との思い出は、まだ日記に綴られていません。`));
     return;
   }
   const journal = document.createElement('div');
@@ -8770,14 +8956,14 @@ function routingHubDiaryLoadingCard() {
   return card;
 }
 
-function routingHubDiaryBackButton(bodyEl) {
+function routingHubDiaryBackButton(bodyEl, picker) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'routing-hub-info-diary-back';
   dressSigilButton(button, 'back', 'ほかのキャラを選ぶ');
   button.addEventListener('click', () => {
     bodyEl.replaceChildren();
-    renderRoutingHubDiaryInto(bodyEl);
+    renderRoutingHubDiaryInto(bodyEl, picker);
   });
   return button;
 }
@@ -9045,23 +9231,91 @@ function routingHubLibraryViewIsLive() {
   return routingHubLibraryDrawerIsOpen() && Boolean(routingHubLibraryView) && routingHubLibraryView.bodyEl.isConnected;
 }
 
-// The 自分の書斎棚: entries as small spines on a shelf, in the chosen 並び替え order. Empty is a legitimate initial
-// state — and carries no 並び替え row, since there is nothing to order.
+// The words of the 収蔵庫 band while it holds no book: one of a closed set of three, picked by this constant.
+// 1 = 題「まだ何も収蔵されていません」＋一文 / 2 = 題「収蔵庫」＋一文 / 3 = 題「収蔵庫」だけ. Any other value throws.
+const ROUTING_HUB_LIBRARY_EMPTY_WORDS = 3;
+
+function routingHubLibraryEmptyCard() {
+  // ui-prose-exception: 1794590895319-feea5ee4
+  if (ROUTING_HUB_LIBRARY_EMPTY_WORDS === 1) return routingHubInfoEmptyCard('まだ何も収蔵されていません', '棚に並んでいる本はありません。');
+  // ui-prose-exception: 1794590895319-feea5ee4
+  if (ROUTING_HUB_LIBRARY_EMPTY_WORDS === 2) return routingHubInfoEmptyCard('収蔵庫', '棚に並んでいる本はまだありません。');
+  // ui-prose-exception: 1794590895319-feea5ee4
+  if (ROUTING_HUB_LIBRARY_EMPTY_WORDS === 3) return routingHubInfoEmptyCard('収蔵庫', null);
+  throw new Error(`routing hub library empty words must be 1, 2 or 3, got ${JSON.stringify(ROUTING_HUB_LIBRARY_EMPTY_WORDS)}`);
+}
+
+// Which books (entry_id) the shelf has already shown during this page's life — null until the shelf is first drawn.
+// A book the shelf has not shown yet comes down onto its board when the shelf is drawn; the books already there at the
+// first draw are only remembered, except a lone first book, which always comes down at that first draw (so someone who
+// read it and closed the app before opening the 収蔵庫 still sees it arrive). Never saved.
+let routingHubLibraryShownEntryIds = null;
+
+function takeRoutingHubLibraryArrivals(entries) {
+  const firstDraw = routingHubLibraryShownEntryIds === null;
+  if (firstDraw) routingHubLibraryShownEntryIds = new Set();
+  const arrivals = new Set();
+  for (const entry of entries) {
+    if (routingHubLibraryShownEntryIds.has(entry.entry_id)) continue;
+    routingHubLibraryShownEntryIds.add(entry.entry_id);
+    if (!firstDraw || entries.length === 1) arrivals.add(entry.entry_id);
+  }
+  return arrivals;
+}
+
+// The 自分の書斎棚: a bookcase drawn in the band — crown, tiers of boards between two posts, plinth — with the entries
+// as small spines standing on the boards, eight to a tier, in the chosen 並び替え order. It keeps two tiers and grows
+// one tier down for every eight books past sixteen. Empty is a legitimate initial state: the same bookcase with
+// nothing on it, the empty words above it, and no 並び替え row, since there is nothing to order. With books, the words
+// above are the count. The moment the first book arrives, the empty words stay in place and fade as it comes down.
 function renderRoutingHubLibraryShelf(bodyEl, entries) {
   nextLibraryFootnoteGeneration();
   routingHubLibraryView = { bodyEl, entries, entry: null };
-  bodyEl.replaceChildren();
-  if (entries.length === 0) {
-    bodyEl.append(routingHubInfoEmptyCard('まだ何も収蔵されていません', '大書庫で本を読むと、その写しがここへ並びます。', 'shelf'));
-    return;
+  const arrivals = takeRoutingHubLibraryArrivals(entries);
+  const head = document.createElement('div');
+  head.className = 'routing-hub-info-library-head';
+  if (entries.length === 0 || (entries.length === 1 && arrivals.size === 1)) {
+    const emptyCard = routingHubLibraryEmptyCard();
+    if (entries.length === 1) {
+      head.dataset.arrival = 'first';
+      emptyCard.setAttribute('aria-hidden', 'true');
+    }
+    head.append(emptyCard);
   }
-  bodyEl.append(routingHubLibrarySortRow());
+  // ui-prose-exception: 1794590895319-feea5ee4
+  if (entries.length > 0) head.append(routingHubInfoSummary(`${entries.length}冊`, '収蔵庫'));
+  const nodes = [head];
+  if (entries.length > 0) nodes.push(routingHubLibrarySortRow());
+  const bookcase = document.createElement('div');
+  bookcase.className = 'routing-hub-info-library-bookcase';
+  const crown = document.createElement('div');
+  crown.className = 'routing-hub-info-library-crown';
+  crown.setAttribute('aria-hidden', 'true');
   const shelf = document.createElement('div');
   shelf.className = 'routing-hub-info-library-shelf';
-  for (const entry of sortLibraryCollectionEntries(entries, libraryCollectionSortKey)) {
-    shelf.append(routingHubLibrarySpineButton(entry));
+  const lights = [];
+  for (const [index, entry] of sortLibraryCollectionEntries(entries, libraryCollectionSortKey).entries()) {
+    const spine = routingHubLibrarySpineButton(entry);
+    if (arrivals.has(entry.entry_id)) {
+      spine.dataset.arrival = 'true';
+      // The light the book comes down through stands on that book's own place: its column, and its tier counted from
+      // the top (eight books to a tier).
+      const light = document.createElement('span');
+      light.className = 'routing-hub-info-library-arrival-light';
+      light.setAttribute('aria-hidden', 'true');
+      light.style.gridColumn = `${(index % 8) + 1} / ${(index % 8) + 2}`;
+      light.style.setProperty('--library-arrival-tier', String(Math.floor(index / 8)));
+      lights.push(light);
+    }
+    shelf.append(spine);
   }
-  bodyEl.append(shelf);
+  shelf.append(...lights);
+  const plinth = document.createElement('div');
+  plinth.className = 'routing-hub-info-library-plinth';
+  plinth.setAttribute('aria-hidden', 'true');
+  bookcase.append(crown, shelf, plinth);
+  nodes.push(bookcase);
+  bodyEl.replaceChildren(...nodes);
 }
 
 // 並び替え: the closed 4軸 select above the shelf. Choosing an 軸 only re-draws the shelf — the
@@ -9233,54 +9487,99 @@ async function toggleRoutingHubLibraryFavorite(entry) {
   }
 }
 
-// The 処分 confirmation: an overlay INSIDE the drawer card (the hub screen never changes). It names the book, asks
-// once, and offers やめる / 処分する in that order. The initial selection is やめる and is shown through :focus —
-// not :focus-visible — so it is visible whether the confirmation was opened by mouse or by keyboard. Tab /
-// Shift+Tab move the selection between the two buttons and nothing else, so focus stays inside the confirmation.
-function openRoutingHubLibraryDisposeConfirm(entry) {
-  const card = document.querySelector('.routing-hub-info-popup-card');
-  if (!card) throw new Error('routing hub info drawer card (.routing-hub-info-popup-card) is missing (broken markup wiring)');
-  if (card.querySelector('.routing-hub-info-library-confirm')) return;
+// 夜の帯の確かめ: an overlay INSIDE a night-band drawer card (the screen behind never changes) that asks once and
+// offers やめる / the action in that order. `className` names this confirmation's parts (`<className>`, `-card`,
+// `-title`, `-question`, `-row`, `-cancel`, `-accept`); `title` is a line above the question or null. Each button is
+// `{ name, sigil }` — with a sigil it is an icon button whose name is read aloud only, without one (sigil null) it is
+// the name as a word. The initial selection is やめる and is shown through :focus — not :focus-visible — so it is
+// visible whether the confirmation was opened by mouse or by keyboard. Tab / Shift+Tab move the selection between the
+// two buttons and nothing else, so focus stays inside the confirmation. やめる / Escape only close it. The overlay
+// covers the whole card (body and close sigil); a card holds at most one confirmation, so a second open is a no-op.
+function openNightBandConfirm(card, { className, title, question, cancel, accept, onAccept }) {
+  if (!(card instanceof HTMLElement) || !card.classList.contains('night-band-card')) {
+    throw new Error('night band confirm requires a .night-band-card element (broken markup wiring)');
+  }
+  if (title !== null && (typeof title !== 'string' || title === '')) {
+    throw new Error(`night band confirm title must be a non-empty string or null, got ${JSON.stringify(title)}`);
+  }
+  if (card.querySelector(':scope > [data-night-band-confirm]')) return;
   const overlay = document.createElement('div');
-  overlay.className = 'routing-hub-info-library-confirm';
+  overlay.className = className;
+  overlay.dataset.nightBandConfirm = '';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   const confirmCard = document.createElement('div');
-  confirmCard.className = 'routing-hub-info-library-confirm-card';
-  const title = document.createElement('p');
-  title.className = 'routing-hub-info-library-confirm-title';
-  title.textContent = entry.title;
-  const question = document.createElement('p');
-  question.className = 'routing-hub-info-library-confirm-question';
-  question.textContent = 'この本を棚から処分しますか？';
+  confirmCard.className = `${className}-card`;
+  if (title !== null) {
+    const titleLine = document.createElement('p');
+    titleLine.className = `${className}-title`;
+    titleLine.textContent = title;
+    confirmCard.append(titleLine);
+  }
+  const questionLine = document.createElement('p');
+  questionLine.className = `${className}-question`;
+  questionLine.textContent = question;
   const row = document.createElement('div');
-  row.className = 'routing-hub-info-library-confirm-row';
-  const cancel = document.createElement('button');
-  cancel.type = 'button';
-  cancel.className = 'routing-hub-info-library-confirm-cancel';
-  dressSigilButton(cancel, 'keep', 'やめる');
-  cancel.addEventListener('click', () => closeRoutingHubLibraryDisposeConfirm());
-  const accept = document.createElement('button');
-  accept.type = 'button';
-  accept.className = 'routing-hub-info-library-confirm-accept';
-  dressSigilButton(accept, 'dispose', '処分する');
-  accept.addEventListener('click', () => disposeRoutingHubLibraryEntry(entry).catch(reportError));
+  row.className = `${className}-row`;
+  const cancelButton = nightBandConfirmButton(`${className}-cancel`, cancel);
+  cancelButton.addEventListener('click', () => overlay.remove());
+  const acceptButton = nightBandConfirmButton(`${className}-accept`, accept);
+  acceptButton.addEventListener('click', onAccept);
   overlay.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
-      closeRoutingHubLibraryDisposeConfirm();
+      overlay.remove();
       return;
     }
     if (event.key !== 'Tab') return;
     event.preventDefault();
-    (document.activeElement === cancel ? accept : cancel).focus();
+    (document.activeElement === cancelButton ? acceptButton : cancelButton).focus();
   });
-  row.append(cancel, accept);
-  confirmCard.append(title, question, row);
+  row.append(cancelButton, acceptButton);
+  confirmCard.append(questionLine, row);
   overlay.append(confirmCard);
   card.append(overlay);
-  cancel.focus();
+  cancelButton.focus();
+}
+
+function nightBandConfirmButton(className, { name, sigil }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  if (sigil === null) {
+    button.textContent = name;
+  } else {
+    dressSigilButton(button, sigil, name);
+  }
+  return button;
+}
+
+// Close whatever confirmation the card holds. A drawer close only hides the popup and a category switch only
+// replaces the drawer BODY — neither touches a child of the card — so both routes call this: a confirmation belongs to
+// the view it was opened over and must not outlive it.
+function closeNightBandConfirm(card) {
+  const overlay = card.querySelector(':scope > [data-night-band-confirm]');
+  if (overlay) overlay.remove();
+}
+
+function routingHubInfoCard() {
+  const card = document.querySelector('.routing-hub-info-popup-card');
+  if (!card) throw new Error('routing hub info drawer card (.routing-hub-info-popup-card) is missing (broken markup wiring)');
+  return card;
+}
+
+// The 処分 confirmation: the night-band confirmation over the hub drawer card. It names the book, asks once, and
+// offers やめる / 処分する as icon buttons.
+function openRoutingHubLibraryDisposeConfirm(entry) {
+  openNightBandConfirm(routingHubInfoCard(), {
+    className: 'routing-hub-info-library-confirm',
+    title: entry.title,
+    question: 'この本を棚から処分しますか？',
+    cancel: { name: 'やめる', sigil: 'keep' },
+    accept: { name: '処分する', sigil: 'dispose' },
+    onAccept: () => disposeRoutingHubLibraryEntry(entry).catch(reportError)
+  });
 }
 
 // やめる / Escape: the confirmation closes and NOTHING was sent — the book is still on the shelf and still open.
@@ -9742,11 +10041,12 @@ function conversationGiftErrorMessage(error) {
   return errorDisplayMessage(error);
 }
 
-// Hand the item over to the current partner: confirm → close the drawer so the reaction is visible on the stream
-// → POST /api/conversation/gift → reveal the reaction + toast the effect → sync the roster (ally_boost updates a
-// runtime profile, reflected on reload). The shared conversationRequestInFlight + a dedicated single-flight guard
-// keep a gift from overlapping a turn or firing twice. A 503 leaves the item unconsumed and retryable.
-async function handleConversationDayGift(item) {
+// Hand the item over to the current partner: the night-band confirmation over the drawer card (渡す / やめる) →
+// close the drawer so the reaction is visible on the stream → POST /api/conversation/gift → reveal the reaction +
+// toast the effect → sync the roster (ally_boost updates a runtime profile, reflected on reload). The shared
+// conversationRequestInFlight + a dedicated single-flight guard keep a gift from overlapping a turn or firing twice.
+// A 503 leaves the item unconsumed and retryable.
+function handleConversationDayGift(item) {
   if (conversationRequestInFlight || conversationGiftInFlight) {
     showProcessingToast();
     return;
@@ -9755,7 +10055,33 @@ async function handleConversationDayGift(item) {
   // click (e.g. the drawer left open across a conversation change) never fires an out-of-context gift.
   if (!conversationGiftEligibleActor() || conversationGiftAlreadyGiven()) return;
   const partnerName = activeCharacter().display_name;
-  if (!window.confirm(`「${item.name}」を${partnerName}に渡しますか？`)) return;
+  openNightBandConfirm(conversationDayInfoCard(), {
+    className: 'conversation-day-info-gift-confirm',
+    title: null,
+    question: `「${item.name}」を${partnerName}に渡しますか？`,
+    cancel: { name: 'やめる', sigil: null },
+    accept: { name: '渡す', sigil: null },
+    onAccept: () => {
+      closeNightBandConfirm(conversationDayInfoCard());
+      giveConversationDayGift(item).catch(reportError);
+    }
+  });
+}
+
+function conversationDayInfoCard() {
+  const card = document.querySelector('#conversation-day-info-popup .night-band-card');
+  if (!card) throw new Error('conversation day info drawer card (#conversation-day-info-popup .night-band-card) is missing (broken markup wiring)');
+  return card;
+}
+
+// 渡す in the confirmation: the guards are read again (a turn may have started, or the conversation changed, while
+// the confirmation was open — only the drawer card is covered), then the one gift POST.
+async function giveConversationDayGift(item) {
+  if (conversationRequestInFlight || conversationGiftInFlight) {
+    showProcessingToast();
+    return;
+  }
+  if (!conversationGiftEligibleActor() || conversationGiftAlreadyGiven()) return;
   conversationGiftInFlight = true;
   conversationRequestInFlight = true;
   conversationDayStage.setControlsDisabled(true);
@@ -9841,7 +10167,9 @@ function renderConversationDayInventoryInto(bodyEl) {
       const alreadyGiven = conversationGiftAlreadyGiven();
       give.disabled = alreadyGiven;
       if (alreadyGiven) give.title = 'この会話ではもう渡しています';
-      give.addEventListener('click', () => handleConversationDayGift(item).catch(reportError));
+      give.addEventListener('click', () => {
+        try { handleConversationDayGift(item); } catch (error) { reportError(error); }
+      });
       row.append(give);
     }
     list.append(row);
@@ -10052,12 +10380,12 @@ const ERRAND_SCENE_LOCATION_NAME = '依頼の現場';
 // The 依頼の現場 舞台画像: the new 1:1 content stage art shown in the errand detail popup (a fixed scene image,
 // independent of the field's current stage). The stage frame keeps the 依頼主 standee as the clickable face; the
 // detail popup it opens shows THIS 1:1 stage image instead of the standee. It is the errand destination's art (the
-// send-off curtain, the wait over it and the card room's ground: one image from hubTerrace.js).
+// entering wait and the card room's ground: one image from hubTerrace.js).
 const ERRAND_SCENE_STAGE_IMAGE_URL = destinationArt('errand');
 // The 研究会 会場 舞台画像: the 1:1 content stage art shown in the study circle detail popup (the errand mirror — a
 // fixed scene image, independent of the field's current stage). The stage frame keeps the 主催 standee as the
 // clickable face; the detail popup it opens shows THIS 1:1 stage image instead of the standee. It is the study circle
-// destination's art (the send-off curtain, the wait over it and the card room's ground: one image from hubTerrace.js).
+// destination's art (the entering wait and the card room's ground: one image from hubTerrace.js).
 const STUDY_CIRCLE_SCENE_STAGE_IMAGE_URL = destinationArt('study_circle');
 // The 錬成室 舞台名 — mirrors the backend's injected atelier scene location_name (homunculusScene.ATELIER_LOCATION_NAME),
 // the title shown in the atelier stage-detail popup.
@@ -10409,7 +10737,12 @@ function closeConversationDayHomunculusPopup() {
 // so the post-processing drain runs over the errand / study circle stage's art (the conversation's own ground) and the
 // hub return (completeErrand/StudyCircleFromTurnResult → returnToRoutingHubFromPlace) continues under it with no break.
 function raiseAchievementDrainPlaceVeil() {
-  raisePlaceVeil({ art: academyFieldReading.conversationStage().backgroundUrl, dim: true, until: 'routing-hub', ending: 'fade' });
+  beginPlaceReturn({ until: 'routing-hub', place: conversationStagePlace });
+}
+
+// 会話の画面の舞台の絵（会話の終わり・達成の自動の終わりの帰り道の地）。置き方はいまの会話の画面の宣言。
+function conversationStagePlace() {
+  return { art: academyFieldReading.conversationStage().backgroundUrl, screen: currentActiveScreenName() };
 }
 
 // Clean daytime turn stream. Mirrors the routing hub's 統一出現規律 — every 吹き出し種別 (主人公の発話/地の文・
@@ -10647,7 +10980,7 @@ async function autoEndConversationDayAfterFinalReply(result) {
   if (!conversationShouldAutoEnd(result)) return false;
   setStreamStatus('reflection: auto-ending after final reply');
   await sleep(FINAL_REPLY_AUTO_END_DELAY_MS);
-  // 学院マップから入った会話では、会話の層の人が光へ溶けて消えてから終える（終えるの釦と同じ動き。それ以外の会話ではすぐ返る）。
+  // 学院マップから入った会話では、会話の層の人が光へ溶けて消えてから終える（終えるのボタンと同じ動き。それ以外の会話ではすぐ返る）。
   await partnerLeaves();
   await endConversationDay({ allowDuringInFlight: true });
   return true;
@@ -10734,8 +11067,7 @@ async function completeStudyCircleFromTurnResult(result) {
 
 // The daytime screen's modal overlays: the info drawer, the stage-detail popup, and the two partner popups
 // (roster character / ホムンクルス). While any is open the player is reading it, so the turn-completion refocus
-// must not pull focus behind it. (The gift confirmation is a blocking window.confirm, so it can never be open
-// while the refocus runs.)
+// must not pull focus behind it.
 const CONVERSATION_DAY_OVERLAY_SELECTORS = Object.freeze([
   '#conversation-day-info-popup',
   '#conversation-day-stage-popup',
@@ -10960,7 +11292,7 @@ async function startConversationDay(characterId) {
     // to the hub — opened anew under the stopped passage, because the academy-map visit already ended the hub
     // conversation — then re-raises so the caller's .catch(reportError) logs it once.
     if (isAcademyLoadingScreenActive() && settingsRedirectErrorMessage(error) == null) {
-      await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight: true, failedArrival: { screen: 'academy-map' } });
+      await returnToRoutingHubAfterFailure({ allowDuringInFlight: true, failedArrival: { screen: 'academy-map' }, screen: 'academy-map' });
     }
     throw error;
   } finally {
@@ -11090,10 +11422,10 @@ function showConversationDayDevScreen() {
 }
 
 // ── 表の部屋（調合・工房・錬成室）で分け合う作り ──────────────────────────────────────────────────────────
-// 三画面は同じ作りの上に、表の中身の並べ方だけを変えて置く: 地は場所の絵を画面いっぱいに敷き（送り出しの幕・場所の絵の上の待ちと
+// 三画面は同じ作りの上に、表の中身の並べ方だけを変えて置く: 地は場所の絵を画面いっぱいに敷き（場所の絵の上の待ちと
 // 同じ destinationArt の一枚を cover・center で — 待つあいだの絵がそのまま画面の地になる）、表の下だけを暗がりで沈め（style.css の
-// .table-room-table::before が表の矩形から広げて置く）、左上に場所の名、右上に出る紋を置く。調合の分類と錬成室の釦の紋は
-// tableRoomSigils.svg の symbol で、起動時に #table-room-sigil-symbols へ写して <use> で引く（露台の能力の紋と同じ作法）。
+// .table-room-table::before が表の矩形から広げて置く）、左上に場所の名、右上に出るアイコンを置く。調合の分類と錬成室のボタンのアイコンは
+// tableRoomSigils.svg の symbol で、起動時に #table-room-sigil-symbols へ写して <use> で引く（露台の能力のアイコンと同じ作法）。
 const TABLE_ROOM_DESTINATIONS = Object.freeze({ 'academy-alchemy': 'alchemy', 'academy-workshop': 'workshop', 'academy-atelier': 'homunculus' });
 for (const [screen, destination] of Object.entries(TABLE_ROOM_DESTINATIONS)) {
   const art = destinationArt(destination);
@@ -11114,7 +11446,7 @@ async function loadTableRoomSigils() {
   document.querySelector('#table-room-sigil-symbols').replaceChildren(...Array.from(symbols, (symbol) => document.importNode(symbol, true)));
 }
 
-// 紋の svg（置き場の symbol を <use> で引く・名前を持たない）。名前は呼び出し側が釦の aria-label か role=img の印で付ける。
+// アイコンの svg（置き場の symbol を <use> で引く・名前を持たない）。名前は呼び出し側がボタンの aria-label か role=img の印で付ける。
 function tableRoomSigilSvg(key) {
   const id = `table-sigil-${key}`;
   const symbol = document.getElementById(id);
@@ -11130,7 +11462,7 @@ function tableRoomSigilSvg(key) {
   return svg;
 }
 
-// 名前を読み上げにだけ持つ印（role=img）。中身は渡された svg（紋・ダンジョンの持ち物の印）。
+// 名前を読み上げにだけ持つ印（role=img）。中身は渡された svg（アイコン・ダンジョンの持ち物の印）。
 function tableRoomMark(svg, name, className) {
   const mark = document.createElement('span');
   mark.className = className;
@@ -11147,7 +11479,7 @@ function setTableRoomPurse(selector, money) {
   purse.textContent = moneyText(money);
 }
 
-// 絞り込みの釦（押すと絞り、もう一度押すと解ける）。中身は紋の印か字（ティア）。
+// 絞り込みのボタン（押すと絞り、もう一度押すと解ける）。中身はアイコンの印か字（ティア）。
 function tableRoomFilterButton(content, onPress) {
   const button = document.createElement('button');
   button.type = 'button';
@@ -11904,21 +12236,21 @@ document.querySelector('#academy-workshop-exit').addEventListener('click', () =>
 
 // ── 会場（闘技会・競売場・奏楽堂）で分け合う作り ─────────────────────────────────────────────────────────────────────────
 // 三つの会場は、催しが段を踏んで進む。画面は会場の絵いっぱいの一枚（地）に固定し、段ごとの面だけがその上で入れ替わる:
-// - 地: 会場の絵（hubTerrace.js の destinationArt = 露台の送り出しの幕・入るときの待ちと同じ一枚）を画面いっぱいに敷く。
-// - 左上の場所の名・上の中ほどの段の道（催しの段を星で結んだ道）・右上の出る紋（その段で出られるときだけ）。
+// - 地: 会場の絵（hubTerrace.js の destinationArt = 入るときの待ちと同じ一枚）を画面いっぱいに敷く。
+// - 左上の場所の名・上の中ほどの段の道（催しの段を星で結んだ道）・右上の出るアイコン（その段で出られるときだけ）。
 // - 段の道: 済んだ段の星は塗られ、いまの段の星は大きく灯り、先の段の星は輪郭だけ。失敗したときは、いまの段の星の先で道が途切れ、
-//   製品の失敗の紋（ROUTING_FAILURE_GLYPH_SVG の途切れた星の道）と同じ形になり、その右に言い直しの紋が立つ。原因は console にだけ残す。
-// - 字の釦はすべて紋（venueSigils.svg の symbol・露台の戻る紋）にし、名は読み上げの名（aria-label）にだけ持つ。
+//   製品の失敗のアイコン（ROUTING_FAILURE_GLYPH_SVG の途切れた星の道）と同じ形になり、その右に言い直しのアイコンが立つ。原因は console にだけ残す。
+// - 字のボタンはすべてアイコン（venueSigils.svg の symbol・露台の戻るアイコン）にし、名は読み上げの名（aria-label）にだけ持つ。
 const VENUE_SIGILS_URL = '/venueSigils.svg';
 const VENUE_SVG_NS = 'http://www.w3.org/2000/svg';
-// 段の道の星（失敗の紋の星の形）と、星どうしの間（viewBox の単位）。
+// 段の道の星（失敗のアイコンの星の形）と、星どうしの間（viewBox の単位）。
 const VENUE_PATH_STAR = 'M5 4.5 6.1 8.9 10.5 10 6.1 11.1 5 15.5 3.9 11.1-.5 10 3.9 8.9z';
 const VENUE_PATH_STEP = 46;
 const VENUE_PATH_SCALE = 1.6;
-// 言い直しの紋の読み上げの名。
+// 言い直しのアイコンの読み上げの名。
 const VENUE_RETRY_LABEL = 'もう一度';
 
-// venueSigils.svg の symbol を文書の置き場へ写す（露台の能力の紋と同じ理由: 静的配信の .svg は外から <use> で引けない）。
+// venueSigils.svg の symbol を文書の置き場へ写す（露台の能力のアイコンと同じ理由: 静的配信の .svg は外から <use> で引けない）。
 async function loadVenueSigils() {
   const response = await fetch(VENUE_SIGILS_URL);
   if (!response.ok) throw new Error(`venue sigils: ${VENUE_SIGILS_URL} answered ${response.status}`);
@@ -11931,7 +12263,7 @@ async function loadVenueSigils() {
   holder.replaceChildren(...Array.from(symbols, (symbol) => document.importNode(symbol, true)));
 }
 
-// 紋を引く <svg>（<use href="#venue-<名>">）。sigil は symbol の id から venue- を外した名。
+// アイコンを引く <svg>（<use href="#venue-<名>">）。sigil は symbol の id から venue- を外した名。
 function venueSigil(sigil, className = 'venue-sigil-mark') {
   const svg = document.createElementNS(VENUE_SVG_NS, 'svg');
   svg.setAttribute('class', className);
@@ -11943,7 +12275,7 @@ function venueSigil(sigil, className = 'venue-sigil-mark') {
   return svg;
 }
 
-// 釦を会場の紋の釦にする（中身は紋だけ・名は aria-label）。
+// ボタンを会場のアイコンのボタンにする（中身はアイコンだけ・名は aria-label）。
 function dressVenueSigilButton(button, sigil, label) {
   if (typeof label !== 'string' || label.trim() === '') throw new Error(`venue sigil button ${sigil} has no name to read out`);
   button.classList.add('venue-sigil-button');
@@ -11969,7 +12301,7 @@ function dressVenueGround(screen, destinationId) {
 }
 
 // 段の道を描く。names は段の名（読み上げの名にだけ使う）、current はいまの段の番号（names.length は全部済んだ）、failed は
-// いまの段で失敗したか。失敗の道は、いまの段の星から次の星へ向かう道が途切れた形（失敗の紋）で終わり、その先の星は描かない。
+// いまの段で失敗したか。失敗の道は、いまの段の星から次の星へ向かう道が途切れた形（失敗のアイコン）で終わり、その先の星は描かない。
 function renderVenuePath(node, { names, current, failed = false }) {
   if (!Array.isArray(names) || names.length < 2) throw new Error('venue path: needs at least two stage names');
   if (!Number.isInteger(current) || current < 0 || current > names.length) throw new Error(`venue path: current ${current} is out of the ${names.length} stages`);
@@ -12003,7 +12335,7 @@ function renderVenuePath(node, { names, current, failed = false }) {
   node.setAttribute('aria-label', `${names.join('・')}（${where}）`);
 }
 
-// 言い直しの紋: 失敗した道の右に立つ（retry が null なら下ろす）。押すと一度だけ retry を呼ぶ。
+// 言い直しのアイコン: 失敗した道の右に立つ（retry が null なら下ろす）。押すと一度だけ retry を呼ぶ。
 function setVenueRetry(button, retry) {
   button.onclick = null;
   button.hidden = retry === null;
@@ -12029,7 +12361,7 @@ function venueBusyMark(label) {
   return busy;
 }
 
-// 失敗の紋（失敗の紋の SVG そのもの）を、字を持たない印として置く（生成の失敗を受けたその場所）。
+// 失敗のアイコン（失敗のアイコンの SVG そのもの）を、字を持たない印として置く（生成の失敗を受けたその場所）。
 function venueFailureMark(label) {
   const mark = document.createElement('span');
   mark.className = 'routing-failure-mark venue-failure-mark';
@@ -12065,7 +12397,7 @@ const CONCERT_HALL_WRITTEN_LABEL = '譜が書けた';
 // 段の道（願い・語り・演奏・棚）と、状態ごとのいまの段。
 const CONCERT_HALL_WAY = ['願い', '語り', '演奏', '棚'];
 const CONCERT_HALL_WAY_STAGE = Object.freeze({ arrived: 0, typing: 0, composing: 1, narrated: 1, error: 1, playing: 2, replaying: 2, played: 3, shelf: 3 });
-// 語りの段の名の紋（venueSigils.svg）。段の名は紋の読み上げの名だけ。
+// 語りの段の名のアイコン（venueSigils.svg）。段の名はアイコンの読み上げの名だけ。
 const CONCERT_HALL_STAGE_SIGILS = Object.freeze({ materials: 'materials', direction: 'direction', guidance: 'guidance', skeleton: 'skeleton' });
 
 // The ONE player of the screen. Its AudioContext is created lazily inside the first 「演奏を始める」 click (autoplay
@@ -12092,7 +12424,7 @@ let concertHallHighlightEntryId = null;
 // Single-flight guards: one compose stream, one perform / replay start at a time.
 let concertHallComposeInFlight = false;
 let concertHallStartInFlight = false;
-// 段の道が途切れているか（失敗の紋と言い直しの紋が立っている間）。
+// 段の道が途切れているか（失敗のアイコンと言い直しのアイコンが立っている間）。
 let concertHallWayFailed = false;
 // 指南を開いているか（題の三語を押すと全文が開く。新しい語りでは畳んだ姿から始まる）。
 let concertHallGuidanceOpen = false;
@@ -12119,7 +12451,7 @@ function renderConcertHallWay() {
   });
 }
 
-// 奏楽堂の失敗: いまの段の星の先で道が途切れ、言い直しの紋が立つ。retry は失敗した手をもう一度行う（無ければ紋は立たない）。
+// 奏楽堂の失敗: いまの段の星の先で道が途切れ、言い直しのアイコンが立つ。retry は失敗した手をもう一度行う（無ければアイコンは立たない）。
 // 原因は console にだけ残す。
 function reportConcertHallScreenError(error, retry = null) {
   console.error(error);
@@ -12709,7 +13041,7 @@ async function loadLibraryArrival() {
   } catch (error) {
     // The scene redirects an LM config/connection failure itself (redirectRuntimeError); any other failure on the hub
     // dispatch's arrival returns to the hub.
-    if (libraryArrivalFromRouting && settingsRedirectErrorMessage(error) == null) returnToRoutingHubAfterArrivalFailure(error, libraryArrivalFromRouting);
+    if (libraryArrivalFromRouting && settingsRedirectErrorMessage(error) == null) returnToRoutingHubAfterArrivalFailure(error, libraryArrivalFromRouting, 'academy-library');
     throw error;
   }
 }
@@ -12837,8 +13169,8 @@ async function loadAtelierArrival() {
 }
 
 // Render the fixed max_active slot row: each active child's face / name / 在り週 / 好感度, its 11 parameters (the
-// terrace ability sigils over a thin meter and the value) and the 会いに行く / お別れ sigil buttons, and the empty-person
-// picture (read out 「空き」) for each free slot. The 会いに行く action is disabled when this visit's one conversation is
+// terrace ability sigils over a thin meter and the value) and the 会いに行く / お別れ sigil buttons, and the empty bell jar
+// on its stand (read out 「空き」) for each free slot. The 会いに行く action is disabled when this visit's one conversation is
 // spent (its title says so, never silently hidden).
 function renderAtelierSlots(view) {
   const list = atelierNode('#academy-atelier-slots');
@@ -12850,7 +13182,7 @@ function renderAtelierSlots(view) {
       item.className = 'academy-atelier-slot academy-atelier-slot--empty';
       const art = document.createElement('div');
       art.className = 'academy-atelier-slot-empty-art';
-      fillWithEmptyArt(art, 'person', '空き');
+      fillWithEmptyArt(art, 'bell-jar', '空き');
       item.append(art);
       list.append(item);
       continue;
@@ -12976,13 +13308,12 @@ function renderAtelierParameterList(parameters, createLabel) {
   return list;
 }
 
-// Render the persistent 銘棚 (nameplates of departed children). The empty shelf picture (the terrace's empty-shelf art)
+// Render the persistent 銘棚 (nameplates of departed children). The empty line 「まだ銘はない。」 beside the 銘棚 name
 // toggles with the list so it shows only when no child has been seen off yet.
 function renderAtelierNameplates(nameplates) {
   const list = atelierNode('#academy-atelier-nameplates');
   const empty = atelierNode('#academy-atelier-nameplates-empty');
   list.replaceChildren();
-  fillWithEmptyArt(empty, 'shelf', '銘棚は空');
   empty.hidden = nameplates.length > 0;
   for (const entry of nameplates) {
     const item = document.createElement('li');
@@ -13875,11 +14206,11 @@ document.querySelector('#academy-atelier-farewell-confirm-accept').addEventListe
 document.querySelector('#academy-atelier-farewell-speech-close').addEventListener('click', () => closeAtelierFarewellSpeech());
 
 // ── 札の部屋（依頼の札 academy-errand・研究会の札 academy-study-circle）: 露台の行き先「依頼」「研究会」の着く画面 ─────────
-// 二つの画面は一つの作りを分け合い、違うのは地の絵・場所の名・札の値の形の三つだけ（ROOM_CARD_ROOMS の行）。部屋の絵（送り出しの
-// 幕と入り道の待ちと同じ一枚・hubTerrace.js の destinationArt）を画面いっぱいに敷き、左上に会話の層と同じ場所・同じ字で週と場所の
+// 二つの画面は一つの作りを分け合い、違うのは地の絵・場所の名・札の値の形の三つだけ（ROOM_CARD_ROOMS の行）。部屋の絵（入り道の待ちと
+// 同じ一枚・hubTerrace.js の destinationArt）を画面いっぱいに敷き、左上に会話の層と同じ場所・同じ字で週と場所の
 // 名を置き、今週の三枚の札を画面の上半分の中ほどに横に並べる。札は部屋の掲示の紙と同じ生成りの紙。
 // - 入る: 今週の札の要求（GET）は、送り出しから続く場所の絵の上の待ち（placeVeilForArrival）の下で待ち、札が揃ったところで待ちが
-//   薄れて札の部屋が現れる。失敗は待ちが夜へ沈んでから、失敗の報せ（紋と行き先の名）ともう一度の紋の釦を札の場所に出す。
+//   薄れて札の部屋が現れる。失敗は待ちが夜へ沈んでから、失敗の報せ（アイコンと行き先の名）ともう一度のアイコンのボタンを札の場所に出す。
 // - 選ぶ: 一枚を押すと、ほかの二枚は退き、押した一枚は舞台の光を帯びて息をしながら、その場で会話の始まり（POST・1回で会話と最初の
 //   言葉）を待つ。始まったら同じ部屋の絵の会話の画面へ移り、札の列ごと会話の画面へ持ち込む（札は同じ場所に残る）。会話の層の
 //   相手が左下の隅に光の中から現れ、最初の言葉が出揃ったら残った札も退いて、いつもの会話の姿になる。研究会は選んだときに場所の名が
@@ -13888,7 +14219,7 @@ document.querySelector('#academy-atelier-farewell-speech-close').addEventListene
 // 戻る・飛ばす口は無い（行き先へ来た時点で週は使っていて、会話を終えるのがハブへ戻る唯一の道）。
 const ROOM_CARDS_OFFER_COUNT = 3;
 const ROOM_CARDS_MOON_PHASE_COUNT = 8;
-// 依頼の札の値の紋: 会話の画面の左の印の列の「お金」の絵。
+// 依頼の札の値のアイコン: 会話の画面の左の印の列の「お金」の絵。
 const ROOM_CARD_COIN_MARK_URL = '/canonical/conversation_day/icons/money.png';
 
 function assertRoomCardString(room, value, label) {
@@ -13908,7 +14239,7 @@ function errandClientFaceUrl(characterId) {
   return client.selection_icon_url ?? client.face_url ?? sourceSheetImageUrl({ characterId, view: 'face' });
 }
 
-// 依頼の札の値: 金の紋と額。
+// 依頼の札の値: 金のアイコンと額。
 function errandCardWorth(room, offer) {
   const reward = offer.reward_money;
   if (typeof reward !== 'number' || !Number.isFinite(reward) || reward <= 0) {
@@ -14016,13 +14347,13 @@ function clearRoomCardsTrouble(room) {
   roomCardsNode(room, 'retry').hidden = true;
 }
 
-// 失敗の報せ（紋と行き先の名）を札の場所に出す。retry は札の要求の失敗のときだけ（札が無いまま止まらないよう、もう一度の紋の釦）。
+// 失敗の報せ（アイコンと行き先の名）を札の場所に出す。retry は札の要求の失敗のときだけ（札が無いまま止まらないよう、もう一度のアイコンのボタン）。
 function showRoomCardsTrouble(room, { retry }) {
   writeRoutingFailureNotice(roomCardsNode(room, 'status'), { destinationLabel: roomCardsDestinationLabel(room) });
   roomCardsNode(room, 'retry').hidden = !retry;
 }
 
-// 週の字と月相の紋: 会話の画面の左上と同じ字（第N週 / 50）と同じ紋。週は会話の画面と同じく、いまの状態の elapsed_weeks から引く
+// 週の字と月相のアイコン: 会話の画面の左上と同じ字（第N週 / 50）と同じアイコン。週は会話の画面と同じく、いまの状態の elapsed_weeks から引く
 // （札の要求を待つ前に置くので、要求が失敗しても週は見えている）。
 function renderRoomCardsWeek(room) {
   const week = conversationStageWeek(currentRuntimeState?.elapsed_weeks);
@@ -14110,7 +14441,7 @@ async function enterRoomCards(room) {
       const [payload, light] = await Promise.all([getJson(room.offersUrl), stageLight(art)]);
       screen.style.setProperty('--cl-light-rgb', light.join(' '));
       renderRoomCards(room, payload);
-    })());
+    })(), { onFailure: 'sink' });
   } catch (error) {
     offers.replaceChildren();
     if (settingsRedirectErrorMessage(error) == null) showRoomCardsTrouble(room, { retry: true });
@@ -14139,7 +14470,7 @@ async function releaseHeldRoomCard(room) {
 }
 
 // 札を選んだ。ほかの二枚が退き、選んだ札が光を帯びて会話の始まりを待つ。始まったら札の列を会話の画面へ持ち込んで移り、最初の
-// 言葉を出し揃え、相手が現れきったら札を退かせる。conversationRequestInFlight は二度押しを止める（二度目は処理中の知らせ・札の釦も押せなくなる）。
+// 言葉を出し揃え、相手が現れきったら札を退かせる。conversationRequestInFlight は二度押しを止める（二度目は処理中の知らせ・札のボタンも押せなくなる）。
 async function chooseRoomCard(room, card, item) {
   if (conversationRequestInFlight) {
     showProcessingToast();
@@ -14393,9 +14724,14 @@ async function endRoutingConversation() {
   // conversation back to the 錬成室 — and the graduation guide week's 「今日はここまで」 stays on the terrace, so its wait
   // is the terrace itself. The other hub ends (the wrap-up and the conversationless hub's end, both to the title) keep
   // the loading screen.
+  // The content conversation's end enters the return entry (beginPlaceReturn) over the conversation's stage: to the terrace with
+  // the placement of the conversation screen it leaves, or to the 錬成室 with the 錬成室's own placement (the stage is the 錬成室's).
+  // The place is resolved here, before clearVisibleConversation() drops the scene the stage is read from.
   const endWait = isRoutingHubActive()
-    ? (isRoutingGraduationGuideActive() ? { art: null, dim: false, until: 'routing-hub', ending: 'cut' } : null)
-    : (routingHubStartFailure ? null : { art: academyFieldReading.conversationStage().backgroundUrl, dim: true, until: isActiveAtelierConversation() ? 'academy-atelier' : 'routing-hub', ending: 'fade' });
+    ? (isRoutingGraduationGuideActive() ? { kind: 'terrace' } : null)
+    : (routingHubStartFailure ? null : (isActiveAtelierConversation()
+      ? { kind: 'return', until: 'academy-atelier', place: { art: academyFieldReading.conversationStage().backgroundUrl, screen: 'academy-atelier' } }
+      : { kind: 'return', until: 'routing-hub', place: conversationStagePlace() }));
   hideRoutingFinalizeBlockedNotice();
   const provider = conversationProvider();
   conversationRequestInFlight = true;
@@ -14447,9 +14783,12 @@ async function endRoutingConversation() {
   try {
     // Hold the wait up until the drain-backed request returns (the target is resolved from the response below): over
     // the place (endWait), or on the loading screen.
-    if (endWait) {
-      raisePlaceVeil(endWait);
-      await awaitUnderPlaceVeil(endRequest);
+    if (endWait?.kind === 'terrace') {
+      raisePlaceVeil({ art: null, dim: false, until: 'routing-hub', ending: 'cut' });
+      await awaitUnderPlaceVeil(endRequest, { onFailure: 'sink' });
+    } else if (endWait?.kind === 'return') {
+      beginPlaceReturn({ until: endWait.until, place: () => endWait.place });
+      await awaitUnderPlaceVeil(endRequest, { onFailure: 'sink' });
     } else {
       await showAcademyLoadingScreenUntilReady({
         readiness: endRequest,
@@ -14537,7 +14876,11 @@ async function endRoutingConversation() {
     // Content-return (no hub dispatch): the backend fully drained the pending-finalization queue before
     // responding (drain-on-exit), so the queue is empty at this transition. A missing/unexpected
     // finalization_status fail-fasts rather than transitioning on a partial response. Drop the routing
-    // actor/id and re-open the hub.
+    // actor/id and re-open the hub. Only a content conversation's end returns this way (over the return wait its end
+    // raised): a hub end answers with a dispatch (the wrap-up's title included) or the graduation guide, never a content-return.
+    if (hubActive) {
+      throw new Error(`routing hub end: the response has neither a routing_dispatch nor graduation_guide (finalization_status ${JSON.stringify(result.finalization_status)})`);
+    }
     assertDrainedRoutingFinalization(result.finalization_status);
     currentRuntimeState = result.state ?? currentRuntimeState;
     clearRoutingHubConversation();
@@ -14602,15 +14945,16 @@ async function endRoutingConversation() {
 
 // The 錬成室 conversation's return to the 錬成室, under the wait over the 錬成室's stage: the routing arrival's strict field
 // refresh runs under the wait, then the 錬成室 shows (its GET /api/atelier re-renders the slots) and the wait fades into
-// it. Like navigateToPostContentScreen, a failed refresh never renders the 錬成室 on a stale field: the wait has sunk into
-// the night (awaitUnderPlaceVeil) and, short of a settings redirect, the player returns to the hub.
+// it. Like navigateToPostContentScreen, a failed refresh never renders the 錬成室 on a stale field: short of a settings
+// redirect, the same wait goes on to the hub (returnToRoutingHubAfterFailure).
 async function returnToAtelierUnderPlaceVeil() {
   const routingArrival = { destinationLabel: null };
   try {
-    await awaitUnderPlaceVeil(refresh({ strictField: true }));
+    await awaitUnderPlaceVeil(refresh({ strictField: true }), { onFailure: 'keep' });
+    await placeVeilReturnHeld();
     showScreen('academy-atelier', { routingArrival });
   } catch (error) {
-    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingArrival });
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubAfterFailure({ failedArrival: routingArrival, screen: 'academy-atelier' });
   }
 }
 
@@ -14626,10 +14970,10 @@ function isRoutingTurnDispatch(result) {
 // revealed by the caller; consume the dispatch the way the in-turn stage move does — validate the
 // dispatch and its destination against the authoritative transition, adopt the post-dispatch state
 // (the queue was drained / week progressed server-side, so we never re-apply it), and move to the
-// destination screen. overSendoff (the hub terrace's in-turn send-off) waits over the send-off curtain filled with the
-// destination's art (raiseSendoffPlaceVeil — already raised when the 見送り読みポーズ outlasted the drain); the other
-// dispatches (the send-off resumed after the blocked post-processing, the legacy conversation surfaces) have no curtain
-// and wait on the loading interstitial. This is NOT the conversation-end / content-return path
+// destination screen. overSendoff (the hub terrace's in-turn send-off) waits over the send-off curtain's night, the
+// destination's art rising from it (raiseSendoffPlaceVeil — already raised when the 見送り読みポーズ outlasted the drain);
+// the other dispatches (the send-off resumed after the blocked post-processing, the non-streamed send-off, the legacy
+// conversation surfaces) wait on the loading interstitial, and one leaving the terrace first sinks it into the night. This is NOT the conversation-end / content-return path
 // (navigateToPostContentScreen): a content destination (academy-map/academy-training/academy-dungeon) never re-opens
 // the hub, and the wrap-up destination ('title') leaves play mode for the title screen.
 async function performRoutingTurnDispatch({ result, dispatch, overSendoff }) {
@@ -14659,6 +15003,7 @@ async function performRoutingTurnDispatch({ result, dispatch, overSendoff }) {
     return;
   }
   if (overSendoff && !placeVeilWaiting()) raiseSendoffPlaceVeil(dispatch.destination_id);
+  if (!overSendoff && currentActiveScreenName() === 'routing-hub') await hubTerrace.sinkForLoadingBox();
   if (dispatchScreen === 'academy-map') {
     // A map dispatch satisfies the routing arrival's strict field refresh + placement reroll contract, then
     // auto-starts a pending event (学院マップを経ずにイベント直行) when one is startable — the same
@@ -14677,7 +15022,7 @@ async function performRoutingTurnDispatch({ result, dispatch, overSendoff }) {
   const routingArrival = routingArrivalFromDispatch(dispatch);
   try {
     if (overSendoff) {
-      await awaitUnderPlaceVeil(refresh({ strictField: true }));
+      await awaitUnderPlaceVeil(refresh({ strictField: true }), { onFailure: 'keep' });
       showScreen(dispatchScreen, { routingArrival });
     } else {
       await showAcademyLoadingScreenUntilReady({
@@ -14692,11 +15037,11 @@ async function performRoutingTurnDispatch({ result, dispatch, overSendoff }) {
   } catch (error) {
     // A failed field refresh must not render the destination on a stale field, and must not strand the
     // player on the loading screen or the wait over the curtain. reportLoadingError already surfaced it through the
-    // existing discipline (LM config/connection errors redirect to settings) and the wait over the curtain has sunk into
-    // the night; for any other failure, return to the hub so the player can choose again, with the failure notice naming
-    // the destination. The dispatch already ended the hub conversation, so the hub is opened anew (the originating turn
-    // is still in flight).
-    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight: true, failedArrival: routingArrival });
+    // existing discipline (LM config/connection errors redirect to settings); for any other failure, return to the hub so
+    // the player can choose again, with the failure notice naming the destination — under the wait over the curtain, which
+    // goes on without sinking into the night (the loading screen's arrival raises one over the destination's art). The
+    // dispatch already ended the hub conversation, so the hub is opened anew (the originating turn is still in flight).
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubAfterFailure({ allowDuringInFlight: true, failedArrival: routingArrival, screen: dispatchScreen });
   }
 }
 
@@ -14811,7 +15156,7 @@ function endGraduationConversation() {
   return finalization;
 }
 
-// routing の卒業の終わり（学院の人の昼の会話・案内人の露台。終えるの釦と相手が切り上げた自動の終わりの両方がここへ来る）:
+// routing の卒業の終わり（学院の人の昼の会話・案内人の露台。終えるのボタンと相手が切り上げた自動の終わりの両方がここへ来る）:
 // 最後の一言が残り、場所が暮れて（露台は沈んで）星の道になり、一年に出会った人が灯って道の終わりで相手が迎え、タイトルへ戻る
 // （夜の道行きの層の walkGraduationRoad）。道の人と最後の一言を読んでから会話を終える（終えたあとは道を読めない）。道も終える要求も
 // LM を呼ばない。終える要求は道と並んで走り、道の終わりの場面で、それが済むのを待ってからタイトルへ移る。「卒業しました。」の箱は出さない。
@@ -14900,8 +15245,8 @@ async function enterRoutingHub({ allowDuringInFlight = false, failedArrivalScree
     }
     const failedArrivalLabel = failedArrivalScreen === null ? null : hubTerrace.destinationLabel(result.failed_arrival.destination_id);
     // The hub-start POST and the refresh below are the two observed await boundaries every routing hub entry shares
-    // (the 3 play entries via enterRoutingHubFromPlayEntry, the returns from a place via returnToRoutingHubFromPlace,
-    // the conversation-end and dungeon-exit hub returns, and the failed-arrival returns). Advancing the constellation
+    // (the 3 play entries via enterRoutingHubFromPlayEntry and every return from a place through returnToRoutingHub —
+    // the content exits, the conversation-end and dungeon-exit hub returns, and the failed-arrival returns). Advancing the constellation
     // here — the loader's, or the place veil's — covers all of them at once; a no-op on the direct in-turn re-open
     // where neither is up.
     notifyAcademyLoadingProgress();
@@ -14919,10 +15264,9 @@ async function enterRoutingHub({ allowDuringInFlight = false, failedArrivalScree
     await refresh();
     markTerraceGraduation(isRoutingGraduationGuideActive());
     notifyAcademyLoadingProgress();
+    // A return wait shows the hub only once it has held its minimum (and its rise has settled).
+    await placeVeilReturnHeld();
     showScreen('routing-hub');
-    // The returned week's fade waits for a hub start that answered (its routing_destinations name the place), so the
-    // conversationless hub a failed start lands on never paints it.
-    hubTerrace.hubStarted(currentRuntimeState);
     await revealResultSequentially(routingHubStage.surface, result);
     await Promise.all([refreshPrompt(), refreshRecordStatus()]);
     return failedArrivalLabel;
@@ -14968,54 +15312,87 @@ async function enterRoutingHubFromPlayEntry(originScreen) {
   }
 }
 
-// Return to the routing hub from the place the player went this week (週を締める・実践から戻る・達成で自動に終わる会話):
-// the wait stands on that place's art (raisePlaceVeil — returnedPlaceArt) WHILE the non-streaming hub start runs, and once
-// enterRoutingHub shows the hub the place fades into the terrace's moonlit night — so the player is never left on a
-// silent content screen during the return request and never sees a copy box. When the wait is already standing on the place (the drain of an exit or an achievement
-// auto-end raised it), the hub start continues under it. allowDuringInFlight is the errand / study circle achievement
-// auto-return's opt-in: it runs inside the daytime turn's still-in-flight window, so the flag is threaded straight to
-// enterRoutingHub's re-entry gate. A failed hub start lands on the hub without a conversation (openRoutingHubUnderCover).
-async function returnToRoutingHubFromPlace({ allowDuringInFlight = false } = {}) {
-  // 露台の支度が始まった: 場所の絵の上の待ちが既にあればその下で続け、無ければ待ちを上げる。
-  if (!placeVeilWaiting()) raisePlaceVeil({ art: returnedPlaceArt(currentRuntimeState), dim: true, until: 'routing-hub', ending: 'fade' });
-  await openRoutingHubUnderCover({ allowDuringInFlight, failedArrivalScreen: null, startFailure: { destinationLabel: null } });
+// ── 帰りの入り口: 行き先から帰る道（ハブへ・錬成室の会話から錬成室へ）は、どれもここから待ちに入る ─────────────────────────────
+// 待ちがまだ無ければ、いた場所の絵（place() が返す { art, screen }: 絵と、置き方を読む画面）を地にした帰り道の待ちを上げる。送り出しの
+// 幕の夜が満ちていればその夜から絵が浮かび（fromNight）、夜が無ければ層全体がいまの画面の上で浮かぶ（riseOverScreen）。待ちが既に
+// 上がっていれば（帰りの要求の前に上げた待ち・送り出しの層の下で着けなかった道）、その待ちを帰り道の待ちにして続ける。place が null の
+// 呼び手は待ちが上がっている前提で、無ければ throw する。行き先の画面は「出る」と言うだけで、自前の暗転を持たない。
+const PLACE_RETURN_DESTINATIONS = new Set(['routing-hub', 'academy-atelier']);
+function beginPlaceReturn({ until, place }) {
+  if (!PLACE_RETURN_DESTINATIONS.has(until)) throw new Error(`place return: unknown return destination ${JSON.stringify(until)}`);
+  if (placeVeilWaiting()) {
+    continuePlaceVeilTo(until);
+    return;
+  }
+  if (typeof place !== 'function') throw new Error(`place return: no wait is up and no place to raise it over (place ${JSON.stringify(place)})`);
+  const { art, screen } = place();
+  const nightFull = hubTerrace.sendoffNightFull();
+  raisePlaceVeil({ art, dim: true, until, ending: 'fade', fromNight: nightFull, riseOverScreen: !nightFull, placementFrom: screen, returning: true });
 }
 
-// Return to the routing hub after a destination's arrival failed, through the loading interstitial with the hub-entry
-// copy. failedArrival (routingFailedArrival's { destinationLabel } or { screen }) is the destination whose arrival
-// failed and sent the player back: once the hub is open again its status line carries the failure notice naming it —
-// by the dispatch's label, or for { screen } by the label the hub start answers for that screen. Resolves true only when
-// the hub conversation is open, so the notice never overwrites the hub-start failure landing.
-async function returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight = false, failedArrival }) {
-  if (failedArrival === null || typeof failedArrival !== 'object') {
-    throw new Error(`routing hub return through the loading screen: failedArrival is required, got ${JSON.stringify(failedArrival)}`);
+// 今週行ってきた場所（いまの画面）の絵: 行き先の画面・会話の画面から出る帰り道の地。
+function thisWeeksPlace() {
+  return { art: returnedPlaceArt(currentRuntimeState), screen: currentActiveScreenName() };
+}
+
+// 行き先の画面の絵（その画面の上で失敗した帰り道の地）。行き先の画面でなければ throw。
+function destinationScreenPlace(screen) {
+  const destinationId = Object.keys(ROUTING_DISPATCH_SCREENS).find((id) => id !== 'title' && ROUTING_DISPATCH_SCREENS[id] === screen);
+  if (destinationId === undefined) throw new Error(`place return: ${JSON.stringify(screen)} is not a destination screen`);
+  return { art: destinationArt(destinationId), screen };
+}
+
+// ハブへ帰る: 帰りの入り口から待ちに入り、その下でハブの開始を待つ。待ちは最短（placeVeilReturnHeld）とハブの開始の両方を待ってから、
+// 違う絵のハブへ暗がりを掛けたまま薄れる。failedArrival（routingFailedArrival の { destinationLabel } か { screen }）は着けなかった行き先で、
+// ハブが開けたら失敗の報せがその名を出す（{ screen } はハブの開始が答える名で）。ハブの開始が失敗したら会話の無いハブへ着く
+// （openRoutingHubUnderCover）。allowDuringInFlight は依頼・研究会の達成の自動の帰り道が、まだ終わっていない昼のターンの中から渡す。
+async function returnToRoutingHub({ place, allowDuringInFlight = false, failedArrival = null }) {
+  if (failedArrival !== null && (typeof failedArrival !== 'object' || (!Object.hasOwn(failedArrival, 'screen') && !Object.hasOwn(failedArrival, 'destinationLabel')))) {
+    throw new Error(`routing hub return: failedArrival must be null, { screen } or { destinationLabel }, got ${JSON.stringify(failedArrival)}`);
   }
-  const failedArrivalScreen = failedArrival.screen ?? null;
-  setAcademyLoadingDestinationCopy(null, { loadingCopy: ROUTING_HUB_ENTRY_LOADING_COPY });
-  showScreen('academy-loading');
+  beginPlaceReturn({ until: 'routing-hub', place });
+  const failedArrivalScreen = failedArrival?.screen ?? null;
   const { opened, failedArrivalLabel } = await openRoutingHubUnderCover({
     allowDuringInFlight,
     failedArrivalScreen,
-    startFailure: { destinationLabel: failedArrivalScreen !== null ? null : failedArrival.destinationLabel }
+    startFailure: { destinationLabel: failedArrival === null || failedArrivalScreen !== null ? null : failedArrival.destinationLabel }
   });
-  if (opened) {
+  if (opened && failedArrival !== null) {
     showRoutingHubFailureNotice({ destinationLabel: failedArrivalScreen === null ? failedArrival.destinationLabel : failedArrivalLabel });
   }
-  return opened;
 }
 
-// Open the hub under the cover the caller has already raised — the loading screen or the place veil. A settings-redirect
-// hub-start error already left the cover for the settings screen inside enterRoutingHub (nothing is shown here); any other
-// hub-start failure threw before the hub switch (the cover is still up), so it lands on the hub without a conversation
-// (showRoutingHubStartFailure) instead of stranding the player under the cover — a place veil first sinks into the night.
-// A post-switch failure (already on the hub) is rethrown to the caller.
+// Return to the routing hub from the place the player went this week (週を締める・実践から戻る・達成で自動に終わる会話): through the
+// return entry, the wait stands on that place's art (returnedPlaceArt) WHILE the non-streaming hub start runs, or continues the wait
+// already standing on the place (the drain of an exit or an achievement auto-end raised it). allowDuringInFlight is the errand /
+// study circle achievement auto-return's opt-in.
+async function returnToRoutingHubFromPlace({ allowDuringInFlight = false } = {}) {
+  await returnToRoutingHub({ place: thisWeeksPlace, allowDuringInFlight });
+}
+
+// Return to the routing hub after a destination's arrival / entry / exit failed: the same return entry, over the art of the
+// destination screen that failed (screen) — or continuing the wait that is up (the send-off's wait the arrival failed under, an
+// entry's wait) — with the failure notice naming the destination (failedArrival).
+async function returnToRoutingHubAfterFailure({ failedArrival, screen, allowDuringInFlight = false }) {
+  if (failedArrival === null || typeof failedArrival !== 'object') {
+    throw new Error(`routing hub return after a failure: failedArrival is required, got ${JSON.stringify(failedArrival)}`);
+  }
+  await returnToRoutingHub({ place: () => destinationScreenPlace(screen), allowDuringInFlight, failedArrival });
+}
+
+// Open the hub under the place veil the caller has already raised. A settings-redirect hub-start error already left the veil for
+// the settings screen inside enterRoutingHub (nothing is shown here); any other hub-start failure threw before the hub switch (the
+// veil is still up), so it lands on the hub without a conversation (showRoutingHubStartFailure) instead of stranding the player
+// under the veil: a return wait holds its minimum and fades into that hub the way it fades into an opened one; the terrace's own
+// retry wait (not a return) first sinks into the night. A post-switch failure (already on the hub) is rethrown to the caller.
 async function openRoutingHubUnderCover({ allowDuringInFlight, failedArrivalScreen, startFailure }) {
   let failedArrivalLabel;
   try {
     failedArrivalLabel = await enterRoutingHub({ allowDuringInFlight, failedArrivalScreen });
   } catch (error) {
-    if (placeVeilWaiting()) await stopPlaceVeil();
-    else if (!isAcademyLoadingScreenActive()) throw error;
+    if (!placeVeilWaiting()) throw error;
+    if (placeVeilWait.holdUntil === null) await stopPlaceVeil();
+    else await placeVeilReturnHeld();
     console.error(error);
     showRoutingHubStartFailure(startFailure);
     return { opened: false, failedArrivalLabel: null };
@@ -15023,15 +15400,14 @@ async function openRoutingHubUnderCover({ allowDuringInFlight, failedArrivalScre
   return { opened: isRoutingHubActive(), failedArrivalLabel };
 }
 
-// A routing destination's arrival fetch failed on the screen it landed on: without it the screen has nothing to go on
-// with (no board, no held exit), so return to the hub — opened anew, because the dispatch already ended the hub
-// conversation — with the failure notice naming the destination (failedArrival: routingFailedArrival's), the same
-// exit a failed arrival loading takes. The cause itself stays on the console. An LM config/connection failure goes to
-// the settings screen instead.
-function returnToRoutingHubAfterArrivalFailure(error, failedArrival) {
+// A routing destination's arrival fetch failed on the screen it landed on (screen): without it the screen has nothing to go on
+// with (no board, no held exit), so return to the hub — opened anew, because the dispatch already ended the hub conversation —
+// with the failure notice naming the destination (failedArrival: routingFailedArrival's). The cause itself stays on the console.
+// An LM config/connection failure goes to the settings screen instead.
+function returnToRoutingHubAfterArrivalFailure(error, failedArrival, screen) {
   console.error(error);
   if (handleRuntimeApiError(error, { allowSettingsRedirect: true })) return;
-  returnToRoutingHubThroughLoadingScreen({ failedArrival }).catch(reportError);
+  returnToRoutingHubAfterFailure({ failedArrival, screen }).catch(reportError);
 }
 
 // The destination name a routing arrival carries: the dispatch's label, or null for a dev entry that did not come
@@ -15057,7 +15433,7 @@ function routingArrivalFromDispatch(dispatch) {
   return { destinationLabel: label };
 }
 
-// 失敗の紋: 途切れた星の道 — two star points joined by a path that breaks off midway. It carries the failure on the
+// 失敗のアイコン: 途切れた星の道 — two star points joined by a path that breaks off midway. It carries the failure on the
 // status lines of the landings a failed destination load leads to, beside the destination's name (the dispatch's
 // destination_label); the English cause stays on the console.
 const ROUTING_FAILURE_GLYPH_SVG = '<svg class="routing-failure-glyph" viewBox="0 0 40 20" aria-hidden="true" focusable="false">'
@@ -15209,7 +15585,8 @@ async function navigateToPostContentScreen(nextScreen, { loadingCopy = null, cop
     throw new Error('post-content navigation: missing next screen');
   }
   if (nextScreen === 'interaction') {
-    await enterRoutingHub({ allowDuringInFlight });
+    // The hub return of a content conversation's end continues the return wait its end raised over the stage.
+    await returnToRoutingHub({ place: null, allowDuringInFlight });
     return;
   }
   if (routingArrival && nextScreen === 'academy-map') {
@@ -15245,7 +15622,7 @@ async function navigateToPostContentScreen(nextScreen, { loadingCopy = null, cop
     // config errors → settings); otherwise return to the hub with the failure notice naming the destination, opened
     // anew because the dispatch already ended the hub conversation.
     if (!refreshField) throw error;
-    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight, failedArrival: routingArrival });
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubAfterFailure({ allowDuringInFlight, failedArrival: routingArrival, screen: nextScreen });
   }
 }
 
@@ -15266,8 +15643,8 @@ async function navigateToPostContentScreen(nextScreen, { loadingCopy = null, cop
 // conversation. The in-turn caller is still in-flight, so it passes allowDuringInFlight through to the event start
 // and the hub re-open (the errand achievement auto-end 流儀); the end-button caller already released the flag and
 // leaves it false. overSendoff: the in-turn caller's wait already stands over the send-off curtain (raiseSendoffPlaceVeil),
-// so no loading screen is raised here; a failure sinks that wait into the night before the hub return, and a pending
-// event takes over from it with the conversation passage on its own loading screen.
+// so no loading screen is raised here; a failure goes on to the hub under that wait (the return entry continues it), and a
+// pending event takes over from it with the conversation passage on its own loading screen.
 async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, allowDuringInFlight = false, routingArrival, overSendoff = false }) {
   if (!overSendoff) {
     setAcademyLoadingDestinationCopy('academy-map', { copyKey, loadingCopy });
@@ -15292,14 +15669,13 @@ async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, a
     // not silently drop onto the map: surface it (LM config → settings) and return to the hub, opened anew because
     // the dispatch already ended the hub conversation, so the loading screen is never terminal.
     reportLoadingError(error);
-    if (settingsRedirectErrorMessage(error) == null) {
-      if (placeVeilWaiting()) await stopPlaceVeil();
-      await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight, failedArrival: routingArrival });
-    }
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubAfterFailure({ allowDuringInFlight, failedArrival: routingArrival, screen: 'academy-map' });
     return;
   }
   if (!autoStartFlag) {
-    // No pending event: show the reroll'd academy map (byte-equivalent to the plain routing arrival).
+    // No pending event: show the reroll'd academy map (byte-equivalent to the plain routing arrival). The wait over the
+    // send-off curtain held the map's art in the night until now; it rises to its settled look before the map shows.
+    if (overSendoff) await risePlaceVeil();
     showScreen('academy-map', { rerollAcademyMap: true });
     return;
   }
@@ -15311,7 +15687,7 @@ async function arriveAtRoutingAcademyMap({ loadingCopy = null, copyKey = null, a
   } catch (error) {
     // The event start already surfaced the cause through its own reportLoadingError; for a non-settings-redirect
     // failure return to the hub, opened anew like the failures above (never a silent map drop).
-    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubThroughLoadingScreen({ allowDuringInFlight, failedArrival: routingArrival });
+    if (settingsRedirectErrorMessage(error) == null) await returnToRoutingHubAfterFailure({ allowDuringInFlight, failedArrival: routingArrival, screen: 'academy-map' });
   }
 }
 
@@ -15426,7 +15802,8 @@ async function retryBlockedRoutingFinalizations() {
 // The refused exit of a decided send-off turn, run again after the retry: the send-off turn is already saved,
 // so a plain hub end (no wrap_up) makes the server rebuild the same dispatch from the conversation's decided
 // destination (the week progression is keyed by the conversation, so it never applies twice), and the
-// in-turn dispatch path takes it to the destination.
+// in-turn dispatch path takes it to the destination. The terrace first sinks into the night, and the end runs under the
+// loading box that comes up from it.
 async function resumeRoutingHubSendoffDispatch() {
   if (conversationRequestInFlight) {
     showProcessingToast();
@@ -15436,8 +15813,9 @@ async function resumeRoutingHubSendoffDispatch() {
   const endBody = { character_id: activeCharacterId, conversation_id: routingHubConversationId, provider: conversationProvider() };
   conversationRequestInFlight = true;
   setRoutingHubControlsDisabled(true);
-  const endRequest = postJson('/api/conversation/end', endBody);
   try {
+    await hubTerrace.sinkForLoadingBox();
+    const endRequest = postJson('/api/conversation/end', endBody);
     await showAcademyLoadingScreenUntilReady({
       readiness: endRequest,
       nextScreen: null,
@@ -15451,6 +15829,8 @@ async function resumeRoutingHubSendoffDispatch() {
     if (!dispatch) throw new Error('routing send-off resume: conversation end returned no routing_dispatch');
     await performRoutingTurnDispatch({ result, dispatch, overSendoff: false });
   } catch (error) {
+    // A failure before the loading box came up leaves the terrace sunk under the curtain: lift it with the hub.
+    hubTerrace.abortSendoff();
     if (settingsRedirectErrorMessage(error) == null) {
       showScreen('routing-hub');
       if (isPendingFinalizationsBlockedError(error)) {
@@ -15620,7 +16000,7 @@ function reportLoadingError(error) {
   reportError(error);
 }
 
-// 最初から始める支度を待つあいだ: 状態の行に字の代わりに画面の中の待ちの印を置く（右下で待ちの紋が回る）。
+// 最初から始める支度を待つあいだ: 状態の行に字の代わりに画面の中の待ちの印を置く（右下で待ちのアイコンが回る）。
 function showTitleActionStatusWait() {
   const status = document.querySelector('#title-status');
   if (!status) return;
@@ -15719,7 +16099,7 @@ for (const closer of document.querySelectorAll('#academy-map-info-popup [data-am
 for (const closer of document.querySelectorAll('#academy-map-companion-popup [data-am-companion-close]')) {
   closer.addEventListener('click', () => closeAcademyMapCompanionPopup());
 }
-// 棚の画面の地は、入るときの待ちと同じ絵を一か所から取る（購買・採取は学院マップ・山林マップの覗きの窓の絵、鍛錬は送り出しの幕の絵）。
+// 棚の画面の地は、入るときの待ちと同じ絵を一か所から取る（購買・採取は学院マップ・山林マップの覗きの窓の絵、鍛錬は行き先の絵 = destinationArt）。
 document.querySelector('#shop-screen .shelf-ground').src = ACADEMY_SHOP_BACKGROUND_URL;
 document.querySelector('#gathering-screen .shelf-ground').src = SANRIN_GATHERING_BACKGROUND_URL;
 document.querySelector('#academy-training-screen .shelf-ground').src = destinationArt('training');
@@ -15796,15 +16176,13 @@ for (const button of document.querySelectorAll('.routing-hub-category-button')) 
 for (const closer of document.querySelectorAll('#routing-hub-info-popup [data-routing-popup-close]')) {
   closer.addEventListener('click', () => routingHubStage.closeInfo());
 }
-// The 処分 confirmation covers the drawer CARD, but a category switch only replaces the drawer BODY and a drawer
-// close only hides the popup — neither touches a child of the card. Both routes therefore invalidate the
-// confirmation explicitly, the same way a view change invalidates a pending footnote answer: the confirmation
-// belongs to the entry it was opened over and must not outlive that view.
+// A confirmation (処分 / 渡す) covers the drawer CARD; a category switch and a drawer close both invalidate it
+// (closeNightBandConfirm), the same way a view change invalidates a pending footnote answer.
 for (const button of document.querySelectorAll('.routing-hub-category-button')) {
-  button.addEventListener('click', () => closeRoutingHubLibraryDisposeConfirm());
+  button.addEventListener('click', () => closeNightBandConfirm(routingHubInfoCard()));
 }
 for (const closer of document.querySelectorAll('#routing-hub-info-popup [data-routing-popup-close]')) {
-  closer.addEventListener('click', () => closeRoutingHubLibraryDisposeConfirm());
+  closer.addEventListener('click', () => closeNightBandConfirm(routingHubInfoCard()));
 }
 // The routing hub speaker name (ルミ) opens her character-detail popup; its close button + backdrop dismiss it
 // (the same [hidden]-toggle modal流儀 as the info drawer). Delegated on the message stream so it survives every
@@ -15872,6 +16250,13 @@ for (const button of document.querySelectorAll('.conversation-day-category-butto
 }
 for (const closer of document.querySelectorAll('#conversation-day-info-popup [data-day-popup-close]')) {
   closer.addEventListener('click', () => conversationDayStage.closeInfo());
+}
+// The 渡す confirmation covers the day drawer CARD; a category switch and a drawer close both invalidate it.
+for (const button of document.querySelectorAll('.conversation-day-category-button')) {
+  button.addEventListener('click', () => closeNightBandConfirm(conversationDayInfoCard()));
+}
+for (const closer of document.querySelectorAll('#conversation-day-info-popup [data-day-popup-close]')) {
+  closer.addEventListener('click', () => closeNightBandConfirm(conversationDayInfoCard()));
 }
 // The stage image opens the daytime stage-detail popup; its close button + backdrop dismiss it (the same
 // modal流儀 as the info drawer). openConversationDayStagePopup fail-fasts (surfacing broken stage state), as
@@ -16109,7 +16494,7 @@ syncDungeonMotion();
 dungeonReducedMotionQuery.addEventListener('change', syncDungeonMotion);
 
 for (const node of document.querySelectorAll('#academy-dungeon-screen [data-crest]')) node.innerHTML = heroCrestSvg();
-// 入る前の画面の地は実践の行き先の絵（送り出しの幕・入るときの待ちと同じ一枚 = destinationArt）。潜るの紋は盤の下り階段と同じ印、
+// 入る前の画面の地は実践の行き先の絵（入るときの待ちと同じ一枚 = destinationArt）。潜るのアイコンは盤の下り階段と同じ印、
 // 同行の印は相棒の札の右下と、同行できないときの印の二か所に置く。
 dungeonRoot.style.setProperty('--dungeon-entry-art', `url('${destinationArt('dungeon')}')`);
 dn.dive.innerHTML = stairsDownSvg();
@@ -16168,9 +16553,9 @@ async function refreshDungeonScreen() {
   await renderDungeonEntry({ afterEnterFailure });
 }
 
-// ── 入る前: 潜る支度。場所の絵（地下へ降りる黒い石のアーチ）を画面いっぱいに敷き、アーチの奥の段の上り口に潜るの紋が灯る。段の
+// ── 入る前: 潜る支度。場所の絵（地下へ降りる黒い石のアーチ）を画面いっぱいに敷き、アーチの奥の段の上り口に潜るのアイコンが灯る。段の
 // 手前の床に誰と潜るか（主人公の紋と相棒の札。札を押すと同行とひとりが切り替わる）が立ち、足もとに何を持って潜るか（台の一列）が
-// 並ぶ。字は場所の名・人の名・品の名と個数だけで、説明の地の文も字の釦も置かない ─────────────────────────────────────────────
+// 並ぶ。字は場所の名・人の名・品の名と個数だけで、説明の地の文も字のボタンも置かない ─────────────────────────────────────────────
 async function renderDungeonEntry({ afterEnterFailure }) {
   currentDungeonView = null;
   dungeonChatMessages = [];
@@ -18949,16 +19334,16 @@ async function dungeonExitToRoom(result) {
     await navigateToPostContentScreen(nextScreen, { loadingCopy: DUNGEON_EXIT_LOADING_COPY });
     return;
   }
-  // The routing dungeon return waits over the result screen itself: the ground stays the board the run ended on, and
-  // the hub fades in over it. Drain-on-exit: the companion dungeon finalize (POST /api/dungeon/finalize) is the
-  // dungeon's post-processing; drain it to completion under the wait BEFORE opening the hub, so the companion finalize
-  // and the hub opening never race on the LM pipeline.
-  raisePlaceVeil({ art: null, dim: true, until: 'routing-hub', ending: 'fade' });
+  // The routing dungeon return enters the return entry over the dungeon's art (the art the dungeon's screens stand on),
+  // rising over the result board, and the hub fades in under it. Drain-on-exit: the companion dungeon finalize (POST
+  // /api/dungeon/finalize) is the dungeon's post-processing; drain it to completion under the wait BEFORE opening the hub,
+  // so the companion finalize and the hub opening never race on the LM pipeline.
+  beginPlaceReturn({ until: 'routing-hub', place: () => ({ art: destinationArt('dungeon'), screen: 'academy-dungeon' }) });
   try {
     if (activeDungeonFinalizationPromise) {
-      await awaitUnderPlaceVeil(activeDungeonFinalizationPromise);
+      await awaitUnderPlaceVeil(activeDungeonFinalizationPromise, { onFailure: 'sink' });
     }
-    await navigateToPostContentScreen(nextScreen);
+    await returnToRoutingHub({ place: null });
   } catch (error) {
     // A failed hub start has no landing of its own here: the wait sinks into the night and leaves the result screen.
     if (placeVeilWaiting()) await stopPlaceVeil();
@@ -19038,25 +19423,33 @@ let arenaCellLockWindow = null;     // { w, h } window inner size the frozen cel
 let arenaReplay = null;             // { matchId, winnerUnitId, turns, index, timer, seenEnd, heroActorIds, mirrored } while a spectator replay is playing
 let arenaReplaySpeed = 'low';       // session-held replay pacing (low = default interval, mid = 1/2, high = 1/4).
                                     // NOT persisted / never reset — it carries across replays for the whole page session.
-// LLM flavor (試合前口上 / 優勝・敗退実況一文) UI state. Both surfaces are independent of the combat / reward flow:
+// LLM flavor (試合の声 / 優勝・敗退実況一文) UI state. Both surfaces are independent of the combat / reward flow:
 // they fetch on their own (never touching arenaActionInFlight, so combat input is never blocked) and a generation
 // failure shows an explicit error in its own slot while every non-flavor arena flow keeps working.
-let arenaIntroMatchId = null;       // the match the intro banner currently reflects (single-flight token)
+let arenaReaction = null;           // 試合の面が映している一試合の場の反応と声（beginArenaReaction が作る）。試合の面を離れると null
+let arenaVoiceTimer = null;         // 盤の上の一声が引くまでの予定
+let arenaVoiceShown = false;        // 盤の上に一声（か失敗の印）が出ているか
 let arenaResultFlavorState = { text: null, pending: false, failed: false }; // the concluded tournament's 実況一文
 const ARENA_REPLAY_STEP_MS = 1100;  // auto-advance interval between replay turns (低速 = the unmodified baseline)
 // 3-step spectator speed: 低速 = the baseline interval, 中速 = half it, 高速 = a quarter of it (client pacing only).
 const ARENA_REPLAY_SPEED_DIVISORS = { low: 1, mid: 2, high: 4 };
 const ARENA_REPLAY_SPEED_LABELS = { low: '低速', mid: '中速', high: '高速' };
 // 入り（ms）: 相手の側→自陣の側の順に、足もとの輪が開き（ring）、その輪から駒が立つ（rise）。settle で輪がほどけ、会場が試合の濃さへ
-// 明け、口上と呪文の欄が出る。
+// 明け、客席の灯が点り、呪文の欄と始まりの一声が出る。
 const ARENA_ENTRANCE_MS = Object.freeze({ firstRing: 120, ring: 260, rise: 260, settle: 1000 });
 // 番の受け渡し（ms）: 一つの応答の出来事（打ち合い・回復・蘇生）を手の主ごとの区切りで流す。輪は縮んで消えてから次の手の主の足もとに
 // 開き（各 handoff）、その手の出来事は区切りの始まりから strike（輪が移らない区切りは firstStrike）で流れ出す。区切りの長さは、輪が
 // 移らない区切り first・輪が移る区切り slot・出来事の無い区切り（動いただけ）quiet。番が主人公へ戻ると呪文の欄の光の筋が一度走る（streak）。
 const ARENA_TURN_MS = Object.freeze({ handoff: 160, firstStrike: 100, strike: 220, first: 600, slot: 400, quiet: 400, streak: 520 });
-// 決着（ms・決める一撃が着いた時から）: 倒れた学院生が沈み（sinkAfter）、会場の灯と勝った側の足もとの輪（light）、印（mark）。
-// 主人公の試合は hold で盤が薄れ（fade）、表へ移る。決める一撃の着弾は ARENA_DECISIVE_IMPACT_SCALE 倍に大きく、盤は flash の間白む。
-const ARENA_DECISIVE_MS = Object.freeze({ sinkAfter: 200, light: 600, mark: 900, hold: 2300, fade: 300, flash: 260 });
+// 決着（ms・決める一撃が着いた時から）: 倒れた学院生が沈み（sinkAfter）、会場の灯と勝った側の足もとの輪（light）、印（mark）、
+// 印のすぐ上の決着の一声（voice）。主人公の試合は hold で盤が薄れ（fade）、表へ移る — hold は、決着の一声が追い詰めの一声と同じ長さ
+// （ARENA_VOICE_MS.edge）だけ読める所。決める一撃の着弾は ARENA_DECISIVE_IMPACT_SCALE 倍に大きく、盤は flash の間白む。
+const ARENA_DECISIVE_MS = Object.freeze({ sinkAfter: 200, light: 600, mark: 900, voice: 950, hold: 4400, fade: 300, flash: 260 });
+// 盤の上の一声（ms）: 始まりの一声が居る長さ（opening）・追い詰めの一声が居る長さ（edge）・声が無い試合の失敗の印が居る長さ（failure）、
+// 出入り（in / out）。動きを減らす設定では、出入りは still の長さの不透明度の変化だけ。
+const ARENA_VOICE_MS = Object.freeze({ opening: 4200, edge: 3400, failure: 2200, in: 320, out: 600, still: 120 });
+// 入りが済んだ時の客席の熱（灯が点る濃さ）。
+const ARENA_REACTION_ENTRY_HEAT = 0.25;
 const ARENA_DECISIVE_IMPACT_SCALE = 1.5;
 const ARENA_MARK_LABELS = Object.freeze({ advance: '勝ち上がり', champion: '優勝', eliminated: '敗退' });
 // 表の明かし（勝って戻った回戦）と見届け（敗退の後の残りの回戦）の時割り（ms）。一組の明かしは step の長さで、節が灯り、勝者の
@@ -19079,6 +19472,17 @@ const arenaScreen = document.querySelector('#academy-arena-screen');
 dressVenueGround(arenaScreen, 'arena');
 dressVenueSigilButton(document.querySelector('#arena-retry'), 'retry', VENUE_RETRY_LABEL);
 let arenaWayFailed = false;
+const arenaReactionLayer = createArenaReactionLayer({
+  root: document.querySelector('#arena-reaction'),
+  screen: arenaScreen,
+  stage: arenaScreen.querySelector('.arena-stage'),
+  side: arenaScreen.querySelector('.arena-side')
+});
+const arenaReactionSound = createArenaReactionSound({
+  output: bgmController.effectOutput,
+  veilTracks: bgmController.veilTracks,
+  liftTrackVeil: bgmController.liftTrackVeil
+});
 
 function arenaWayStage() {
   if (!document.querySelector('#arena-match').hidden) return 2;
@@ -19086,7 +19490,7 @@ function arenaWayStage() {
   return 0;
 }
 
-// 段の道と出る紋を、いまの面に合わせる。出る紋は結果の段（トーナメントの終わり）だけ。
+// 段の道と出るアイコンを、いまの面に合わせる。出るアイコンは結果の段（トーナメントの終わり）だけ。
 function renderArenaWay() {
   const stage = arenaWayStage();
   arenaScreen.dataset.stage = ['selection', 'bracket', 'match', 'result'][stage];
@@ -19094,7 +19498,7 @@ function renderArenaWay() {
   document.querySelector('#arena-exit').hidden = stage !== 3;
 }
 
-// 闘技会の失敗（400/404/409 の already_entered・no_buddy・concluded など）: いまの段の星の先で道が途切れ、言い直しの紋が立つ。
+// 闘技会の失敗（400/404/409 の already_entered・no_buddy・concluded など）: いまの段の星の先で道が途切れ、言い直しのアイコンが立つ。
 // 言い直しは闘技会を読み直す（GET /api/arena/state）。原因は console にだけ残す。闘技会は LM を使わないので設定の画面への誘いは無い。
 function reportArenaScreenError(error) {
   console.error(error);
@@ -19124,7 +19528,7 @@ function showArenaSurface(name) {
   stopArenaReveal();
   // Leaving the match surface forgets the drawn board, so the next match drawn there — even the same replay watched again —
   // starts as a fresh board (no mark, venue light or fallen tokens carried over).
-  if (name !== 'match') { resetArenaBoardScale(); clearArenaMatchIntro(); arenaBoardSignature = null; }
+  if (name !== 'match') { resetArenaBoardScale(); endArenaReaction(); arenaBoardSignature = null; }
   document.querySelector('#arena-selection').hidden = name !== 'selection';
   document.querySelector('#arena-bracket').hidden = name !== 'bracket';
   document.querySelector('#arena-match').hidden = name !== 'match';
@@ -19132,41 +19536,223 @@ function showArenaSurface(name) {
   renderArenaWay();
 }
 
-// ----- LLM flavor: 試合前口上 (match intro banner) -----
+// ----- 場の反応と盤の上の一声 -----
+// 試合の面が一試合を映している間、盤の出来事に合わせて客席の灯（arenaReactionLayer）・場の音（arenaReactionSound）・盤の上の
+// 一声を出す。声は試合の始まりに一度だけ受け取った五つ（POST /api/arena/match/voices。永続済みなら LM を呼ばずに返る）から
+// 機械が選ぶ: 始まり・最初の追い詰め・決着の三つまで。声が届かなければ（LM 未設定・gate 落ち）、一声の場所に失敗の印が短く出る
+// だけで、場の反応・決着・結果は止まらない。動きを減らす設定では層を出さず、一声は短い不透明度の変化だけで出入りする。
 
-// 口上の欄: 待つあいだは画面の中の待ちの印（右下で待ちの紋が回る）、届いたら本文、届かなければ失敗の紋（字は持たない・原因は console）。
-function setArenaMatchIntroBanner({ state, text = '' }) {
-  const node = document.querySelector('#arena-match-intro');
-  if (state === 'hidden') { node.hidden = true; node.replaceChildren(); node.removeAttribute('data-state'); return; }
-  node.hidden = false;
-  node.dataset.state = state; // 'pending' | 'ready' | 'error'
-  if (state === 'pending') node.replaceChildren(screenWaitMark('口上を生成中'));
-  else if (state === 'error') node.replaceChildren(venueFailureMark('口上の生成に失敗しました'));
+function arenaBoardCenter() {
+  const r = document.querySelector('#arena-grid').getBoundingClientRect();
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+}
+
+// 升目の、窓の座標での中心（着弾の場所）。
+function arenaTilePoint(tile) {
+  const centre = arenaCombatStage(COMBAT_FX.boltMs).tileCenter(tile.x, tile.y);
+  const board = document.querySelector('#arena-grid .an-board').getBoundingClientRect();
+  return { x: board.left + centre.x, y: board.top + centre.y };
+}
+
+function clearArenaVoice() {
+  window.clearTimeout(arenaVoiceTimer);
+  arenaVoiceTimer = null;
+  arenaVoiceShown = false;
+  const node = document.querySelector('#arena-voice');
+  for (const animation of node.getAnimations()) animation.cancel();
+  node.replaceChildren();
+  node.removeAttribute('data-kind');
+  node.removeAttribute('data-side');
+}
+
+function recedeArenaVoice() {
+  window.clearTimeout(arenaVoiceTimer);
+  arenaVoiceTimer = null;
+  if (!arenaVoiceShown) return;
+  arenaVoiceShown = false;
+  const node = document.querySelector('#arena-voice');
+  const out = node.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dungeonReducedMotion() ? ARENA_VOICE_MS.still : ARENA_VOICE_MS.out, easing: 'ease-in', fill: 'forwards' });
+  out.onfinish = () => { if (!arenaVoiceShown) node.replaceChildren(); };
+}
+
+// 盤の上に一声を出す（同時に出るのは一つ: 前の声はその場で入れ替わる）。text が null なら失敗の印。holdMs の後に引く（null なら
+// 試合の面を離れるまで居る）。side は声が誰の側の出来事か（self = 主人公の側が追い詰められた／負けた時の沈んだ色）。
+function showArenaVoice(kind, { text, side, holdMs }) {
+  const node = document.querySelector('#arena-voice');
+  window.clearTimeout(arenaVoiceTimer);
+  arenaVoiceTimer = null;
+  for (const animation of node.getAnimations()) animation.cancel();
+  node.dataset.kind = kind;
+  node.dataset.side = side;
+  if (text === null) node.replaceChildren(venueFailureMark('声の生成に失敗しました'));
   else node.textContent = text;
+  arenaVoiceShown = true;
+  const reduced = dungeonReducedMotion();
+  node.animate(
+    reduced ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 0, translate: '0 8px' }, { opacity: 1, translate: '0 0' }],
+    { duration: reduced ? ARENA_VOICE_MS.still : ARENA_VOICE_MS.in, easing: 'ease-out', fill: 'forwards' }
+  );
+  if (holdMs !== null) arenaVoiceTimer = window.setTimeout(recedeArenaVoice, holdMs);
 }
 
-function clearArenaMatchIntro() {
-  arenaIntroMatchId = null;
-  setArenaMatchIntroBanner({ state: 'hidden' });
+// 声の鍵の側（east = team a の組・west = team b の組）。左右に映した見返しは盤の a / b が入れ替わっている。
+function arenaVoiceSide(reaction, team) {
+  return (team === 'a') !== reaction.mirrored ? 'east' : 'west';
 }
 
-// Fetch (or restore the persisted) 口上 for a viewable match and show it in the match banner. Runs on its own —
-// NOT gated by arenaActionInFlight — so board input keeps working while the 口上 streams; a 503 shows an explicit
-// error in the banner without interrupting the match / replay. A newer match's intro supersedes a stale in-flight
-// one via the arenaIntroMatchId token.
-async function arenaShowMatchIntro(matchId) {
-  arenaIntroMatchId = matchId;
-  setArenaMatchIntroBanner({ state: 'pending' });
+// 場の様子: 主人公の側（観戦はバディーの側）が追い詰められていれば静まり、相手が追い詰められていれば高まり。主人公もバディーも
+// いない見返しは、どちらが追い詰められても高まり。
+function arenaReactionMood(reaction) {
+  const { hero, live } = reaction;
+  if (hero !== null && live[hero]) return 'hush';
+  if (hero === null ? (live.a || live.b) : live[hero === 'a' ? 'b' : 'a']) return 'rise';
+  return 'live';
+}
+
+function settleArenaReactionMood(reaction) {
+  const mood = arenaReactionMood(reaction);
+  if (mood === reaction.mood) return;
+  reaction.mood = mood;
+  arenaReactionLayer.setMood(mood, arenaBoardCenter());
+  arenaReactionSound.setHush(mood === 'hush');
+  if (mood === 'rise') arenaReactionSound.play('rise');
+}
+
+// 始まりの一声: 入りが済み、声が届いた（か落ちた）時に一度だけ。先に追い詰めか決着の声が出ていたら出さない。読み直しで途中から
+// 入った試合には始まりの一声を出さない（失敗の印は出す）。
+function tryArenaOpeningVoice(reaction) {
+  if (!reaction.entered || reaction.voices === undefined || reaction.openingTried) return;
+  reaction.openingTried = true;
+  if (reaction.edgeVoiced || reaction.finished) return;
+  if (reaction.voices === null) showArenaVoice('opening', { text: null, side: 'none', holdMs: ARENA_VOICE_MS.failure });
+  else if (!reaction.resumed) showArenaVoice('opening', { text: reaction.voices.opening, side: 'none', holdMs: ARENA_VOICE_MS.opening });
+}
+
+// Fetch (or restore the persisted) five voices of a viewable match. Runs on its own — NOT gated by arenaActionInFlight — so
+// board input keeps working while the voices are written; a failure leaves the match voiceless (reaction.voices === null)
+// without interrupting the match / replay. A newer match's reaction supersedes a stale in-flight one.
+async function arenaFetchMatchVoices(reaction) {
   try {
-    const payload = await postJson('/api/arena/match/intro', { match_id: matchId });
-    const { intro } = validateArenaIntroResponse(payload);
-    if (arenaIntroMatchId !== matchId) return; // a newer match took over — drop the stale result
-    setArenaMatchIntroBanner({ state: 'ready', text: intro });
+    const payload = await postJson('/api/arena/match/voices', { match_id: reaction.matchId });
+    const { match_id: answered, voices } = validateArenaVoicesResponse(payload);
+    if (answered !== reaction.matchId) throw new Error(`arena voices: asked for ${reaction.matchId} but ${answered} answered`);
+    reaction.voices = voices;
   } catch (error) {
-    if (arenaIntroMatchId !== matchId) return;
-    setArenaMatchIntroBanner({ state: 'error' });
+    reaction.voices = null;
     console.error(error);
   }
+  if (arenaReaction === reaction) tryArenaOpeningVoice(reaction);
+}
+
+// 試合の面を離れる時: 置いた予定と声を畳み、層を描かなくし、沈めた曲を戻す。
+function endArenaReaction() {
+  const reaction = arenaReaction;
+  arenaReaction = null;
+  if (reaction) {
+    window.clearTimeout(reaction.enterTimer);
+    for (const entry of reaction.pending) window.clearTimeout(entry.timer);
+  }
+  clearArenaVoice();
+  arenaReactionLayer.hide();
+  arenaReactionSound.setHush(false);
+}
+
+// 一試合の場の反応を始める。hero は主人公の側（観戦はバディーの側・どちらもいない見返しは null）、mirrored は左右に映した見返し、
+// resumed は読み直しで途中から入った試合（入りが無い。それまでの最大の一撃は試合の記録の行から、追い詰めはいまの HP から立て直す）。
+function beginArenaReaction(matchId, view, { hero, mirrored, resumed }) {
+  endArenaReaction();
+  const memory = arenaReactionMemory(view);
+  const reaction = {
+    matchId, hero, mirrored, resumed, memory,
+    live: { ...memory.edge },   // 画面に出し終えた所までの追い詰め（memory.edge は見分けの側で、見返しでは先まで進んでいる）
+    mood: null,
+    voices: undefined,          // undefined = まだ届かない・null = 声が無い試合・object = 五つの声
+    entered: false, openingTried: false, edgeVoiced: false, finished: false, finishVoiced: false,
+    pending: [],                // まだ盤に着いていない出来事の予定（{ beat, event, timer }）
+    enterTimer: null
+  };
+  arenaReaction = reaction;
+  arenaReactionSound.prime();
+  arenaFetchMatchVoices(reaction);
+  reaction.enter = () => {
+    reaction.enterTimer = null;
+    reaction.entered = true;
+    reaction.mood = arenaReactionMood(reaction);
+    if (!dungeonReducedMotion()) arenaReactionLayer.show({ mood: reaction.mood, heat: ARENA_REACTION_ENTRY_HEAT });
+    arenaReactionSound.setHush(reaction.mood === 'hush');
+    if (!resumed) arenaReactionSound.play('start');
+    tryArenaOpeningVoice(reaction);
+  };
+  if (resumed || dungeonReducedMotion()) reaction.enter();
+  else reaction.enterTimer = window.setTimeout(reaction.enter, ARENA_ENTRANCE_MS.settle);
+}
+
+// 盤に着いた一つの出来事の場の反応。quiet（畳まれて着弾を見せなかった出来事）は、場の様子だけを進める。決める一撃（decisive）は
+// 決着が受け持つので、熱だけを足す。
+function fireArenaReaction(reaction, { beat, event }, { quiet }) {
+  if (reaction.finished) return;
+  if (!quiet && beat.ratio > 0) arenaReactionLayer.hit(beat.ratio);
+  if (beat.decisive) return;
+  for (const moment of beat.moments) {
+    if (moment.kind === 'edge') reaction.live[moment.team] = true;
+    else if (moment.kind === 'ease') reaction.live[moment.team] = false;
+    if (quiet) continue;
+    if (moment.kind === 'bighit' || moment.kind === 'fall') {
+      arenaReactionLayer.swell(arenaTilePoint(event.to), moment.kind === 'fall' ? 1 : Math.min(1, moment.ratio * 1.6));
+      arenaReactionSound.play('swell');
+    } else if (moment.kind === 'edge' && !reaction.edgeVoiced && reaction.voices) {
+      // 追い詰めの一声は一試合に一度。
+      reaction.edgeVoiced = true;
+      showArenaVoice('edge', { text: reaction.voices[`${arenaVoiceSide(reaction, moment.team)}_edge`], side: moment.team === reaction.hero ? 'self' : 'foe', holdMs: ARENA_VOICE_MS.edge });
+    }
+  }
+  settleArenaReactionMood(reaction);
+}
+
+// 一つの出来事の場の反応を、その出来事が盤に着く時刻（ms 後）に一つ置く。いま着く出来事はその場で出す。
+function planArenaReaction(reaction, beat, event, landMs) {
+  const entry = { beat, event, timer: null };
+  if (landMs <= 0) { fireArenaReaction(reaction, entry, { quiet: false }); return; }
+  entry.timer = window.setTimeout(() => {
+    reaction.pending.splice(reaction.pending.indexOf(entry), 1);
+    fireArenaReaction(reaction, entry, { quiet: false });
+  }, landMs);
+  reaction.pending.push(entry);
+}
+
+// 盤の流れが畳まれた時: 入りの残りを済ませ、まだ着いていない出来事は場の様子だけを進める。
+function foldArenaReaction() {
+  const reaction = arenaReaction;
+  if (!reaction) return;
+  if (reaction.enterTimer !== null) {
+    window.clearTimeout(reaction.enterTimer);
+    reaction.enter();
+  }
+  for (const entry of reaction.pending.splice(0)) {
+    window.clearTimeout(entry.timer);
+    fireArenaReaction(reaction, entry, { quiet: true });
+  }
+}
+
+// 決着の場の反応: 一撃の場所（point）から光条と輪が弾け、決着の音が鳴る。still（畳まれた決着）は弾けと音を出さず、決着の後の
+// 場の様子だけにする。
+function finishArenaReaction(reaction, ending, point, { still }) {
+  if (reaction.finished) return;
+  reaction.finished = true;
+  for (const entry of reaction.pending.splice(0)) window.clearTimeout(entry.timer);
+  recedeArenaVoice();
+  const won = ending.outcome !== 'eliminated';
+  const champion = ending.outcome === 'champion';
+  arenaReactionSound.setHush(false);
+  arenaReactionLayer.burst(point, { won, champion, still });
+  if (!still) arenaReactionSound.play(champion ? 'finish-champion' : won ? 'finish-won' : 'finish-lost');
+}
+
+// 決着の一声: 決着の印のすぐ上に、勝った側の声を出して留める。
+function voiceArenaFinish(reaction, ending) {
+  if (reaction.finishVoiced || !reaction.voices) return;
+  reaction.finishVoiced = true;
+  showArenaVoice('finish', { text: reaction.voices[`${arenaVoiceSide(reaction, ending.winner)}_wins`], side: ending.outcome === 'eliminated' ? 'self' : 'foe', holdMs: null });
 }
 
 // ----- LLM flavor: 優勝・敗退実況一文 (terminal result) -----
@@ -19231,7 +19817,8 @@ function renderArenaState(view) {
   if (view.current_match) {
     renderArenaMatch(view.current_match, view, { replay: false });
     setArenaTurn(view.current_match.player_actor_id ?? null);
-    if (view.current_match_id) arenaShowMatchIntro(view.current_match_id); // resume restores the persisted 口上
+    // A resumed match picks its reaction up mid-way (the persisted voices come back without an LM call).
+    beginArenaReaction(view.current_match_id, view.current_match, { hero: arenaFriendlyTeam(view.current_match), mirrored: false, resumed: true });
     return;
   }
   renderArenaBracket(view);
@@ -19239,7 +19826,7 @@ function renderArenaState(view) {
 
 // ----- phase 1: participate-form selection -----
 
-// 選ぶ段: 床の魔法陣に三つの立ち位置（一人・二人・バディーの観戦）。形の紋が床に灯る輪の上に立ち、名は読み上げの名だけ。
+// 選ぶ段: 床の魔法陣に三つの立ち位置（一人・二人・バディーの観戦）。形のアイコンが床に灯る輪の上に立ち、名は読み上げの名だけ。
 // 選べない立ち位置は沈んで押せず（隠さない）、二人と観戦の後ろの姿（バディー）は、バディーがいなければ破線の空いた輪郭になる。
 function renderArenaSelection(view) {
   teardownArenaConsumableTargeting();
@@ -19267,7 +19854,7 @@ function renderArenaSelection(view) {
     holder.innerHTML = ARENA_MODE_SIGILS[mode.mode];
     const sigil = holder.firstElementChild;
     sigil.setAttribute('class', 'arena-floor-sigil');
-    // 二人・観戦の紋の後ろの姿（頭の円と胴の二つ）がバディー。いないときは破線の空いた輪郭。
+    // 二人・観戦のアイコンの後ろの姿（頭の円と胴の二つ）がバディー。いないときは破線の空いた輪郭。
     if (withBuddy && !view.buddy) for (const part of [...sigil.children].slice(-2)) part.dataset.buddy = 'absent';
     spot.append(ring, sigil);
     spot.addEventListener('click', () => arenaEnter(mode.mode).catch(reportArenaScreenError));
@@ -19292,9 +19879,9 @@ async function arenaEnter(mode) {
 
 // ----- phase 2: bracket -----
 
-// 勝ち上がりの表の段（トーナメントが終わっていれば結果の段: 表の上に結果が乗り、右上に出る紋が立つ）。
+// 勝ち上がりの表の段（トーナメントが終わっていれば結果の段: 表の上に結果が乗り、右上に出るアイコンが立つ）。
 // revealFrom（試合から戻ったときだけ）: 戻る前の表が結果を見せていた回戦の数。そこから今の表までの差を順に明かし、明かし終わって
-// から試合を始める紋（大会が終わっていれば、表を沈めて結果の段）を立てる。無ければ明かし終わりの姿で描く（読み直し・見返しから戻る）。
+// から試合を始めるアイコン（大会が終わっていれば、表を沈めて結果の段）を立てる。無ければ明かし終わりの姿で描く（読み直し・見返しから戻る）。
 function renderArenaBracket(view, { revealFrom = null } = {}) {
   teardownArenaConsumableTargeting();
   currentArenaMatchView = null;
@@ -19504,7 +20091,7 @@ function arenaUnitMap(view) {
 // 段は画面の上 top から下 bottomReserve の手前まで。円の半径は、横の余地（窓の端から marginX・名の札から円まで labelGap・いちばん
 // 広い名の札）と、段の半分の高さ ÷ rowSpan の小さい方。回戦ごとの輪は半径の rings 倍（一回戦・準々決勝・準決勝・決勝 = 中心の輪）。
 // 道が輪へ乗る・輪から節へ降りる四分円の半径は bendMax まで、かつその輪でいちばん短い回りの bendShare 倍まで。eye は見返しの目の
-// 釦の一辺、finalEyeDrop は決勝の目を頂から下へずらす長さ。
+// ボタンの一辺、finalEyeDrop は決勝の目を頂から下へずらす長さ。
 const ARENA_RING = Object.freeze({
   top: 92, bottomReserve: 98, marginX: 28, labelGap: 12, rowH: 40, matchGapRatio: 0.45, rowSpan: 0.80,
   rings: Object.freeze([0.86, 0.70, 0.54, 0.38]), bendMax: 14, bendShare: 0.35, bendSteps: 12, eye: 30, finalEyeDrop: 34
@@ -19759,7 +20346,7 @@ function layoutArenaRing(ring) {
   ring.host.dataset.layout = `${W}x${H}`;
 }
 
-// 見返しの目の釦を節の上へ置く。決勝の目は頂の星の下（中心の輪の内）。
+// 見返しの目のボタンを節の上へ置く。決勝の目は頂の星の下（中心の輪の内）。
 function placeArenaRingEye(ring, matchId, eye) {
   if (!ring.layout) return;
   const node = ring.layout.nodes.get(matchId);
@@ -19895,7 +20482,7 @@ new ResizeObserver(() => {
 new ResizeObserver(fitArenaRingResultMask).observe(document.querySelector('#arena-result'));
 
 // 観戦の入り: 一回戦の名だけの表で、バディーの名が灯り（0.3 秒）、バディーの組の目が金の輪で開き（0.7 秒）、落ち着いた所で
-// 見ずに先へ進む紋が出る（1 秒）。表のどこを押しても落ち着いた姿まで畳む。
+// 見ずに先へ進むアイコンが出る（1 秒）。表のどこを押しても落ち着いた姿まで畳む。
 function startArenaSpectateEntrance(view) {
   renderArenaBracket(view);
   const bracket = document.querySelector('#arena-bracket');
@@ -19929,7 +20516,7 @@ function arenaFindStartablePlayerMatch(view) {
   return null;
 }
 
-// 表の下の中ほど（手元）: 始められる自分の試合があれば、試合を始める紋。終わったトーナメントは右上の出る紋で出る（週は送り出しで
+// 表の下の中ほど（手元）: 始められる自分の試合があれば、試合を始めるアイコン。終わったトーナメントは右上の出るアイコンで出る（週は送り出しで
 // 消費済み）。
 function renderArenaBracketActions(view) {
   const actions = document.querySelector('#arena-bracket-actions');
@@ -19955,11 +20542,106 @@ function renderArenaResult(view) {
   const panel = document.querySelector('#arena-result');
   if (!arenaShowsResult(view) || !view.content_result) { hideArenaResult(); return; }
   const detail = validateArenaContentResult(view.content_result);
-  panel.replaceChildren(...buildArenaResultNodes(detail), arenaResultFlavorNode());
+  const [title, ...rest] = buildArenaResultNodes(detail);
+  panel.replaceChildren(title, ...buildArenaResultBoutNodes(view), ...rest, arenaResultFlavorNode());
   panel.hidden = false;
   fitArenaRingResultMask();
   // The 実況一文 is generated independently of the reward panel — a failure never blocks 闘技会を出る.
   arenaEnsureResultFlavor();
+}
+
+// 結果の段の見出しの下: 自分（組なら二人）・最後の試合の回戦の名と交わる二本の杖・最後の相手を、顔と名で一列に置く。左の自分は負ければ
+// 灰に沈み、勝てば金の縁。優勝者が自分でも最後の相手でもないときだけ、その下に「優勝」と優勝者の顔と名の行を置く。優勝者が並ぶ側に
+// いれば、その顔に頂の星を付ける。観戦はバディーの組（player_unit_id）を自分の側に置く。
+function buildArenaResultBoutNodes(view) {
+  const unitOf = (unitId) => {
+    const unit = view.units.find((candidate) => candidate.unit_id === unitId);
+    if (!unit) throw new Error(`arena result: unit ${unitId} is not in the tournament`);
+    return unit;
+  };
+  const championId = view.bracket.rounds.at(-1)[0].winner_unit_id;
+  if (!championId) throw new Error('arena result: the final has no winner');
+  const last = view.bracket.rounds.flat().filter((match) => arenaHeroMatch(view, match)).at(-1);
+  if (!last?.resolved) throw new Error(`arena result: the last match of unit ${view.player_unit_id} is not resolved`);
+  const otherId = last.team_a_unit_id === view.player_unit_id ? last.team_b_unit_id : last.team_a_unit_id;
+  const won = last.winner_unit_id === view.player_unit_id;
+  const round = document.createElement('div');
+  round.className = 'arena-result-round';
+  const roundName = document.createElement('span');
+  roundName.className = 'arena-result-round-name';
+  roundName.textContent = ARENA_ROUND_NAMES[last.round];
+  round.append(roundName, arenaResultStavesMark());
+  const bout = document.createElement('div');
+  bout.className = 'arena-result-bout';
+  bout.append(
+    arenaResultSideNode(unitOf(view.player_unit_id), { side: 'self', won, crowned: championId === view.player_unit_id }),
+    round,
+    arenaResultSideNode(unitOf(otherId), { side: 'other', won: !won, crowned: championId === otherId })
+  );
+  if (championId === view.player_unit_id || championId === otherId) return [bout];
+  const champion = document.createElement('div');
+  champion.className = 'arena-result-champion';
+  const label = document.createElement('span');
+  label.className = 'arena-result-champion-label';
+  label.textContent = '優勝';
+  const { faces, names } = arenaResultUnitNodes(unitOf(championId), { crowned: false });
+  champion.append(venueSigil('star', 'arena-result-champion-star'), label, faces, names);
+  return [bout, champion];
+}
+
+// 一つの組の顔と名。主人公は顔の絵を持たないので、盤の駒と同じ ★ の印。頂の星は組の先頭の顔に付ける。
+function arenaResultUnitNodes(unit, { crowned }) {
+  const faces = document.createElement('div');
+  faces.className = 'arena-result-faces';
+  const names = document.createElement('div');
+  names.className = 'arena-result-names';
+  unit.actors.forEach((actor, index) => {
+    const face = document.createElement('span');
+    face.className = 'arena-result-face';
+    if (actor.kind === 'protagonist') {
+      face.classList.add('arena-result-face--emblem');
+      face.textContent = '★';
+    } else {
+      face.style.backgroundImage = `url("${arenaActorFaceUrl(actor)}")`;
+    }
+    if (crowned && index === 0) face.append(venueSigil('star', 'arena-result-crown-star'));
+    faces.append(face);
+    const name = document.createElement('span');
+    name.textContent = actor.name;
+    names.append(name);
+  });
+  return { faces, names };
+}
+
+function arenaResultSideNode(unit, { side, won, crowned }) {
+  const node = document.createElement('div');
+  node.className = `arena-result-side arena-result-side--${side}`;
+  node.dataset.won = String(won);
+  const { faces, names } = arenaResultUnitNodes(unit, { crowned });
+  node.append(faces, names);
+  return node;
+}
+
+// 回戦の名の下の、交わる二本の杖（先に小さな赤い星）。
+function arenaResultStavesMark() {
+  const svg = document.createElementNS(VENUE_SVG_NS, 'svg');
+  svg.setAttribute('class', 'arena-result-staves');
+  svg.setAttribute('viewBox', '0 0 32 32');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const staves = document.createElementNS(VENUE_SVG_NS, 'path');
+  staves.setAttribute('d', 'M7 27 25 7M25 27 7 7');
+  staves.setAttribute('class', 'arena-result-staves-shaft');
+  svg.append(staves);
+  for (const cx of [7, 25]) {
+    const tip = document.createElementNS(VENUE_SVG_NS, 'circle');
+    tip.setAttribute('cx', String(cx));
+    tip.setAttribute('cy', '7');
+    tip.setAttribute('r', '2.6');
+    tip.setAttribute('class', 'arena-result-staves-tip');
+    svg.append(tip);
+  }
+  return svg;
 }
 
 // 結果: 優勝・敗退の名と勝ち抜いた数、賞金（賞金の印と額）と素材（素材の結晶の印と名・数）。見出しの字は置かない。
@@ -20017,7 +20699,7 @@ async function arenaStartMatch() {
     foldArenaEffects();
     renderArenaMatch(view, tournament, { replay: false });
     playArenaEntrance(view);
-    if (tournament.current_match_id) arenaShowMatchIntro(tournament.current_match_id);
+    beginArenaReaction(tournament.current_match_id, view, { hero: arenaFriendlyTeam(view), mirrored: false, resumed: false });
   } finally {
     arenaActionInFlight = false;
   }
@@ -20082,7 +20764,10 @@ async function arenaDo(action) {
     renderArenaMatch(view, tournament, { replay: false });
     if (view.action_error) return;
     const ending = view.active ? null : arenaPlayerEnding(view, tournament);
-    const decided = playArenaFlow(previous, view, events, { slotted: true, ending });
+    // 一つの応答（全員が一度ずつ動く一巡）の内に解ける追い詰めは拾わない。
+    const beats = arenaReactionBeats(previous, view, events, arenaReaction.memory);
+    dropBriefArenaEdges([beats], 0);
+    const decided = playArenaFlow(previous, view, events, { slotted: true, ending, beats });
     if (view.active) return;
     // The player's match resolved: the 決着 plays on the still-visible board, the board fades, then the (advanced) bracket
     // takes over — terminal reflects the result + 闘技会を出る there.
@@ -20222,7 +20907,7 @@ function renderArenaDock(view) {
   spells.replaceChildren();
   const player = view.actors.find((actor) => actor.actor_id === view.player_actor_id);
   for (const spell of view.castable_elements ?? []) {
-    // 属性の紋（露台の能力の紋の属性）と消費 MP の数。名は読み上げの名。
+    // 属性のアイコン（露台の能力のアイコンの属性）と消費 MP の数。名は読み上げの名。
     if (!Object.hasOwn(DUNGEON_MAGIC_LABELS, spell.element)) throw new Error(`arena castable element ${JSON.stringify(spell.element)} is not one of the six attributes`);
     const button = document.createElement('button');
     button.type = 'button';
@@ -20263,15 +20948,57 @@ function renderArenaDock(view) {
   healSlot.append(healButton);
 }
 
+// 試合の記録の一行（試合の記録 view.log の一件から組む）: 打ち合い・外れ・会心は「属性の一字　手の主 → 相手　数」（殴りは「打」）、
+// 回復は「癒　手の主　+数」、倒れたら「名　倒れる」。数は名のすぐ後ろに置く。消耗品を使った行は文のまま。記録の形に合わない一件は throw。
+const ARENA_LOG_NUMBERS = Object.freeze({
+  strike: (entry) => String(entry.amount),
+  critical: (entry) => `会心 ${entry.amount}`,
+  miss: () => '外れ',
+  heal: (entry) => `+${entry.amount}`
+});
+function arenaLogRow(view, entry) {
+  const p = document.createElement('p');
+  if (entry.kind === 'text') {
+    p.textContent = entry.text;
+    return p;
+  }
+  const nameOf = (actorId) => {
+    const actor = view.actors.find((candidate) => candidate.actor_id === actorId);
+    if (!actor) throw new Error(`arena log: ${JSON.stringify(actorId)} is not a fighter of match ${view.match_id}`);
+    return actor.name;
+  };
+  p.className = `arena-log-row arena-log-row--${entry.kind}`;
+  if (entry.kind === 'down') {
+    p.textContent = `${nameOf(entry.actor_id)}　倒れる`;
+    return p;
+  }
+  const number = ARENA_LOG_NUMBERS[entry.kind];
+  if (!number) throw new Error(`arena log: unknown entry kind ${JSON.stringify(entry.kind)}`);
+  let glyph = '癒';
+  if (entry.kind !== 'heal') glyph = entry.element === null ? '打' : DUNGEON_MAGIC_LABELS[entry.element];
+  if (!glyph) throw new Error(`arena log: unknown element ${JSON.stringify(entry.element)}`);
+  const span = (className, text) => {
+    const node = document.createElement('span');
+    node.className = className;
+    node.textContent = text;
+    return node;
+  };
+  const el = span('arena-log-el', glyph);
+  if (entry.kind !== 'heal' && entry.element !== null) el.dataset.element = entry.element;
+  const parts = [el, span('arena-log-who', nameOf(entry.actor_id))];
+  if (entry.kind !== 'heal') parts.push(span('arena-log-arrow', '→'), span('arena-log-who', nameOf(entry.target_id)));
+  parts.push(span('arena-log-num', number(entry)));
+  p.append(...parts);
+  p.setAttribute('aria-label', entry.kind === 'heal'
+    ? `${glyph}　${nameOf(entry.actor_id)}　${number(entry)}`
+    : `${glyph}　${nameOf(entry.actor_id)} → ${nameOf(entry.target_id)}　${number(entry)}`);
+  return p;
+}
+
 function renderArenaLog(view) {
   const log = document.querySelector('#arena-log');
   const atBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 4;
-  log.replaceChildren();
-  for (const entry of view.log ?? []) {
-    const p = document.createElement('p');
-    p.textContent = entry;
-    log.append(p);
-  }
+  log.replaceChildren(...view.log.map((entry) => arenaLogRow(view, entry)));
   if (view.action_error) {
     const note = document.createElement('p');
     note.className = 'arena-log-note';
@@ -20287,9 +21014,18 @@ function renderArenaConsumables(view) {
   const list = document.querySelector('#arena-consumables-list');
   if (!list) return;
   if (!Array.isArray(view.consumables)) throw new Error('arena view is missing consumables');
-  // 持ち込んだ品が無ければ、空を知らせる袋の点線の絵（露台の空の絵）を置く。
+  // 持ち込んだ品が無ければ、欄の題「持ち込み」と、空を知らせる一文を置く。
   if (view.consumables.length === 0) {
-    list.replaceChildren(fillWithEmptyArt(document.createElement('span'), 'pouch', '持ち込んだ消耗品はない'));
+    const empty = document.createElement('div');
+    empty.className = 'arena-consumables-empty';
+    const title = document.createElement('p');
+    title.className = 'arena-consumables-empty-title';
+    title.textContent = '持ち込み';
+    const note = document.createElement('p');
+    note.className = 'arena-consumables-empty-note';
+    note.textContent = '持ち込んだ消耗品はない';
+    empty.append(title, note);
+    list.replaceChildren(empty);
     return;
   }
   list.replaceChildren(...view.consumables.map((row) => buildArenaConsumableChip(view, row)));
@@ -20455,7 +21191,7 @@ function onArenaAimClick(event, row) {
   useArenaConsumable(row.item_id, { aim: { x: Number(cell.dataset.x), y: Number(cell.dataset.y) } });
 }
 
-// 狙い・相手選びの間、盤の上に浮かぶ口: 使う品の名・相手の名の釦（相手選びのとき）・やめる紋。問いかけの字は置かない。
+// 狙い・相手選びの間、盤の上に浮かぶ口: 使う品の名・相手の名のボタン（相手選びのとき）・やめるアイコン。問いかけの字は置かない。
 function showArenaConsumablePrompt(itemName, actions) {
   const prompt = document.querySelector('#arena-consumable-prompt');
   if (!prompt) return;
@@ -20891,6 +21627,7 @@ function foldArenaEffects() {
   arenaFx.fold();
   document.querySelector('#arena-grid .an-effects')?.replaceChildren();
   document.querySelector('#arena-hurt').classList.remove('is-hurt');
+  foldArenaReaction();
   const flow = arenaFlow;
   arenaFlow = null;
   flow?.settle();
@@ -20967,7 +21704,7 @@ function riseArenaActor(actor, { animate }) {
 }
 
 // 入り: 盤だけが開き（会場の沈みが一段深く・目盛りは空）、相手の側→自陣の側の順に足もとの輪が開いて、その輪から駒が立ち目盛りが
-// 満ちる。終わりに輪がほどけ、会場が試合の濃さへ明け、口上と（主人公の試合なら）呪文の欄が出て、主人公の足もとに番の輪が残る。
+// 満ちる。終わりに輪がほどけ、会場が試合の濃さへ明け、（主人公の試合なら）呪文の欄が出て、主人公の足もとに番の輪が残る。
 function playArenaEntrance(view) {
   const match = document.querySelector('#arena-match');
   const venue = document.querySelector('#arena-venue');
@@ -21083,9 +21820,14 @@ function markArenaEnding(ending) {
 // events play at once, with the bolts flying fast enough that a fast replay step never outruns a miss). A fighter downed in it sinks
 // just after the strike that downs it lands; a fighter revived in it stays fallen until its revive plays. With an ending, the 決着
 // follows the decisive strike (the last strike landing on a fighter downed in it); for the player's match the returned promise
-// resolves when the 決着 has been held (or is folded), else null.
-function playArenaFlow(previous, view, events, { slotted, ending }) {
+// resolves when the 決着 has been held (or is folded), else null. beats are the events' 場の反応 (arenaReactionBeats): each is planned
+// once, at the time its event lands on the board, and the 決着 carries the reaction's burst and the finish voice.
+function playArenaFlow(previous, view, events, { slotted, ending, beats }) {
   const reduced = dungeonReducedMotion();
+  const reaction = arenaReaction;
+  if (!reaction) throw new Error('arena flow: no reaction is following the match on the board');
+  const beatOf = new Map(beats.map((beat) => [events[beat.index], beat]));
+  const plans = [];
   const dock = document.querySelector('#arena-dock-main');
   const player = view.actors.find((actor) => actor.actor_id === view.player_actor_id) ?? null;
   const falling = view.actors.filter((actor) => actor.down && !arenaSunk.has(actor.actor_id));
@@ -21123,14 +21865,23 @@ function playArenaFlow(previous, view, events, { slotted, ending }) {
     if (strikeAt === 0) playArenaEvents(view, turn.events, flightMs);
     else arenaFx.later(strikeAt, () => playArenaEvents(view, turn.events, flightMs));
     turn.events.forEach((event, index) => {
-      if (!COMBAT_STRIKE_KINDS.has(event.kind) || !event.hit) return;
+      const struck = COMBAT_STRIKE_KINDS.has(event.kind) && event.hit;
+      // A strike lands after its bolt's flight; a heal or a revive plays the moment its beat starts.
+      const land = strikeAt + (reduced ? 0 : combatStrikeDelayMs(index) + (struck ? flightMs : 0));
+      const beat = beatOf.get(event);
+      if (beat) plans.push({ beat, event, land });
+      if (!struck) return;
       const target = falling.find((actor) => actor.x === event.to.x && actor.y === event.to.y);
       if (!target) return;
-      const land = strikeAt + (reduced ? 0 : combatStrikeDelayMs(index) + flightMs);
       fallAt.set(target.actor_id, land);
       if (!decisive || land >= decisive.at) decisive = { at: land, event };
     });
   }
+  if (ending && decisive) {
+    const decisiveBeat = beatOf.get(decisive.event);
+    if (decisiveBeat) decisiveBeat.decisive = true;
+  }
+  for (const { beat, event, land } of plans) planArenaReaction(reaction, beat, event, land);
   for (const actor of falling) {
     const at = (fallAt.get(actor.actor_id) ?? t) + ARENA_DECISIVE_MS.sinkAfter;
     arenaFx.later(at, () => sinkArenaActor(actor.actor_id));
@@ -21180,9 +21931,13 @@ function playArenaFlow(previous, view, events, { slotted, ending }) {
     for (const actor of falling) sinkArenaActor(actor.actor_id);
     lightArenaEnding(view, ending);
     markArenaEnding(ending);
+    finishArenaReaction(reaction, ending, arenaBoardCenter(), { still: true });
+    voiceArenaFinish(reaction, ending);
     finish();
   };
   if (decisive) arenaFx.later(t0, () => strikeArenaDecisive(decisive.event));
+  arenaFx.later(t0, () => finishArenaReaction(reaction, ending, decisive ? arenaTilePoint(decisive.event.to) : arenaBoardCenter(), { still: false }));
+  arenaFx.later(t0 + ARENA_DECISIVE_MS.voice, () => voiceArenaFinish(reaction, ending));
   arenaFx.later(t0 + ARENA_DECISIVE_MS.light, () => lightArenaEnding(view, ending));
   arenaFx.later(t0 + ARENA_DECISIVE_MS.mark, () => {
     markArenaEnding(ending);
@@ -21192,7 +21947,7 @@ function playArenaFlow(previous, view, events, { slotted, ending }) {
   return decided;
 }
 
-// 決着の後、盤が薄れる。畳まれたら（戻る紋・読み直し）その場で終わる。
+// 決着の後、盤が薄れる。畳まれたら（戻るアイコン・読み直し）その場で終わる。
 function fadeArenaMatch() {
   if (dungeonReducedMotion()) return Promise.resolve();
   return new Promise((resolve) => {
@@ -21218,10 +21973,15 @@ async function startArenaReplay(matchId) {
     // 盤は左右対称なので、バディーが右（team b）の試合は画面の側で左右に映す。
     const hero = arenaReplayHero(currentArenaState, replay.match_id);
     const turns = hero?.side === 'b' ? replay.turns.map(arenaMirrorReplayTurn) : replay.turns;
-    arenaReplay = { matchId: replay.match_id, winnerUnitId: replay.winner_unit_id, turns, index: 0, timer: null, seenEnd: turns.length === 1, heroActorIds: hero?.actorIds ?? null, mirrored: hero?.side === 'b' };
+    arenaReplay = { matchId: replay.match_id, winnerUnitId: replay.winner_unit_id, turns, index: 0, timer: null, seenEnd: turns.length === 1, heroActorIds: hero?.actorIds ?? null, mirrored: hero?.side === 'b', beats: null };
     renderArenaMatch(turns[0].view, currentArenaState, { replay: true });
     playArenaEntrance(turns[0].view);
-    arenaShowMatchIntro(matchId); // the intro for the auto match being watched
+    // バディーの試合はバディーの側（映した後は必ず team a）から読む。バディーのいない見返しはどちらの側でもない。
+    beginArenaReaction(replay.match_id, turns[0].view, { hero: hero ? 'a' : null, mirrored: hero?.side === 'b', resumed: false });
+    // 見返しは全部の手を先に一度だけ見分ける（手 N に対して一回の走査）。一巡ぶんの手数の内に解ける追い詰めは拾わない。
+    const beats = turns.slice(1).map((turn, index) => arenaReactionBeats(turns[index].view, turn.view, turn.events, arenaReaction.memory));
+    dropBriefArenaEdges(beats, turns[0].view.actors.length);
+    arenaReplay.beats = [[], ...beats];
     arenaScheduleReplayStep(dungeonReducedMotion() ? 0 : ARENA_ENTRANCE_MS.settle);
   } finally {
     arenaActionInFlight = false;
@@ -21283,11 +22043,12 @@ function arenaReplayAdvance() {
   renderArenaMatch(turn.view, currentArenaState, { replay: true });
   // 三百の回りで打ち切られて最後の手がまだ active でも、最後の手で決着を出す。
   const last = arenaReplay.index === arenaReplay.turns.length - 1;
-  playArenaFlow(previous, turn.view, turn.events, { slotted: false, ending: last ? arenaReplayEnding(arenaReplay.matchId) : null });
+  playArenaFlow(previous, turn.view, turn.events, { slotted: false, ending: last ? arenaReplayEnding(arenaReplay.matchId) : null, beats: arenaReplay.beats[arenaReplay.index] });
   arenaScheduleReplayStep();
 }
 
 // Skip to the final frame, stopping the auto-advance: the replay rests on its end — the fallen sunk, the winner's light, rings and mark.
+// 途中の場の反応は出さず、決着だけを盤の中ほどから出す（光条と輪・決着の音・決着の一声）。
 function arenaReplaySkip() {
   if (!arenaReplay) return;
   if (arenaReplay.timer) { window.clearTimeout(arenaReplay.timer); arenaReplay.timer = null; }
@@ -21300,6 +22061,8 @@ function arenaReplaySkip() {
   for (const actor of view.actors) if (actor.down) sinkArenaActor(actor.actor_id);
   lightArenaEnding(view, ending);
   markArenaEnding(ending);
+  finishArenaReaction(arenaReaction, ending, arenaBoardCenter(), { still: false });
+  voiceArenaFinish(arenaReaction, ending);
 }
 
 function stopArenaReplay() {
@@ -21308,7 +22071,7 @@ function stopArenaReplay() {
   foldArenaEffects();
 }
 
-// 観戦の操作: いまのターンの数・速さの三つの紋・終わりまで送る紋（終わりに着くまで）・表へ戻る紋。
+// 観戦の操作: いまのターンの数・速さの三つのアイコン・終わりまで送るアイコン（終わりに着くまで）・表へ戻るアイコン。
 function renderArenaReplayControls() {
   const node = document.querySelector('#arena-replay-controls');
   node.replaceChildren();
@@ -21390,6 +22153,7 @@ if ('ResizeObserver' in window) {
     new ResizeObserver(() => {
       if (!currentArenaMatchView || document.querySelector('#arena-match').hidden) return;
       layoutArenaBoard(currentArenaMatchView);
+      arenaReactionLayer.refit(); // 客席の灯は窓の中の絵の場所に置いてあるので、見えていれば置き直す
     }).observe(arenaGridEl);
   }
 }
@@ -21883,7 +22647,7 @@ let auctionWords = [];
 // The seats of this visit's bidders (character_id → the seat's figure), built once the slot's bidders are known.
 let auctionSeats = new Map();
 let auctionSeatsBidders = null;
-// 段の道が途切れているか（失敗の紋と言い直しの紋が立っている間）。
+// 段の道が途切れているか（失敗のアイコンと言い直しのアイコンが立っている間）。
 let auctionWayFailed = false;
 // The 流札 line for a consignment lot: unlike a house-lot 流札 (the品 flows away), the player's own unsold asset
 // stays with them — the authored 地の文 says so (authored, LLM 非関与).
@@ -21911,7 +22675,7 @@ function renderAuctionWay() {
   document.querySelector('#academy-auction-exit').hidden = auctionPhase !== 'closed';
 }
 
-// 競売場の失敗: いまの段の星の先で道が途切れ、言い直しの紋が立つ。LM の設定・接続の失敗は設定の画面へ誘う（handleRuntimeApiError）。
+// 競売場の失敗: いまの段の星の先で道が途切れ、言い直しのアイコンが立つ。LM の設定・接続の失敗は設定の画面へ誘う（handleRuntimeApiError）。
 // 生成の関所が言葉を通さなかった失敗（AUCTION_GENERATION_FAILED）もほかの失敗も、原因は console にだけ残す。retry は失敗した手を
 // もう一度行う（既定は競売場へ入り直す = いまのロットを頭からやり直す。ロット単位の永続と同じ）。
 function reportAuctionScreenError(error, retry = retryAuctionEntry) {
@@ -22805,9 +23569,6 @@ function renderAuctionConsignmentOptions(options) {
 }
 
 function renderAuctionConsignmentEmpty(empty) {
-  const art = fillWithEmptyArt(document.createElement('span'), 'pouch', '出品できる品がありません');
-  art.className = 'academy-auction-consignment-empty-art';
-  art.setAttribute('aria-hidden', 'true');
   const title = document.createElement('p');
   title.className = 'academy-auction-consignment-empty-title';
   title.textContent = '出品できる品がありません';
@@ -22815,7 +23576,7 @@ function renderAuctionConsignmentEmpty(empty) {
   scope.className = 'academy-auction-consignment-empty-scope';
   // ui-prose-exception: msg_20261007T034129+0900_85835_YB57GQ
   scope.textContent = '出品できるもの：外している装備・売値のある持ち物・籠入りの生き物';
-  empty.replaceChildren(art, title, scope);
+  empty.replaceChildren(title, scope);
 }
 
 // One consignable asset as a row. element / tier / sell_price / art are null where the asset has none (a 持ち物 that
@@ -22969,7 +23730,7 @@ function resetAuctionScreenView() {
 // already runs under it; the auctionFlowInFlight guard makes a showScreen('academy-auction') during the visit a no-op
 // re-entry (so the reset runs once per genuine entry, never mid-session). A failed state GET leaves the screen with
 // nothing to go on with, so it returns to the hub whatever the entrance (the hub dispatch's arrival, the dev
-// ?initialScreen entry, the reload resume of an auction in progress), sinking a carried wait into the night first.
+// ?initialScreen entry, the reload resume of an auction in progress), the return entry continuing a carried wait.
 async function enterOrResumeAuctionScreen({ routingArrival }) {
   if (auctionFlowInFlight) return;
   resetAuctionScreenView();
@@ -22977,8 +23738,7 @@ async function enterOrResumeAuctionScreen({ routingArrival }) {
   try {
     state = await getJson('/api/auction/state');
   } catch (error) {
-    if (placeVeilWaiting() && settingsRedirectErrorMessage(error) == null) await stopPlaceVeil();
-    returnToRoutingHubAfterArrivalFailure(error, routingFailedArrival(routingArrival, 'academy-auction'));
+    returnToRoutingHubAfterArrivalFailure(error, routingFailedArrival(routingArrival, 'academy-auction'), 'academy-auction');
     return;
   }
   if (state.phase === 'closed') {
@@ -23033,7 +23793,7 @@ async function runAuctionSession({ routingArrival }) {
       }
       await Promise.race([openingStarted, sessionPromise]);
     })();
-    await awaitUnderPlaceVeil(readiness);
+    await awaitUnderPlaceVeil(readiness, { onFailure: 'keep' });
     arrived = true;
     placeVeilArrived();
     if (auctionPhase === 'picker') revealAuctionConsignmentRows();
@@ -23044,13 +23804,13 @@ async function runAuctionSession({ routingArrival }) {
     }
     await sessionPromise;
   } catch (error) {
-    // Wait-residual defense: a failed auction entry / resume must not strand the player under the wait (it has sunk
-    // into the night in awaitUnderPlaceVeil). Auction is routing-only content, so un-strand to the routing hub opened
-    // anew whatever the entrance — the same landing a failed routing arrival takes, with the failure notice naming the
-    // destination — then re-raise so the caller's reportAuctionScreenError logs it once. A settings-redirect error
-    // already left for the settings screen (reportLoadingError), so the guard skips.
+    // Wait-residual defense: a failed auction entry / resume must not strand the player under the wait (awaitUnderPlaceVeil
+    // keeps it up). Auction is routing-only content, so un-strand to the routing hub opened anew whatever the entrance —
+    // the same return a failed routing arrival takes, continuing the wait, with the failure notice naming the destination —
+    // then re-raise so the caller's reportAuctionScreenError logs it once. A settings-redirect error already left for the
+    // settings screen (reportLoadingError), so the guard skips.
     if (!arrived && settingsRedirectErrorMessage(error) == null) {
-      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(routingArrival, 'academy-auction') });
+      await returnToRoutingHubAfterFailure({ failedArrival: routingFailedArrival(routingArrival, 'academy-auction'), screen: 'academy-auction' });
     }
     throw error;
   } finally {
@@ -23650,11 +24410,11 @@ async function runLoungeAutoCompletion(result) {
     // auto path is entered ONLY after the backend has already promoted (the completion payload IS the proof of
     // promote), so a validation throw here is still post-promote un-strand semantics.
     assertLoungeCompletion(result);
-    // Raise the wait over the lounge's art (the backend already promoted, so readiness is pre-resolved — the wait holds
+    // Enter the return over the lounge's art (the backend already promoted, so readiness is pre-resolved — the wait holds
     // only for its minimum-display window before handing off to the hub return, matching exitLounge's shape: the
     // shared content return continues the same wait through the hub start).
-    raisePlaceVeil({ art: returnedPlaceArt(currentRuntimeState), dim: true, until: 'routing-hub', ending: 'fade' });
-    await awaitUnderPlaceVeil(Promise.resolve());
+    beginPlaceReturn({ until: 'routing-hub', place: thisWeeksPlace });
+    await awaitUnderPlaceVeil(Promise.resolve(), { onFailure: 'keep' });
     await promoteLoungeCompletion(result);
   } catch (error) {
     if (settingsRedirectErrorMessage(error) != null) {
@@ -23663,12 +24423,11 @@ async function runLoungeAutoCompletion(result) {
       reportLoungeScreenError(error);
     } else {
       // Post-promote failure: the backend already promoted the record before sending the terminal result, so we
-      // cannot go back to the lounge (the finalizer would reject a re-finalization). The wait (when it is up) sinks
-      // into the night, then the shared failed-arrival hub return takes the player to the routing hub with the
+      // cannot go back to the lounge (the finalizer would reject a re-finalization). The wait (raised here when it is not up)
+      // goes on, and the shared failed-arrival hub return takes the player to the routing hub under it with the
       // failure notice naming the lounge (matches exitLounge's post-promote un-strand); the cause stays on the console.
       console.error(error);
-      if (placeVeilWaiting()) await stopPlaceVeil();
-      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(loungeVisitRoutingArrival, 'academy-lounge') });
+      await returnToRoutingHubAfterFailure({ failedArrival: routingFailedArrival(loungeVisitRoutingArrival, 'academy-lounge'), screen: 'academy-lounge' });
     }
   } finally {
     routingContentReturnInFlight = false;
@@ -23737,20 +24496,19 @@ async function runLoungeSession({ routingArrival }) {
       sessionPromise = runLoungeConversation({ onFirstStreamStart: markOpeningStarted });
       await Promise.all([Promise.race([openingStarted, sessionPromise]), seated]);
     })();
-    await awaitUnderPlaceVeil(readiness);
+    await awaitUnderPlaceVeil(readiness, { onFailure: 'keep' });
     arrived = true;
     placeVeilArrived();
     // The player's turn may already have opened under the wait (a fast LM); its focus comes now that the lounge shows.
     focusLoungeInputIfContinuing();
     await sessionPromise;
   } catch (error) {
-    // Wait-residual defense: a failed lounge entry must not strand the player under the wait (it has sunk into the
-    // night in awaitUnderPlaceVeil). The lounge is routing-only content, so un-strand to the routing hub opened anew
-    // whatever the entrance, with the failure notice naming the destination, then re-raise so the caller's
-    // reportLoungeScreenError logs it once. A settings-redirect error already left for the settings screen
-    // (reportLoadingError), so the guard skips.
+    // Wait-residual defense: a failed lounge entry must not strand the player under the wait (awaitUnderPlaceVeil keeps it
+    // up). The lounge is routing-only content, so un-strand to the routing hub opened anew whatever the entrance, continuing
+    // the wait, with the failure notice naming the destination, then re-raise so the caller's reportLoungeScreenError logs
+    // it once. A settings-redirect error already left for the settings screen (reportLoadingError), so the guard skips.
     if (!arrived && settingsRedirectErrorMessage(error) == null) {
-      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(routingArrival, 'academy-lounge') });
+      await returnToRoutingHubAfterFailure({ failedArrival: routingFailedArrival(routingArrival, 'academy-lounge'), screen: 'academy-lounge' });
     }
     throw error;
   } finally {
@@ -23800,7 +24558,7 @@ async function submitLoungePlayerTurn() {
 
 // 退出: the player's explicit end (offered only at a round boundary, when the input is open). Mirrors the 1:1
 // routing end (endRoutingConversation): the /api/lounge/end request — which drains the 3-participant aggregate
-// finalization server-side — runs under the wait over the lounge's art (raisePlaceVeil, M-2026-07-06-001) instead of
+// finalization server-side — runs under the return wait over the lounge's art (beginPlaceReturn, M-2026-07-06-001) instead of
 // stranding the player on a live lounge screen while the longest post-processing block runs. Once the wait is up we
 // await the end result, strict-validate the completed-finalization contract (no default-value fallback for state /
 // next_screen / post_content_screen), release the suspended round loop, and hand off to the shared content-return,
@@ -23816,15 +24574,15 @@ async function exitLounge() {
   if (!loungePlayerResolve) { showProcessingToast(); return; } // only endable at a round boundary (player turn)
   if (loungeActionInFlight) { showProcessingToast(); return; }
   if (routingContentReturnInFlight) { showProcessingToast(); return; }
-  const loungeArt = returnedPlaceArt(currentRuntimeState);
+  const loungePlace = thisWeeksPlace();
   routingContentReturnInFlight = true;
   loungeStage.setControlsDisabled(true);
   const endRequest = postJson('/api/lounge/end', { id: loungeConversation.id });
   let endResolved = false;
   try {
-    // The wait stands on the lounge's art from the moment the player pressed 退出.
-    raisePlaceVeil({ art: loungeArt, dim: true, until: 'routing-hub', ending: 'fade' });
-    await awaitUnderPlaceVeil(endRequest);
+    // The return wait stands on the lounge's art from the moment the player pressed 退出.
+    beginPlaceReturn({ until: 'routing-hub', place: () => loungePlace });
+    await awaitUnderPlaceVeil(endRequest, { onFailure: 'sink' });
     const result = await endRequest;
     endResolved = true;
     // Release the suspended round loop cleanly; the shared completion helper below owns the navigation. Doing this
@@ -23850,12 +24608,11 @@ async function exitLounge() {
       reportLoungeScreenError(error);
     } else {
       // Post-atomic-promote failure: the marker was written and the finalizer would reject a re-finalization, so
-      // we cannot go back to the lounge. The wait sinks into the night, then the shared failed-arrival return takes
-      // the player to the routing hub with the failure notice naming the lounge (a hub start failure lands on the hub
-      // without a conversation); the cause stays on the console.
+      // we cannot go back to the lounge. The wait goes on, and the shared failed-arrival return takes the player to the
+      // routing hub under it with the failure notice naming the lounge (a hub start failure lands on the hub without a
+      // conversation); the cause stays on the console.
       console.error(error);
-      if (placeVeilWaiting()) await stopPlaceVeil();
-      await returnToRoutingHubThroughLoadingScreen({ failedArrival: routingFailedArrival(loungeVisitRoutingArrival, 'academy-lounge') });
+      await returnToRoutingHubAfterFailure({ failedArrival: routingFailedArrival(loungeVisitRoutingArrival, 'academy-lounge'), screen: 'academy-lounge' });
     }
   } finally {
     routingContentReturnInFlight = false;
@@ -24215,7 +24972,7 @@ function reportOverlookScreenError(error) {
     if (!screens.settings.classList.contains('active')) handleRuntimeApiError(error, { allowSettingsRedirect: true });
     return;
   }
-  returnToRoutingHubThroughLoadingScreen({ failedArrival: { screen: 'academy-overlook' } }).catch(reportError);
+  returnToRoutingHubAfterFailure({ failedArrival: { screen: 'academy-overlook' }, screen: 'academy-overlook' }).catch(reportError);
 }
 
 // ---------- the field poll ----------
@@ -25198,17 +25955,18 @@ async function exitOverlookToHub(session) {
     showProcessingToast();
     return;
   }
-  const overlookArt = returnedPlaceArt(currentRuntimeState);
+  const overlookPlace = thisWeeksPlace();
   overlookTransition(session, 'exiting');
   clearOverlookHover(session);
   routingContentReturnInFlight = true;
   try {
     let result = null;
     const exitRequest = postJson('/api/overlook/exit', {}).then((payload) => { result = validateOverlookExitResponse(payload); });
-    // The exit and the hub start that follows it wait over the overlook's art.
+    // The exit and the hub start that follows it wait over the overlook's art (the return entry). A failed exit keeps the
+    // wait up for the failure's hub return (reportOverlookScreenError).
     declareOverlookArtPlacement(session);
-    raisePlaceVeil({ art: overlookArt, dim: true, until: 'routing-hub', ending: 'fade' });
-    await awaitUnderPlaceVeil(exitRequest);
+    beginPlaceReturn({ until: 'routing-hub', place: () => overlookPlace });
+    await awaitUnderPlaceVeil(exitRequest, { onFailure: 'keep' });
     if (overlookSession === session) overlookSession = null;
     await returnToRoutingHubFromContent(result.post_content_screen);
   } finally {
@@ -25290,7 +26048,7 @@ initAudioSettings();
 const metaJourney = startMetaJourney({ refreshSettings: refreshSettingsScreen });
 
 // 学院マップと昼の会話の見せ方の層（academyMapLayer.js・conversationLayer.js）の読み口。舞台の並びは renderAcademyMap がピンを
-// 置くのと同じ academyMapRegionRenderableNodes の順で、ピンの釦の並びと1対1に対応する。そこにいる人はマップの hover と会話相手
+// 置くのと同じ academyMapRegionRenderableNodes の順で、ピンのボタンの並びと1対1に対応する。そこにいる人はマップの hover と会話相手
 // 選びが使う stageOccupantsFor そのもの。名・顔・絵は欠けたら名指しで throw する（別の値で埋めない）。顔は学院の人が
 // selection_icon_url、クリーチャーが face_url（creatureCandidateFromSummary が必須にしている欄）。
 const academyFieldReadingRequired = (value, label) => {

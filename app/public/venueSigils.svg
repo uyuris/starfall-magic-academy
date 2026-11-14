@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg">
-  <!-- 会場（闘技会・競売場・奏楽堂）の紋。紋ごとの <symbol>（id は venue-<名>）を、起動時に文書の置き場（#venue-sigil-symbols）へ
-       写して <use href="#venue-<名>"> で引く。露台の紋と同じ作法: 藍の面（#2a3070）・月白の線（#dde3f6）・金の灯り（#e8c877）。
-       文字は描かない。塗りを持たない紋（venue-paddle・venue-star）は、置く所の CSS が線と面の色を決める。 -->
+  <!-- 会場（闘技会・競売場・奏楽堂）のアイコン。アイコンごとの <symbol>（id は venue-<名>）を、起動時に文書の置き場（#venue-sigil-symbols）へ
+       写して <use href="#venue-<名>"> で引く。露台のアイコンと同じ作法: 藍の面（#2a3070）・月白の線（#dde3f6）・金の灯り（#e8c877）。
+       文字は描かない。塗りを持たないアイコン（venue-paddle・venue-star）は、置く所の CSS が線と面の色を決める。 -->
 
-  <!-- 言い直し（もう一度）: 露台の戻る紋の矢を、輪を描いて元へ返す形にしたもの。 -->
+  <!-- 言い直し（もう一度）: 露台の戻るアイコンの矢を、輪を描いて元へ返す形にしたもの。 -->
   <symbol id="venue-retry" viewBox="0 0 32 32">
     <path d="M7.5 17.5 A9 9 0 1 0 10.6 9.6" fill="none" stroke="#dde3f6" stroke-width="3.4" stroke-linecap="round" />
     <path d="M7.5 17.5 A9 9 0 1 0 10.6 9.6" fill="none" stroke="#2a3070" stroke-width="1.6" stroke-linecap="round" />
@@ -70,7 +70,7 @@
     <path d="M12 20.5 A5 5 0 0 1 12 10.5 A5 5 0 0 1 12 20.5 Z M12 10.5 V3.5" fill="#2a3070" stroke="#dde3f6" stroke-width="1.2" stroke-linejoin="round" />
     <path d="M3.5 21.5 H20.5" stroke="#dde3f6" stroke-width="1.2" stroke-linecap="round" />
   </symbol>
-  <!-- 席の札（塗りは置く所の CSS）: 掲げた札。下げた札は同じ紋を逆さに置く。 -->
+  <!-- 席の札（塗りは置く所の CSS）: 掲げた札。下げた札は同じアイコンを逆さに置く。 -->
   <symbol id="venue-paddle" viewBox="0 0 24 24">
     <path d="M12 3.5 A5 5 0 0 1 12 13.5 A5 5 0 0 1 12 3.5 Z M12 13.5 V20.5" />
   </symbol>
@@ -133,7 +133,7 @@
     <path d="M24.50 23.80 L25.07 25.43 L26.70 26.00 L25.07 26.57 L24.50 28.20 L23.93 26.57 L22.30 26.00 L23.93 25.43 Z" fill="#e8c877" />
   </symbol>
 
-  <!-- 勝ち抜いた印・段の道の星（塗りは置く所の CSS）: 製品の失敗の紋の星の形。 -->
+  <!-- 勝ち抜いた印・段の道の星（塗りは置く所の CSS）: 製品の失敗のアイコンの星の形。 -->
   <symbol id="venue-star" viewBox="-1 4 12 12">
     <path d="M5 4.5 6.1 8.9 10.5 10 6.1 11.1 5 15.5 3.9 11.1-.5 10 3.9 8.9z" />
   </symbol>

@@ -1,6 +1,6 @@
-/* 露台のハブ（#routing-hub-screen）の見た目。案内人を露台の中ほどに大きく立たせ、言葉を夜の上に灯し、7 つの印を床の紋に、
-   入力を下の一本の行にする。画面に見える文字は、週・案内人の名・会話の言葉だけ（印と釦は紋で示す）。目に立つ動きは、言葉が
-   灯る・覗いた場所が透ける・送り出しで幕が下りる、の三つだけ。左の七つの印と星の揺り籠から開く画面は、露台の夜の上に帯や
+/* 露台のハブ（#routing-hub-screen）の見た目。案内人を露台の中ほどに大きく立たせ、言葉を夜の上に灯し、7 つの印を床のアイコンに、
+   入力を下の一本の行にする。画面に見える文字は、週・案内人の名・会話の言葉だけ（印とボタンはアイコンで示す）。目に立つ動きは、言葉が
+   灯る・場所の窓が開いて閉じる・送り出しで幕が下りる、の三つだけ。左の七つの印と星の揺り籠から開く画面は、露台の夜の上に帯や
    沈めた夜として置く（枠の箱は持たない）。振る舞いは hubTerrace.js が持つ。
    露台の色と帯の寸法は :root に置き、ハブと、ほかの画面で人を押して開く夜の帯（.night-band）が同じ値を読む。 */
 
@@ -92,7 +92,7 @@
   pointer-events: none;
 }
 
-/* 能力の紋の symbol の置き場（それ自体は描かない）。 */
+/* 能力のアイコンの symbol の置き場（それ自体は描かない）。 */
 #routing-hub-screen .terrace-sigil-symbols {
   position: absolute;
   width: 0;
@@ -140,52 +140,6 @@
   outline-offset: 4px;
 }
 
-/* ── 露台の向こう（覗く・戻る・開く絵の置き場）: 外の夜の上・立ち絵の後ろ ── */
-#routing-hub-screen .terrace-beyond {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-#routing-hub-screen .terrace-place-art {
-  position: absolute;
-  inset: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0;
-  mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 35%, transparent 100%);
-  mask-repeat: no-repeat;
-  mask-position: 62% 44%;
-  mask-size: 90% 100%;
-}
-
-#routing-hub-screen [data-terrace-art="peek"] {
-  transition: opacity 1.6s ease-in-out;
-}
-
-#routing-hub-screen [data-terrace-art="peek"].is-visible { opacity: 0.5; }
-
-#routing-hub-screen [data-terrace-art="return"].is-present {
-  opacity: 0.72;
-  transition: none;
-}
-
-#routing-hub-screen [data-terrace-art="return"].is-fading {
-  opacity: 0;
-  filter: blur(6px);
-  transition: opacity 7s ease-in 1.2s, filter 7s ease-in 1.2s;
-}
-
-#routing-hub-screen [data-terrace-art="opening"] {
-  transition: opacity 5s ease-in-out 0.6s, mask-size 8s ease-in-out 0.6s;
-}
-
-/* 送り出し: 言葉が灯るあいだは露台の向こうでゆっくり開くだけにとどめ（言葉の側の夜も一段沈める）、灯りきってから画面を満たす。 */
-#routing-hub-screen.terrace-is-opening [data-terrace-art="opening"] {
-  opacity: 0.62;
-  mask-size: 170% 190%;
-}
-
 /* ── 外枠: 立ち絵・言葉・印・入力を画面へ直に置く重なりの箱 ── */
 #routing-hub-screen .routing-hub-frame {
   position: absolute;
@@ -205,8 +159,7 @@
   background: radial-gradient(ellipse 62% 58% at 68% 46%, rgb(5 6 15 / 0.7), rgb(5 6 15 / 0.46) 55%, transparent 88%);
 }
 
-/* 送り出しで場所が開いていくあいだは、言葉の欄の全体（古い行の上端まで）に夜をもう一段沈め、明るい地面の上でも言葉が
-   薄れて見えないようにする。 */
+/* 送り出しのあいだは、言葉の欄の全体（古い行の上端まで）に夜をもう一段沈め、幕が満ちる前から露台を夜の向きへ寄せる。 */
 #routing-hub-screen .terrace-hush::after {
   content: '';
   position: absolute;
@@ -396,7 +349,7 @@
   animation: terrace-kindle 1.8s ease-out both;
 }
 
-/* 行き先の名: 淡い光を差す。指を乗せると露台の向こうにその場所が透ける。 */
+/* 行き先の名: 淡い光を差す。指を乗せると名のそばに場所の窓が開く。 */
 #routing-hub-screen .terrace-place {
   color: var(--terrace-place-glow);
   cursor: default;
@@ -408,7 +361,61 @@
   text-shadow: var(--terrace-word-halo), 0 0 14px rgb(255 214 120 / 0.8);
 }
 
-/* 状態の行（失敗の報せ）: 入力の行の上の夜に置く。報せの紋と名・文の並びは style.css の失敗の報せの規則が持つ。 */
+/* ── 場所の窓: 行き先の絵を横 4 対 縦 3 の額に切り取って、触れた名のそばに見せる（縦の置き場は hubTerrace.js が触れた名の行に
+   合わせる）。横は言葉の欄の外側（左）に間を空けて置く。絵は額いっぱいに
+   敷いてはみ出しを切り、明るさと色には手を加えない（どこを残すかは hubTerrace.js が object-position で決める）。額は細い銀の
+   縁と、外へ沈む淡い星明かりの暈。文字は置かない。 ── */
+#routing-hub-screen .terrace-place-window {
+  position: absolute;
+  z-index: 4;
+  right: calc(var(--terrace-words-right) + var(--terrace-words-width) + 28px);
+  box-sizing: border-box;
+  width: clamp(240px, 20vw, 360px);
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--routing-silver);
+  border-radius: 2px;
+  background: var(--terrace-ink);
+  box-shadow:
+    0 0 0 3px rgb(5 6 15 / 0.72),
+    0 0 0 4px rgb(205 214 234 / 0.3),
+    0 0 20px 2px rgb(159 180 255 / 0.3),
+    0 0 64px 10px rgb(159 180 255 / 0.14);
+  pointer-events: none;
+}
+
+#routing-hub-screen .terrace-place-window-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 開く: ふわりと現れる。閉じる: 暈ごと夜へ溶ける。 */
+@keyframes terrace-place-window-open {
+  0% { opacity: 0; transform: translateY(10px) scale(0.965); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes terrace-place-window-close {
+  0% { opacity: 1; filter: blur(0); }
+  100% { opacity: 0; filter: blur(7px); }
+}
+
+#routing-hub-screen .terrace-place-window[data-window="opening"] {
+  animation: terrace-place-window-open 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+#routing-hub-screen .terrace-place-window[data-window="closing"] {
+  animation: terrace-place-window-close 480ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #routing-hub-screen .terrace-place-window:is([data-window="opening"], [data-window="closing"]) {
+    animation: none;
+  }
+}
+
+/* 状態の行（失敗の報せ）: 入力の行の上の夜に置く。報せのアイコンと名・文の並びは style.css の失敗の報せの規則が持つ。 */
 #routing-hub-screen .routing-hub-status {
   position: absolute;
   z-index: 3;
@@ -426,7 +433,7 @@
   color: var(--routing-error);
 }
 
-/* ── 紋: 7 つの印の絵と同じ系統（紺の地・銀の縁・金の星）。明るい絵の上でも輪郭が立つよう、夜の影を添える ── */
+/* ── アイコン: 7 つの印の絵と同じ系統（紺の地・銀の縁・金の星）。明るい絵の上でも輪郭が立つよう、夜の影を添える ── */
 #routing-hub-screen .terrace-icon {
   display: block;
   width: 26px;
@@ -435,7 +442,7 @@
   transition: filter 1.2s ease, opacity 1.2s ease;
 }
 
-/* ── 入力: 画面の下の一本の行。書く口は行の頭の羽根ペンの紋で示す ── */
+/* ── 入力: 画面の下の一本の行。書く口は行の頭の羽根ペンのアイコンで示す ── */
 #routing-hub-screen .routing-hub-composer {
   position: absolute;
   z-index: 3;
@@ -526,7 +533,7 @@
   opacity: 0.8;
 }
 
-/* ハブへの戻しをやり直す紋の釦: the rail's pressable look (hairline, rounded panel, silver → strong on hover), the glyph
+/* ハブへの戻しをやり直すアイコンのボタン: the rail's pressable look (hairline, rounded panel, silver → strong on hover), the glyph
    alone with its name on aria-label. It sits at the start of the button row, away from 送信 / 今日はここまで. */
 #routing-hub-screen .routing-hub-start-retry {
   display: inline-flex;
@@ -580,7 +587,7 @@
   fill: currentColor;
 }
 
-/* ── 7 つの印: 露台の床に置かれた小さな印（床に寝た楕円の光の上の紋） ── */
+/* ── 7 つの印: 露台の床に置かれた小さな印（床に寝た楕円の光の上のアイコン） ── */
 #routing-hub-screen .routing-hub-category-rail {
   position: absolute;
   z-index: 3;
@@ -593,7 +600,7 @@
   justify-content: space-evenly;
 }
 
-/* 送り出しのあいだは、左の列の後ろにも夜の楕円を敷き、明るい地面の上で印が薄れて見えないようにする。 */
+/* 送り出しのあいだは、左の列の後ろにも夜の楕円を敷き、言葉の側と一緒に露台を夜の向きへ寄せる。 */
 #routing-hub-screen .routing-hub-category-rail::before {
   content: '';
   position: absolute;
@@ -641,7 +648,7 @@
   box-shadow: 0 0 14px rgb(159 180 255 / 0.4);
 }
 
-/* 印は釦の箱より大きく、増えた丈は上へはみ出させる（釦の矩形・足もとの台・列の並びは印の大きさに引かれない）。 */
+/* 印はボタンの箱より大きく、増えた丈は上へはみ出させる（ボタンの矩形・足もとの台・列の並びは印の大きさに引かれない）。 */
 #routing-hub-screen .routing-hub-category-icon {
   width: 45px;
   height: 45px;
@@ -713,7 +720,9 @@
   overflow-wrap: anywhere;
 }
 
-/* ── 送り出しの幕: 開いた場所（絵の無い行き先では露台の夜）が画面を満たし、製品はその下で行き先の画面へ進む ── */
+/* ── 送り出しの幕: 絵を持たない夜が画面を満たし、ハブを夜へ沈める（暗くなる向きにしか動かない）。満ちきるのは見送り読みポーズの
+   終わりで（hubTerrace.js が transition の長さだけ前から満たし始める）、製品はその下で行き先へ進み、行き先へ入る待ち（#place-veil）は
+   満ちた夜から上がる。読み込みの箱へ行く道と区切り（タイトルへ）の道では、箱が出たところで幕が薄れて上がる（is-clearing） ── */
 #terrace-opened {
   position: fixed;
   inset: 0;
@@ -726,36 +735,18 @@
 #terrace-opened[hidden] { display: none; }
 #terrace-opened.is-filled { opacity: 1; }
 #terrace-opened.is-instant { opacity: 1; transition: none; }
+#terrace-opened.is-clearing { opacity: 0; transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
 
-/* 幕の絵は、待ちの層（#place-veil）と同じ規則で、行き先の画面が宣言した置き方（窓の座標の大きさ・位置）で敷き、宣言した縁の
-   ぼかしを絵と同じ大きさ・位置に掛ける（hubTerrace.js が送り出しの始めに写す。縁の宣言の無い行き先はぼかさない）。絵の外は幕の夜。 */
-#terrace-opened .terrace-opened-art {
-  position: absolute;
-  inset: 0;
-  background-position: var(--terrace-opened-art-position);
-  background-repeat: no-repeat;
-  background-size: var(--terrace-opened-art-size);
-  mask-image: var(--terrace-opened-art-mask);
-  mask-composite: var(--terrace-opened-art-mask-composite);
-  mask-position: var(--terrace-opened-art-position);
-  mask-repeat: no-repeat;
-  mask-size: var(--terrace-opened-art-size);
-}
-
-/* 絵の無い行き先: 露台の外の夜と同じ絵・同じ位置で、一段深く沈めた夜。 */
-#terrace-opened.is-night .terrace-opened-art {
-  background-image:
-    linear-gradient(180deg, rgb(5 6 15 / 0.62), rgb(5 6 15 / 0.74) 60%, rgb(5 6 15 / 0.88)),
-    url('/canonical/routing/background.jpg');
-  background-size: cover, auto 140%;
-  background-position: center, right 60%;
+@media (prefers-reduced-motion: reduce) {
+  #terrace-opened { transition: none; }
+  #terrace-opened.is-clearing { transition: none; }
 }
 
 /* ══ 夜の帯（.night-band）: 左の列の右から露台の夜を一段沈めた帯を下ろし、中身を夜の上に直に置く ══════════════════════════
    ハブの左の列から開く画面と、人を押して開く窓（会話の相手・ハブの案内人の名・うちの子・主人公の能力画面）が同じ class で着る。
    帯は端に線を持たない夜のグラデーション（左の列の側は短く溶け込み、右は長く夜へ溶ける）で、縁・角・影・暗幕・ぼかしは持たない。
-   開くは上から下ろし、閉じるは hidden で一度に消える。見出しは印の紋だけ、閉じるは右上の角の戻る紋（.terrace-close）で、見出しに印の紋を持つ帯では
-   その紋の高さまで斜め 45° に左下へ下ろす。欄と行は枠で囲まず、間合いで区切る。
+   開くは上から下ろし、閉じるは hidden で一度に消える。見出しは印のアイコンだけ、閉じるは右上の角の戻るアイコン（.terrace-close）で、見出しに印のアイコンを持つ帯では
+   そのアイコンの高さまで斜め 45° に左下へ下ろす。欄と行は枠で囲まず、間合いで区切る。
    数値は文字のまま。人の窓は帯の頭に姿を置き、絵の四辺を帯の夜へ溶かす（絵の四角い縁を帯の中に立てない）。 */
 @keyframes terrace-band-lower {
   0% { opacity: 0; mask-position: 0 100%; }
@@ -799,7 +790,7 @@
   animation: terrace-band-lower 0.9s ease-out both;
 }
 
-/* 見出し: 印の紋だけ（名前は dialog の読み上げの名前）。 */
+/* 見出し: 印のアイコンだけ（名前は dialog の読み上げの名前）。 */
 .night-band-header {
   display: flex;
   align-items: center;
@@ -828,8 +819,8 @@
   filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 8px rgb(159 180 255 / 0.35));
 }
 
-/* ── 紋の釦（閉じる・戻る・処分の確かめ・揺り籠の操作） ──
-   閉じるの紋（.terrace-close）は、どの画面の窓でも星の揺り籠の閉じると同じ紋の釦で、露台の外の窓でもここの灯り方で灯る。 */
+/* ── アイコンのボタン（閉じる・戻る・処分の確かめ・揺り籠の操作） ──
+   閉じるのアイコン（.terrace-close）は、どの画面の窓でも星の揺り籠の閉じると同じアイコンのボタンで、露台の外の窓でもここの灯り方で灯る。 */
 :is(#routing-hub-screen .terrace-sigil-button, .night-band .terrace-sigil-button, .terrace-close) {
   display: inline-flex;
   align-items: center;
@@ -863,7 +854,7 @@
   outline-offset: 2px;
 }
 
-/* 閉じるの紋: 窓（帯・小窓・揺り籠・覗き）の右上の角から top 16px / right 22px に、30px の戻る紋を置く。夜の帯は右が夜へ溶けるので、
+/* 閉じるのアイコン: 窓（帯・小窓・揺り籠・覗き）の右上の角から top 16px / right 22px に、30px の戻るアイコンを置く。夜の帯は右が夜へ溶けるので、
    溶ける幅の真ん中（帯の見えている端）を窓の右の端とみる。 */
 .terrace-close {
   --terrace-sigil-size: 30px;
@@ -877,8 +868,8 @@
   right: calc(var(--terrace-band-fade) / 2 + 22px);
 }
 
-/* 見出しに印の紋を持つ帯: 釦の縦の中心を紋の縦の中心まで下ろし、下ろしたのと同じだけ左へ寄せる（右上の角から斜め 45° に左下へ）。
-   紋の中心は帯の上から見出しの上の余白＋紋の半分、釦の中心は top＋紋の半分＋余白 4px。 */
+/* 見出しに印のアイコンを持つ帯: ボタンの縦の中心をアイコンの縦の中心まで下ろし、下ろしたのと同じだけ左へ寄せる（右上の角から斜め 45° に左下へ）。
+   アイコンの中心は帯の上から見出しの上の余白＋アイコンの半分、ボタンの中心は top＋アイコンの半分＋余白 4px。 */
 .night-band-card:has(> .night-band-header .night-band-icon) .terrace-close {
   --terrace-close-drop: calc(var(--terrace-band-head-top) + var(--terrace-band-icon-size) / 2 - 16px - var(--terrace-sigil-size) / 2 - 4px);
   top: calc(16px + var(--terrace-close-drop));
@@ -969,7 +960,7 @@
   letter-spacing: 0.22em;
 }
 
-/* 能力: 名前（系統の紋）・細い目盛り・数値の三つを夜の上に並べる。 */
+/* 能力: 名前（系統のアイコン）・細い目盛り・数値の三つを夜の上に並べる。 */
 .night-band-body .character-parameter-section {
   gap: 10px;
   padding: 0;
@@ -1414,7 +1405,7 @@
 #routing-hub-screen .routing-hub-info-roster-face { width: 44px; height: 44px; }
 #routing-hub-screen .routing-hub-info-diary-face { width: 52px; height: 52px; }
 
-/* 帯の中の文字の釦（使う・渡す・お気に入り・処分）: 控えめな文字と下の細い線だけ。 */
+/* 帯の中の文字のボタン（使う・渡す・お気に入り・処分）: 控えめな文字と下の細い線だけ。 */
 #routing-hub-screen .routing-hub-info-ledger-use,
 #routing-hub-screen .routing-hub-info-ledger-give,
 #routing-hub-screen .routing-hub-info-library-favorite,
@@ -1445,7 +1436,7 @@
 #routing-hub-screen .routing-hub-info-library-favorite,
 #routing-hub-screen .routing-hub-info-library-dispose { letter-spacing: 0.04em; white-space: nowrap; }
 
-/* 解除は紋の釦（戻す紋）。 */
+/* 解除はアイコンのボタン（戻すアイコン）。 */
 #routing-hub-screen .routing-hub-info-equip-action { align-self: flex-start; }
 #routing-hub-screen .routing-hub-info-ledger-give { align-self: flex-end; margin-top: 2px; }
 
@@ -1606,19 +1597,25 @@
   text-shadow: 0 0 14px var(--routing-glow);
 }
 
-/* 空の絵: 点線の輪郭を、その欄の行が並ぶ頭の位置に淡く置く（ここに何も無い、と行の場所で示す）。 */
+/* 空の札: その欄の行が並ぶ頭の位置に、題と一文を帯の夜の上へそのまま置く（枠で囲まない）。 */
 #routing-hub-screen .routing-hub-info-empty-card {
   display: flex;
-  justify-content: flex-start;
+  flex-direction: column;
+  gap: 6px;
   padding: 1.6vh 0 1vh;
+  text-align: left;
 }
 
-#routing-hub-screen .terrace-empty-art {
-  display: block;
-  width: 88px;
-  height: 88px;
-  opacity: 0.62;
-  filter: drop-shadow(0 0 6px rgb(159 180 255 / 0.3));
+#routing-hub-screen .routing-hub-info-empty-title {
+  color: var(--terrace-word);
+  font-weight: normal;
+  letter-spacing: 0.06em;
+}
+
+#routing-hub-screen .routing-hub-info-empty-note {
+  margin: 0;
+  color: var(--terrace-word-quiet);
+  font-size: 0.82rem;
 }
 
 /* ── 先へ進む画面: 日記の本文・収蔵庫の本は、同じ帯の中で本文を夜の上に置く ── */
@@ -1635,6 +1632,41 @@
 #routing-hub-screen .routing-hub-info-library-back {
   align-self: flex-start;
   margin-left: -4px;
+}
+
+/* ── 名前で探す欄: 日記の人の一覧の頭に一行。虫眼鏡の印と、下に髪の毛ほどの線を一本引くだけで、枠も地も置かない ── */
+#routing-hub-screen .terrace-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--terrace-hairline);
+  transition: border-color 0.8s ease;
+}
+
+#routing-hub-screen .terrace-search:focus-within {
+  border-bottom-color: var(--routing-line-strong);
+}
+
+#routing-hub-screen .terrace-search:focus-within .terrace-sigil {
+  opacity: 1;
+  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.9)) drop-shadow(0 0 8px rgb(159 180 255 / 0.8));
+}
+
+#routing-hub-screen .terrace-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 2px 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--terrace-word);
+  caret-color: var(--routing-moon);
+  font: inherit;
+  font-size: 0.98rem;
+  letter-spacing: 0.06em;
+  text-shadow: var(--terrace-word-halo);
 }
 
 #routing-hub-screen .routing-hub-info-diary-entry-text,
@@ -1666,15 +1698,129 @@
   background: none;
 }
 
-/* 棚: 背表紙は左から並んで折り返し、下の細い筋の上に立つ。 */
+/* ── 収蔵庫の本棚: 冠（星と三日月）・段（二本の柱のあいだの板）・台座をコードで描き、背表紙は板の上に一段八冊で立つ ──
+   題の升は一つ: 空の字と件数の題を同じ升に重ね、高さを決めておく（空のときも本が入ったあとも、本棚は同じ所に立つ）。
+   本の無い姿は並び替えの行を持たないので、その行（19px）と帯の行間（18px）のぶんだけ本棚を下げる。 */
+#routing-hub-screen .routing-hub-info-library-head {
+  display: grid;
+  flex: 0 0 auto;
+  height: 78px;
+  align-content: start;
+}
+
+#routing-hub-screen .routing-hub-info-library-head > * {
+  grid-area: 1 / 1;
+  padding: 1.6vh 0 1vh;
+}
+
+#routing-hub-screen .routing-hub-info-library-head + .routing-hub-info-library-bookcase {
+  margin-top: 37px;
+}
+
+#routing-hub-screen .routing-hub-info-library-bookcase {
+  --library-tier-books: 170px;
+  --library-tier-board: 24px;
+  flex: 0 0 auto;
+  margin-inline: calc(-12 / 350 * 100%);
+  filter: drop-shadow(0 0 14px rgb(120 127 158 / 0.16));
+}
+
+#routing-hub-screen .routing-hub-info-library-crown {
+  aspect-ratio: 374 / 104;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 374 104'%3E%3Cdefs%3E%3ClinearGradient id='n' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233b3b60'/%3E%3Cstop offset='.5' stop-color='%23272545'/%3E%3Cstop offset='1' stop-color='%23161429'/%3E%3C/linearGradient%3E%3ClinearGradient id='d' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%230b091a'/%3E%3Cstop offset='1' stop-color='%231c1934'/%3E%3C/linearGradient%3E%3ClinearGradient id='p' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23110d20'/%3E%3Cstop offset='.16' stop-color='%23323155'/%3E%3Cstop offset='.34' stop-color='%23545779'/%3E%3Cstop offset='.56' stop-color='%23282745'/%3E%3Cstop offset='.86' stop-color='%23151327'/%3E%3Cstop offset='1' stop-color='%23070716'/%3E%3C/linearGradient%3E%3ClinearGradient id='v' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23b0b0b0'/%3E%3Cstop offset='.3' stop-color='%239797a1'/%3E%3Cstop offset='.68' stop-color='%2367677a'/%3E%3Cstop offset='1' stop-color='%2337374b'/%3E%3C/linearGradient%3E%3ClinearGradient id='w' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23444558'/%3E%3Cstop offset='.26' stop-color='%23aeaeb0'/%3E%3Cstop offset='.55' stop-color='%2381828f'/%3E%3Cstop offset='1' stop-color='%23323244'/%3E%3C/linearGradient%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23aea896'/%3E%3Cstop offset='.45' stop-color='%239e8e6c'/%3E%3Cstop offset='1' stop-color='%236d593d'/%3E%3C/linearGradient%3E%3CradialGradient id='b' cx='.36' cy='.3' r='.75'%3E%3Cstop offset='0' stop-color='%23797d9b'/%3E%3Cstop offset='.4' stop-color='%23383760'/%3E%3Cstop offset='1' stop-color='%23100b1f'/%3E%3C/radialGradient%3E%3CradialGradient id='h'%3E%3Cstop offset='0' stop-color='%23787f9e' stop-opacity='.55'/%3E%3Cstop offset='1' stop-color='%23787f9e' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23030310' stop-opacity='.78'/%3E%3Cstop offset='1' stop-color='%23030310' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='t' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23030310' stop-opacity='.7'/%3E%3Cstop offset='1' stop-color='%23030310' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='5' y='80' width='22' height='9' fill='url(%23p)'/%3E%3Crect x='2.5' y='77' width='27' height='3.6' rx='1.6' fill='url(%23v)'/%3E%3Cpath d='M9 77Q10 73.500 12.500 72H19.500Q22 73.500 23 77Z' fill='url(%23w)'/%3E%3Ccircle cx='16' cy='62' r='10.6' fill='url(%23b)' stroke='%23040510' stroke-opacity='.8' stroke-width='1'/%3E%3Cpath d='M6.200 65A10.600 10.600 0 0 0 25.800 65' fill='none' stroke='%239194a2' stroke-opacity='.55' stroke-width='.9'/%3E%3Cellipse cx='12.300' cy='57.300' rx='3.200' ry='2.200' fill='%23b0b0b0' fill-opacity='.72' transform='rotate(-28 12.300 57.300)'/%3E%3Cpath d='M12.200 53.200Q15.600 50 16 43Q16.400 50 19.800 53.200Q16 51.600 12.200 53.200Z' fill='url(%23w)'/%3E%3Ccircle cx='16' cy='37' r='9' fill='url(%23h)'/%3E%3Cpath d='M16 30.6L17.66 35.34L22.4 37L17.66 38.66L16 43.4L14.34 38.66L9.6 37L14.34 35.34Z' fill='url(%23g)'/%3E%3Cg transform='translate(342 0)'%3E%3Crect x='5' y='80' width='22' height='9' fill='url(%23p)'/%3E%3Crect x='2.5' y='77' width='27' height='3.6' rx='1.6' fill='url(%23v)'/%3E%3Cpath d='M9 77Q10 73.500 12.500 72H19.500Q22 73.500 23 77Z' fill='url(%23w)'/%3E%3Ccircle cx='16' cy='62' r='10.6' fill='url(%23b)' stroke='%23040510' stroke-opacity='.8' stroke-width='1'/%3E%3Cpath d='M6.200 65A10.600 10.600 0 0 0 25.800 65' fill='none' stroke='%239194a2' stroke-opacity='.55' stroke-width='.9'/%3E%3Cellipse cx='12.300' cy='57.300' rx='3.200' ry='2.200' fill='%23b0b0b0' fill-opacity='.72' transform='rotate(-28 12.300 57.300)'/%3E%3Cpath d='M12.200 53.200Q15.600 50 16 43Q16.400 50 19.800 53.200Q16 51.600 12.200 53.200Z' fill='url(%23w)'/%3E%3Ccircle cx='16' cy='37' r='9' fill='url(%23h)'/%3E%3Cpath d='M16 30.6L17.66 35.34L22.4 37L17.66 38.66L16 43.4L14.34 38.66L9.6 37L14.34 35.34Z' fill='url(%23g)'/%3E%3C/g%3E%3Ccircle cx='187' cy='24' r='30' fill='url(%23h)'/%3E%3Cpath d='M44 90V77Q44 66 58 64C92 60 112 56 128 44C146 28 166 20 187 20C208 20 228 28 246 44C262 56 282 60 316 64Q330 66 330 77V90Z' fill='url(%23n)'/%3E%3Cpath d='M52 88V79Q52 73.500 62 72.500C96 68.500 118 63.500 134 51.500C150 38 168 30 187 30C206 30 224 38 240 51.500C256 63.500 278 68.500 312 72.500Q322 73.500 322 79V88' fill='none' stroke='%23040510' stroke-opacity='.5' stroke-width='3.400'/%3E%3Cpath d='M52 88V79Q52 73.500 62 72.500C96 68.500 118 63.500 134 51.500C150 38 168 30 187 30C206 30 224 38 240 51.500C256 63.500 278 68.500 312 72.500Q322 73.500 322 79V88' fill='none' stroke='url(%23g)' stroke-width='1.100'/%3E%3Cpath d='M44 90V77Q44 66 58 64C92 60 112 56 128 44C146 28 166 20 187 20C208 20 228 28 246 44C262 56 282 60 316 64Q330 66 330 77V90Z' fill='none' stroke='%23040510' stroke-width='7.6' stroke-linejoin='round' stroke-opacity='.85'/%3E%3Cpath d='M44 90V77Q44 66 58 64C92 60 112 56 128 44C146 28 166 20 187 20C208 20 228 28 246 44C262 56 282 60 316 64Q330 66 330 77V90Z' fill='none' stroke='url(%23v)' stroke-width='5' stroke-linejoin='round'/%3E%3Cpath d='M44 90V77Q44 66 58 64C92 60 112 56 128 44C146 28 166 20 187 20C208 20 228 28 246 44C262 56 282 60 316 64Q330 66 330 77V90Z' fill='none' stroke='%23b0b0b0' stroke-opacity='.75' stroke-width='.9' stroke-linejoin='round' transform='translate(-.5 -1.8)'/%3E%3Cpath d='M158 90V71A29 29 0 0 1 216 71V90Z' fill='url(%23d)'/%3E%3Ccircle cx='187' cy='68' r='22' fill='url(%23h)'/%3E%3Cpath d='M158 90V71A29 29 0 0 1 216 71V90' fill='none' stroke='%23040510' stroke-width='5.2' stroke-linejoin='round' stroke-opacity='.85'/%3E%3Cpath d='M158 90V71A29 29 0 0 1 216 71V90' fill='none' stroke='url(%23v)' stroke-width='2.6' stroke-linejoin='round'/%3E%3Cpath d='M158 90V71A29 29 0 0 1 216 71V90' fill='none' stroke='%23b0b0b0' stroke-opacity='.75' stroke-width='.9' stroke-linejoin='round' transform='translate(-.5 -0.6)'/%3E%3Cpath d='M151 85C134 85 122 79 122 71C122 65 129.500 63 132.500 67C134.500 70 131.500 73 128.500 71' fill='none' stroke='%23040510' stroke-opacity='.6' stroke-width='3.600' stroke-linecap='round'/%3E%3Cpath d='M151 85C134 85 122 79 122 71C122 65 129.500 63 132.500 67C134.500 70 131.500 73 128.500 71' fill='none' stroke='url(%23v)' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M116 85C102 85 90 81 83 75.500C79.500 72.500 81.500 68.500 85 70' fill='none' stroke='%23040510' stroke-opacity='.6' stroke-width='3.200' stroke-linecap='round'/%3E%3Cpath d='M116 85C102 85 90 81 83 75.500C79.500 72.500 81.500 68.500 85 70' fill='none' stroke='url(%23v)' stroke-width='1.700' stroke-linecap='round'/%3E%3Cpath d='M103 69.4L103.94 72.06L106.6 73L103.94 73.94L103 76.6L102.06 73.94L99.4 73L102.06 72.06Z' fill='%23a0a2ab'/%3E%3Cpath d='M146 53.8L147.09 56.91L150.2 58L147.09 59.09L146 62.2L144.91 59.09L141.8 58L144.91 56.91Z' fill='url(%23g)'/%3E%3Ccircle cx='68' cy='80' r='1.5' fill='%23a0a2ab'/%3E%3Ccircle cx='160' cy='44' r='1.2' fill='%23a69d84'/%3E%3Cg transform='translate(374 0) scale(-1 1)'%3E%3Cpath d='M151 85C134 85 122 79 122 71C122 65 129.500 63 132.500 67C134.500 70 131.500 73 128.500 71' fill='none' stroke='%23040510' stroke-opacity='.6' stroke-width='3.600' stroke-linecap='round'/%3E%3Cpath d='M151 85C134 85 122 79 122 71C122 65 129.500 63 132.500 67C134.500 70 131.500 73 128.500 71' fill='none' stroke='url(%23v)' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M116 85C102 85 90 81 83 75.500C79.500 72.500 81.500 68.500 85 70' fill='none' stroke='%23040510' stroke-opacity='.6' stroke-width='3.200' stroke-linecap='round'/%3E%3Cpath d='M116 85C102 85 90 81 83 75.500C79.500 72.500 81.500 68.500 85 70' fill='none' stroke='url(%23v)' stroke-width='1.700' stroke-linecap='round'/%3E%3Cpath d='M103 69.4L103.94 72.06L106.6 73L103.94 73.94L103 76.6L102.06 73.94L99.4 73L102.06 72.06Z' fill='%23a0a2ab'/%3E%3Cpath d='M146 53.8L147.09 56.91L150.2 58L147.09 59.09L146 62.2L144.91 59.09L141.8 58L144.91 56.91Z' fill='url(%23g)'/%3E%3Ccircle cx='68' cy='80' r='1.5' fill='%23a0a2ab'/%3E%3Ccircle cx='160' cy='44' r='1.2' fill='%23a69d84'/%3E%3C/g%3E%3Cpath d='M196.500 56.500A13.500 13.500 0 1 0 196.500 81.500A12.500 12.500 0 0 1 196.500 56.500Z' fill='%23a9aaae' stroke='%2364677c' stroke-width='.6'/%3E%3Cpath d='M203.5 64.8L204.59 67.91L207.7 69L204.59 70.09L203.5 73.2L202.41 70.09L199.3 69L202.41 67.91Z' fill='url(%23g)'/%3E%3Ccircle cx='187' cy='18' r='22' fill='url(%23h)'/%3E%3Cpath d='M187 2L190.2 14.8L203 18L190.2 21.2L187 34L183.8 21.2L171 18L183.8 14.8Z' fill='url(%23g)' stroke='%23040510' stroke-opacity='.55' stroke-width='.7'/%3E%3Cpath d='M187 8.5L189.85 15.15L196.5 18L189.85 20.85L187 27.5L184.15 20.85L177.5 18L184.15 15.15Z' fill='%23aea99a' transform='rotate(45 187 18)'/%3E%3Ccircle cx='187' cy='18' r='2.6' fill='%23afaea6'/%3E%3Crect x='2' y='92.5' width='370' height='8' fill='url(%23n)'/%3E%3Cpath d='M8 96.5H366' stroke='%23a19474' stroke-width='1.9' stroke-dasharray='.1 7' stroke-linecap='round'/%3E%3Crect x='2' y='92.5' width='370' height='2.2' fill='%23040510' fill-opacity='.45'/%3E%3Crect x='1' y='100.5' width='372' height='3' rx='1' fill='url(%23v)'/%3E%3Crect x='0' y='88' width='374' height='4.5' rx='1.2' fill='url(%23v)'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+#routing-hub-screen .routing-hub-info-library-plinth {
+  aspect-ratio: 374 / 60;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 374 60'%3E%3Cdefs%3E%3ClinearGradient id='n' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233b3b60'/%3E%3Cstop offset='.5' stop-color='%23272545'/%3E%3Cstop offset='1' stop-color='%23161429'/%3E%3C/linearGradient%3E%3ClinearGradient id='d' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%230b091a'/%3E%3Cstop offset='1' stop-color='%231c1934'/%3E%3C/linearGradient%3E%3ClinearGradient id='p' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23110d20'/%3E%3Cstop offset='.16' stop-color='%23323155'/%3E%3Cstop offset='.34' stop-color='%23545779'/%3E%3Cstop offset='.56' stop-color='%23282745'/%3E%3Cstop offset='.86' stop-color='%23151327'/%3E%3Cstop offset='1' stop-color='%23070716'/%3E%3C/linearGradient%3E%3ClinearGradient id='v' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23b0b0b0'/%3E%3Cstop offset='.3' stop-color='%239797a1'/%3E%3Cstop offset='.68' stop-color='%2367677a'/%3E%3Cstop offset='1' stop-color='%2337374b'/%3E%3C/linearGradient%3E%3ClinearGradient id='w' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23444558'/%3E%3Cstop offset='.26' stop-color='%23aeaeb0'/%3E%3Cstop offset='.55' stop-color='%2381828f'/%3E%3Cstop offset='1' stop-color='%23323244'/%3E%3C/linearGradient%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23aea896'/%3E%3Cstop offset='.45' stop-color='%239e8e6c'/%3E%3Cstop offset='1' stop-color='%236d593d'/%3E%3C/linearGradient%3E%3CradialGradient id='b' cx='.36' cy='.3' r='.75'%3E%3Cstop offset='0' stop-color='%23797d9b'/%3E%3Cstop offset='.4' stop-color='%23383760'/%3E%3Cstop offset='1' stop-color='%23100b1f'/%3E%3C/radialGradient%3E%3CradialGradient id='h'%3E%3Cstop offset='0' stop-color='%23787f9e' stop-opacity='.55'/%3E%3Cstop offset='1' stop-color='%23787f9e' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23030310' stop-opacity='.78'/%3E%3Cstop offset='1' stop-color='%23030310' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='t' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23030310' stop-opacity='.7'/%3E%3Cstop offset='1' stop-color='%23030310' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M24 12H350V22C322 22 312 35 286 35H226C208 35 201 49 187 49C173 49 166 35 148 35H88C62 35 52 22 24 22Z' fill='url(%23n)'/%3E%3Cpath d='M24 12H350V22C322 22 312 35 286 35H226C208 35 201 49 187 49C173 49 166 35 148 35H88C62 35 52 22 24 22Z' fill='none' stroke='%23040510' stroke-width='6' stroke-linejoin='round' stroke-opacity='.85'/%3E%3Cpath d='M24 12H350V22C322 22 312 35 286 35H226C208 35 201 49 187 49C173 49 166 35 148 35H88C62 35 52 22 24 22Z' fill='none' stroke='url(%23v)' stroke-width='3.4' stroke-linejoin='round'/%3E%3Cpath d='M24 12H350V22C322 22 312 35 286 35H226C208 35 201 49 187 49C173 49 166 35 148 35H88C62 35 52 22 24 22Z' fill='none' stroke='%23b0b0b0' stroke-opacity='.75' stroke-width='.9' stroke-linejoin='round' transform='translate(-.5 -1)'/%3E%3Cpath d='M187 20L200.5 31.5L187 43L173.5 31.5Z' fill='url(%23d)' stroke='%23040510' stroke-opacity='.8' stroke-width='3.200'/%3E%3Cpath d='M187 20L200.5 31.5L187 43L173.5 31.5Z' fill='none' stroke='url(%23v)' stroke-width='1.600' stroke-linejoin='round'/%3E%3Cpath d='M187 24.7L188.77 29.73L193.8 31.5L188.77 33.27L187 38.3L185.23 33.27L180.2 31.5L185.23 29.73Z' fill='url(%23g)'/%3E%3Cpath d='M128 20.5L131.6 25.5L128 30.5L124.4 25.5Z' fill='%23a0a2ab'/%3E%3Cpath d='M104 21.4L104.94 24.06L107.6 25L104.94 25.94L104 28.6L103.06 25.94L100.4 25L103.06 24.06Z' fill='url(%23g)'/%3E%3Cpath d='M140 25.500H164' stroke='%239e8e6c' stroke-opacity='.7' stroke-width='.9'/%3E%3Ccircle cx='84' cy='23.500' r='1.400' fill='%23a0a2ab'/%3E%3Cg transform='translate(374 0) scale(-1 1)'%3E%3Cpath d='M128 20.5L131.6 25.5L128 30.5L124.4 25.5Z' fill='%23a0a2ab'/%3E%3Cpath d='M104 21.4L104.94 24.06L107.6 25L104.94 25.94L104 28.6L103.06 25.94L100.4 25L103.06 24.06Z' fill='url(%23g)'/%3E%3Cpath d='M140 25.500H164' stroke='%239e8e6c' stroke-opacity='.7' stroke-width='.9'/%3E%3Ccircle cx='84' cy='23.500' r='1.400' fill='%23a0a2ab'/%3E%3C/g%3E%3Cellipse cx='13' cy='57.800' rx='12' ry='2' fill='%23030310' fill-opacity='.6'/%3E%3Cpath d='M5.500 25H28C30 36 27 44 21.500 50C15.500 56 6 58 3 52C1 47 3.800 42 8.500 42C6.500 37 5.500 31 5.500 25Z' fill='url(%23p)' stroke='%23040510' stroke-opacity='.85' stroke-width='3.600' stroke-linejoin='round'/%3E%3Cpath d='M5.500 25H28C30 36 27 44 21.500 50C15.500 56 6 58 3 52C1 47 3.800 42 8.500 42C6.500 37 5.500 31 5.500 25Z' fill='none' stroke='url(%23v)' stroke-width='1.800' stroke-linejoin='round'/%3E%3Cpath d='M8.500 42C14 42 16 47 13.500 50.200C11.500 52.600 7.800 52 7.300 49.300C7 47.600 8.800 46.600 9.800 47.800' fill='none' stroke='url(%23v)' stroke-width='1.700' stroke-linecap='round'/%3E%3Cpath d='M12 29C13 37 18 41 24 39' fill='none' stroke='%239194a2' stroke-opacity='.5' stroke-width='.9' stroke-linecap='round'/%3E%3Crect x='3.500' y='15' width='25' height='8' fill='url(%23p)'/%3E%3Crect x='1.500' y='21.500' width='29' height='3.600' rx='1.600' fill='url(%23w)'/%3E%3Cg transform='translate(374 0) scale(-1 1)'%3E%3Cellipse cx='13' cy='57.800' rx='12' ry='2' fill='%23030310' fill-opacity='.6'/%3E%3Cpath d='M5.500 25H28C30 36 27 44 21.500 50C15.500 56 6 58 3 52C1 47 3.800 42 8.500 42C6.500 37 5.500 31 5.500 25Z' fill='url(%23p)' stroke='%23040510' stroke-opacity='.85' stroke-width='3.600' stroke-linejoin='round'/%3E%3Cpath d='M5.500 25H28C30 36 27 44 21.500 50C15.500 56 6 58 3 52C1 47 3.800 42 8.500 42C6.500 37 5.500 31 5.500 25Z' fill='none' stroke='url(%23v)' stroke-width='1.800' stroke-linejoin='round'/%3E%3Cpath d='M8.500 42C14 42 16 47 13.500 50.200C11.500 52.600 7.800 52 7.300 49.300C7 47.600 8.800 46.600 9.800 47.800' fill='none' stroke='url(%23v)' stroke-width='1.700' stroke-linecap='round'/%3E%3Cpath d='M12 29C13 37 18 41 24 39' fill='none' stroke='%239194a2' stroke-opacity='.5' stroke-width='.9' stroke-linecap='round'/%3E%3Crect x='3.500' y='15' width='25' height='8' fill='url(%23p)'/%3E%3Crect x='1.500' y='21.500' width='29' height='3.600' rx='1.600' fill='url(%23w)'/%3E%3C/g%3E%3Crect x='2' y='3' width='370' height='8' fill='url(%23n)'/%3E%3Cpath d='M8 7H366' stroke='%23a19474' stroke-width='1.9' stroke-dasharray='.1 7' stroke-linecap='round'/%3E%3Crect x='2' y='3' width='370' height='2.2' fill='%23040510' fill-opacity='.45'/%3E%3Crect x='1' y='0' width='372' height='3' rx='1' fill='url(%23v)'/%3E%3Crect x='0' y='11' width='374' height='4.5' rx='1.2' fill='url(%23v)'/%3E%3Cpath d='M0 16H374' stroke='%23040510' stroke-opacity='.75' stroke-width='1'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+
+/* 段: 一段 = 背表紙の立つ高さ 170px ＋ 板と板の下の影 24px。段の絵は一段ぶんで、段の数だけ下へ繰り返す（二段より減らない）。 */
 #routing-hub-screen .routing-hub-info-library-shelf {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px;
-  padding: 0 0 10px;
-  border-bottom: 1px solid var(--terrace-hairline);
-  border-radius: 12px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 36px));
+  grid-auto-rows: var(--library-tier-books);
+  justify-content: space-between;
+  align-items: end;
+  row-gap: var(--library-tier-board);
+  box-sizing: border-box;
+  min-height: calc((var(--library-tier-books) + var(--library-tier-board)) * 2);
+  padding: 0 calc(32 / 374 * 100%) var(--library-tier-board);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 374 194' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='n' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%233b3b60'/%3E%3Cstop offset='.5' stop-color='%23272545'/%3E%3Cstop offset='1' stop-color='%23161429'/%3E%3C/linearGradient%3E%3ClinearGradient id='d' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%230b091a'/%3E%3Cstop offset='1' stop-color='%231c1934'/%3E%3C/linearGradient%3E%3ClinearGradient id='p' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23110d20'/%3E%3Cstop offset='.16' stop-color='%23323155'/%3E%3Cstop offset='.34' stop-color='%23545779'/%3E%3Cstop offset='.56' stop-color='%23282745'/%3E%3Cstop offset='.86' stop-color='%23151327'/%3E%3Cstop offset='1' stop-color='%23070716'/%3E%3C/linearGradient%3E%3ClinearGradient id='v' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23b0b0b0'/%3E%3Cstop offset='.3' stop-color='%239797a1'/%3E%3Cstop offset='.68' stop-color='%2367677a'/%3E%3Cstop offset='1' stop-color='%2337374b'/%3E%3C/linearGradient%3E%3ClinearGradient id='w' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23444558'/%3E%3Cstop offset='.26' stop-color='%23aeaeb0'/%3E%3Cstop offset='.55' stop-color='%2381828f'/%3E%3Cstop offset='1' stop-color='%23323244'/%3E%3C/linearGradient%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23aea896'/%3E%3Cstop offset='.45' stop-color='%239e8e6c'/%3E%3Cstop offset='1' stop-color='%236d593d'/%3E%3C/linearGradient%3E%3CradialGradient id='b' cx='.36' cy='.3' r='.75'%3E%3Cstop offset='0' stop-color='%23797d9b'/%3E%3Cstop offset='.4' stop-color='%23383760'/%3E%3Cstop offset='1' stop-color='%23100b1f'/%3E%3C/radialGradient%3E%3CradialGradient id='h'%3E%3Cstop offset='0' stop-color='%23787f9e' stop-opacity='.55'/%3E%3Cstop offset='1' stop-color='%23787f9e' stop-opacity='0'/%3E%3C/radialGradient%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23030310' stop-opacity='.78'/%3E%3Cstop offset='1' stop-color='%23030310' stop-opacity='0'/%3E%3C/linearGradient%3E%3ClinearGradient id='t' x1='0' y1='0' x2='1' y2='0'%3E%3Cstop offset='0' stop-color='%23030310' stop-opacity='.7'/%3E%3Cstop offset='1' stop-color='%23030310' stop-opacity='0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='28' y='0' width='318' height='170' fill='%23070717' fill-opacity='.5'/%3E%3Crect x='28' y='0' width='318' height='30' fill='url(%23s)'/%3E%3Crect x='28' y='0' width='16' height='170' fill='url(%23t)'/%3E%3Crect x='28' y='132' width='318' height='38' fill='url(%23s)' fill-opacity='.4' transform='matrix(1 0 0 -1 0 302)'/%3E%3Cpath d='M345.500 0V170' stroke='%237c8098' stroke-opacity='.22' stroke-width='1'/%3E%3Cpath d='M27 0H54C45 3 35.500 7 33.500 24H27Z' fill='url(%23n)'/%3E%3Cpath d='M54 .8C45 3.800 35.500 7.800 33.500 24' fill='none' stroke='%23040510' stroke-opacity='.7' stroke-width='3'/%3E%3Cpath d='M54 .8C45 3.800 35.500 7.800 33.500 24' fill='none' stroke='url(%23v)' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='33.500' cy='24.500' r='2' fill='%23a6a7ad'/%3E%3Cg transform='translate(374 0) scale(-1 1)'%3E%3Cpath d='M27 0H54C45 3 35.500 7 33.500 24H27Z' fill='url(%23n)'/%3E%3Cpath d='M54 .8C45 3.800 35.500 7.800 33.500 24' fill='none' stroke='%23040510' stroke-opacity='.7' stroke-width='3'/%3E%3Cpath d='M54 .8C45 3.800 35.500 7.800 33.500 24' fill='none' stroke='url(%23v)' stroke-width='2' stroke-linecap='round'/%3E%3Ccircle cx='33.500' cy='24.500' r='2' fill='%23a6a7ad'/%3E%3C/g%3E%3Crect x='26' y='182' width='322' height='12' fill='%23030310' fill-opacity='.62'/%3E%3Crect x='26' y='172' width='322' height='9' fill='url(%23n)'/%3E%3Cpath d='M46 176.500H170M204 176.500H328' stroke='%239e8e6c' stroke-opacity='.75' stroke-width='.9'/%3E%3Cpath d='M187 171.9L188.2 175.3L191.6 176.5L188.2 177.7L187 181.1L185.8 177.7L182.4 176.5L185.8 175.3Z' fill='url(%23g)'/%3E%3Ccircle cx='177' cy='176.500' r='1.100' fill='%239e8e6c'/%3E%3Ccircle cx='197' cy='176.500' r='1.100' fill='%239e8e6c'/%3E%3Crect x='26' y='168.500' width='322' height='4' rx='1' fill='url(%23v)'/%3E%3Crect x='26' y='180.200' width='322' height='2.600' fill='url(%23v)' fill-opacity='.85'/%3E%3Cpath d='M26 183.300H348' stroke='%23040510' stroke-opacity='.8' stroke-width='1'/%3E%3Crect x='4' y='0' width='24' height='194' fill='url(%23p)'/%3E%3Crect x='4' y='0' width='2.200' height='194' fill='%239295a3' fill-opacity='.9'/%3E%3Crect x='25.800' y='0' width='2.200' height='194' fill='%235b5e73' fill-opacity='.9'/%3E%3Cpath d='M3.500 0V194M28.500 0V194' stroke='%23040510' stroke-opacity='.75' stroke-width='1'/%3E%3Crect x='9.500' y='30' width='13' height='106' rx='6.500' fill='%230e0a1e' fill-opacity='.62'/%3E%3Crect x='9.500' y='30' width='13' height='106' rx='6.500' fill='none' stroke='url(%23g)' stroke-width='.9'/%3E%3Cpath d='M10.300 42Q10.300 31 16 30.800' fill='none' stroke='%23040510' stroke-opacity='.7' stroke-width='1.200'/%3E%3Cpath d='M16 77L17.56 81.44L22 83L17.56 84.56L16 89L14.44 84.56L10 83L14.44 81.44Z' fill='url(%23g)'/%3E%3Cpath d='M16 55.8L18.6 60L16 64.2L13.4 60Z' fill='%23a0a2ab'/%3E%3Cpath d='M16 101.8L18.6 106L16 110.2L13.4 106Z' fill='%23a0a2ab'/%3E%3Ccircle cx='16' cy='44' r='1.300' fill='%239e8e6c'/%3E%3Ccircle cx='16' cy='122' r='1.300' fill='%239e8e6c'/%3E%3Cpath d='M16 68v6M16 92v6' stroke='%239e8e6c' stroke-opacity='.8' stroke-width='.9' stroke-linecap='round'/%3E%3Crect x='4' y='156' width='24' height='5' fill='%23030310' fill-opacity='.45'/%3E%3Crect x='2.500' y='164' width='27' height='24' fill='url(%23p)'/%3E%3Cpath d='M16 171.4L19.2 176L16 180.6L12.8 176Z' fill='url(%23g)'/%3E%3Crect x='1' y='160' width='30' height='5.400' rx='2.400' fill='url(%23w)'/%3E%3Crect x='1' y='160' width='30' height='5.400' rx='2.400' fill='url(%23s)' fill-opacity='.35' transform='matrix(1 0 0 -1 0 325.400)'/%3E%3Crect x='1' y='186.600' width='30' height='5.400' rx='2.400' fill='url(%23w)'/%3E%3Crect x='1' y='186.600' width='30' height='5.400' rx='2.400' fill='url(%23s)' fill-opacity='.35' transform='matrix(1 0 0 -1 0 378.600)'/%3E%3Crect x='4' y='192' width='24' height='2' fill='%23030310' fill-opacity='.5'/%3E%3Cg transform='translate(342 0)'%3E%3Crect x='4' y='0' width='24' height='194' fill='url(%23p)'/%3E%3Crect x='4' y='0' width='2.200' height='194' fill='%239295a3' fill-opacity='.9'/%3E%3Crect x='25.800' y='0' width='2.200' height='194' fill='%235b5e73' fill-opacity='.9'/%3E%3Cpath d='M3.500 0V194M28.500 0V194' stroke='%23040510' stroke-opacity='.75' stroke-width='1'/%3E%3Crect x='9.500' y='30' width='13' height='106' rx='6.500' fill='%230e0a1e' fill-opacity='.62'/%3E%3Crect x='9.500' y='30' width='13' height='106' rx='6.500' fill='none' stroke='url(%23g)' stroke-width='.9'/%3E%3Cpath d='M10.300 42Q10.300 31 16 30.800' fill='none' stroke='%23040510' stroke-opacity='.7' stroke-width='1.200'/%3E%3Cpath d='M16 77L17.56 81.44L22 83L17.56 84.56L16 89L14.44 84.56L10 83L14.44 81.44Z' fill='url(%23g)'/%3E%3Cpath d='M16 55.8L18.6 60L16 64.2L13.4 60Z' fill='%23a0a2ab'/%3E%3Cpath d='M16 101.8L18.6 106L16 110.2L13.4 106Z' fill='%23a0a2ab'/%3E%3Ccircle cx='16' cy='44' r='1.300' fill='%239e8e6c'/%3E%3Ccircle cx='16' cy='122' r='1.300' fill='%239e8e6c'/%3E%3Cpath d='M16 68v6M16 92v6' stroke='%239e8e6c' stroke-opacity='.8' stroke-width='.9' stroke-linecap='round'/%3E%3Crect x='4' y='156' width='24' height='5' fill='%23030310' fill-opacity='.45'/%3E%3Crect x='2.500' y='164' width='27' height='24' fill='url(%23p)'/%3E%3Cpath d='M16 171.4L19.2 176L16 180.6L12.8 176Z' fill='url(%23g)'/%3E%3Crect x='1' y='160' width='30' height='5.400' rx='2.400' fill='url(%23w)'/%3E%3Crect x='1' y='160' width='30' height='5.400' rx='2.400' fill='url(%23s)' fill-opacity='.35' transform='matrix(1 0 0 -1 0 325.400)'/%3E%3Crect x='1' y='186.600' width='30' height='5.400' rx='2.400' fill='url(%23w)'/%3E%3Crect x='1' y='186.600' width='30' height='5.400' rx='2.400' fill='url(%23s)' fill-opacity='.35' transform='matrix(1 0 0 -1 0 378.600)'/%3E%3Crect x='4' y='192' width='24' height='2' fill='%23030310' fill-opacity='.5'/%3E%3C/g%3E%3C/svg%3E") left top / 100% calc(var(--library-tier-books) + var(--library-tier-board)) repeat-y;
+}
+
+#routing-hub-screen .routing-hub-info-library-shelf > .routing-hub-info-library-spine {
+  width: auto;
+}
+
+/* ── 棚へ降りてくる本: 板の上に淡い光の柱が低く立ち、背表紙が上から降りて板に立ち、強く灯ってから光が退く ──
+   光の柱は降りてくる本の立つ所に重ねて置く（列と、上から数えた段は app.js が指す）。一冊目のときは、空の字が薄れ、件数の題と並び替えの行が後から出る。
+   動きは帯が下り切るころ（0.7 秒後）に始まり、それまでは本の無い姿のまま。 */
+#routing-hub-screen .routing-hub-info-library-arrival-light {
+  position: absolute;
+  inset: calc(var(--library-arrival-tier) * (var(--library-tier-books) + var(--library-tier-board)) + var(--library-tier-books) - 156px) 0 auto;
+  height: 156px;
+  background: linear-gradient(180deg, rgb(231 237 255 / 0), rgb(231 237 255 / 0.16) 50%, rgb(231 237 255 / 0.55));
+  box-shadow: 0 8px 20px -2px rgb(159 180 255 / 0.85);
+  opacity: 0;
+  transform-origin: bottom;
+  pointer-events: none;
+  animation: routing-hub-library-arrival-light 2200ms ease-out 700ms both;
+}
+
+#routing-hub-screen .routing-hub-info-library-spine[data-arrival] {
+  animation: routing-hub-library-arrival-spine 2200ms cubic-bezier(0.22, 0.61, 0.36, 1) 700ms backwards;
+}
+
+#routing-hub-screen .routing-hub-info-library-head[data-arrival] > .routing-hub-info-empty-card {
+  animation: routing-hub-library-arrival-leave 2200ms ease-out 700ms forwards;
+}
+
+#routing-hub-screen .routing-hub-info-library-head[data-arrival] > .routing-hub-info-summary,
+#routing-hub-screen .routing-hub-info-library-head[data-arrival] + .routing-hub-info-library-sort {
+  animation: routing-hub-library-arrival-enter 2200ms ease-out 700ms backwards;
+}
+
+@keyframes routing-hub-library-arrival-light {
+  0% { opacity: 0; transform: scaleY(0.12); }
+  12%, 30% { opacity: 1; transform: scaleY(0.38); }
+  60% { opacity: 1; transform: scaleY(1); }
+  72% { opacity: 1; transform: scaleY(1); box-shadow: 0 0 28px 6px rgb(231 237 255 / 0.6), 0 8px 18px -6px rgb(159 180 255 / 0.9); }
+  100% { opacity: 0; transform: scaleY(1); }
+}
+
+@keyframes routing-hub-library-arrival-spine {
+  0%, 30% { opacity: 0; translate: 0 -64px; }
+  46% { opacity: 0.55; translate: 0 -30px; }
+  60% { opacity: 1; translate: 0 0; box-shadow: 0 0 22px rgb(159 180 255 / 0.45); }
+  72% { opacity: 1; translate: 0 0; box-shadow: 0 0 28px 4px rgb(231 237 255 / 0.55), 0 8px 18px -6px rgb(159 180 255 / 0.9); }
+  100% { opacity: 1; translate: 0 0; box-shadow: 0 0 0 0 rgb(231 237 255 / 0); }
+}
+
+@keyframes routing-hub-library-arrival-leave {
+  0%, 30% { opacity: 1; }
+  46% { opacity: 0.4; }
+  60%, 100% { opacity: 0; visibility: hidden; }
+}
+
+@keyframes routing-hub-library-arrival-enter {
+  0%, 60% { opacity: 0; }
+  72% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #routing-hub-screen .routing-hub-info-library-arrival-light,
+  #routing-hub-screen .routing-hub-info-library-head[data-arrival] > .routing-hub-info-empty-card {
+    display: none;
+  }
+
+  #routing-hub-screen .routing-hub-info-library-spine[data-arrival],
+  #routing-hub-screen .routing-hub-info-library-head[data-arrival] > .routing-hub-info-summary,
+  #routing-hub-screen .routing-hub-info-library-head[data-arrival] + .routing-hub-info-library-sort {
+    animation: none;
+  }
 }
 
 /* 背表紙: 本の形は残し、縁は装丁の色の細い筋だけにする（--spine-accent は装丁ごと）。 */
@@ -1732,8 +1878,9 @@
   visibility: hidden;
 }
 
-/* 処分の確かめ: 帯の上に夜の幕をもう一段かけ、題と確かめの一文と二つの紋の釦にする。幕は背後の操作も塞ぐ。 */
-#routing-hub-screen .routing-hub-info-library-confirm {
+/* 帯の確かめ（収蔵庫の本の処分・持ち物を渡す）: 帯の上に夜の幕をもう一段かけ、枠を描かずに確かめの一文と二つのボタンを置く。幕は背後の操作も塞ぐ。
+   処分は本の題を一文の上に置き、ボタンはアイコン（やめる・処分する）。渡すは一文だけで、ボタンは字（やめる・渡す）を持ち物の帯の「渡す」と同じ下線の字で置く。 */
+#routing-hub-screen :is(.routing-hub-info-library-confirm, .routing-hub-info-gift-confirm) {
   position: absolute;
   inset: 0;
   z-index: 4;
@@ -1744,7 +1891,7 @@
   background: var(--terrace-band-night-deep);
 }
 
-#routing-hub-screen .routing-hub-info-library-confirm-card {
+#routing-hub-screen :is(.routing-hub-info-library-confirm-card, .routing-hub-info-gift-confirm-card) {
   display: grid;
   gap: 14px;
   width: 100%;
@@ -1762,14 +1909,19 @@
   overflow-wrap: anywhere;
 }
 
-#routing-hub-screen .routing-hub-info-library-confirm-question {
+#routing-hub-screen :is(.routing-hub-info-library-confirm-question, .routing-hub-info-gift-confirm-question) {
   margin: 0;
   color: var(--terrace-word-quiet);
   font-size: 0.84rem;
   line-height: 1.7;
 }
 
-#routing-hub-screen .routing-hub-info-library-confirm-row {
+#routing-hub-screen .routing-hub-info-gift-confirm-question {
+  color: var(--terrace-word);
+  overflow-wrap: anywhere;
+}
+
+#routing-hub-screen :is(.routing-hub-info-library-confirm-row, .routing-hub-info-gift-confirm-row) {
   display: flex;
   justify-content: flex-start;
   gap: 28px;
@@ -1778,6 +1930,28 @@
 #routing-hub-screen .routing-hub-info-library-confirm-row .terrace-sigil {
   width: 32px;
   height: 32px;
+}
+
+#routing-hub-screen :is(.routing-hub-info-gift-confirm-cancel, .routing-hub-info-gift-confirm-accept) {
+  padding: 2px 0;
+  border: 0;
+  border-bottom: 1px solid rgb(205 214 234 / 0.28);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--terrace-word-quiet);
+  font-family: inherit;
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-shadow: var(--terrace-word-halo);
+  cursor: pointer;
+}
+
+/* 選んでいるボタン（はじめはやめる）は、マウスで開いても見えるように :focus で灯す。 */
+#routing-hub-screen :is(.routing-hub-info-gift-confirm-cancel, .routing-hub-info-gift-confirm-accept):is(:hover, :focus) {
+  outline: none;
+  color: var(--terrace-word);
+  border-bottom-color: rgb(159 180 255 / 0.7);
 }
 
 /* 関連する本へ移る間の覆い: 帯の中だけを塞ぐ待ちの幕。処分の確かめと同じ深い夜を帯と同じ横の減衰でかけ、前の本の本文を透かさない。
@@ -1983,13 +2157,16 @@
   outline-offset: 4px;
 }
 
+/* 空きの絵（鉢・巣・籠）: 芝と石の台の上の絵は、足もとの影と草を絵の中に持ち、地の絵に直に置く。植える場の小さな鉢と巣は、
+   文字と同じ夜の影を纏わせて芝の上で輪郭を読ませる。 */
 #routing-hub-screen .routing-hub-star-cradle-figure .terrace-empty-art,
-#routing-hub-screen .routing-hub-star-cradle-actions .terrace-empty-art,
 #routing-hub-screen .routing-hub-star-cradle-cage .terrace-empty-art,
-#routing-hub-screen .routing-hub-star-cradle-station > [role="img"] .terrace-empty-art,
 #routing-hub-screen .routing-hub-star-cradle-free-item .terrace-empty-art {
-  opacity: 0.95;
-  filter: drop-shadow(0 0 2px rgb(5 6 15 / 0.95)) drop-shadow(0 0 8px rgb(159 180 255 / 0.45));
+  display: block;
+}
+
+#routing-hub-screen .routing-hub-star-cradle-free-item .terrace-empty-art {
+  filter: drop-shadow(0 0 1.5px rgb(5 6 15 / 0.9)) drop-shadow(0 0 5px rgb(5 6 15 / 0.6));
 }
 
 #routing-hub-screen .routing-hub-star-cradle-figure .terrace-empty-art {
@@ -2121,12 +2298,16 @@
   gap: 2px;
 }
 
-#routing-hub-screen .routing-hub-star-cradle-actions .terrace-empty-art {
-  width: 48px;
-  height: 48px;
+/* 餌やりの列・植える場で持っていないもの: 一文を芝の上へそのまま置く（枠で囲まない）。 */
+#routing-hub-screen .routing-hub-star-cradle-empty-note {
+  margin: 0;
+  color: var(--terrace-word);
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-shadow: var(--terrace-word-halo);
 }
 
-/* 受け取り済みの副産物・籠に入れられない子: 数を持たない淡い紋（芝の上でも形が読める濃さ）。 */
+/* 受け取り済みの副産物・籠に入れられない子: 数を持たない淡いアイコン（芝の上でも形が読める濃さ）。 */
 #routing-hub-screen .routing-hub-star-cradle-actions .terrace-sigil-button:disabled .terrace-sigil {
   opacity: 0.55;
 }
@@ -2152,7 +2333,7 @@
   filter: drop-shadow(0 0 3px rgb(5 6 15 / 0.9));
 }
 
-/* 名付け: 名付けの紋を押すと、その場に名の入力が開く。 */
+/* 名付け: 名付けのアイコンを押すと、その場に名の入力が開く。 */
 #routing-hub-screen .routing-hub-star-cradle-name-input {
   width: 9em;
   padding: 2px 6px;
@@ -2199,11 +2380,6 @@
 #routing-hub-screen .routing-hub-star-cradle-free-item .terrace-empty-art {
   width: 46px;
   height: 46px;
-}
-
-#routing-hub-screen .routing-hub-star-cradle-station > [role="img"] .terrace-empty-art {
-  width: 64px;
-  height: 64px;
 }
 
 #routing-hub-screen .routing-hub-star-cradle-seed {

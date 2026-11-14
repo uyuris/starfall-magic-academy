@@ -40,6 +40,7 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { relayHeadersToServer } from '../serverRequest.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -192,7 +193,7 @@ async function startFaultProxy(targetBase) {
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const payload = Buffer.concat(chunks);
-    const headers = { ...req.headers };
+    const headers = relayHeadersToServer(req.headers, targetBase);
     delete headers.host;
     delete headers['content-length'];
     const upstream = await fetch(`${targetBase}${req.url}`, {

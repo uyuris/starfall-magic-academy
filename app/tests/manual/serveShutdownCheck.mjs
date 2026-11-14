@@ -33,6 +33,7 @@ import { writeRuntimePathsManifest } from '../../src/runtimeSlotBootstrap.mjs';
 import { runAtomicFinalizationWithStaging } from '../../src/routingFinalizeQueue.mjs';
 import { shutdownServerOnSignals, startServer } from '../../src/server.mjs';
 import { createStorageApi } from '../../src/storage.mjs';
+import { serverFetch } from '../serverRequest.mjs';
 
 const toolPath = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(toolPath), '../../..');
@@ -136,7 +137,7 @@ async function scanPlayRoot(playRoot) {
 }
 
 async function postJson(base, pathname, body) {
-  const response = await fetch(`${base}${pathname}`, {
+  const response = await serverFetch(`${base}${pathname}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body)

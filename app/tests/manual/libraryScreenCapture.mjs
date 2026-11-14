@@ -84,6 +84,7 @@ import path from 'node:path';
 import { promises as fs, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { relayHeadersToServer } from '../serverRequest.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -209,8 +210,8 @@ const STATES = [
   { id: 's-related-brush', name: '関連する本へ移った本の待ち（開いた次の本の上を筆が走る）' },
   { id: 's-related-failed', name: '関連する本へ移れない（次の本が開き、頁に一文）' },
   { id: '09-close', name: '閉じる（蔵書票と琥珀の光）' },
-  { id: '10-exit', name: '退出（灯りが手前から奥へ落ちる）' },
-  { id: 's-exit-after', name: '退出の後（ロードの被覆を経たハブ）' }
+  { id: '10-exit', name: '退出（帰り道の待ちが書庫の上で浮かぶ）' },
+  { id: 's-exit-after', name: '退出の後（帰り道の待ちを経たハブ）' }
 ];
 // The scenes that stand beside the baseline capture (--baseline-dir): capture's own 1440×900 stills of them, <id>.png.
 const COMPARISONS = [
@@ -566,7 +567,7 @@ function startFront(productBase, { searchDelayMs }) {
         res.end(JSON.stringify({ error: 'capture relay: this one request was failed on purpose', error_code: armed.errorCode }));
         return;
       }
-      const headers = { ...req.headers };
+      const headers = relayHeadersToServer(req.headers, productBase);
       delete headers.host;
       delete headers['content-length'];
       const upstream = await fetch(`${productBase}${req.url}`, {
@@ -1557,11 +1558,11 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   check('scene 9 閉じる', await page.js(`${ROOT}.querySelector('.academy-library-reading').hidden`), {});
   mark('close-end');
 
-  // 10 退出: the lamps go out from the front to the far end (about 1.2 s), then the loading cover and the hub.
+  // 10 退出: the return wait rises over the library (the library's own art under the dim and the stars), then the hub.
   await sleep(300);
   mark('exit-start');
   await page.click('.academy-library-exit', {}, { steps: 10, stepMs: 25 });
-  await page.waitFor(`${ROOT}.querySelectorAll('.academy-library-lamp[data-out="true"]').length >= 3`, 'lamps going out', { intervalMs: 10 });
+  await page.waitFor(`!document.querySelector('#place-veil').hidden && document.querySelector('#place-veil').dataset.veilFrom === 'screen'`, 'the return wait rising', { intervalMs: 10 });
   await still('10-exit');
   await page.waitFor(`document.querySelector('#routing-hub-screen')?.classList.contains('active')`, 'back on the hub', { timeoutMs: 60000, intervalMs: 20 });
   await sleep(1500);
@@ -1570,7 +1571,7 @@ async function walkScenes(page, stage, { still, marks, probes, size, recording }
   await sleep(600);
   await still('s-exit-after');
   record.exitAfter = await page.js(`({ active: ${ACTIVE_SCREENS} })`);
-  check('scene 10 退出: the loading cover, then the hub', record.exitAfter.active.includes('routing-hub-screen'), record.exitAfter);
+  check('scene 10 退出: the return wait, then the hub', record.exitAfter.active.includes('routing-hub-screen'), record.exitAfter);
   return record;
 }
 

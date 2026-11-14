@@ -35,7 +35,7 @@
 //
 // 測りの手の送り方（timing-*）: 体力が半分を切り、回復の札が押せれば回復。そうでなければ撃てる魔法の札の先頭。撃って誤り（届かない）
 // が返ったら、いちばん近い生きた相手へ差の大きい軸で一歩寄り、その一歩も誤りならもう一方の軸で寄る。それも誤りか撃てる札が無ければ
-// 待機。応答のあと、一手の流れ（呪文の欄の is-flowing）が終わるのを待ち、HUMAN_GAP_MS 空けて次を送る。表では試合を始める紋が
+// 待機。応答のあと、一手の流れ（呪文の欄の is-flowing）が終わるのを待ち、HUMAN_GAP_MS 空けて次を送る。表では試合を始めるアイコンが
 // 出たらすぐ押す。手の選び方は view だけで決まるので、同じ保存・同じ週の seed なら製品の版を替えても同じ手が送られる。
 import { app, BrowserWindow } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
@@ -92,8 +92,23 @@ const FIXTURE_PROMPT_ANSWERS = [
   ['増減したユーザーの所持金を判定する', '0'],
   ['所持金判定', '0']
 ];
-const ARENA_INTRO_MARKER = '次の試合の開始を告げる短い口上を書く。';
+const ARENA_OPENING_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で影が向かい合う。';
 const ARENA_RESULT_MARKER = '結果を告げる実況を一文だけ書く。';
+
+// 試合の五つの声（構造化出力 arena_match_voices）。誰の身に起きたかの名は応答の形に一つに決まっているので、そのまま写す。
+function arenaMatchVoices(schema, opening) {
+  const side = (key, voice) => {
+    const fields = Object.entries(schema.properties[key].properties).filter(([field]) => field !== '声');
+    return { ...Object.fromEntries(fields.map(([field, fixed]) => [field, fixed.enum[0]])), 声: voice };
+  };
+  return {
+    opening,
+    east_edge: side('east_edge', '東方、ついに後がない！'),
+    west_edge: side('west_edge', '西方、ついに後がない！'),
+    east_wins: side('east_wins', '決着だ！東方が勝ち名乗りを上げた！'),
+    west_wins: side('west_wins', '決着だ！西方が勝ち名乗りを上げた！')
+  };
+}
 
 function createFixtureLm(hubLines) {
   return async function answer(body) {
@@ -101,13 +116,13 @@ function createFixtureLm(hubLines) {
     const schemaName = body.response_format?.json_schema?.name ?? null;
     if (schemaName === 'character_emotion_choice') return { kind: schemaName, content: JSON.stringify({ expression: 'neutral' }) };
     if (schemaName === 'work_record_recall_choice') return { kind: schemaName, content: JSON.stringify({ work_record_ids: [] }) };
+    if (schemaName === 'arena_match_voices') return { kind: schemaName, content: JSON.stringify(arenaMatchVoices(body.response_format.json_schema.schema, ARENA_OPENING_LINE)) };
     if (schemaName !== null) throw new Error(`fixture lm: unknown structured request ${schemaName}`);
     if (prompt.includes('destination_idを1つだけ返す')) {
       const matches = Object.entries(hubLines).filter(([, line]) => prompt.includes(line));
       return { kind: 'hub-destination', content: matches.length === 1 ? matches[0][0] : 'none' };
     }
     if (prompt.includes('これはイベントフラグ判定')) return { kind: 'event-flag', content: 'false' };
-    if (prompt.includes(ARENA_INTRO_MARKER)) return { kind: 'arena-intro', content: '夜の闘技場に篝火が揺れ、魔法陣の上で影が向かい合う。' };
     if (prompt.includes(ARENA_RESULT_MARKER)) return { kind: 'arena-result', content: '篝火の円形の場に、この大会の結びが高く告げられた。' };
     for (const [marker, content] of FIXTURE_PROMPT_ANSWERS) if (prompt.includes(marker)) return { kind: marker, content };
     if (body.model === FIXTURE_CHAT_MODEL && body.stream === true) return { kind: 'chat', content: '（顔を上げて）ええ、行きましょう。' };
@@ -793,7 +808,7 @@ async function measureReplaySpeeds(ctx) {
   await page.js('window.__fx.watchReplay()');
   const speedButton = (label) => `[...document.querySelectorAll('.arena-replay-speed-button')].find((b) => b.getAttribute('aria-label') === '${label}')`;
   const stepped = (n) => `window.__fx.replay.length >= ${n}`;
-  // 速さの紋を押すと盤の pointerdown がその一歩の演出を畳むので、測る一歩の一つ前の一歩で押す: 一歩目を低速で測り、二歩目で
+  // 速さのアイコンを押すと盤の pointerdown がその一歩の演出を畳むので、測る一歩の一つ前の一歩で押す: 一歩目を低速で測り、二歩目で
   // 中速を押して三歩目を測り、四歩目で高速を押して五歩目を測る（押した一歩の次の一歩から、飛ぶ時間と次までの間が替わる）。
   await page.waitFor(stepped(2), 'replay step 2', 15000);
   await page.click(speedButton('中速'), '中速');
@@ -951,7 +966,7 @@ async function arenaReplayMissScene(ctx) {
   if (!record.refetch_equal) throw new Error('the replay the page played differs from the server replay');
 }
 
-// 一人の大会を、表で試合を始める紋が出たらすぐ押して、優勝か敗退まで送る。
+// 一人の大会を、表で試合を始めるアイコンが出たらすぐ押して、優勝か敗退まで送る。
 async function timingScene(ctx) {
   const { page } = ctx;
   await walkToHub(ctx);

@@ -1,3 +1,5 @@
+import { requestOriginPolicy } from '../server/requestOrigin.mjs';
+
 export async function listenInternalServer({ server, host = '127.0.0.1', port }) {
   if (!server) throw new Error('server is required');
 
@@ -29,6 +31,12 @@ export async function listenInternalServer({ server, host = '127.0.0.1', port })
 
   const address = startedServer.address();
   if (!address || typeof address === 'string') throw new Error('internal server address is unavailable');
+  try {
+    requestOriginPolicy(startedServer);
+  } catch (error) {
+    await new Promise((resolve) => startedServer.close(resolve));
+    throw error;
+  }
   return {
     server: startedServer,
     host,

@@ -42,6 +42,7 @@ import path from 'node:path';
 import { promises as fs, mkdirSync, readdirSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { relayHeadersToServer } from '../serverRequest.mjs';
 
 const execFileAsync = promisify(execFile);
 
@@ -233,7 +234,7 @@ function startFront(productBase) {
     try {
       const chunks = [];
       for await (const chunk of req) chunks.push(chunk);
-      const headers = { ...req.headers };
+      const headers = relayHeadersToServer(req.headers, productBase);
       delete headers.host;
       delete headers['content-length'];
       const upstream = await fetch(`${productBase}${req.url}`, {

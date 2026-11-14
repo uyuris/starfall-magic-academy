@@ -20,7 +20,7 @@
 // 入れない。三つの形のどれでも打撃の外れが出る組の数と、その中で手の数の最も少ない組は manifest の melee_miss に残す。
 //
 // 画面への出し方: 一時ディレクトリの新しいプレイ（routing・案内人 fallen_star・バディーは --unit のバディー）を、この process の中に
-// 起こした作品の server で開き、露台からの本物の送り出しで闘技会へ行き、観戦を選んで、見ずに先へ進む紋で結果の段まで送る（大会は
+// 起こした作品の server で開き、露台からの本物の送り出しで闘技会へ行き、観戦を選んで、見ずに先へ進むアイコンで結果の段まで送る（大会は
 // この使い捨てのプレイの中にだけ立ち、作品の保存には書かない）。表の一回戦のバディーの組と、バディーの出ない一回戦の最初の組の目を押し、
 // その見返しの応答（/api/arena/match/<id>/replay）を CDP の Fetch で、子 process が回した試合の turns に差し替えて渡す。バディーの試合は
 // 画面がバディーを左（自陣）に置くので、表の組の側とバディーの側が違えば、画面が映すのと同じ左右の映しを先にかけて渡す（画面が映し直して
@@ -257,8 +257,23 @@ const FIXTURE_PROMPT_ANSWERS = [
   ['増減したユーザーの所持金を判定する', '0'],
   ['所持金判定', '0']
 ];
-const ARENA_INTRO_MARKER = '次の試合の開始を告げる短い口上を書く。';
+const ARENA_OPENING_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で影が向かい合う。';
 const ARENA_RESULT_MARKER = '結果を告げる実況を一文だけ書く。';
+
+// 試合の五つの声（構造化出力 arena_match_voices）。誰の身に起きたかの名は応答の形に一つに決まっているので、そのまま写す。
+function arenaMatchVoices(schema, opening) {
+  const side = (key, voice) => {
+    const fields = Object.entries(schema.properties[key].properties).filter(([field]) => field !== '声');
+    return { ...Object.fromEntries(fields.map(([field, fixed]) => [field, fixed.enum[0]])), 声: voice };
+  };
+  return {
+    opening,
+    east_edge: side('east_edge', '東方、ついに後がない！'),
+    west_edge: side('west_edge', '西方、ついに後がない！'),
+    east_wins: side('east_wins', '決着だ！東方が勝ち名乗りを上げた！'),
+    west_wins: side('west_wins', '決着だ！西方が勝ち名乗りを上げた！')
+  };
+}
 
 function createFixtureLm(hubLines) {
   return async function answer(body) {
@@ -266,13 +281,13 @@ function createFixtureLm(hubLines) {
     const schemaName = body.response_format?.json_schema?.name ?? null;
     if (schemaName === 'character_emotion_choice') return { kind: schemaName, content: JSON.stringify({ expression: 'neutral' }) };
     if (schemaName === 'work_record_recall_choice') return { kind: schemaName, content: JSON.stringify({ work_record_ids: [] }) };
+    if (schemaName === 'arena_match_voices') return { kind: schemaName, content: JSON.stringify(arenaMatchVoices(body.response_format.json_schema.schema, ARENA_OPENING_LINE)) };
     if (schemaName !== null) throw new Error(`fixture lm: unknown structured request ${schemaName}`);
     if (prompt.includes('destination_idを1つだけ返す')) {
       const matches = Object.entries(hubLines).filter(([, line]) => prompt.includes(line));
       return { kind: 'hub-destination', content: matches.length === 1 ? matches[0][0] : 'none' };
     }
     if (prompt.includes('これはイベントフラグ判定')) return { kind: 'event-flag', content: 'false' };
-    if (prompt.includes(ARENA_INTRO_MARKER)) return { kind: 'arena-intro', content: '夜の闘技場に篝火が揺れ、魔法陣の上で影が向かい合う。' };
     if (prompt.includes(ARENA_RESULT_MARKER)) return { kind: 'arena-result', content: '篝火の円形の場に、この大会の結びが高く告げられた。' };
     for (const [marker, content] of FIXTURE_PROMPT_ANSWERS) if (prompt.includes(marker)) return { kind: marker, content };
     if (body.model === FIXTURE_CHAT_MODEL && body.stream === true) return { kind: 'chat', content: '（顔を上げて）ええ、行ってらっしゃい。' };
@@ -492,7 +507,7 @@ async function walkToArenaResult(ctx) {
   await page.click("document.querySelector('#arena-selection-modes .arena-floor-spot[data-mode=\"spectate\"]')", '観戦の立ち位置');
   await page.waitFor(ENTRY_READY, 'the spectate entrance', LM_WAIT_MS);
   while (!(await page.js(`!!(${RESULT_UP})`))) {
-    await page.click("document.querySelector('#arena-bracket-actions .arena-spectate-skip')", '見ずに先へ進む紋');
+    await page.click("document.querySelector('#arena-bracket-actions .arena-spectate-skip')", '見ずに先へ進むアイコン');
     await page.waitFor(`(${ENTRY_READY} || ${RESULT_UP})`, 'the next entry or the result stage', 15000);
   }
   await page.waitFor(`${settled(ARENA)} && ${RESULT_READY}`, 'the whole bracket revealed', LM_WAIT_MS);
@@ -544,7 +559,7 @@ async function filmReplay(ctx, { group, form, bracketMatch, payload, expectedMar
   const encoded = spawnSync('python3', ['-c', GIF_ENCODER, framesDir, gifPath, String(TICK_MS)], { encoding: 'utf8', cwd: framesDir });
   if (encoded.status !== 0) throw new Error(`gif encoder failed: ${encoded.stderr}`);
   const gif = JSON.parse(encoded.stdout.trim().split('\n').at(-1));
-  await page.click("document.querySelector('#arena-match-back')", '表へ戻る紋');
+  await page.click("document.querySelector('#arena-match-back')", '表へ戻るアイコン');
   await page.waitFor(`(${ARENA_STAGE('bracket')} || ${RESULT_UP}) && ${settled(ARENA)}`, 'the bracket after the replay', 15000);
   const line = { group, form, gif: gifPath, captured_frames: frames.length, captured_ms: frames.at(-1).t, clip, ending, ...gif };
   console.log(`GIF ${JSON.stringify(line)}`);

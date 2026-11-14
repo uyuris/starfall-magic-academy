@@ -23,6 +23,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { serverFetch } from '../serverRequest.mjs';
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const HOST = '127.0.0.1';
@@ -203,7 +204,7 @@ async function startProduct() {
 }
 
 async function postJson(url, body) {
-  const response = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const response = await serverFetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const text = await response.text();
   if (!response.ok) throw new Error(`POST ${url} answered ${response.status}: ${text}`);
   return JSON.parse(text);
@@ -307,7 +308,7 @@ function pageMeasure(screenSelector) {
         actions: [...slot.querySelectorAll('.academy-atelier-slot-actions button')].map((button) => ({ name: button.getAttribute('aria-label'), disabled: button.disabled, title: button.title || null })),
         box: box(slot)
       })),
-      shelf: { name: screen.querySelector('.academy-atelier-shelf-name').textContent, emptyArt: screen.querySelector('#academy-atelier-nameplates-empty').hidden ? null : screen.querySelector('#academy-atelier-nameplates-empty').getAttribute('aria-label'), emptyArtBox: box(screen.querySelector('#academy-atelier-nameplates-empty')), nameplates: screen.querySelectorAll('#academy-atelier-nameplates > li').length },
+      shelf: { name: screen.querySelector('.academy-atelier-shelf-name').textContent, empty: screen.querySelector('#academy-atelier-nameplates-empty').hidden ? null : screen.querySelector('#academy-atelier-nameplates-empty').textContent, emptyBox: box(screen.querySelector('#academy-atelier-nameplates-empty')), nameplates: screen.querySelectorAll('#academy-atelier-nameplates > li').length },
       synthesis: screen.querySelector('#academy-atelier-synthesis-form').hidden ? null : {
         modes: [...screen.querySelectorAll('.academy-atelier-mode')].map((mode) => ({ name: mode.textContent.trim(), checked: mode.querySelector('input').checked })),
         name: screen.querySelector('#academy-atelier-name-input').value,
@@ -514,7 +515,7 @@ async function main() {
       if (scene.name === 'atelier') {
         const cues = [
           { label: '素材の値', box: measure.atelier.materialCount.box },
-          { label: '空の棚', box: measure.atelier.shelf.emptyArtBox }
+          { label: '空の棚', box: measure.atelier.shelf.emptyBox }
         ];
         const marked = await js(`(async () => {
           const img = new Image();

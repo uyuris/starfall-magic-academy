@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fixtureRoot, isolatedServerOptions, readJson, writeJson } from './helpers.mjs';
+import { serverFetch } from './serverRequest.mjs';
 import { pooledLegacyFixtureRoot } from './fixtures/serverFixturePool.mjs';
 import { projectRoot } from './testPaths.mjs';
 import { createServer } from '../src/server.mjs';
@@ -35,7 +36,7 @@ async function withServer(t, serverOptions = {}) {
 }
 
 async function jsonFetch(url, options) {
-  const response = await fetch(url, {
+  const response = await serverFetch(url, {
     headers: { 'content-type': 'application/json', ...(options?.headers ?? {}) },
     ...options,
     body: options?.body && typeof options.body !== 'string' ? JSON.stringify(options.body) : options?.body
@@ -217,7 +218,7 @@ test('slot deletion removes only the selected slot and keeps the others intact',
   const listedBefore = await jsonFetch(`${base}/api/slots`);
   assert.deepEqual(listedBefore.slots.map((slot) => slot.slot_id), [slotA, slotB]);
 
-  const removed = await fetch(`${base}/api/slots/${slotB}`, { method: 'DELETE' });
+  const removed = await serverFetch(`${base}/api/slots/${slotB}`, { method: 'DELETE' });
   assert.equal(removed.ok, true);
 
   await assert.rejects(fs.access(path.join(root, 'game_data/play/slots', slotB)));

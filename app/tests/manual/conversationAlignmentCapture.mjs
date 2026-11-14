@@ -31,6 +31,7 @@ import { createServer as createHttpServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import { serverFetch } from '../serverRequest.mjs';
 
 const SETTLE_MS = 1500;
 const LM_WAIT_MS = 120000;
@@ -495,7 +496,7 @@ async function runDay(ctx) {
 // 薬草温室: 製品の場所の移り（POST /api/field/move）で薬草温室に立ってから field の昼の会話に入り、主人公の短い一言を三度送る。
 async function runGreenhouse(ctx) {
   const { page, product } = ctx;
-  const moved = await fetch(`${product.base}/api/field/move`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ location_id: 'herbology_garden' }) });
+  const moved = await serverFetch(`${product.base}/api/field/move`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ location_id: 'herbology_garden' }) });
   if (!moved.ok) throw new Error(`POST /api/field/move answered ${moved.status}: ${await moved.text()}`);
   ctx.steps.push('POST /api/field/move herbology_garden');
   await page.load(`${product.base}/?initialScreen=conversation-day`);
@@ -558,7 +559,7 @@ async function seedEvent(slot) {
 }
 
 async function postProduct(product, pathname, body) {
-  const response = await fetch(`${product.base}${pathname}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const response = await serverFetch(`${product.base}${pathname}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
   if (!response.ok) throw new Error(`POST ${pathname} answered ${response.status}: ${await response.text()}`);
   return response.json();
 }

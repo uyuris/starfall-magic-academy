@@ -28,6 +28,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { relayHeadersToServer } from '../serverRequest.mjs';
 
 const VIEW = { width: 1440, height: 900 };
 const HOST = '127.0.0.1';
@@ -148,7 +149,7 @@ async function startProduct({ repoRoot, lmConfig }) {
   const productPort = product.address().port;
   const relay = createHttpServer((req, res) => {
     const startedAt = Date.now();
-    const upstream = httpRequest({ host: HOST, port: productPort, method: req.method, path: req.url, headers: req.headers }, (answer) => {
+    const upstream = httpRequest({ host: HOST, port: productPort, method: req.method, path: req.url, headers: relayHeadersToServer(req.headers, `http://${HOST}:${productPort}`) }, (answer) => {
       if (req.url.startsWith('/api/')) answer.on('end', () => console.log(`${new Date().toISOString()} ${req.method} ${req.url} -> ${answer.statusCode} ${Date.now() - startedAt}ms`));
       res.writeHead(answer.statusCode, answer.headers);
       answer.pipe(res);

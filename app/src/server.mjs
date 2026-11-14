@@ -42,6 +42,7 @@ import { canHandleConversationGiftApiRoute, handleConversationGiftApi } from './
 import { canHandleConversationStreamingApiRoute, handleConversationStreamingApi, isConversationOpeningStreamRoute } from './server/conversationStreamingApi.mjs';
 import { sendJson, openSse, sendSseEvent, readBody } from './server/httpHelpers.mjs';
 import { serveStatic } from './server/staticServing.mjs';
+import { refuseRequestHost, refuseRequestOriginOrBody, requestOriginPolicy } from './server/requestOrigin.mjs';
 import { markGraduationEndingComplete, isGraduationEndingContext } from './graduationEnding.mjs';
 import { defaultRuntimePaths } from './runtimePaths.mjs';
 import { createStorageApi } from './storage.mjs';
@@ -704,7 +705,7 @@ export function createServer(options = {}) {
       sendJson(res, { error: 'server is shutting down', error_code: 'server_shutting_down' }, 503);
       return;
     }
-    const handled = handleRequest(req, res, context);
+    const handled = handleRequest(req, res, context, server);
     const request = Promise.allSettled([handled, finished(res)]);
     lifecycle.inFlight.add(request);
     request.then(() => lifecycle.inFlight.delete(request));
@@ -714,9 +715,14 @@ export function createServer(options = {}) {
   return server;
 }
 
-async function handleRequest(req, res, context) {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+async function handleRequest(req, res, context, server) {
   try {
+    const policy = requestOriginPolicy(server);
+    const hostRefusal = refuseRequestHost(req.headers, policy);
+    if (hostRefusal) return sendJson(res, hostRefusal.body, hostRefusal.status);
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const refusal = refuseRequestOriginOrBody({ method: req.method, headers: req.headers, pathname: url.pathname }, policy);
+    if (refusal) return sendJson(res, refusal.body, refusal.status);
     if (url.pathname.startsWith('/api/')) await routeApiWithReadScope(req, res, url, context);
     else await serveStatic(req, res, url, context);
   } catch (error) {
@@ -801,6 +807,12 @@ export async function startServer(options = {}) {
     server.once('listening', handleListening);
     server.listen(port, host);
   });
+  try {
+    requestOriginPolicy(server);
+  } catch (error) {
+    await new Promise((resolve) => server.close(resolve));
+    throw error;
+  }
   const address = server.address();
   const startedHost = typeof address === 'object' && address?.address ? address.address : host;
   const startedPort = typeof address === 'object' && address?.port ? address.port : port;

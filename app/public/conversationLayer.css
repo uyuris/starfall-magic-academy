@@ -20,7 +20,7 @@
    - 舞台の名から開く舞台の詳細は、舞台の覗きと同じく場の上へ溶かす形: 製品の小窓の絵が画面そのものになり、左と下を夜へ溶かして、
      名と様子の一文はその夜の上に直に置く（枠のカードはやめる）。
    - 左の印と開く画面は露台（hubTerrace.css）の形: 床の楕円の光の上の印・字の無い印・夜を一段沈めた帯。印は六つ（製品のまま）。
-   - 動き: 着いた瞬間に場所が見え、少し遅れて人が光の中から現れ、会話を終えると人が光へ溶けて場所が残る（終えるの釦を押してから
+   - 動き: 着いた瞬間に場所が見え、少し遅れて人が光の中から現れ、会話を終えると人が光へ溶けて場所が残る（終えるのボタンを押してから
      製品が会話を閉じるまでの間は conversationLayer.js が持つ）。会話の途中で場所が移ると、人が光へ溶けて消え、地が新しい場所の絵へ
      溶け替わり、少し遅れて人が光の中から現れる（順は conversationLayer.js の stageMoves が持つ）。人の動きは透明度と光だけ。動きを
      減らす設定では切り替えるだけ。 */
@@ -242,7 +242,7 @@
   text-shadow: var(--cl-halo);
 }
 
-/* ── 書く口: 札も枠も置かず、羽根ペンの紋（露台の紋）と下の一本の線で示す ──────────────────────────────── */
+/* ── 書く口: 札も枠も置かず、羽根ペンのアイコン（露台のアイコン）と下の一本の線で示す ──────────────────────────────── */
 #conversation-day-screen[data-conversation-kind] .conversation-day-composer {
   grid-area: composer;
   position: relative;
@@ -298,7 +298,7 @@
 
 #conversation-day-screen[data-conversation-kind] .conversation-day-composer:focus-within .cl-write-mark { opacity: 0.9; }
 
-/* 送る・終えるの二つは、露台の紋の釦（字は aria-label へ）。 */
+/* 送る・終えるの二つは、露台のアイコンのボタン（字は aria-label へ）。 */
 #conversation-day-screen[data-conversation-kind] .conversation-day-button-row {
   grid-area: ways;
   align-self: end;
@@ -551,6 +551,12 @@
 
 #conversation-day-screen[data-conversation-kind] .conversation-day-category-label { display: none; }
 
+/* 帯が開いている間も、左の印は帯の上に出て押せる（露台と同じ手触り。欄の切り替えは共通の部品の openInfo）。外枠の重なりの箱をほどいて、
+   印の列（6）を帯（5）より上に並べる。外枠のほかの中身（言葉 3・上の帯 4）は自分の高さを持ち、帯の下のまま。 */
+#conversation-day-screen[data-conversation-kind]:has(> #conversation-day-info-popup:not([hidden])) .conversation-day-frame {
+  z-index: auto;
+}
+
 /* ── 印から開く画面: 器は共有の夜の帯（.night-band・hubTerrace.css）。ここはほかの欄の中身の見せ方。 ──────────── */
 @keyframes cl-fade-in {
   from { opacity: 0; }
@@ -604,6 +610,68 @@
   border-radius: 50%;
 }
 
+/* 持ち物の「渡す」の確かめ: 帯（.night-band）の上に夜の幕をもう一段かけ、枠を描かずに確かめの一文と字のボタン（やめる・渡す）を置く。
+   露台の帯の確かめと同じ形で、ボタンは帯の持ち物の行の「渡す」と同じ下線の字。幕は帯の中の操作も塞ぐ。帯は会話の種類を問わず同じ
+   部品なので、この確かめも印の無い会話（卒業）の帯で同じ形になる。昼の会話の左の印の列は帯の下にあるので、幕は帯の左の透明な inset
+   を帯の夜のままに残し、その右から深い夜にする（印の列は帯を開いた時と同じ見え方で残る）。 */
+#conversation-day-screen .conversation-day-info-gift-confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(90deg, transparent 0 var(--terrace-band-inset), rgb(5 6 15 / 0.99) calc(var(--terrace-band-inset) + 18px), rgb(5 6 15 / 0.985) calc(100% - var(--terrace-band-fade)), rgb(5 6 15 / 0.62) calc(100% - var(--terrace-band-fade) / 2), transparent 100%);
+}
+
+#conversation-day-screen .conversation-day-info-gift-confirm-card {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  padding: 0 var(--terrace-band-fade) 0 calc(var(--terrace-band-inset) + 22px);
+  text-align: left;
+  text-shadow: var(--terrace-word-halo);
+}
+
+#conversation-day-screen .conversation-day-info-gift-confirm-question {
+  margin: 0;
+  color: var(--terrace-word);
+  font-size: 0.84rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+#conversation-day-screen .conversation-day-info-gift-confirm-row {
+  display: flex;
+  justify-content: flex-start;
+  gap: 28px;
+}
+
+#conversation-day-screen :is(.conversation-day-info-gift-confirm-cancel, .conversation-day-info-gift-confirm-accept) {
+  padding: 2px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--terrace-word-quiet);
+  font-family: inherit;
+  font-size: 0.84rem;
+  letter-spacing: 0.08em;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgb(205 214 234 / 0.4);
+  text-shadow: var(--terrace-word-halo);
+  cursor: pointer;
+}
+
+/* 選んでいるボタン（はじめはやめる）は、マウスで開いても見えるように :focus で灯す。 */
+#conversation-day-screen :is(.conversation-day-info-gift-confirm-cancel, .conversation-day-info-gift-confirm-accept):is(:hover, :focus) {
+  outline: none;
+  color: var(--terrace-word);
+  text-decoration-color: rgb(159 180 255 / 0.8);
+}
+
 /* ── 舞台の名から開く舞台の詳細: 舞台の覗きと同じく場の上へ溶かす（枠のカードはやめる） ─────────────────────
    製品の小窓の絵（#conversation-day-stage-popup-image）を画面そのものにし、製品の小窓の地（押すと閉じる）を絵の左と下を夜へ溶かす
    暗がりにして、名と様子の一文はその夜の上に直に置く。中身と開け閉めは製品の小窓のまま。 */
@@ -651,7 +719,7 @@
   text-shadow: var(--cl-halo);
 }
 
-/* 名・様子の一文の順に、夜の上へ縦に並べる（閉じるの紋は小窓の右上の角）。 */
+/* 名・様子の一文の順に、夜の上へ縦に並べる（閉じるのアイコンは小窓の右上の角）。 */
 #conversation-day-screen[data-conversation-kind] .conversation-day-stage-popup-header { display: contents; }
 
 #conversation-day-screen[data-conversation-kind] :is(.conversation-day-stage-popup-heading, .conversation-day-stage-popup-text) {
@@ -683,7 +751,7 @@
 
 #academy-loading-screen[data-conversation-passage] :is(.academy-loading-backdrop, .academy-loading-copy) { display: none; }
 
-/* 露台の送り出しの幕（行き先の絵・hubTerrace の #terrace-opened）は読み込みの間も上に残る。学院マップへの送り出しの読み込みの下で
+/* 露台の送り出しの幕（絵を持たない夜・hubTerrace の #terrace-opened）は読み込みの間も上に残る。学院マップへの送り出しの読み込みの下で
    出来事の会話が始まると行き先は会話になるので、移り変わりが出ている間は幕を出さない（幕は会話の画面に着いたとき露台が上げる）。 */
 body:has(#academy-loading-screen[data-conversation-passage]) #terrace-opened { display: none; }
 

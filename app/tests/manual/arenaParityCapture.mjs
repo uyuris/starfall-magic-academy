@@ -92,12 +92,28 @@ const FIXTURE_PROMPT_ANSWERS = [
 const ARENA_ANNOUNCE_MARKER = 'あなたは魔法学院の闘技会の場内アナウンスの地の文を綴る。';
 const ARENA_ANNOUNCE_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
 
+// 試合の五つの声（構造化出力 arena_match_voices）。誰の身に起きたかの名は応答の形に一つに決まっているので、そのまま写す。
+function arenaMatchVoices(schema, opening) {
+  const side = (key, voice) => {
+    const fields = Object.entries(schema.properties[key].properties).filter(([field]) => field !== '声');
+    return { ...Object.fromEntries(fields.map(([field, fixed]) => [field, fixed.enum[0]])), 声: voice };
+  };
+  return {
+    opening,
+    east_edge: side('east_edge', '東方、ついに後がない！'),
+    west_edge: side('west_edge', '西方、ついに後がない！'),
+    east_wins: side('east_wins', '決着だ！東方が勝ち名乗りを上げた！'),
+    west_wins: side('west_wins', '決着だ！西方が勝ち名乗りを上げた！')
+  };
+}
+
 function createFixtureLm(hubLines) {
   return function answer(body) {
     const prompt = body.messages.map((message) => message.content ?? '').join('\n');
     const schemaName = body.response_format?.json_schema?.name ?? null;
     if (schemaName === 'character_emotion_choice') return { kind: schemaName, content: JSON.stringify({ expression: 'neutral' }) };
     if (schemaName === 'work_record_recall_choice') return { kind: schemaName, content: JSON.stringify({ work_record_ids: [] }) };
+    if (schemaName === 'arena_match_voices') return { kind: schemaName, content: JSON.stringify(arenaMatchVoices(body.response_format.json_schema.schema, ARENA_ANNOUNCE_LINE)) };
     if (schemaName !== null) throw new Error(`fixture lm: unknown structured request ${schemaName}`);
     if (prompt.includes('destination_idを1つだけ返す')) {
       const matches = Object.entries(hubLines).filter(([, line]) => prompt.includes(line));
@@ -682,6 +698,9 @@ async function dungeonScene(ctx) {
 const ARENA = 'academy-arena-screen';
 const ARENA_STAGE = (stage) => `document.querySelector('#${ARENA}')?.dataset.stage === '${stage}'`;
 const ARENA_DONE = `(${ARENA_STAGE('bracket')} || ${ARENA_STAGE('result')})`;
+// 始まりの一声が出た／出て引いた（引いた後も、試合の面にいる間は声の種類が欄に残る）。
+const ARENA_OPENING_VOICED = "document.querySelector('#arena-voice').dataset.kind === 'opening'";
+const ARENA_OPENING_VOICE_GONE = `(${ARENA_OPENING_VOICED} && document.querySelector('#arena-voice').childNodes.length === 0)`;
 const ARENA_INPUT_READY = `(${ARENA_DONE} || (${ARENA_STAGE('match')} && !document.querySelector('#arena-dock-main').hidden))`;
 
 async function enterArena(ctx, mode) {
@@ -747,7 +766,7 @@ async function arenaSoloScene(ctx) {
   const { page } = ctx;
   await enterArena(ctx, 'solo');
   await startArenaMatch(ctx);
-  await page.waitFor(`document.querySelector('#arena-match-intro')?.dataset.state === 'ready' && ${motionSettled(`#${ARENA}`)} && ${IMAGES_LOADED(`#${ARENA}`)}`, 'the match settled', LM_WAIT_MS);
+  await page.waitFor(`${ARENA_OPENING_VOICE_GONE} && ${motionSettled(`#${ARENA}`)} && ${IMAGES_LOADED(`#${ARENA}`)}`, 'the match settled', LM_WAIT_MS);
   await sleep(SETTLE_MS);
   await page.moveAway();
   const pending = new Set(['slide', 'self', 'foe', ...ELEMENTS.map((el) => `el-${el}`)]);
@@ -804,7 +823,7 @@ async function arenaDownScene(ctx) {
   const { page } = ctx;
   await enterArena(ctx, 'solo');
   await startArenaMatch(ctx);
-  await page.waitFor(`document.querySelector('#arena-match-intro')?.dataset.state === 'ready'`, 'the intro', LM_WAIT_MS);
+  await page.waitFor(ARENA_OPENING_VOICED, 'the opening voice', LM_WAIT_MS);
   await sleep(SETTLE_MS);
   while (!(await page.js(ARENA_DONE))) {
     if (ctx.turn > TURN_LIMIT) throw new Error('arena did not conclude');
@@ -843,7 +862,7 @@ async function arenaPairScene(ctx) {
   const { page } = ctx;
   await enterArena(ctx, 'pair');
   await startArenaMatch(ctx);
-  await page.waitFor(`document.querySelector('#arena-match-intro')?.dataset.state === 'ready'`, 'the intro', LM_WAIT_MS);
+  await page.waitFor(ARENA_OPENING_VOICED, 'the opening voice', LM_WAIT_MS);
   await sleep(SETTLE_MS);
   let allyStrikes = 0;
   while (!(await page.js(ARENA_DONE))) {
@@ -874,13 +893,13 @@ async function arenaPairScene(ctx) {
 }
 
 // 見返し: 表は主人公が戦った回戦までしか結果と見返しの目を出さないので、能力値を上限にした主人公で一回戦を（撃てる魔法の先頭→待機で）
-// 勝って戻り、明かしが済んで試合を始める紋が出た表で、一回戦の自動の組の見返しを全部読み（会心の有無も書く）、一撃のある最初の見返しを
+// 勝って戻り、明かしが済んで試合を始めるアイコンが出た表で、一回戦の自動の組の見返しを全部読み（会心の有無も書く）、一撃のある最初の見返しを
 // 再生して最初の弾を撮る。
 async function arenaReplayScene(ctx) {
   const { page } = ctx;
   await enterArena(ctx, 'solo');
   await startArenaMatch(ctx);
-  await page.waitFor(`document.querySelector('#arena-match-intro')?.dataset.state === 'ready'`, 'the intro', LM_WAIT_MS);
+  await page.waitFor(ARENA_OPENING_VOICED, 'the opening voice', LM_WAIT_MS);
   while (!(await page.js(ARENA_DONE))) {
     if (ctx.turn > TURN_LIMIT) throw new Error('arena did not conclude');
     await page.waitFor(ARENA_INPUT_READY, 'the next input', 10000);
@@ -934,7 +953,7 @@ async function arenaCritScene(ctx) {
   const { page } = ctx;
   await enterArena(ctx, 'solo');
   await startArenaMatch(ctx);
-  await page.waitFor(`document.querySelector('#arena-match-intro')?.dataset.state === 'ready' && ${motionSettled(`#${ARENA}`)} && ${IMAGES_LOADED(`#${ARENA}`)}`, 'the match settled', LM_WAIT_MS);
+  await page.waitFor(`${ARENA_OPENING_VOICE_GONE} && ${motionSettled(`#${ARENA}`)} && ${IMAGES_LOADED(`#${ARENA}`)}`, 'the match settled', LM_WAIT_MS);
   await sleep(SETTLE_MS);
   await page.moveAway();
   await page.js('window.__pc.critNext = true');

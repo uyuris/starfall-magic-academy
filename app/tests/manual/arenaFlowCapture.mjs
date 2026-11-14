@@ -5,7 +5,7 @@
 //
 // <electron> はリポの node_modules/.bin/electron。どの引数も必須で既定値は無い。--repo-root の製品を、OS の一時ディレクトリに作った
 // 新しいプレイ（routing・案内人 fallen_star）の上で、この process の中に起こし、露台からの本物の送り出しで入る。LM は固定応答（知らない
-// 要求は 500 にして撮影ごと止める）。口上と実況一文は続く字で見分け、実況一文は prompt の確定した結果の行を写した一文を返す。
+// 要求は 500 にして撮影ごと止める）。試合の声は構造化出力の名で、実況一文は続く字で見分け、実況一文は prompt の確定した結果の行を写した一文を返す。
 // --out は空でなければ止まる。
 //
 // 瞬間の撮り方: 試合から表へ戻って表が出た時刻を 0 とし、決めた時刻でページの中の動きを全部止め、止めている間に来る setTimeout も
@@ -39,7 +39,7 @@
 //   timing-fold  timing-champion と同じ大会を、表が出るたびにすぐ押して明かしを畳んで測る
 //
 // 手の送り方は「撃てる魔法の札の先頭を押す。撃って誤り（相手が届く所にいない）が返ったら、いちばん近い生きた相手へ差の大きい軸で
-// 一歩寄り、その一歩も誤り（壁）ならもう一方の軸で寄る。それも誤りか撃てる札が無ければ待機。応答のあと 700ms 空けて次を送る」。表では試合を始める紋が出たら
+// 一歩寄り、その一歩も誤り（壁）ならもう一方の軸で寄る。それも誤りか撃てる札が無ければ待機。応答のあと 700ms 空けて次を送る」。表では試合を始めるアイコンが出たら
 // すぐ押す（人の考える時間は入れない）。
 import { app, BrowserWindow, nativeImage } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
@@ -88,19 +88,32 @@ const FIXTURE_PROMPT_ANSWERS = [
   ['増減したユーザーの所持金を判定する', '0'],
   ['所持金判定', '0']
 ];
-const ARENA_INTRO_MARKER = '次の試合の開始を告げる短い口上を書く。';
 const ARENA_RESULT_MARKER = '結果を告げる実況を一文だけ書く。';
-const ARENA_INTRO_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
+const ARENA_OPENING_LINE = '夜の闘技場に篝火が揺れ、魔法陣の上で二つの影が向かい合う。';
+// 試合の五つの声（構造化出力 arena_match_voices）。誰の身に起きたかの名は応答の形に一つに決まっているので、そのまま写す。
+function arenaMatchVoices(schema, opening) {
+  const side = (key, voice) => {
+    const fields = Object.entries(schema.properties[key].properties).filter(([field]) => field !== '声');
+    return { ...Object.fromEntries(fields.map(([field, fixed]) => [field, fixed.enum[0]])), 声: voice };
+  };
+  return {
+    opening,
+    east_edge: side('east_edge', '東方、ついに後がない！'),
+    west_edge: side('west_edge', '西方、ついに後がない！'),
+    east_wins: side('east_wins', '決着だ！東方が勝ち名乗りを上げた！'),
+    west_wins: side('west_wins', '決着だ！西方が勝ち名乗りを上げた！')
+  };
+}
 
+// 一人と二人の大会の結果の頼みは、主人公の最後の一戦の番付・相手・決着の行を持つ。その行を写した、字数の行の上限に収まる短い一文を返す。
 function arenaResultLine(prompt) {
-  const champion = prompt.match(/- この大会の優勝者は (.+)/);
-  const lost = prompt.match(/- 主人公は(.+?)で (.+?) に敗れて姿を消した/);
-  // 二人の大会の敗退（プロンプトに字数の行がある）は、その上限の内側に収まる短い型で返す。
-  if (lost && champion && /長さは\d+字以内。$/.test(prompt)) return `${lost[1]}で${lost[2]}に敗れ、頂に立ったのは${champion[1].trim()}。`;
-  if (lost && champion) return `${lost[1]}で${lost[2]}に阻まれた主人公の名を惜しむ声のなか、星を掲げたのは${champion[1].trim()}だった。`;
-  const final = prompt.match(/- 主人公は決勝で (.+?) を下して優勝した/);
-  if (final) return `決勝で${final[1]}を下した主人公の名が、篝火に照らされた円形の場に高く告げられた。`;
-  throw new Error(`fixture lm: arena result prompt without a known outcome block: ${prompt.slice(-400)}`);
+  const round = prompt.match(/^- 番付: (.+)$/m);
+  const opponent = prompt.match(/^- 相手: (.+)$/m);
+  const settled = prompt.match(/^- 決着: 主人公の側が(勝ち|敗れ)/m);
+  if (!round || !opponent || !settled) throw new Error(`fixture lm: arena result prompt without a known outcome block: ${prompt.slice(-400)}`);
+  const foe = opponent[1].trim().replaceAll(' と ', 'と');
+  if (settled[1] === '勝ち') return `${round[1].trim()}で${foe}を下し、主人公が頂に立った。`;
+  return `${round[1].trim()}で${foe}に阻まれ、主人公の戦いはここで終わった。`;
 }
 
 function createFixtureLm(hubLines) {
@@ -109,13 +122,13 @@ function createFixtureLm(hubLines) {
     const schemaName = body.response_format?.json_schema?.name ?? null;
     if (schemaName === 'character_emotion_choice') return { kind: schemaName, content: JSON.stringify({ expression: 'neutral' }) };
     if (schemaName === 'work_record_recall_choice') return { kind: schemaName, content: JSON.stringify({ work_record_ids: [] }) };
+    if (schemaName === 'arena_match_voices') return { kind: schemaName, content: JSON.stringify(arenaMatchVoices(body.response_format.json_schema.schema, ARENA_OPENING_LINE)) };
     if (schemaName !== null) throw new Error(`fixture lm: unknown structured request ${schemaName}`);
     if (prompt.includes('destination_idを1つだけ返す')) {
       const matches = Object.entries(hubLines).filter(([, line]) => prompt.includes(line));
       return { kind: 'hub-destination', content: matches.length === 1 ? matches[0][0] : 'none' };
     }
     if (prompt.includes('これはイベントフラグ判定')) return { kind: 'event-flag', content: 'false' };
-    if (prompt.includes(ARENA_INTRO_MARKER)) return { kind: 'arena-intro', content: ARENA_INTRO_LINE };
     if (prompt.includes(ARENA_RESULT_MARKER)) return { kind: 'arena-result', content: arenaResultLine(prompt) };
     for (const [marker, content] of FIXTURE_PROMPT_ANSWERS) if (prompt.includes(marker)) return { kind: marker, content };
     if (body.model === FIXTURE_CHAT_MODEL && body.stream === true) return { kind: 'chat', content: '（顔を上げて）ええ、行ってらっしゃい。' };
@@ -300,7 +313,7 @@ const PAGE_TOOLS = `(() => {
     if (!bracket.hidden && af.bracketShownAt === null) { af.bracketShownAt = performance.now(); af.pausedAtShown = af.pausedTotal; af.readyMs = null; af.bracketShows += 1; if (af.watch) af.watch.onShown(); }
     if (bracket.hidden) af.bracketShownAt = null;
   }).observe(bracket, { attributes: true, attributeFilter: ['hidden'] });
-  // 表が出てから、試合を始める紋か結果の段が立つまで（止めていた長さを除く）を、ページの中の時計で測る。
+  // 表が出てから、試合を始めるアイコンか結果の段が立つまで（止めていた長さを除く）を、ページの中の時計で測る。
   const result = document.querySelector('#arena-result');
   const actions = document.querySelector('#arena-bracket-actions');
   const markReady = () => {
@@ -672,7 +685,7 @@ async function clickRingName(ctx) {
 
 // 一試合を送る。reveal: 表へ戻ったときに { offsets, shots: [{file, note}] } の瞬間で止めて撮る。fold: 表が出たらすぐ押して畳む。
 // hud: 盤が出たら、最初の手の前に HUD の名を押して名の窓を撮る。
-// 返すのは試合の記録（表が出てから、試合を始める紋か結果の段が立つまでの長さ ms_bracket_to_ready はページの中の時計で、
+// 返すのは試合の記録（表が出てから、試合を始めるアイコンか結果の段が立つまでの長さ ms_bracket_to_ready はページの中の時計で、
 // 止めていた長さを除く）。
 async function playMatch(ctx, { reveal = null, fold = false, hud = false } = {}) {
   const { page } = ctx;
@@ -937,7 +950,7 @@ const SCENES = {
     await shootSettled(ctx, 'bracket-before', '表（主人公の第一試合の前・構成案の solo-1-entrance と同じ瞬間）', FIGHT_READY);
     await clickRingName(ctx);
     ctx.notes.matches = await playToEnd(ctx, (r) => {
-      if (r === 0) return { hud: true, reveal: asReveal(ADVANCE_SHOTS), after: () => shootSettled(ctx, 'advance-r1-end', '一回戦に勝って戻った表・明かし終わり（試合を始める紋）', FIGHT_READY) };
+      if (r === 0) return { hud: true, reveal: asReveal(ADVANCE_SHOTS), after: () => shootSettled(ctx, 'advance-r1-end', '一回戦に勝って戻った表・明かし終わり（試合を始めるアイコン）', FIGHT_READY) };
       if (r === 1) return { fold: true, after: () => shootSettled(ctx, 'advance-r2-folded', '準々決勝に勝って戻った表・明かしを押して畳んだ後', FIGHT_READY) };
       if (r === 2) return { after: () => shootSettled(ctx, 'advance-r3-end', '準決勝に勝って戻った表・明かし終わり', FIGHT_READY) };
       return { reveal: asReveal(CHAMPION_SHOTS) };
@@ -990,7 +1003,7 @@ const SCENES = {
     await enter(ctx, 'pair');
     await shootSettled(ctx, 'pair-champion-bracket-before', '二人の表（第一試合の前・構成案の pair-1-entrance と同じ瞬間）', FIGHT_READY);
     ctx.notes.matches = await playToEnd(ctx, (r) => {
-      if (r === 0) return { reveal: asReveal(PAIR_ADVANCE_SHOTS), after: async (record) => { if (record.won) await shootSettled(ctx, 'pair-advance-r1-end', '二人の表・一回戦に勝って戻った明かし終わり（試合を始める紋）', FIGHT_READY); } };
+      if (r === 0) return { reveal: asReveal(PAIR_ADVANCE_SHOTS), after: async (record) => { if (record.won) await shootSettled(ctx, 'pair-advance-r1-end', '二人の表・一回戦に勝って戻った明かし終わり（試合を始めるアイコン）', FIGHT_READY); } };
       if (r === 3) return { reveal: asReveal(PAIR_CHAMPION_SHOTS) };
       return {};
     });
@@ -1031,14 +1044,14 @@ const SCENES = {
     const record = await playMatch(ctx, { reveal: asReveal(PAIR_WIN_SHOTS) });
     ctx.notes.matches = [record];
     if (!record.won) throw new Error('the strong pair lost round 1');
-    await shootSettled(ctx, 'pair-win-r1-end', '二人の表・一回戦に勝って戻った明かし終わり（試合を始める紋）', FIGHT_READY);
+    await shootSettled(ctx, 'pair-win-r1-end', '二人の表・一回戦に勝って戻った明かし終わり（試合を始めるアイコン）', FIGHT_READY);
   },
   async 'timing-champion'(ctx) { await timingRun(ctx, { fold: false }); },
   async 'timing-eliminated'(ctx) { await timingRun(ctx, { fold: false }); },
   async 'timing-fold'(ctx) { await timingRun(ctx, { fold: true }); }
 };
 
-// 壁時計: 一人の立ち位置を押してから結果の段が立つまで。表で試合を始める紋が出たらすぐ押す。凍らせない。
+// 壁時計: 一人の立ち位置を押してから結果の段が立つまで。表で試合を始めるアイコンが出たらすぐ押す。凍らせない。
 async function timingRun(ctx, { fold }) {
   const { page } = ctx;
   await walkToHub(ctx);

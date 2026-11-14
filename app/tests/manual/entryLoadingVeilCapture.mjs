@@ -6,8 +6,8 @@
 // <electron> はリポの node_modules/.bin/electron。どの引数も必須で既定値は無い（--before だけは after で並びの一枚を作るときに渡す）。
 // --repo-root の製品（app/src・app/public・data・content・assets）を、OS の一時ディレクトリに作った新しいプレイ（routing・
 // 案内人 fallen_star）の上で、この process の中に起こす。LM は固定応答（FIXTURE の表の閉じた集合）で、知らない要求は 500 にして
-// 撮影ごと止める。--out は無いか空であること。撮った png（コマの連なりは jpg）と、場面ごとの記録（各枚の待ちの紋の段・層の段・
-// 幕と箱と道行きの字の見え方・紋と層の段の変わり目の時刻の列・要求を止めていた区間）を <out>/manifest.json に書く。
+// 撮影ごと止める。--out は無いか空であること。撮った png（コマの連なりは jpg）と、場面ごとの記録（各枚の待ちのアイコンの段・層の段・
+// 幕と箱と道行きの字の見え方・アイコンと層の段の変わり目の時刻の列・要求を止めていた区間）を <out>/manifest.json に書く。
 //
 // 待ちの姿は、その待ちが覆う要求を CDP Fetch の Request 段で止めている間に撮る。
 // variant:
@@ -20,7 +20,7 @@
 //   academy-map 学院マップへ。送り出し → GET /api/field → GET /api/event-flags → 学院マップ（始められる出来事の無い週）。
 //   lounge   談話室へ。送り出し → GET /api/field → 談話室の画面 → POST /api/lounge/enter → 最初の人の言葉。
 //   auction  競売場へ。送り出し → GET /api/field → 競売場の画面 → GET /api/auction/state → POST /api/auction/enter → 口上。
-//   dungeon  実践へ。送り出し（露台の夜を沈めた幕）→ GET /api/field → 入口の画面 →「潜る」→ POST /api/dungeon/enter → 盤。
+//   dungeon  実践へ。送り出し（夜の幕）→ GET /api/field → 入口の画面 →「潜る」→ POST /api/dungeon/enter → 盤。
 //   load     タイトル → ロード → セーブの足跡 → 星の道（POST /api/routing/hub/start を止める）→ 露台。
 //   new-game タイトル → 新しいゲーム → 星の道（同上）→ 露台。
 //   graduation-load 第 50 週の露台で案内人を締めくくり相手に選び、頁を読み直してそのセーブをロードする（今の木では露台へ戻る
@@ -289,7 +289,7 @@ async function startProduct(repoRoot) {
 }
 
 // ── 窓（CDP） ────────────────────────────────────────────────────────────────────────────────────────────────
-// 待ちの記録: 読み込みの箱の星座の線の本数と、層と待ちの紋の段の変わり目を、ページの時計で残す。
+// 待ちの記録: 読み込みの箱の星座の線の本数と、層と待ちのアイコンの段の変わり目を、ページの時計で残す。
 const INSTALL_TIMELINE = `(() => {
   if (window.__veilTimeline) return true;
   window.__veilTimeline = [];
@@ -308,7 +308,7 @@ const INSTALL_TIMELINE = `(() => {
   return true;
 })()`;
 
-// いまの待ちの姿: 層の段・待ちの紋の段（回っている turning／薄れている leaving／出ていない null）・読み込みの箱が見えているか・いま出ている画面。
+// いまの待ちの姿: 層の段・待ちのアイコンの段（回っている turning／薄れている leaving／出ていない null）・読み込みの箱が見えているか・いま出ている画面。
 const WAIT_STATE = `(() => {
   const veil = document.querySelector('#place-veil');
   const box = document.querySelector('#academy-loading-screen .academy-loading-copy');
@@ -335,7 +335,7 @@ const WAIT_STATE = `(() => {
     loaderLines: loaderActive ? Number(document.querySelector('#academy-loading-constellation').dataset.constellationRevealed ?? 0) : null,
     boxVisible: boxOpacity > 0.05,
     boxText: boxOpacity > 0.05 ? box.textContent.replace(/\\s+/g, ' ').trim() : null,
-    curtain: curtain && !curtain.hidden ? { opacity: Number(getComputedStyle(curtain).opacity), night: curtain.classList.contains('is-night') } : null,
+    curtain: curtain && !curtain.hidden ? { opacity: Number(getComputedStyle(curtain).opacity) } : null,
     journeyScene: journey ? journey.dataset.scene ?? null : null,
     roadOpacity,
     roadText: roadOpacity > 0.05 ? road.textContent.replace(/\\s+/g, ' ').trim() : null
@@ -595,7 +595,7 @@ function startFilm(ctx, prefix) {
   };
 }
 
-// 止めた要求の間に一枚: 覆い（場所の絵の上の待ち・読み込みの箱）が上がるのを待ち、紋が現れきるのを待ってから撮る。after は連なりの
+// 止めた要求の間に一枚: 覆い（場所の絵の上の待ち・読み込みの箱）が上がるのを待ち、アイコンが現れきるのを待ってから撮る。after は連なりの
 // 合間に撮り、止めたままもう少し連なりを流してから返す（要求の進まない区間をコマに残す）。
 async function shootHeld(ctx, held, film, file, note) {
   await held.paused;
@@ -659,7 +659,7 @@ const SCENES = {
     await walkToHub(ctx);
     const field = await holdDispatchField(page);
     const film = await sendOff(ctx, 'lounge');
-    if (film) await shootHeld(ctx, field, film, 'lounge-wait-a', '談話室へ: 送り出しのあとの GET /api/field を止めている間（幕が地）');
+    if (film) await shootHeld(ctx, field, film, 'lounge-wait-a', '談話室へ: 送り出しのあとの GET /api/field を止めている間（行き先の絵の層）');
     const enter = await page.hold('/api/lounge/enter', { method: 'POST' });
     await field.release();
     await shootHeld(ctx, enter, film, options.variant === 'before' ? 'lounge-box' : 'lounge-wait-b', '談話室へ: POST /api/lounge/enter を止めている間（談話室の画面が地）');
@@ -673,7 +673,7 @@ const SCENES = {
     await walkToHub(ctx);
     const field = await holdDispatchField(page);
     const film = await sendOff(ctx, 'auction');
-    if (film) await shootHeld(ctx, field, film, 'auction-wait-a', '競売場へ: 送り出しのあとの GET /api/field を止めている間（幕が地）');
+    if (film) await shootHeld(ctx, field, film, 'auction-wait-a', '競売場へ: 送り出しのあとの GET /api/field を止めている間（行き先の絵の層）');
     const enter = await page.hold('/api/auction/enter', { method: 'POST' });
     await field.release();
     await shootHeld(ctx, enter, film, options.variant === 'before' ? 'auction-box' : 'auction-wait-b', '競売場へ: POST /api/auction/enter を止めている間（競売場の画面が地）');
@@ -687,7 +687,7 @@ const SCENES = {
     await walkToHub(ctx);
     const field = await holdDispatchField(page);
     const sendFilm = await sendOff(ctx, 'dungeon');
-    await shootHeld(ctx, field, sendFilm, options.variant === 'before' ? 'dungeon-dispatch-box' : 'dungeon-dispatch-wait', '実践へ: 送り出しのあとの GET /api/field を止めている間（露台の夜を沈めた幕が地）');
+    await shootHeld(ctx, field, sendFilm, options.variant === 'before' ? 'dungeon-dispatch-box' : 'dungeon-dispatch-wait', '実践へ: 送り出しのあとの GET /api/field を止めている間（行き先の絵の層）');
     await field.release();
     await page.waitFor("document.querySelector('#academy-dungeon-screen.active') && !document.querySelector('#dungeon-dive').disabled", 'the dungeon entrance', LM_WAIT_MS);
     if (sendFilm) await sendFilm.stop();

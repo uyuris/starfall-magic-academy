@@ -8,7 +8,7 @@
 // content・assets）を、OS の一時ディレクトリに作った新しいプレイ（routing・案内人 fallen_star）の上で、この process の中に起こす。
 // LM は固定応答（FIXTURE の表の閉じた集合）で、知らない要求は 500 にして撮影ごと止める。ロードの前に、一時のセーブへ相棒を一人
 // （content/characters の連番で最初の選べる人）と、実践の消耗品を二品（定義を item_id 順に見て属性の違う最初の二品を 2 個と 1 個）
-// 持たせる。--plan は構成案の絵で、潜るの紋のあたりの同じ矩形を構成案と作った画面から切り出して並べるのに使う。--out にある file は
+// 持たせる。--plan は構成案の絵で、潜るのアイコンのあたりの同じ矩形を構成案と作った画面から切り出して並べるのに使う。--out にある file は
 // 上書きせずに止まる。
 //
 // 撮るもの（--out の中）:
@@ -19,7 +19,7 @@
 //   companion-unavailable.png   止めた入場を落とし、潜るのに失敗した後の入る前（同行できない姿）。製品のサーバは LM の設定を一度読むと
 //                               持ち続けるので、失敗の後の読み直しの GET /api/dungeon/availability だけを CDP Fetch で止め、製品の
 //                               evaluateDungeonLlmAvailability が設定の無いときに返す本文（LM 未設定）で答える。
-//   stairs-sigil-pair.png       潜るの紋のあたり（SIGIL_RECT）を、左 = 構成案・右 = arrived.png で等倍に並べた一枚。
+//   stairs-sigil-pair.png       潜るのアイコンのあたり（SIGIL_RECT）を、左 = 構成案・右 = arrived.png で等倍に並べた一枚。
 //   record.json                 通った道・撮った枚ごとの見えている字と読み上げの名・字の分類・要素の矩形・待ちの地の計算値・秒数。
 import { app, BrowserWindow, nativeImage } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
@@ -34,7 +34,7 @@ const SCENE_LIMIT_MS = 300000;
 // 札の動きのコマ: JPEG を FILM_FRAME_MS ごとに。押下はコマの合間に順に送る（撮影と重ねると取りこぼされる）。
 const FILM_FRAME_MS = 70;
 const FILM_JPEG_QUALITY = 85;
-// 潜るの紋のあたりの矩形（1440x900 の窓の座標）: アーチの奥の段と紋。
+// 潜るのアイコンのあたりの矩形（1440x900 の窓の座標）: アーチの奥の段とアイコン。
 const SIGIL_RECT = { x: 541, y: 338, width: 360, height: 260 };
 const PAIR_GAP = 16;
 const HOST = '127.0.0.1';
@@ -363,7 +363,7 @@ const STOPPED_AT = `({
   veil: document.querySelector('#place-veil')?.hidden ? null : document.querySelector('#place-veil')?.dataset.veil ?? null
 })`;
 
-// 見えている字（実効の不透明度 0.05 超・窓の内側・上に別の要素が重なっていない）と、見えている要素の読み上げの名と、字を持つ釦。
+// 見えている字（実効の不透明度 0.05 超・窓の内側・上に別の要素が重なっていない）と、見えている要素の読み上げの名と、字を持つボタン。
 const VISIBLE_TEXT = `(() => {
   const opacityOf = (el) => { let o = 1; for (let e = el; e && e.nodeType === 1; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === 'none') return 0; o *= parseFloat(cs.opacity); } return o; };
   const visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.color !== 'rgba(0, 0, 0, 0)' && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth && opacityOf(el) > 0.05 && !el.closest('[hidden]'); };
@@ -536,7 +536,7 @@ async function filmCompanionToggle(ctx) {
   ctx.steps.push('film the companion card: hover → press (solo)');
 }
 
-// 潜るの紋のあたりを、構成案と作った画面から同じ矩形で切り出して左右に並べる（等倍）。
+// 潜るのアイコンのあたりを、構成案と作った画面から同じ矩形で切り出して左右に並べる（等倍）。
 async function sigilPair(ctx, arrivedBytes) {
   const plan = nativeImage.createFromPath(ctx.options.plan);
   const size = plan.getSize();

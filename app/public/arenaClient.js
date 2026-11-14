@@ -27,6 +27,10 @@ export const ARENA_PHASES = Object.freeze(['selection', 'tournament']);
 export const ARENA_BRACKET_UNIT_COUNT = 16;
 export const ARENA_ROUND_COUNT = 4;
 
+// 結果の段に出す回戦の名（一回戦から決勝まで、回戦の番号の順）。
+export const ARENA_ROUND_NAMES = Object.freeze(['一回戦', '準々決勝', '準決勝', '決勝']);
+if (ARENA_ROUND_NAMES.length !== ARENA_ROUND_COUNT) throw new Error('ARENA_ROUND_NAMES must have one name per round');
+
 // The tournament outcomes and their headline labels (arenaTournament.mjs ARENA_OUTCOMES). A spectated outcome
 // is the buddy's run seen from the stands. Unknown outcome throws (no default label).
 export const ARENA_OUTCOMES = Object.freeze(['champion', 'eliminated', 'spectated_champion', 'spectated_eliminated']);
@@ -371,13 +375,20 @@ export function validateArenaContentResult(detail) {
   return { outcome: detail.outcome, mode: detail.mode, wins: detail.wins, prize_money: detail.prize_money, materials: validatedMaterials };
 }
 
-// Validate the POST /api/arena/match/intro envelope: the match id + the generated 口上. A malformed / empty
-// intro fails fast before the intro banner paints (no silent blank flavor).
-export function validateArenaIntroResponse(payload) {
-  arenaObject(payload, 'arena intro');
+// The five voices one match carries (east = team a, west = team b), mirroring the backend closed set
+// (arenaTournament.mjs ARENA_VOICE_KEYS).
+const ARENA_VOICE_KEYS = Object.freeze(['opening', 'east_edge', 'west_edge', 'east_wins', 'west_wins']);
+
+// Validate the POST /api/arena/match/voices envelope: the match id + exactly the five voices, each a non-empty
+// string. A missing / empty / extra voice fails fast before any voice paints (no silent blank voice).
+export function validateArenaVoicesResponse(payload) {
+  arenaObject(payload, 'arena voices');
+  arenaObject(payload.voices, 'voices.voices');
+  const extra = Object.keys(payload.voices).filter((key) => !ARENA_VOICE_KEYS.includes(key));
+  if (extra.length) throw new Error(`arena: voices.voices carries unknown keys ${extra.join('/')}`);
   return {
-    match_id: arenaString(payload.match_id, 'intro.match_id'),
-    intro: arenaString(payload.intro, 'intro.intro')
+    match_id: arenaString(payload.match_id, 'voices.match_id'),
+    voices: Object.fromEntries(ARENA_VOICE_KEYS.map((key) => [key, arenaString(payload.voices[key], `voices.voices.${key}`)]))
   };
 }
 

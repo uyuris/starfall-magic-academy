@@ -19,21 +19,23 @@ export const ARENA_MODES = Object.freeze(['solo', 'pair', 'spectate']);
 export const ARENA_BRACKET_UNIT_COUNT = 16;
 export const ARENA_ROUND_COUNT = 4; // 8 -> 4 -> 2 -> 1; the champion wins 4 matches.
 export const ARENA_TOURNAMENT_STATE_KEY = 'routing_arena_tournament';
-// The slot carries the LLM flavor persistence (match_intros / result_flavor), so a schema bump.
-const ARENA_SLOT_VERSION = 2;
+// The slot carries the LLM flavor persistence (match_voices / result_flavor).
+const ARENA_SLOT_VERSION = 3;
 
-// The per-round 番付 labels woven into the match-intro 口上 (§3 {round_label}) — the same vocabulary the frontend
+// The per-round 番付 labels handed to the match voices and the result line — the same vocabulary the frontend
 // bracket labels use. One label per round; the last is the final.
 export const ARENA_ROUND_LABELS = Object.freeze(['1回戦', '準々決勝', '準決勝', '決勝']);
 if (ARENA_ROUND_LABELS.length !== ARENA_ROUND_COUNT) {
   throw new Error('ARENA_ROUND_LABELS must have one label per round');
 }
-// The 形式 label woven into the intro 口上 (§3 {format_label}): 1v1 / 2v2 by unit size.
+// The 形式 label handed to the match voices: 1v1 / 2v2 by unit size.
 const ARENA_FORMAT_LABELS = Object.freeze({ 1: '一対一', 2: '二対二' });
 const ARENA_STATUSES = Object.freeze(['active', 'concluded']);
 const ARENA_ACTOR_KINDS = Object.freeze(['protagonist', 'character', 'homunculus']);
 const ARENA_CONTROLLERS = Object.freeze(['player', 'ai']);
 export const ARENA_OUTCOMES = Object.freeze(['champion', 'eliminated', 'spectated_champion', 'spectated_eliminated']);
+// The five moments a match's voices cover, in slot order. east = team a (東方), west = team b (西方).
+export const ARENA_VOICE_KEYS = Object.freeze(['opening', 'east_edge', 'west_edge', 'east_wins', 'west_wins']);
 
 // A fixed base mixed with elapsed_weeks into the tournament's week seed, so a new week is a new bracket
 // and the same week is byte-identical. Tunable.
@@ -268,10 +270,10 @@ export function createArenaTournamentSlot({ seed, week, mode, playerUnit, oppone
     current_match_id: null,
     outcome: null,
     content_result: null,
-    // LLM flavor persistence (idempotent): a per-match intro map (match_id -> 口上) and the single tournament
-    // result flavor 一文. Independent of the combat / reward / terminal commit — a flavor generation failure never
-    // touches these being empty.
-    match_intros: {},
+    // LLM flavor persistence (idempotent): a per-match voices map (match_id -> the five voices) and the single
+    // tournament result flavor 一文. Independent of the combat / reward / terminal commit — a flavor generation
+    // failure never touches these being empty.
+    match_voices: {},
     result_flavor: null
   };
 }
@@ -304,7 +306,7 @@ function buildBracketSkeleton({ seed, leafOrder }) {
 const SLOT_KEYS = Object.freeze([
   'version', 'week', 'seed', 'mode', 'status', 'rewards_paid', 'player_unit_id',
   'leaf_order', 'units', 'matches', 'current_match', 'current_match_id', 'outcome', 'content_result',
-  'match_intros', 'result_flavor'
+  'match_voices', 'result_flavor'
 ]);
 
 function assertExactKeys(value, expectedKeys, label) {
@@ -365,20 +367,29 @@ export function validateArenaTournamentSlot(slot) {
   return slot;
 }
 
-// The LLM flavor fields: match_intros is a plain map of known match_id -> non-empty 口上 string; result_flavor is
-// a non-empty 一文 or null. Malformed shape / unknown match id fails fast (no silent normalization).
+// The LLM flavor fields: match_voices is a plain map of known match_id -> exactly the five voices (each a
+// non-empty string); result_flavor is a non-empty 一文 or null. Malformed shape / unknown match id fails fast
+// (no silent normalization).
 function validateFlavorFields(slot) {
-  const intros = slot.match_intros;
-  if (!intros || typeof intros !== 'object' || Array.isArray(intros)) {
-    throw new Error('arena tournament slot match_intros must be an object');
+  const voicesByMatch = slot.match_voices;
+  if (!voicesByMatch || typeof voicesByMatch !== 'object' || Array.isArray(voicesByMatch)) {
+    throw new Error('arena tournament slot match_voices must be an object');
   }
   const matchIds = new Set(slot.matches.map((match) => match.match_id));
-  for (const [matchId, intro] of Object.entries(intros)) {
-    if (!matchIds.has(matchId)) throw new Error(`arena tournament slot match_intros references an unknown match: ${matchId}`);
-    if (typeof intro !== 'string' || !intro.trim()) throw new Error(`arena tournament slot match_intros[${matchId}] must be a non-empty string`);
+  for (const [matchId, voices] of Object.entries(voicesByMatch)) {
+    if (!matchIds.has(matchId)) throw new Error(`arena tournament slot match_voices references an unknown match: ${matchId}`);
+    assertMatchVoices(voices, `arena tournament slot match_voices[${matchId}]`);
   }
   if (slot.result_flavor !== null && (typeof slot.result_flavor !== 'string' || !slot.result_flavor.trim())) {
     throw new Error('arena tournament slot result_flavor must be a non-empty string or null');
+  }
+}
+
+function assertMatchVoices(voices, label) {
+  if (!voices || typeof voices !== 'object' || Array.isArray(voices)) throw new Error(`${label} must be an object`);
+  assertExactKeys(voices, ARENA_VOICE_KEYS, label);
+  for (const key of ARENA_VOICE_KEYS) {
+    if (typeof voices[key] !== 'string' || !voices[key].trim()) throw new Error(`${label}.${key} must be a non-empty string`);
   }
 }
 
@@ -682,11 +693,21 @@ function isResolvedAutoMatch(slot, match) {
   return !isPlayerMatch;
 }
 
-// The match a player-facing intro can be generated for: the player's current interactive match (unresolved, both
+// A match side as the voice prompt carries it: the members that may be named, and whether the player fights on
+// it (the protagonist is never named — the prompt carries it as the unnamed entrant).
+function voiceSide(slot, unitId) {
+  const actors = unitById(slot, unitId).actors;
+  return {
+    names: actors.filter((actor) => actor.kind !== 'protagonist').map((actor) => actor.name),
+    unnamedPlayer: actors.some((actor) => actor.kind === 'protagonist')
+  };
+}
+
+// The match player-facing voices can be generated for: the player's current interactive match (unresolved, both
 // participants known) or a resolved auto (spectator-replayable) match. A future-round match with an undetermined
-// participant, or a resolved player match (no re-generation — the persisted intro is returned by the caller
+// participant, or a resolved player match (no re-generation — the persisted voices are returned by the caller
 // before this gate), fails fast.
-export function findArenaIntroMatch(slot, matchId) {
+export function findArenaVoicesMatch(slot, matchId) {
   const match = matchById(slot, matchId);
   if (!match) {
     const error = new Error(`arena match not found: ${matchId}`);
@@ -699,17 +720,18 @@ export function findArenaIntroMatch(slot, matchId) {
     throw error;
   }
   if (!isPlayerInteractiveMatch(slot, match) && !isResolvedAutoMatch(slot, match)) {
-    const error = new Error(`arena match has no player-facing intro: ${matchId}`);
+    const error = new Error(`arena match has no player-facing voices: ${matchId}`);
     error.statusCode = 409;
     throw error;
   }
   return match;
 }
 
-// The intro prompt inputs for a viewable match (§3/§5): 番付 / 形式 / 東方 / 西方 display strings from the bracket,
-// plus the visit's prior intros for the 散らし handoff. team_a is 東方, team_b is 西方 (bracket order preserved).
-export function arenaIntroPromptInputs(slot, matchId) {
-  const match = findArenaIntroMatch(slot, matchId);
+// The voices prompt inputs for a viewable match: 番付 / 形式 display strings, the two sides (team_a is 東方,
+// team_b is 西方 — bracket order preserved), the tournament seed and the match's round (pick the opening's angle and
+// shape and every side moment's shape).
+export function arenaVoicesPromptInputs(slot, matchId) {
+  const match = findArenaVoicesMatch(slot, matchId);
   const unitSize = arenaUnitSizeForMode(slot.mode);
   const formatLabel = ARENA_FORMAT_LABELS[unitSize];
   if (!formatLabel) throw new Error(`arena has no format label for unit size ${unitSize}`);
@@ -717,12 +739,11 @@ export function arenaIntroPromptInputs(slot, matchId) {
   if (!roundLabel) throw new Error(`arena has no round label for round ${match.round}`);
   return {
     roundLabel,
+    roundIndex: match.round,
     formatLabel,
-    eastNames: unitDisplayName(slot, match.team_a_unit_id),
-    westNames: unitDisplayName(slot, match.team_b_unit_id),
-    priorIntros: Object.entries(slot.match_intros)
-      .filter(([id]) => id !== matchId)
-      .map(([, intro]) => intro)
+    east: voiceSide(slot, match.team_a_unit_id),
+    west: voiceSide(slot, match.team_b_unit_id),
+    tournamentSeed: slot.seed
   };
 }
 
@@ -738,9 +759,18 @@ function playerDefeatMatch(slot) {
   return match;
 }
 
-// The result-flavor prompt inputs for a terminal tournament (§4/§5): the outcome, the tournament mode (the pair
-// elimination line has a 字数 cap) plus the outcome-specific names — ALWAYS resolving the real champion so it can be
-// named in every branch (§7-1 忠実性の要).
+// The buddy's name for the result line: the pair's non-protagonist actor, or the spectated unit (the buddy alone).
+function resultBuddyName(slot) {
+  if (slot.mode === 'spectate') return unitDisplayName(slot, slot.player_unit_id);
+  const buddies = unitById(slot, slot.player_unit_id).actors.filter((actor) => actor.kind !== 'protagonist');
+  if (buddies.length !== 1) throw new Error(`arena result flavor: a pair unit must hold exactly one buddy, got ${buddies.length}`);
+  return buddies[0].name;
+}
+
+// The result-flavor prompt inputs for a terminal tournament: the outcome, the tournament mode, and the
+// outcome-specific names. A solo / pair result names the player's own last match (the final's opponent, or the
+// defeat 番付 and opponent) and, in a pair, the buddy, and carries the tournament seed (picks the line's opening
+// angle); a spectated elimination also resolves the real champion.
 export function arenaResultPromptInputs(slot) {
   const outcome = arenaTournamentOutcome(slot); // throws if not terminal
   const finalMatch = slot.matches.find((match) => match.round === ARENA_ROUND_COUNT - 1);
@@ -748,36 +778,34 @@ export function arenaResultPromptInputs(slot) {
     throw new Error('arena result flavor: the final is not resolved');
   }
   const championUnitId = finalMatch.winner_unit_id;
-  const inputs = { outcome, mode: slot.mode, championName: unitDisplayName(slot, championUnitId) };
+  const inputs = { outcome, mode: slot.mode };
+  if (slot.mode !== 'spectate') inputs.tournamentSeed = slot.seed;
+  if (slot.mode !== 'solo') inputs.buddyName = resultBuddyName(slot);
   if (outcome === 'champion') {
     const finalistUnitId = finalMatch.team_a_unit_id === championUnitId ? finalMatch.team_b_unit_id : finalMatch.team_a_unit_id;
     inputs.finalistName = unitDisplayName(slot, finalistUnitId);
-  } else if (outcome === 'spectated_champion') {
-    inputs.buddyName = unitDisplayName(slot, slot.player_unit_id);
-  } else {
+  } else if (outcome !== 'spectated_champion') {
     const defeatMatch = playerDefeatMatch(slot);
     inputs.defeatRoundLabel = ARENA_ROUND_LABELS[defeatMatch.round];
     inputs.defeaterName = unitDisplayName(slot, defeatMatch.winner_unit_id);
-    if (outcome === 'spectated_eliminated') inputs.buddyName = unitDisplayName(slot, slot.player_unit_id);
+    if (outcome === 'spectated_eliminated') inputs.championName = unitDisplayName(slot, championUnitId);
   }
   return inputs;
 }
 
-// Reader: the persisted intro for a match (null when not yet generated).
-export function arenaMatchIntro(slot, matchId) {
-  const intro = slot.match_intros[matchId];
-  return typeof intro === 'string' && intro.trim() ? intro : null;
+// Reader: the persisted voices for a match (null when not yet generated).
+export function arenaMatchVoices(slot, matchId) {
+  return Object.prototype.hasOwnProperty.call(slot.match_voices, matchId) ? { ...slot.match_voices[matchId] } : null;
 }
 
-// Idempotent writer: returns a validated slot with the match intro recorded. Re-recording an already-present
-// intro is a no-op (never a re-generation — the first generation is the persisted truth).
-export function setArenaMatchIntro(slot, matchId, intro) {
-  findArenaIntroMatch(slot, matchId); // the intro must belong to a viewable match
-  const existing = arenaMatchIntro(slot, matchId);
-  if (existing) return validateArenaTournamentSlot(slot);
-  const trimmed = typeof intro === 'string' ? intro.trim() : '';
-  if (!trimmed) throw new Error('arena match intro must be a non-empty string');
-  return validateArenaTournamentSlot({ ...slot, match_intros: { ...slot.match_intros, [matchId]: trimmed } });
+// Idempotent writer: returns a validated slot with the match voices recorded. Re-recording a match that already has
+// voices is a no-op (never a re-generation — the first generation is the persisted truth).
+export function setArenaMatchVoices(slot, matchId, voices) {
+  findArenaVoicesMatch(slot, matchId); // the voices must belong to a viewable match
+  if (arenaMatchVoices(slot, matchId)) return validateArenaTournamentSlot(slot);
+  assertMatchVoices(voices, `arena match voices for ${matchId}`);
+  const recorded = Object.fromEntries(ARENA_VOICE_KEYS.map((key) => [key, voices[key].trim()]));
+  return validateArenaTournamentSlot({ ...slot, match_voices: { ...slot.match_voices, [matchId]: recorded } });
 }
 
 // Reader: the persisted tournament result flavor (null when not yet generated).

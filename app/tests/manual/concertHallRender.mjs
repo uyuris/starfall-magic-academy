@@ -51,6 +51,7 @@ import { promises as fs } from 'node:fs';
 import { createServer as createHttpServer } from 'node:http';
 import { createServer as createTcpServer } from 'node:net';
 import { execFileSync } from 'node:child_process';
+import { serverFetch } from '../serverRequest.mjs';
 
 // ── CLI (required, absolute, no defaults) ─────────────────────────────────────────────────────────────────────
 function parseArgs(argv) {
@@ -571,7 +572,7 @@ async function click(win, selector) {
 }
 
 async function fetchJson(url, init) {
-  const response = await fetch(url, init);
+  const response = await serverFetch(url, init);
   if (!response.ok) throw new Error(`${url} → ${response.status} ${await response.text()}`);
   return response.json();
 }

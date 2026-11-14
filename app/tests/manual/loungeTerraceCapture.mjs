@@ -16,7 +16,7 @@
 //   lounge-leaving       談話室を出る瞬間（出るを押し、POST /api/lounge/end を止めている間。談話室の絵の上の待ち）
 //   lounge-compare       構成案（左）と lounge-long（右）を並べた一枚（2880x900）
 // 三人が同時に話す場面は製品に無い（一人ずつ順に話す）ので撮らない。
-// 談話室の画面の DOM の照合（週の字・月相の紋・説明の文・字の釦・顔の札の付いた言葉の箱が無いこと）を lounge-long の時点で一度行い、
+// 談話室の画面の DOM の照合（週の字・月相のアイコン・説明の文・字のボタン・顔の札の付いた言葉の箱が無いこと）を lounge-long の時点で一度行い、
 // 撮った各枚の席・言葉の記録と一緒に <out>/manifest.json に書く。
 import { app, BrowserWindow } from 'electron';
 import { createServer as createHttpServer } from 'node:http';
@@ -394,7 +394,7 @@ const LOUNGE_RECORD = `(() => {
   };
 })()`;
 
-// 談話室の画面の DOM の照合（閉じた popup の中は数えない）: 週の字・月相の紋・説明の文・字の釦・顔の札の付いた言葉の箱。
+// 談話室の画面の DOM の照合（閉じた popup の中は数えない）: 週の字・月相のアイコン・説明の文・字のボタン・顔の札の付いた言葉の箱。
 const DOM_AUDIT = `(() => {
   const screen = document.querySelector('#academy-lounge-screen');
   const open = (el) => !el.closest('[hidden]');
@@ -448,7 +448,7 @@ async function walkToHub({ page, product, steps }) {
   steps.push('title → ロード → slot → terrace');
 }
 
-// 主人公の手番で一言を書いて送る（書く口を押して書き、送るの紋を押す）。三人が話し終えて手番が戻るまで待つ。
+// 主人公の手番で一言を書いて送る（書く口を押して書き、送るのアイコンを押す）。三人が話し終えて手番が戻るまで待つ。
 async function playerTurn(ctx, line) {
   const { page } = ctx;
   const before = await page.js(PLAYER_WORDS);
@@ -492,7 +492,7 @@ async function run(ctx) {
   await page.waitFor("document.querySelectorAll('#academy-lounge-seats .lounge-seat[data-departed]').length === 1", 'the departed seat', 30000);
   await settleLounge(ctx);
   await ctx.shoot('lounge-departed', '途中で一人が退出した後の姿（その人の席は空いたまま）');
-  // 出る瞬間: 出るの紋を押し、POST /api/lounge/end を止めている間（談話室の絵の上の待ち）。
+  // 出る瞬間: 出るのアイコンを押し、POST /api/lounge/end を止めている間（談話室の絵の上の待ち）。
   const end = await page.hold('/api/lounge/end', 'POST');
   await page.click("document.querySelector('#academy-lounge-end')", 'lounge leave mark');
   ctx.steps.push('press 出る (POST /api/lounge/end held)');
@@ -534,7 +534,7 @@ async function writeComparison(options) {
     const left = new URL(`file://${options.plan}`).href;
     const right = new URL(`file://${path.join(options.out, 'lounge-long.png')}`).href;
     const html = `<html><body style="margin:0;background:#000"><div style="display:flex;width:${width}px;height:${VIEWPORT.height}px"><img style="width:${VIEWPORT.width}px;height:${VIEWPORT.height}px" src="${left}"><img style="width:${VIEWPORT.width}px;height:${VIEWPORT.height}px" src="${right}"></div></body></html>`;
-    const page = path.join(scratch, 'compare.html');
+    const page = path.join(scratch, 'pair-capture.html');
     await fs.writeFile(page, html, 'utf8');
     await win.loadFile(page);
     await win.webContents.executeJavaScript('Promise.all([...document.images].map((img) => img.decode()))');
